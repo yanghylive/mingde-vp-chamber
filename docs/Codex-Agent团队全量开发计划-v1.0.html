@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Codex Agent 团队全量开发计划 v1.0</title>
+<link rel="stylesheet" href="project-docs.css">
+<style>
+.plan-cover{padding:62px 0 48px;background:#18344c;color:#fff}.plan-cover h1{max-width:900px;margin:8px 0 18px;font-size:48px;line-height:1.14;letter-spacing:0}.plan-cover .lead{max-width:870px}.cover-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;margin-top:34px;padding-top:22px;border-top:1px solid rgba(255,255,255,.2)}.cover-grid small,.cover-grid strong{display:block}.cover-grid small{color:#9eb4c3}.cover-grid strong{margin-top:3px;font-size:14px}.plan-main{padding:48px 0 78px}.plan-main section{margin-bottom:62px;scroll-margin-top:64px}.plan-main h2{padding-bottom:10px;border-bottom:3px solid #18344c}.plan-main h3{margin:28px 0 12px;color:#18344c;font-size:20px}.plan-main h4{margin:22px 0 9px;font-size:16px}.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:11px;margin:20px 0}.kpi{min-height:110px;padding:16px;border-top:5px solid #147359;background:#f3f6f6}.kpi b{display:block;color:#18344c;font-size:24px}.kpi span{display:block;margin-top:5px;color:#5d6871;font-size:12px}.role-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px}.role{padding:18px;border:1px solid #d8e0e4;border-top:5px solid #147359}.role h3{margin:0 0 7px}.role p:last-child,.role ul:last-child{margin-bottom:0}.pill{display:inline-block;padding:2px 7px;border-radius:4px;font-size:11px;font-weight:800;white-space:nowrap}.owner{background:#dff2e9;color:#0d6046}.gate{background:#e7eff6;color:#245e89}.block{background:#f9e6e2;color:#8a3528}.wait{background:#faedcc;color:#76530e}.sequence{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;margin:18px 0}.sequence div{position:relative;min-height:92px;padding:11px;border:1px solid #d8e0e4;background:#fff;font-size:12px}.sequence b{display:block;margin-bottom:5px;color:#147359}.sequence div:not(:last-child):after{content:"→";position:absolute;right:-8px;top:32px;z-index:2;color:#b34a38;font-weight:900}.matrix td:first-child,.matrix th:first-child{position:sticky;left:0;z-index:1}.matrix td:first-child{background:#f3f6f6;font-weight:700}.matrix th:first-child{z-index:2}.task{padding:0;list-style:none}.task li{position:relative;padding:7px 0 7px 24px;border-bottom:1px solid #e2e7ea}.task li:before{content:"□";position:absolute;left:2px;color:#147359;font-weight:900}.callout.risk{border-color:#b34a38;background:#faeae7}.callout.info{border-color:#226b9f;background:#eaf2f8}.callout.dark{border-color:#18344c;background:#edf1f3}.dense{font-size:12px}.dense td,.dense th{padding:8px 9px}.footer-note{color:#5d6871;font-size:12px}@media(max-width:860px){.cover-grid,.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.role-grid{grid-template-columns:1fr}.sequence{grid-template-columns:1fr}.sequence div:not(:last-child):after{content:"↓";left:50%;right:auto;top:auto;bottom:-18px}}@media(max-width:520px){.plan-cover h1{font-size:34px}.cover-grid,.kpis{grid-template-columns:1fr}.plan-main{padding-top:36px}}
+</style>
+</head>
+<body>
+<header class="plan-cover">
+  <div class="wrap">
+    <p class="eyebrow">AGENT-LED DELIVERY PLAN · V1.0</p>
+    <h1>Codex Agent 团队全量开发计划</h1>
+    <p class="lead">Codex 主 Agent 负责架构、分工、合并、质量与交付，三个执行槽并行处理 CRMEB 后端、UniApp/管理端、AI/测试/运维。五大模块同库全量推进，不做用后即弃的演示分支。</p>
+    <div class="cover-grid">
+      <div><small>项目</small><strong>mingde-vp-chamber</strong></div>
+      <div><small>并发上限</small><strong>1 主 Agent + 3 执行 Agent</strong></div>
+      <div><small>发布会版</small><strong>2026-08-10</strong></div>
+      <div><small>生产稳定版</small><strong>2026-09-15</strong></div>
+    </div>
+  </div>
+</header>
+
+<nav class="nav"><div class="wrap">
+  <a href="#commitment">承诺</a><a href="#team">团队</a><a href="#protocol">协作</a><a href="#critical">关键路径</a><a href="#calendar">排期</a><a href="#lanes">工作流</a><a href="#contracts">契约</a><a href="#quality">门禁</a><a href="#decisions">决策</a><a href="#start">48 小时</a>
+</div></nav>
+
+<main class="plan-main"><div class="wrap">
+  <section id="commitment">
+    <p class="section-no">01 / DELIVERY COMMITMENT</p>
+    <h2>交付承诺与边界</h2>
+    <p>8 月 10 日的目标是五大模块全部可见、可操作、可联调：会员、活动、商城、大咖与 AI 生态共用同一账号、订单、租户与运营后台。9 月 15 日前完成真实运营反馈、第二品牌、安全、压测、恢复演练和生产运维闭环。</p>
+    <div class="kpis">
+      <div class="kpi"><b>4</b><span>最大同时活跃 Agent，含主 Agent</span></div>
+      <div class="kpi"><b>5</b><span>端到端主旅程，每次候选发布必测</span></div>
+      <div class="kpi"><b>24 天</b><span>7/17 至 8/10 的极限发布会窗口</span></div>
+      <div class="kpi"><b>8–9 周</b><span>从基线到生产稳定版的现实总周期</span></div>
+    </div>
+    <div class="callout risk"><strong>不做假加速：</strong>Agent 可以并行编码、测试和分析，但不能缩短微信主体/商户审核、真实支付联调、业务规则签字和生产恢复演练。这些外部依赖延误，日期必须同步顺延或增加人工资源。</div>
+    <h3>1.1 发布会版的风险收敛</h3>
+    <ul>
+      <li>保留全部业务模块，但分账先使用可审计台账 + 人工结算，不在首发日强上自动微信分账。</li>
+      <li>AI 工具首发只开活动、本人积分、本人订单、课程/服务推荐四类只读工具；写工具在稳定版加入二次确认。</li>
+      <li>L3/L4 首发按完整计划购买/续费，不做按天自动补差价；会籍、权益和退款冲正必须完整。</li>
+      <li>小程序审核与 H5 同时推进，H5 不是静态展示页，必须覆盖注册、会费、报名、订单、会员、预约和 AI 对话。</li>
+    </ul>
+  </section>
+
+  <section id="team">
+    <p class="section-no">02 / TEAM TOPOLOGY</p>
+    <h2>Agent 团队结构与权责</h2>
+    <p>角色是工作槽，不是永久占用的固定身份。同时最多活跃 4 个 Agent；某条工作流进入等待时，该槽可切换到契约测试、安全或文档。</p>
+    <div class="role-grid">
+      <article class="role"><span class="pill owner">LEAD</span><h3>Codex 主 Agent</h3><p>拆解需求、分配任务、冻结共享契约、审查每个 diff、执行集成测试、管理 Git 提交、向用户报告。主 Agent 也负责 OrderContext、幂等、退款完成适配和跨域集成。</p></article>
+      <article class="role"><span class="pill owner">BACKEND</span><h3>CRMEB 后端/数据 Agent</h3><p>拥有 <code>backend/custom</code>：TenantContext、ch_* 迁移、会员、好友、活动、商品审核、结算、大咖、档期与预约。禁止直接修改 <code>backend/crmeb</code>。</p></article>
+      <article class="role"><span class="pill owner">FRONTEND</span><h3>UniApp/管理端 Agent</h3><p>拥有 <code>frontend/custom</code>：双品牌壳、五大用户模块、我的、创作者中心与 Vue2 运营后台。按“契约→Mock→真 API→异常状态→真机”交付。</p></article>
+      <article class="role"><span class="pill owner">AI / DELIVERY</span><h3>AI 平台/测试/运维 Agent</h3><p>拥有 <code>ai-service</code>、<code>deployment</code> 与对应测试：FastAPI、短期令牌、SSE、模型路由、RAG、工具、配额、审计、CI/CD、监控、压测与演练。</p></article>
+    </div>
+    <div class="callout dark"><strong>人工保留权：</strong>业务负责人确认会籍权益、价格、分账和内容；财务/安全负责人保管商户、生产密钥和上线签字。Agent 不能自行批准法律授权、真实付款、生产数据删除和公网发布。</div>
+  </section>
+
+  <section id="protocol">
+    <p class="section-no">03 / OPERATING PROTOCOL</p>
+    <h2>主 Agent 如何带队执行</h2>
+    <h3>3.1 每个并行批次</h3>
+    <ol>
+      <li>主 Agent 先检查 Git 工作区和基线脚本，只从干净、可重现状态开始。</li>
+      <li>主 Agent 为每个执行 Agent 发送任务包：需求 ID、目标、允许修改目录、只读依赖、禁止项、测试和 DoD。</li>
+      <li>Agent 只修改已分配的文件所有权；共享路由、迁移序号、OpenAPI、错误码和构建脚本由主 Agent 串行维护。</li>
+      <li>Agent 交付时返回变更清单、行为说明、已运行测试、未覆盖风险和需要的契约变更。</li>
+      <li>主 Agent 逐个审查 diff，集成一个 Agent 的产物后才运行跨域测试；冲突不交给 Git 自动猜测。</li>
+      <li>主 Agent 统一提交 Git，更新任务状态和验收证据，再开始下一批。</li>
+    </ol>
+    <h3>3.2 并行纪律</h3>
+    <div class="table-wrap"><table class="dense"><thead><tr><th>规则</th><th>实施</th><th>触发停止</th></tr></thead><tbody>
+      <tr><td>单文件单所有者</td><td>一个批次中，任何文件只分配给一个 Agent。</td><td>发现用户或其他 Agent 并发修改时暂停并重新读取。</td></tr>
+      <tr><td>WIP 限制</td><td>每个执行 Agent 同时只有一个主任务，完成测试才领下一个。</td><td>任务超出 1–2 小时可审查范围时再次拆分。</td></tr>
+      <tr><td>不使用未冻结契约</td><td>前端/AI 先用版本化 Mock，不根据控制器名称猜测。</td><td>返回字段、错误码或状态机未定义时不进入真接口联调。</td></tr>
+      <tr><td>当前任务内完成</td><td>主 Agent 不把未完成工作假设为“后台会自动继续”。</td><td>遇到外部凭据、业务决策或上线授权才向用户提升。</td></tr>
+    </tbody></table></div>
+  </section>
+
+  <section id="critical">
+    <p class="section-no">04 / CRITICAL PATH</p>
+    <h2>不能靠并行跳过的关键路径</h2>
+    <div class="sequence">
+      <div><b>C0</b>源码事件核验 + overlay 构建</div>
+      <div><b>C1</b>迁移体系 + TenantContext</div>
+      <div><b>C2</b>OpenAPI + 错误码 + 状态机</div>
+      <div><b>C3</b>OrderContext + 幂等 + 账本</div>
+      <div><b>C4</b>会籍支付垂直切片</div>
+      <div><b>C5</b>活动/商城/预约复用交易骨架</div>
+      <div><b>C6</b>真实退款冲正 + 故障注入 + RC</div>
+    </div>
+    <ul>
+      <li>TenantContext 未通过跨租户负向测试前，任何私域 CRUD 不能合并。</li>
+      <li>OrderContext 未完成前，不允许会籍、票务、预约各自写一套支付回调。</li>
+      <li>价格、积分、权益和结算规则在下单时冻结快照，不在支付后用当前配置反推。</li>
+      <li><code>OrderRefundCreateAfterListener</code> 代表“提交退款申请”，只可冻结履约/待结算；只在真实退款完成后才撤销权益并写负向账本。</li>
+      <li>零元报名可能不经支付回调，必须定义统一的业务完成事件。</li>
+    </ul>
+    <div class="callout warn"><strong>可并行的工作：</strong>契约冻结后，前端 Mock、AI 网关、内容准备、安全用例和运维骨架可同时推进；好友模块不依赖支付，可插入支付凭据等待窗口。</div>
+  </section>
+
+  <section id="calendar">
+    <p class="section-no">05 / CALENDAR</p>
+    <h2>分波并行排期</h2>
+    <div class="table-wrap"><table class="matrix dense"><thead><tr><th>时间 / 门禁</th><th>Codex 主 Agent</th><th>后端 Agent</th><th>前端 Agent</th><th>AI/交付 Agent</th><th>出口</th></tr></thead><tbody>
+      <tr><td>7/17–7/19<br>G0 基线</td><td>事件时序、ADR、OpenAPI 骨架、overlay manifest</td><td>构建 PoC、迁移执行器、TenantContext 骨架</td><td>UniApp H5/小程序与 Admin 官方构建、复用清单、Mock 适配器</td><td>FastAPI/SSE/短令牌 PoC、Docker、CI 骨架、威胁模型</td><td>干净子模块；可重复构建；本地环境可运行</td></tr>
+      <tr><td>7/20–7/23<br>G1 会员支付</td><td>OrderContext、幂等、账本、支付/退款测试夹具</td><td>租户、会员、认证、L1-L4、权益评估器</td><td>双品牌 bootstrap、登录、认证、会籍购买、我的</td><td>JWT/JWKS、请求追踪、限流、环境与可观测性</td><td>真实小额会费支付；重复回调只开通一次</td></tr>
+      <tr><td>7/24–7/28<br>G2 活动/社交</td><td>契约测试、并发名额、退票冻结/恢复/完成适配</td><td>好友/隐私、活动、票种、报名、名额、签到、奖励</td><td>活动月历/报名/地图/签到，会员目录/好友/排行，对应后台</td><td>对话、模型主备路由、配额预占/结算/归还</td><td>活动与同学两条 E2E；满员/越权/重复签到通过</td></tr>
+      <tr><td>7/29–8/2<br>G3 五模块</td><td>商品上下文、履约通用服务、结算快照、跨域联调</td><td>商品提交/审核/发布、分账台账、大咖/档期/预约</td><td>商城/创作者、大咖/预约、AI 生态/流式对话，交易审核后台</td><td>RAG 授权入库、引用、四个只读工具、配额/用量账本</td><td>五大模块在 staging 真 API 可运行，不仅是 Mock</td></tr>
+      <tr><td>8/3–8/7<br>G4 候选版</td><td>退款真实完成冲正、部分退款、事件对账、集成与安全审查</td><td>结算导出、审计、通知、统计、补偿 Job、迁移回归</td><td>Mock 全切真接口、两壳内容、弱网、真机、H5 降级和提审</td><td>护栏、脱敏、举报/转人工、SAST/SCA/secret scan、告警和压测</td><td>RC 镜像/前端包/迁移/回滚包；无 P0/高危</td></tr>
+      <tr><td>8/8–8/10<br>G5 发布会</td><td colspan="4">范围冻结，四个 Agent 只修 P0 和合规问题；真实支付/退款、现场网络、扫码、告警、H5 切换、备份/回滚完整彩排。</td><td>发布会全量版；五条旅程全通过</td></tr>
+      <tr><td>8/11–9/15<br>G6 生产稳定</td><td>真实问题分级、第二品牌、架构工程化和发布评审</td><td>完整履约/部分退款/对账、数据治理与结算加固</td><td>体验、包体/性能、第二壳、增长与可访问性</td><td>写工具确认机制、成本治理、备份恢复、72h staging 与灰度</td><td>99.5% 监控口径、RPO/RTO 演练、第二租户隔离通过</td></tr>
+    </tbody></table></div>
+    <p class="footer-note">估时是交付管理口径：后端约 22–27 Agent 工作日，前端约 20–22 Agent 工作日，AI/交付约 39 Agent 工作日并按阶段切换专项角色。Agent 工作日是工作量单位，不是人类日历承诺；最终日期由关键路径和外部决策决定。</p>
+  </section>
+
+  <section id="lanes">
+    <p class="section-no">06 / WORK BREAKDOWN</p>
+    <h2>三条执行工作流</h2>
+    <h3>6.1 CRMEB 后端/数据</h3>
+    <div class="table-wrap"><table class="dense"><thead><tr><th>ID</th><th>产物</th><th>依赖</th><th>必测</th></tr></thead><tbody>
+      <tr><td>B-01</td><td>overlay manifest、目标白名单、checksum、迁移/种子数据</td><td>源码事件核验</td><td>两次构建摘要一致；冲突立即失败</td></tr>
+      <tr><td>B-02</td><td>ch_tenant/channel/brand/feature、TenantContext、管理数据范围</td><td>B-01</td><td>改 ID/Host/Header/channel 均不越权</td></tr>
+      <tr><td>B-03</td><td>OrderContext、幂等事件、积分/结算账本、补偿/对账 Job</td><td>B-02</td><td>回调 10 次只生效 1 次；payload 不同返回冲突</td></tr>
+      <tr><td>B-04</td><td>L1-L4、毕业认证、会籍、资料/隐私、积分/贡献</td><td>B-03</td><td>购买/续费/到期/退款；账本可重放</td></tr>
+      <tr><td>B-05</td><td>好友申请/接受/拒绝/取消/过期/拉黑与频控</td><td>B-02 + L2 权益</td><td>交叉申请、重复接受、拉黑优先、跨租户拒绝</td></tr>
+      <tr><td>B-06</td><td>活动/票种/报名/名额/签到/退票/补签</td><td>B-03/B-04</td><td>50 并发争 10 名额只成功 10；奖励只发 1 次</td></tr>
+      <tr><td>B-07</td><td>商品 submission/scope/fulfillment、版本化审核、结算快照/台账</td><td>B-03</td><td>部分退款冲正；新规则不影响历史订单</td></tr>
+      <tr><td>B-08</td><td>大咖角色/主页/档期/预约/履约/提醒</td><td>B-03/B-07</td><td>单容量档期 20 并发只成功 1；超时/退款释放</td></tr>
+    </tbody></table></div>
+
+    <h3>6.2 UniApp/管理端</h3>
+    <div class="table-wrap"><table class="dense"><thead><tr><th>ID</th><th>产物</th><th>依赖</th><th>必测</th></tr></thead><tbody>
+      <tr><td>F-01</td><td>Vue2 构建、Mock/real 适配、状态 fixture、品牌 bootstrap</td><td>OpenAPI/Bootstrap</td><td>两壳切换无硬编码/租户缓存串数据</td></tr>
+      <tr><td>F-02</td><td>登录/协议/认证/会籍/我的/账本 + 会员后台</td><td>B-04</td><td>L1/L2/L3/L4 权限快照；支付失败恢复</td></tr>
+      <tr><td>F-03</td><td>活动/报名/地图/签到 + 同学/好友/排行 + 后台</td><td>B-05/B-06</td><td>不够资格、已满、重复签到、跨租户隐藏</td></tr>
+      <tr><td>F-04</td><td>七/八类商品、上架向导、履约/退款 + 大咖/档期/预约 + 后台</td><td>B-07/B-08</td><td>积分+现金、档期冲突、售后、规则快照展示</td></tr>
+      <tr><td>F-05</td><td>AI 生态、流式对话、停止/反馈/配额 + AI 管理后台</td><td>A-01至A-04</td><td>断流、取消、超时、限流、配额耗尽、模型降级</td></tr>
+      <tr><td>F-06</td><td>H5/小程序双通道登录、支付、扫码、地图、AI 流式降级</td><td>staging/真实配置</td><td>iOS/Android 微信弱网与现场设备真机</td></tr>
+    </tbody></table></div>
+
+    <h3>6.3 AI/测试/运维</h3>
+    <div class="table-wrap"><table class="dense"><thead><tr><th>ID</th><th>产物</th><th>依赖</th><th>必测</th></tr></thead><tbody>
+      <tr><td>A-01</td><td>AI ADR、数据流、权限矩阵、非对称 5 分钟令牌、SSE 契约</td><td>租户/会籍与模型账号</td><td>过期/伪造/wrong-aud/wrong-tenant/重放</td></tr>
+      <tr><td>A-02</td><td>FastAPI、Provider Adapter、主备路由、熔断、配额预占/结算/归还</td><td>A-01 + Redis</td><td>100 并发不超卖；重试不重复计费；首 token 后不自动重放</td></tr>
+      <tr><td>A-03</td><td>授权入库、MIME/恶意文件、PII 分类、ACL 检索、引用、删除传播</td><td>授权语料/对象存储/向量库</td><td>跨租户零命中；注入/SSRF；删除后对象/索引/缓存同步清理</td></tr>
+      <tr><td>A-04</td><td>活动/积分/订单/课程只读工具、服务端 Schema 白名单</td><td>CRMEB 受控内部 API</td><td>参数篡改、越权、超时、工具失败降级</td></tr>
+      <tr><td>A-05</td><td>审核/脱敏/举报/转人工、成本与审计看板、告警</td><td>安全口径/日志保留期</td><td>敏感信息不进日志；任意工具链路可还原</td></tr>
+      <tr><td>A-06</td><td>CI/CD、SBOM/镜像摘要、E2E、安全、压测、备份/恢复、Runbook</td><td>GitHub/registry/staging 凭据</td><td>故障注入、灰度/回滚、告警送达、RPO/RTO</td></tr>
+    </tbody></table></div>
+  </section>
+
+  <section id="contracts">
+    <p class="section-no">07 / SHARED CONTRACTS</p>
+    <h2>并行开发前必须冻结的共享契约</h2>
+    <div class="table-wrap"><table class="dense"><thead><tr><th>契约</th><th>必须包含</th><th>所有者</th></tr></thead><tbody>
+      <tr><td>统一响应</td><td><code>status</code>、稳定 <code>error_code</code>、<code>msg</code>、<code>data</code>、<code>request_id</code>；前端不按中文 msg 分支</td><td>Codex 主 Agent</td></tr>
+      <tr><td>Bootstrap</td><td>品牌、功能开关、当前会籍/角色、权限和 <code>capabilities</code>；前端不自行推导</td><td>主 Agent + 后端</td></tr>
+      <tr><td>数据类型</td><td>分页 <code>list/count/page/limit/has_more</code>；金额 decimal 字符串；时间 Unix 秒 + 时区</td><td>Codex 主 Agent</td></tr>
+      <tr><td>状态机</td><td>会籍、认证、好友、审核、报名、预约、履约、退款的枚举、允许动作和拒绝原因</td><td>主 Agent + 后端</td></tr>
+      <tr><td>订单上下文</td><td><code>business_type/context_id</code>、价格/积分/权益/结算快照；支付后查询最终状态</td><td>主 Agent + 后端</td></tr>
+      <tr><td>AI SSE</td><td><code>delta/tool_call/tool_result/usage/done/error</code>，取消、重连、会话游标和配额刷新</td><td>主 Agent + AI Agent</td></tr>
+      <tr><td>权限/上传</td><td>管理菜单权限码与 <code>meta.auth</code>；私有材料短期签名 URL；服务端再次校验租户</td><td>主 Agent + 后端</td></tr>
+    </tbody></table></div>
+    <p>每次契约变更同时更新 OpenAPI 3.1、Mock fixture、错误码、HTML API 文档和契约测试。CRMEB 官方 Apifox v5 只作参考，锁定 v6.0.0 路由/中间件/控制器是执行真相。</p>
+  </section>
+
+  <section id="quality">
+    <p class="section-no">08 / QUALITY GATES</p>
+    <h2>质量门禁与验收证据</h2>
+    <div class="table-wrap"><table class="dense"><thead><tr><th>门禁</th><th>必须通过</th><th>失败后</th></tr></thead><tbody>
+      <tr><td>G0 基线</td><td>CRMEB SHA 正确、子模块干净、overlay 可重复、空库可迁移、CI 可运行</td><td>不开始功能并行</td></tr>
+      <tr><td>G1 交易垂直切片</td><td>双品牌租户、注册、L2 认证、L3/L4 支付、重复回调、退款三阶段</td><td>禁止活动/预约接入交易</td></tr>
+      <tr><td>G2 模块集成</td><td>活动/同学/商城/大咖/AI 真 API，空/无权/并发/退款/限流状态</td><td>不计为“模块完成”</td></tr>
+      <tr><td>G4 RC</td><td>核心领域分支覆盖 ≥ 80%，P0 API 100%，五条 E2E，无高危/跨租户，真机通过</td><td>不生成上线批准包</td></tr>
+      <tr><td>G5 发布会</td><td>300 在线、50 支付回调/分钟、200 签到/分钟；真实小额支付/退款；H5 切换</td><td>执行预演降级，不带 P0 上线</td></tr>
+      <tr><td>G6 生产稳定</td><td>72h staging、主备模型、备份恢复 RPO≤24h/RTO≤4h、第二租户隔离、可用性监控</td><td>继续候选版，不签字转正</td></tr>
+    </tbody></table></div>
+    <h3>8.1 AI 与性能专项</h3>
+    <ul>
+      <li>Gateway 自身开销 P95 ≤ 200ms；30 路并发流式会话 TTFT P95 ≤ 3s；工具查询 P95 ≤ 1.5s。</li>
+      <li>知识库严格按 <code>tenant_id + assistant_id + authorization_scope</code> 过滤，跨租户检索零命中。</li>
+      <li>CRMEB <code>POST /outapi/mcp</code> 上线前必须关闭、收紧至内网或由 Nginx 明确拒绝公网请求。</li>
+      <li>外部模型不可用作 CRMEB 交易主链路的强依赖；模型、Redis 或向量库故障时不影响注册、支付、报名和预约。</li>
+    </ul>
+  </section>
+
+  <section id="reporting">
+    <p class="section-no">09 / REPORTING</p>
+    <h2>汇报、变更和缺陷处理</h2>
+    <div class="table-wrap"><table class="dense"><thead><tr><th>节奏</th><th>主 Agent 输出</th><th>业务方输出</th></tr></thead><tbody>
+      <tr><td>每个 Agent 批次</td><td>开始时说明范围；进行中报告学到的源码事实；结束时给出 diff、测试和风险</td><td>只在规则不能从 PRD/源码推导时回答</td></tr>
+      <tr><td>每日（北京时间）</td><td>10:00 确认任务板；18:00 提供可运行构建、已通过门禁、阻塞和明日关键路径</td><td>24 小时内确认展示、规则和内容；逾期使用 PRD 默认值，除支付/法务硬阻塞</td></tr>
+      <tr><td>每个里程碑</td><td>候选提交、Release Manifest、自动化报告、已知风险、回滚方法</td><td>业务/产品/技术共同签字</td></tr>
+    </tbody></table></div>
+    <p>缺陷分为 P0（阻断注册/支付/报名/签到/预约/AI 基本对话或存在严重安全问题）、P1（主要功能无合理替代路径）、P2（有可接受替代路径）。8 月 3 日后发布会范围冻结，只接受 P0 和合规修改。</p>
+  </section>
+
+  <section id="decisions">
+    <p class="section-no">10 / HUMAN DECISIONS</p>
+    <h2>Agent 不能代替的决策与截止日</h2>
+    <div class="table-wrap"><table class="dense"><thead><tr><th>ID</th><th>决策/资源</th><th>负责人</th><th>最晚</th><th>未就绪影响</th></tr></thead><tbody>
+      <tr><td>D-01</td><td>两套品牌名、Logo、主色、协议、客服码和域名</td><td>业务/品牌</td><td>7/18</td><td>使用中性种子配置开发，但不能进入内容验收</td></tr>
+      <tr><td>D-02</td><td>L3/L4 价格、权益、续费/升降级/退款规则</td><td>业务/财务</td><td>7/18</td><td>阻断 G1 会员支付垂直切片</td></tr>
+      <tr><td>D-03</td><td>微信小程序主体、AppID、商户号、退款权限、测试账号</td><td>技术/财务</td><td>7/20</td><td>可用 Mock 开发，但真实支付和上线日期不可承诺</td></tr>
+      <tr><td>D-04</td><td>平台/渠道/服务方/推荐人结算比例、售后期和财务负责人</td><td>业务/财务</td><td>7/25</td><td>阻断结算快照和台账验收</td></tr>
+      <tr><td>D-05</td><td>模型账号/预算、AI 配额、知识库授权人与有效范围</td><td>技术/内容权利人</td><td>7/24</td><td>可完成网关，但 RAG 和真实模型不可上线</td></tr>
+      <tr><td>D-06</td><td>12 位大咖、3 场活动、5 项服务、5 个 AI 入口的最终内容</td><td>内容/运营</td><td>8/3</td><td>功能可运行但发布会内容验收失败</td></tr>
+      <tr><td>D-07</td><td>GitHub 私有远程、镜像仓库、staging 与告警凭据</td><td>技术负责人</td><td>并行开发前</td><td>不阻断本地 PoC，但阻断 PR/CI 记录和可追溯候选发布</td></tr>
+    </tbody></table></div>
+  </section>
+
+  <section id="risks">
+    <p class="section-no">11 / RISKS &amp; STOP LINES</p>
+    <h2>主要风险和止损线</h2>
+    <div class="table-wrap"><table class="dense"><thead><tr><th>风险</th><th>预防</th><th>止损线</th></tr></thead><tbody>
+      <tr><td>Agent 依文件名误用 CRMEB 领域</td><td>任务包必须附源码路径和复用矩阵；主 Agent 审查语义</td><td>出现 <code>eb_user.level</code>/推荐好友/秒杀活动/代理租户误用时立即拒绝</td></tr>
+      <tr><td>共享工作区文件冲突</td><td>目录/文件所有权、WIP=1、主 Agent 统一提交</td><td>发现非当前 Agent 变更不覆盖，暂停并重新分配</td></tr>
+      <tr><td>退款申请被当作退款完成</td><td>申请冻结、取消恢复、真实完成冲正 + 定时对账</td><td>无法定位所有退款通道的完成信号时禁止上线退款自动权益处理</td></tr>
+      <tr><td>租户越权</td><td>TenantContext + tenant-aware Dao + 管理数据范围 + 负向测试</td><td>任意跨租户读/写/导出问题阻断上线</td></tr>
+      <tr><td>AI/RAG 数据外泄</td><td>授权、ACL、PII 脱敏、删除传播、工具白名单</td><td>不能证明授权或删除不完整的知识库不上线</td></tr>
+      <tr><td>8/10 压缩质量</td><td>8/3 冻结范围，RC 后只修 P0/合规，H5 和人工结算降级</td><td>不通过真支付/退款/租户安全时不得用“现场再试”替代门禁</td></tr>
+    </tbody></table></div>
+  </section>
+
+  <section id="start">
+    <p class="section-no">12 / FIRST 48 HOURS</p>
+    <h2>批准后的前 48 小时</h2>
+    <div class="role-grid">
+      <article class="role"><h3>Codex 主 Agent</h3><ul class="task"><li>创建可执行任务板和 ADR 索引。</li><li>核验支付/退款真实事件链。</li><li>定义 overlay manifest、OpenAPI 响应/错误码和状态机模板。</li><li>解决 GitHub 私有远程和 CI 凭据阻塞。</li></ul></article>
+      <article class="role"><h3>后端 Agent</h3><ul class="task"><li>跑通干净 CRMEB 安装/数据库/Redis/队列。</li><li>建立迁移执行器和两租户种子数据。</li><li>实现 TenantContext 骨架和跨租户失败测试。</li></ul></article>
+      <article class="role"><h3>前端 Agent</h3><ul class="task"><li>跑通 UniApp H5/微信和 Vue2 Admin 官方构建。</li><li>盘点登录/支付/商品/订单/上传/客服组件。</li><li>建立 Mock/real 适配与品牌 bootstrap 空壳。</li></ul></article>
+      <article class="role"><h3>AI/交付 Agent</h3><ul class="task"><li>创建 Docker 化 FastAPI、健康检查、SSE 和 Mock Provider。</li><li>定义 5 分钟令牌 Claim 和负向测试向量。</li><li>建立 CI 基线、密钥扫描和发布 manifest 骨架。</li></ul></article>
+    </div>
+    <h3>12.1 48 小时出口</h3>
+    <ul class="checklist">
+      <li><code>backend/crmeb</code> 保持干净，overlay 连续两次构建产物一致。</li>
+      <li>MySQL/Redis/CRMEB/UniApp/Admin/FastAPI 在 local 可运行，每个服务有健康证据。</li>
+      <li>两租户测试数据存在，至少一个跨租户请求被服务端拒绝。</li>
+      <li>OpenAPI 骨架、Mock fixture、统一错误码与 AI SSE 事件已冻结首版。</li>
+      <li>会籍支付、退款申请/取消/完成事件链有源码证据和测试方案。</li>
+    </ul>
+    <div class="callout good"><strong>启动方式：</strong>用户确认本计划后，主 Agent 从 G0 开始，每次开启三个互不冲突的实施任务，不再以“先写一个页面看看”作为进度口径。进度只按可运行代码、真接口、测试和门禁证据计算。</div>
+  </section>
+
+  <section id="done">
+    <p class="section-no">13 / FINAL DEFINITION OF DONE</p>
+    <h2>项目级完成定义</h2>
+    <ul class="checklist">
+      <li>需求 ID、代码、OpenAPI、迁移、测试、验收证据和发布产物可相互追踪。</li>
+      <li>两套品牌在同一代码库独立运行，租户数据、权限、知识库、配额和审计无串扰。</li>
+      <li>会籍、活动票务、商品/服务、预约四类订单全部复用统一 OrderContext、幂等、退款冲正与对账。</li>
+      <li>五条主旅程在 H5/小程序真机通过，后台审核、财务导出和审计可还原。</li>
+      <li>无 P0、无高危安全问题、无子模块未提交修改，空库/升级库迁移和回滚演练通过。</li>
+      <li>业务、产品、技术、财务/安全完成各自验收和上线签字。</li>
+    </ul>
+    <p>关联文档：<a href="PRD-v2.0.html">PRD v2.0</a> · <a href="CRMEB-二次开发说明书-v1.0.html">CRMEB 二次开发说明书</a> · <a href="CRMEB-API资料索引.html">CRMEB API 资料索引</a> · <a href="开发目录与工作流.html">开发目录与工作流</a></p>
+  </section>
+</div></main>
+
+<footer><div class="wrap">mingde-vp-chamber · Codex Agent 团队全量开发计划 v1.0 · 2026-07-17</div></footer>
+</body>
+</html>

@@ -20,6 +20,7 @@
     "prd": "docs/PRD-v2.0.html",
     "technical_design": "docs/CRMEB-二次开发说明书-v1.0.html",
     "api_index": "docs/CRMEB-API资料索引.html",
-    "workflow": "docs/开发目录与工作流.html"
+    "workflow": "docs/开发目录与工作流.html",
+    "agent_delivery_plan": "docs/Codex-Agent团队全量开发计划-v1.0.html"
   }
 }

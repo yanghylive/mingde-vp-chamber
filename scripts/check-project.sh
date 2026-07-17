@@ -17,6 +17,7 @@ required_files=(
   "docs/CRMEB-二次开发说明书-v1.0.html"
   "docs/CRMEB-API资料索引.html"
   "docs/开发目录与工作流.html"
+  "docs/Codex-Agent团队全量开发计划-v1.0.html"
   "backend/custom/README.html"
   "frontend/custom/README.html"
   "ai-service/README.html"

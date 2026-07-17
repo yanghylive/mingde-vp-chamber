@@ -545,9 +545,11 @@ ai-service/
             <tr><td>OrderPaySuccessListener</td><td>ChamberEntitlementListener</td><td>开通会籍、报名、预约、课程和 AI 配额</td></tr>
             <tr><td>OrderRefundCreateAfterListener</td><td>ChamberRefundFreezeListener</td><td>冻结权益与分账</td></tr>
             <tr><td>OrderRefundCancelAfterListener</td><td>ChamberRefundRestoreListener</td><td>恢复权益</td></tr>
+            <tr><td>退款真实完成适配点</td><td>ChamberRefundFinalizeListener + ReconcileJob</td><td>生成积分、权益、名额和分账的最终冲正</td></tr>
             <tr><td>CustomNoticeListener</td><td>ChamberNoticePayload</td><td>活动、审核、预约消息</td></tr>
           </tbody>
         </table></div>
+        <div class="callout risk"><strong>退款事件语义：</strong><code>OrderRefundCreateAfterListener</code> 在用户提交退款申请后触发，不代表资金已退回；<code>OrderRefundCancelAfterListener</code> 只代表取消申请。v6.0.0 在退款成功链路中发出 <code>admin_order_refund_success</code> 自定义事件，但实施前必须验证它覆盖全部退款通道。若不覆盖，必须新增完成适配点与定时对账；禁止在“申请退款”阶段就最终撤销权益。</div>
 
         <h3>15.5 幂等键</h3>
         <ul>
