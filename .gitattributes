@@ -1,0 +1,13 @@
+* text=auto eol=lf
+*.html text diff=html
+*.css text
+*.js text
+*.php text
+*.py text
+*.sql text
+*.sh text eol=lf
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.pdf binary

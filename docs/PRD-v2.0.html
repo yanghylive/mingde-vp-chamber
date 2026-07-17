@@ -1,0 +1,1020 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="light">
+<title>VP 毕业生同学会数字平台 · 产品需求文档 v2.0</title>
+<style>
+:root {
+  --ink: #17212b;
+  --muted: #5d6873;
+  --line: #d9dee3;
+  --soft: #f4f6f7;
+  --paper: #ffffff;
+  --navy: #17324d;
+  --green: #16745b;
+  --green-soft: #e8f4ef;
+  --coral: #c74f3c;
+  --coral-soft: #faece9;
+  --gold: #9a6a12;
+  --gold-soft: #fbf3df;
+  --blue: #286aa6;
+  --blue-soft: #eaf2f9;
+  --shadow: 0 14px 40px rgba(23, 33, 43, 0.08);
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  color: var(--ink);
+  background: #edf0f2;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-size: 15px;
+  line-height: 1.72;
+  letter-spacing: 0;
+}
+a { color: var(--blue); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+.document { width: min(1180px, 100%); margin: 0 auto; background: var(--paper); box-shadow: var(--shadow); }
+
+.cover {
+  min-height: 720px;
+  padding: 72px clamp(28px, 7vw, 90px) 58px;
+  color: #fff;
+  background: var(--navy);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+  overflow: hidden;
+}
+.cover::after {
+  content: "";
+  position: absolute;
+  right: -110px;
+  bottom: -110px;
+  width: 360px;
+  height: 360px;
+  border: 44px solid rgba(255,255,255,0.08);
+  border-radius: 50%;
+}
+.cover-top { position: relative; z-index: 1; }
+.cover-kicker { margin: 0 0 42px; font-weight: 700; color: #a8d9c7; font-size: 14px; }
+.cover h1 {
+  margin: 0;
+  max-width: 850px;
+  font-size: clamp(38px, 6vw, 68px);
+  line-height: 1.13;
+  letter-spacing: 0;
+}
+.cover-subtitle { margin: 24px 0 0; max-width: 760px; color: #d7e2eb; font-size: 20px; }
+.cover-decision {
+  margin-top: 42px;
+  max-width: 790px;
+  padding: 18px 20px;
+  border-left: 5px solid #55b998;
+  background: rgba(255,255,255,0.08);
+  font-size: 17px;
+}
+.cover-meta {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 18px;
+  padding-top: 36px;
+  border-top: 1px solid rgba(255,255,255,0.2);
+}
+.cover-meta span { display: block; color: #9eb1c2; font-size: 12px; margin-bottom: 4px; }
+.cover-meta strong { font-size: 15px; }
+
+.doc-grid { display: grid; grid-template-columns: 260px minmax(0, 1fr); }
+.toc {
+  padding: 40px 24px;
+  background: #f7f8f9;
+  border-right: 1px solid var(--line);
+}
+.toc-inner { position: sticky; top: 20px; }
+.toc h2 { margin: 0 0 14px; font-size: 14px; color: var(--muted); text-transform: uppercase; }
+.toc ol { margin: 0; padding: 0; list-style: none; counter-reset: toc; }
+.toc li { counter-increment: toc; border-bottom: 1px solid #e6e9ec; }
+.toc a { display: block; padding: 9px 2px; color: #394550; text-decoration: none; font-size: 13px; }
+.toc a::before { content: counter(toc, decimal-leading-zero) " "; color: var(--green); font-weight: 800; }
+.toc a:hover { color: var(--blue); }
+
+.content { min-width: 0; padding: 52px clamp(24px, 5vw, 70px) 80px; }
+.doc-note {
+  margin-bottom: 44px;
+  padding: 16px 18px;
+  color: #38434d;
+  background: var(--gold-soft);
+  border: 1px solid #e8d19d;
+  border-radius: 6px;
+}
+section { margin: 0 0 68px; scroll-margin-top: 24px; }
+.section-label { margin: 0 0 7px; color: var(--green); font-size: 13px; font-weight: 800; }
+h2 {
+  margin: 0 0 24px;
+  padding-bottom: 13px;
+  font-size: 28px;
+  line-height: 1.25;
+  letter-spacing: 0;
+  border-bottom: 3px solid var(--navy);
+}
+h3 { margin: 32px 0 13px; font-size: 20px; line-height: 1.35; letter-spacing: 0; color: var(--navy); }
+h4 { margin: 24px 0 10px; font-size: 16px; letter-spacing: 0; }
+p { margin: 0 0 13px; }
+ul, ol { margin: 0 0 17px; padding-left: 24px; }
+li { margin-bottom: 6px; }
+
+.lead { font-size: 18px; line-height: 1.7; color: #32404c; }
+.metrics { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 12px; margin: 24px 0 28px; }
+.metric { min-height: 120px; padding: 18px; border: 1px solid var(--line); border-top: 5px solid var(--green); border-radius: 6px; }
+.metric b { display: block; font-size: 25px; color: var(--navy); line-height: 1.2; }
+.metric span { display: block; margin-top: 8px; color: var(--muted); font-size: 13px; }
+
+.callout { margin: 20px 0; padding: 17px 19px; border-left: 5px solid var(--blue); background: var(--blue-soft); }
+.callout.good { border-color: var(--green); background: var(--green-soft); }
+.callout.warn { border-color: var(--gold); background: var(--gold-soft); }
+.callout.risk { border-color: var(--coral); background: var(--coral-soft); }
+.callout strong { color: var(--navy); }
+
+.status { display: inline-flex; align-items: center; min-height: 24px; padding: 2px 8px; border-radius: 4px; font-weight: 800; font-size: 12px; white-space: nowrap; }
+.p0 { color: #8e2e20; background: #fae5e1; }
+.p1 { color: #72500f; background: #f8edce; }
+.p2 { color: #17624e; background: #e3f2ec; }
+.r0 { color: #fff; background: var(--coral); }
+.r1 { color: #fff; background: var(--green); }
+
+.table-wrap { width: 100%; overflow-x: auto; margin: 15px 0 25px; border: 1px solid var(--line); border-radius: 6px; }
+table { width: 100%; min-width: 680px; border-collapse: collapse; font-size: 13px; }
+th { padding: 11px 12px; color: #fff; background: var(--navy); text-align: left; vertical-align: top; }
+td { padding: 11px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+tbody tr:last-child td { border-bottom: 0; }
+tbody tr:nth-child(even) { background: #f8f9fa; }
+.compact td, .compact th { padding-top: 8px; padding-bottom: 8px; }
+.req-id { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--blue); font-weight: 800; white-space: nowrap; }
+
+.two-col { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 28px; }
+.panel { padding: 19px 20px; border: 1px solid var(--line); border-radius: 6px; }
+.panel h3, .panel h4 { margin-top: 0; }
+.panel p:last-child, .panel ul:last-child { margin-bottom: 0; }
+
+.flow { display: grid; grid-template-columns: repeat(5, minmax(0,1fr)); gap: 8px; margin: 20px 0; }
+.flow div { position: relative; min-height: 92px; padding: 14px 12px; border: 1px solid var(--line); border-radius: 6px; background: #fff; font-size: 13px; }
+.flow b { display: block; margin-bottom: 5px; color: var(--green); }
+.flow div:not(:last-child)::after { content: "→"; position: absolute; right: -10px; top: 31px; z-index: 2; color: var(--coral); font-weight: 900; }
+
+.arch {
+  margin: 18px 0 24px;
+  padding: 22px;
+  overflow-x: auto;
+  border-radius: 6px;
+  color: #eaf1f6;
+  background: #192632;
+  font: 13px/1.55 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  white-space: pre;
+}
+.timeline { position: relative; margin: 24px 0; padding-left: 25px; border-left: 3px solid #cfd6dc; }
+.timeline-item { position: relative; margin-bottom: 24px; padding: 0 0 0 16px; }
+.timeline-item::before { content: ""; position: absolute; left: -24px; top: 6px; width: 11px; height: 11px; border: 3px solid #fff; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 2px var(--green); }
+.timeline-item.launch::before { background: var(--coral); box-shadow: 0 0 0 2px var(--coral); }
+.timeline-item h4 { margin: 0 0 5px; }
+.timeline-item p { margin: 0; color: var(--muted); }
+
+.checklist { margin: 0; padding: 0; list-style: none; }
+.checklist li { position: relative; padding: 7px 0 7px 28px; border-bottom: 1px solid #e7eaed; }
+.checklist li::before { content: "✓"; position: absolute; left: 2px; top: 6px; color: var(--green); font-weight: 900; }
+.signature { display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; margin-top: 36px; }
+.signature div { min-height: 74px; padding-top: 42px; border-bottom: 1px solid #79838c; color: var(--muted); font-size: 13px; }
+.footer { padding: 26px 40px; color: #61707d; background: #eef1f3; text-align: center; font-size: 12px; }
+
+@media (max-width: 900px) {
+  .cover { min-height: 640px; }
+  .cover-meta { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  .doc-grid { display: block; }
+  .toc { border-right: 0; border-bottom: 1px solid var(--line); }
+  .toc-inner { position: static; }
+  .toc ol { columns: 2; column-gap: 24px; }
+  .toc li { break-inside: avoid; }
+  .metrics { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  .flow { grid-template-columns: 1fr; }
+  .flow div:not(:last-child)::after { content: "↓"; right: auto; left: 50%; top: auto; bottom: -17px; }
+}
+@media (max-width: 620px) {
+  body { font-size: 14px; }
+  .cover { min-height: 590px; padding-top: 42px; }
+  .cover h1 { font-size: 38px; }
+  .cover-subtitle { font-size: 17px; }
+  .cover-meta, .metrics, .two-col, .signature { grid-template-columns: 1fr; }
+  .content { padding: 38px 18px 60px; }
+  .toc ol { columns: 1; }
+  h2 { font-size: 24px; }
+}
+@media print {
+  @page { size: A4; margin: 14mm 12mm 16mm; }
+  body { background: #fff; font-size: 10.5pt; }
+  .document { width: 100%; box-shadow: none; }
+  .cover { min-height: 260mm; page-break-after: always; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  .doc-grid { display: block; }
+  .toc { page-break-after: always; border: 0; }
+  .toc ol { columns: 2; }
+  .content { padding: 0; }
+  section { page-break-before: always; margin-bottom: 0; }
+  h2, h3, h4 { page-break-after: avoid; }
+  table, .panel, .callout, .metrics, .flow, .timeline-item { page-break-inside: avoid; }
+  a { color: inherit; text-decoration: none; }
+  .footer { display: none; }
+}
+</style>
+</head>
+<body>
+<main class="document">
+  <header class="cover">
+    <div class="cover-top">
+      <p class="cover-kicker">PRODUCT REQUIREMENTS DOCUMENT · V2.0</p>
+      <h1>VP 毕业生同学会数字平台</h1>
+      <p class="cover-subtitle">以毕业生同学会为品牌入口，以会员连接、活动运营和 AI 产品服务为业务内核。</p>
+      <div class="cover-decision">
+        <strong>立项结论：</strong>采用 AI 原生开发方式，以 CRMEB 开源版为唯一业务主库，一次性交付会员、活动、商城、大咖主页和 AI 生态五大模块。
+      </div>
+    </div>
+    <div class="cover-meta">
+      <div><span>项目代号</span><strong>mingde-vp-chamber</strong></div>
+      <div><span>首发节点</span><strong>2026-08-10</strong></div>
+      <div><span>文档状态</span><strong>待业务确认</strong></div>
+      <div><span>编制日期</span><strong>2026-07-17</strong></div>
+    </div>
+  </header>
+
+  <div class="doc-grid">
+    <nav class="toc" aria-label="目录">
+      <div class="toc-inner">
+        <h2>目录</h2>
+        <ol>
+          <li><a href="#summary">执行摘要</a></li>
+          <li><a href="#background">背景与定位</a></li>
+          <li><a href="#goals">目标与指标</a></li>
+          <li><a href="#identity">身份与权限</a></li>
+          <li><a href="#journeys">核心用户旅程</a></li>
+          <li><a href="#requirements">五大模块需求</a></li>
+          <li><a href="#platform">双壳与渠道平台</a></li>
+          <li><a href="#business">交易与分账</a></li>
+          <li><a href="#ia">信息架构</a></li>
+          <li><a href="#architecture">技术架构</a></li>
+          <li><a href="#data">数据模型</a></li>
+          <li><a href="#nfr">非功能与合规</a></li>
+          <li><a href="#schedule">排期与里程碑</a></li>
+          <li><a href="#acceptance">验收与测试</a></li>
+          <li><a href="#team">团队与协作</a></li>
+          <li><a href="#budget">预算与成本</a></li>
+          <li><a href="#risks">风险与决策</a></li>
+          <li><a href="#traceability">附件需求追踪</a></li>
+        </ol>
+      </div>
+    </nav>
+
+    <article class="content">
+      <div class="doc-note">
+        <strong>品牌待确认：</strong>现有资料同时使用“明德恒智 VP 商会”“恒志 VP 毕业生同学会”“沈阳 AI 毕业生商会”等称谓。本文统一使用“VP 毕业生同学会数字平台”，发布前由业务负责人确认对外品牌、Logo 和小程序名称。
+      </div>
+
+      <section id="summary">
+        <p class="section-label">01 / EXECUTIVE SUMMARY</p>
+        <h2>执行摘要</h2>
+        <p class="lead">本项目不是单纯的社区或商城，而是一套面向毕业生关系网络的会员经营平台。用户以“同学会”身份进入，通过会员、活动和大咖关系建立信任，再承接 AI 咨询、课程、工具和企业服务交易。</p>
+
+        <div class="metrics">
+          <div class="metric"><b>5 大模块</b><span>会员、活动、商城、大咖、AI 全量首发</span></div>
+          <div class="metric"><b>2 套品牌壳</b><span>渠道定制版与九章通用版共享底层能力</span></div>
+          <div class="metric"><b>24 天</b><span>7 月 17 日启动，8 月 10 日发布会</span></div>
+          <div class="metric"><b>10–12 周</b><span>从启动到生产稳定版的完整周期</span></div>
+        </div>
+
+        <div class="callout good">
+          <strong>核心技术决策：</strong>CRMEB 负责会员、积分、商品、订单、支付、分销和后台权限；自研扩展负责活动、会员目录、贡献值、大咖预约、双壳渠道；FastAPI 负责 AI 对话、工具调用和知识库；UniApp 同时输出微信小程序与 H5。
+        </div>
+
+        <h3>本次重写修正的关键问题</h3>
+        <ul class="checklist">
+          <li>把会员等级、人物角色、运营权限拆成三个独立维度。</li>
+          <li>写明 L1–L4 的业务含义及 L3/L4 的实际年费。</li>
+          <li>补齐会员目录、搜索筛选、好友申请、贡献值和排行榜。</li>
+          <li>补齐会员上架、平台审核、虚拟服务履约和渠道分账。</li>
+          <li>将“渠道定制版 + 九章通用版”升级为底层架构要求。</li>
+          <li>将 8 月 10 日发布会版本与 9 月生产稳定版分别定义。</li>
+          <li>不再用 Discourse Trust Level 承载付费等级，不让多套系统争夺会员主数据。</li>
+        </ul>
+      </section>
+
+      <section id="background">
+        <p class="section-label">02 / BACKGROUND &amp; POSITIONING</p>
+        <h2>背景与定位</h2>
+
+        <h3>2.1 业务背景</h3>
+        <p>项目首期以恒志 VP 等教练技术毕业生为核心人群，向 IN、中德会及其他毕业生平台扩展，潜在覆盖 3,000–4,000 名毕业生。平台通过核心导师、教练和行业领袖建立背书，通过活动和会员关系完成获客与转化。</p>
+
+        <h3>2.2 产品定位</h3>
+        <div class="two-col">
+          <div class="panel">
+            <h4>对外定位</h4>
+            <p>以“毕业生同学会 / 俱乐部”出现，强调同学连接、成长活动、行业资源与公益参与，不把“AI 项目”作为唯一入口。</p>
+          </div>
+          <div class="panel">
+            <h4>业务内核</h4>
+            <p>AI 咨询、企业服务、AI 工具、陪跑和课程是平台的核心增值能力，通过会员关系和活动信任完成转化。</p>
+          </div>
+        </div>
+
+        <h3>2.3 核心价值</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>对象</th><th>核心价值</th><th>平台承接方式</th></tr></thead>
+            <tbody>
+              <tr><td>毕业生会员</td><td>找到同学、导师、教练和行业资源</td><td>会员目录、搜索、好友、活动、贡献榜</td></tr>
+              <tr><td>付费会员</td><td>获得更深的连接、权益、课程与咨询</td><td>L3/L4 会籍、专属活动、折扣、预约和 AI 配额</td></tr>
+              <tr><td>导师与教练</td><td>建立个人品牌并提供课程和服务</td><td>大咖主页、商品上架、档期、预约、AI 分身</td></tr>
+              <tr><td>行业领袖</td><td>展示企业资源并获得合作机会</td><td>行业主页、活动路演、企业咨询、供需对接</td></tr>
+              <tr><td>渠道合作方</td><td>经营自己的毕业生社群并参与收益</td><td>独立品牌壳、渠道数据、商品活动和分账报表</td></tr>
+              <tr><td>九章智能</td><td>沉淀可复制的平台和 AI 交付能力</td><td>通用版平台、共享 AI 工具、课程和运营模板</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>2.4 范围边界</h3>
+        <p>五大业务模块全部纳入首发范围，但不重复自研成熟基础设施：</p>
+        <ul>
+          <li>不自研电商、支付和积分底层，使用 CRMEB 开源能力并扩展。</li>
+          <li>不自研基础大模型，使用经审核的大模型 API，通过自有 AI 网关隔离。</li>
+          <li>不自研音视频引擎，线上咨询使用企业微信、腾讯会议或合规 RTC 服务。</li>
+          <li>不在首发核心链路引入 Discourse、LobeHub 和 MinIO，避免账号、积分与订单跨系统同步。</li>
+        </ul>
+      </section>
+
+      <section id="goals">
+        <p class="section-label">03 / GOALS &amp; METRICS</p>
+        <h2>目标与成功指标</h2>
+
+        <h3>3.1 发布目标</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>目标</th><th>结果</th><th>截止时间</th></tr></thead>
+            <tbody>
+              <tr><td>G1 发布会可用</td><td>五大模块均有真实可操作入口，注册、付费、报名、下单、预约和 AI 对话核心链路可运行</td><td>2026-08-10</td></tr>
+              <tr><td>G2 业务闭环</td><td>发布会现场可完成扫码进入、注册、会员认证、购买会籍、报名活动和查看 AI 服务</td><td>2026-08-10</td></tr>
+              <tr><td>G3 生产稳定</td><td>支付退款、审核、权限、监控、备份与安全加固完成，无未解决 P0/P1 缺陷</td><td>2026-09-15</td></tr>
+              <tr><td>G4 平台复制</td><td>沈阳渠道版与九章通用版可使用不同品牌、角色配置和内容，共享代码及 AI 能力</td><td>2026-09-15</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>3.2 北极星指标与漏斗</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>层级</th><th>指标</th><th>首期目标</th><th>口径</th></tr></thead>
+            <tbody>
+              <tr><td>北极星</td><td>月度有效连接人数</td><td>上线后 90 天 ≥ 100</td><td>完成活动同场、好友建立、大咖预约或咨询中的任一有效行为</td></tr>
+              <tr><td>获客</td><td>邀请访问 → 注册</td><td>≥ 50%</td><td>按渠道码追踪</td></tr>
+              <tr><td>认证</td><td>注册 → L2 毕业生认证</td><td>≥ 60%</td><td>提交并审核通过</td></tr>
+              <tr><td>付费</td><td>L2 → L3/L4</td><td>发布会 ≥ 10 人</td><td>实际支付成功，不按意向统计</td></tr>
+              <tr><td>活动</td><td>报名 → 到场</td><td>≥ 70%</td><td>有效扫码签到</td></tr>
+              <tr><td>供给</td><td>审核通过的导师/教练/领袖</td><td>首发 ≥ 12 位</td><td>资料完整且至少提供一项内容或服务</td></tr>
+              <tr><td>AI</td><td>AI 服务体验人数</td><td>发布会 ≥ 30 人</td><td>完成一次有效对话或工具调用</td></tr>
+              <tr><td>收入</td><td>会员费 + 服务净收入</td><td>年底基础目标 50 万</td><td>不把 GMV 直接当收入，扣除退款和分成</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="callout warn">
+          <strong>目标解释：</strong>50 万是业务挑战目标，不是产品验收条件。产品团队对注册、支付、履约、统计和渠道归因负责，流量与销售结果由业务团队共同承担。
+        </div>
+      </section>
+
+      <section id="identity">
+        <p class="section-label">04 / IDENTITY &amp; ACCESS</p>
+        <h2>身份、等级与权限模型</h2>
+
+        <h3>4.1 三维身份模型</h3>
+        <p>一个用户同时拥有“会籍等级、人物角色、运营权限”三个维度，三者互不替代。</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>维度</th><th>可选值</th><th>决定内容</th></tr></thead>
+            <tbody>
+              <tr><td>会籍等级</td><td>L1 游客、L2 毕业生、L3 年费会员、L4 高级会员</td><td>可见范围、报名门槛、折扣、积分倍率、AI 配额</td></tr>
+              <tr><td>人物角色</td><td>普通会员、知名导师、知名教练、行业领袖</td><td>主页模板、可上架服务、展示标签和审核材料</td></tr>
+              <tr><td>运营权限</td><td>渠道运营、内容审核、财务、客服、超级管理员</td><td>后台菜单、数据范围和操作权限</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>4.2 会籍等级规则</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>等级</th><th>准入</th><th>价格</th><th>核心权益</th><th>到期处理</th></tr></thead>
+            <tbody>
+              <tr><td><strong>L1 游客</strong></td><td>微信登录即可</td><td>免费</td><td>浏览公开活动、公开导师和公开 AI 工具</td><td>长期有效</td></tr>
+              <tr><td><strong>L2 毕业生</strong></td><td>提交毕业班级/渠道资料并审核通过</td><td>免费</td><td>会员目录、好友申请、普通活动、申请上架商品</td><td>长期有效，可取消认证</td></tr>
+              <tr><td><strong>L3 年费会员</strong></td><td>L2 基础上购买会籍</td><td>1,000 元/年</td><td>会员活动、折扣、更多 AI 配额、优先预约</td><td>到期降至 L2，保留积分与关系</td></tr>
+              <tr><td><strong>L4 高级会员</strong></td><td>L2 基础上购买高级会籍</td><td>5,000 元/年</td><td>高端闭门活动、专属客服、重点资源连接、高级咨询权益</td><td>到期降至 L2，保留积分与关系</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>会籍价格由渠道配置覆盖，默认采用上述首发价格。消费额和活跃度不得自动修改付费会籍，只能影响贡献值、荣誉标签或推荐排序。</p>
+
+        <h3>4.3 人物角色规则</h3>
+        <div class="table-wrap">
+          <table class="compact">
+            <thead><tr><th>角色</th><th>申请/授予</th><th>专属能力</th></tr></thead>
+            <tbody>
+              <tr><td>普通会员</td><td>L2 审核通过后默认</td><td>基础主页、目录展示、活动、好友和商品申请</td></tr>
+              <tr><td>知名导师</td><td>平台邀请或申请审核</td><td>导师主页、课程、演讲、大师课、AI 分身</td></tr>
+              <tr><td>知名教练</td><td>提交教练资质并审核</td><td>教练主页、咨询档期、陪跑服务、活动带班</td></tr>
+              <tr><td>行业领袖</td><td>提交企业资料并审核</td><td>企业与个人主页、行业分享、咨询和资源发布</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>人物角色允许多选，例如同一用户可同时是知名教练和行业领袖；用户需指定一个主角色决定主页模板。L1 游客不进入会员目录，也不生成对外个人主页。</p>
+
+        <h3>4.4 贡献值与积分</h3>
+        <p><strong>积分</strong>是可消费资产，<strong>贡献值</strong>是不可消费的荣誉累计值。两者使用同一事件记录，但分别计账，避免消费积分导致排名下降。</p>
+        <div class="table-wrap">
+          <table class="compact">
+            <thead><tr><th>行为</th><th>积分建议</th><th>贡献值建议</th><th>限制</th></tr></thead>
+            <tbody>
+              <tr><td>完成毕业生认证</td><td>+100</td><td>+20</td><td>一次性</td></tr>
+              <tr><td>活动有效签到</td><td>+20</td><td>+20</td><td>每活动一次</td></tr>
+              <tr><td>担任助教</td><td>+100</td><td>+100</td><td>运营确认</td></tr>
+              <tr><td>担任教练/分享嘉宾</td><td>+300</td><td>+300</td><td>运营确认</td></tr>
+              <tr><td>邀请新会员完成 L2 认证</td><td>+50</td><td>+30</td><td>防刷与封顶</td></tr>
+              <tr><td>邀请新会员购买 L3/L4</td><td>按渠道规则</td><td>+100</td><td>退款后冲正</td></tr>
+              <tr><td>发布内容/商品被平台加精</td><td>+50</td><td>+50</td><td>审核后发放</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="journeys">
+        <p class="section-label">05 / CORE JOURNEYS</p>
+        <h2>核心用户旅程</h2>
+
+        <h3>5.1 发布会现场入会</h3>
+        <div class="flow">
+          <div><b>1 扫码进入</b>识别发布会渠道码与推荐人</div>
+          <div><b>2 微信登录</b>授权手机号并同意隐私协议</div>
+          <div><b>3 完善资料</b>选择班级、地区、行业和资源</div>
+          <div><b>4 选择会籍</b>L2 认证或购买 L3/L4</div>
+          <div><b>5 开通权益</b>生成会员卡、积分和专属入口</div>
+        </div>
+
+        <h3>5.2 参加活动</h3>
+        <div class="flow">
+          <div><b>1 发现</b>按月历或三类标签浏览活动</div>
+          <div><b>2 校验资格</b>检查等级、角色、积分和名额</div>
+          <div><b>3 报名支付</b>免费、积分、现金或混合支付</div>
+          <div><b>4 导航签到</b>地图导航、动态二维码签到</div>
+          <div><b>5 沉淀</b>获得积分、评价、回顾与好友连接</div>
+        </div>
+
+        <h3>5.3 会员上架服务</h3>
+        <div class="flow">
+          <div><b>1 准入</b>L2+ 会员进入创作者中心</div>
+          <div><b>2 提交</b>选择课程、服务、工具或实物类型</div>
+          <div><b>3 审核</b>平台核验内容、资质、价格和履约</div>
+          <div><b>4 交易</b>用户支付并生成订单/预约</div>
+          <div><b>5 结算</b>履约后按渠道和服务方规则结算</div>
+        </div>
+
+        <h3>5.4 大咖预约与 AI 咨询</h3>
+        <div class="flow">
+          <div><b>1 选择大咖</b>按角色、领域、地区筛选</div>
+          <div><b>2 先问 AI</b>体验大咖知识助手并了解服务</div>
+          <div><b>3 购买预约</b>选择线上/线下、档期与咨询主题</div>
+          <div><b>4 完成咨询</b>通过会议链接或线下地点履约</div>
+          <div><b>5 服务闭环</b>评价、纪要、后续课程或陪跑推荐</div>
+        </div>
+      </section>
+
+      <section id="requirements">
+        <p class="section-label">06 / FUNCTIONAL REQUIREMENTS</p>
+        <h2>五大模块功能需求</h2>
+
+        <h3>6.1 模块一：活动系统</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>ID</th><th>需求</th><th>优先级</th><th>验收口径</th></tr></thead>
+            <tbody>
+              <tr><td class="req-id">ACT-001</td><td>活动发布与编辑</td><td><span class="status p0">P0</span></td><td>运营可配置标题、封面、嘉宾、时间、地址、地图坐标、详情、票种、名额、退款规则和渠道</td></tr>
+              <tr><td class="req-id">ACT-002</td><td>三类活动</td><td><span class="status p0">P0</span></td><td>固定支持个人成长、行业主题、公益活动，可增加子标签并筛选</td></tr>
+              <tr><td class="req-id">ACT-003</td><td>月历与列表</td><td><span class="status p0">P0</span></td><td>用户可在月历和列表间切换，显示已报名、已满和等级限制状态</td></tr>
+              <tr><td class="req-id">ACT-004</td><td>报名资格引擎</td><td><span class="status p0">P0</span></td><td>可按会籍、角色、渠道、积分、报名时间和名额限制；拒绝时说明原因</td></tr>
+              <tr><td class="req-id">ACT-005</td><td>多种支付方式</td><td><span class="status p0">P0</span></td><td>支持免费、纯积分、纯现金、积分+现金；支付与扣积分保持事务一致</td></tr>
+              <tr><td class="req-id">ACT-006</td><td>地图导航</td><td><span class="status p0">P0</span></td><td>活动详情可一键唤起微信地图并导航至活动坐标</td></tr>
+              <tr><td class="req-id">ACT-007</td><td>扫码签到</td><td><span class="status p0">P0</span></td><td>每场活动生成动态签到码；防重复、防过期，可人工补签并记录操作人</td></tr>
+              <tr><td class="req-id">ACT-008</td><td>签到积分</td><td><span class="status p0">P0</span></td><td>签到成功后按规则发放积分和贡献值，取消或撤销时自动冲正</td></tr>
+              <tr><td class="req-id">ACT-009</td><td>提醒与候补</td><td><span class="status p1">P1</span></td><td>支持报名成功、开场前提醒、取消和候补转正通知</td></tr>
+              <tr><td class="req-id">ACT-010</td><td>活动回顾</td><td><span class="status p1">P1</span></td><td>可发布图文、视频、资料和 AI 摘要，并关联本场参与会员</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>6.2 模块二：会员展示与关系</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>ID</th><th>需求</th><th>优先级</th><th>验收口径</th></tr></thead>
+            <tbody>
+              <tr><td class="req-id">MEM-001</td><td>微信登录与手机号</td><td><span class="status p0">P0</span></td><td>支持微信一键登录、手机号绑定、协议记录和账号注销</td></tr>
+              <tr><td class="req-id">MEM-002</td><td>毕业生认证</td><td><span class="status p0">P0</span></td><td>提交渠道、班级、毕业时间和证明材料，运营审核后升级 L2</td></tr>
+              <tr><td class="req-id">MEM-003</td><td>个人资料</td><td><span class="status p0">P0</span></td><td>包含姓名、头像、地区、行业、企业、职位、主营业务、可提供资源、需求、兴趣和隐私范围</td></tr>
+              <tr><td class="req-id">MEM-004</td><td>会员目录</td><td><span class="status p0">P0</span></td><td>L2+ 可浏览；默认按贡献值排序，可按姓名、地区、行业、班级、人物角色和标签搜索筛选</td></tr>
+              <tr><td class="req-id">MEM-005</td><td>好友申请</td><td><span class="status p0">P0</span></td><td>支持申请理由、接受/拒绝、好友列表、拉黑和隐私控制；不与分销上下级混用</td></tr>
+              <tr><td class="req-id">MEM-006</td><td>会籍购买与续费</td><td><span class="status p0">P0</span></td><td>购买 L3/L4 后即时生效；记录起止时间、渠道和订单；到期提醒并降级</td></tr>
+              <tr><td class="req-id">MEM-007</td><td>积分账户</td><td><span class="status p0">P0</span></td><td>显示余额、收入、支出、冻结和冲正明细，所有变动可追溯</td></tr>
+              <tr><td class="req-id">MEM-008</td><td>贡献值与排行</td><td><span class="status p0">P0</span></td><td>支持总榜、月榜、渠道榜和分类榜；运营可审计异常值</td></tr>
+              <tr><td class="req-id">MEM-009</td><td>推荐码与渠道归因</td><td><span class="status p0">P0</span></td><td>每位会员有推荐码；记录首次渠道和直接推荐人，退款后奖励冲正</td></tr>
+              <tr><td class="req-id">MEM-010</td><td>客服入口</td><td><span class="status p0">P0</span></td><td>按渠道和会籍展示对应客服二维码，L4 可配置专属客服</td></tr>
+              <tr><td class="req-id">MEM-011</td><td>微信通讯录开关</td><td><span class="status p1">P1</span></td><td>入口由远程功能开关控制，默认关闭；稳定和合规评估后无需发版即可开放</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>6.3 模块三：商城与服务交易</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>ID</th><th>需求</th><th>优先级</th><th>验收口径</th></tr></thead>
+            <tbody>
+              <tr><td class="req-id">COM-001</td><td>多类型商品</td><td><span class="status p0">P0</span></td><td>支持实物、线上课程、线下课程、AI 工具、咨询、陪跑和大咖预约七种类型</td></tr>
+              <tr><td class="req-id">COM-002</td><td>分类与搜索</td><td><span class="status p0">P0</span></td><td>按类型、主题、价格、交付方式、讲师/服务方和渠道筛选</td></tr>
+              <tr><td class="req-id">COM-003</td><td>L2+ 申请上架</td><td><span class="status p0">P0</span></td><td>L2 以上可提交商品，必须填写履约、退款、资质和结算信息</td></tr>
+              <tr><td class="req-id">COM-004</td><td>平台审核</td><td><span class="status p0">P0</span></td><td>支持提交、退回修改、通过、拒绝、下架；保留审核意见和版本</td></tr>
+              <tr><td class="req-id">COM-005</td><td>积分+现金支付</td><td><span class="status p0">P0</span></td><td>运营可设置抵扣比例、上限和适用会籍；订单显示积分与现金组成</td></tr>
+              <tr><td class="req-id">COM-006</td><td>会员价格</td><td><span class="status p0">P0</span></td><td>可分别配置 L2/L3/L4 价格、可见性和购买次数</td></tr>
+              <tr><td class="req-id">COM-007</td><td>虚拟履约</td><td><span class="status p0">P0</span></td><td>课程和服务订单支持兑换码、链接、预约、核销和交付凭证</td></tr>
+              <tr><td class="req-id">COM-008</td><td>退款与售后</td><td><span class="status p0">P0</span></td><td>根据商品规则申请退款，现金原路退回、积分退回，分账和奖励同步冲正</td></tr>
+              <tr><td class="req-id">COM-009</td><td>积分规则说明</td><td><span class="status p0">P0</span></td><td>商城与会员中心展示统一规则、有效期、不可提现说明和明细入口</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>6.4 模块四：大咖主页与预约</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>ID</th><th>需求</th><th>优先级</th><th>验收口径</th></tr></thead>
+            <tbody>
+              <tr><td class="req-id">EXP-001</td><td>角色化主页模板</td><td><span class="status p0">P0</span></td><td>导师、教练、行业领袖使用不同字段和展示顺序，普通会员使用基础主页</td></tr>
+              <tr><td class="req-id">EXP-002</td><td>资料与案例</td><td><span class="status p0">P0</span></td><td>支持简介、擅长领域、资质、案例、课程、活动、社媒和用户评价</td></tr>
+              <tr><td class="req-id">EXP-003</td><td>档期管理</td><td><span class="status p0">P0</span></td><td>大咖可设置线上/线下时段、地点、容量、提前预约和取消规则</td></tr>
+              <tr><td class="req-id">EXP-004</td><td>付费预约</td><td><span class="status p0">P0</span></td><td>支持自定义价格和时长，购买后锁定档期并生成履约订单</td></tr>
+              <tr><td class="req-id">EXP-005</td><td>线上/线下履约</td><td><span class="status p0">P0</span></td><td>线上生成会议链接，线下提供地点导航；双方可确认完成或发起售后</td></tr>
+              <tr><td class="req-id">EXP-006</td><td>大咖 AI 助手</td><td><span class="status p0">P0</span></td><td>每位启用者可配置知识库、欢迎语、适用范围和转人工/预约入口</td></tr>
+              <tr><td class="req-id">EXP-007</td><td>咨询纪要</td><td><span class="status p1">P1</span></td><td>经双方授权后生成结构化纪要，可编辑、下载和删除</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>6.5 模块五：AI 生态</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>ID</th><th>需求</th><th>优先级</th><th>验收口径</th></tr></thead>
+            <tbody>
+              <tr><td class="req-id">AIE-001</td><td>AI 生态首页</td><td><span class="status p0">P0</span></td><td>展示企业 AI 咨询、现有工具、陪跑服务、公开课和付费课程五类入口</td></tr>
+              <tr><td class="req-id">AIE-002</td><td>通用 AI 咨询</td><td><span class="status p0">P0</span></td><td>小程序内完成流式对话，支持历史会话、停止生成、复制和反馈</td></tr>
+              <tr><td class="req-id">AIE-003</td><td>工具目录</td><td><span class="status p0">P0</span></td><td>首发接入内容管理、GEO、CRM 等现有工具，支持介绍、体验、购买和跳转</td></tr>
+              <tr><td class="req-id">AIE-004</td><td>工具调用</td><td><span class="status p0">P0</span></td><td>AI 可在授权后查询活动、积分、订单和课程，并保留调用日志</td></tr>
+              <tr><td class="req-id">AIE-005</td><td>会员配额</td><td><span class="status p0">P0</span></td><td>按 L1–L4 配置每日/月度额度，显示剩余量，超额可购买套餐</td></tr>
+              <tr><td class="req-id">AIE-006</td><td>陪跑服务</td><td><span class="status p0">P0</span></td><td>展示周期、教练、交付内容、时间表和价格，并进入商城购买</td></tr>
+              <tr><td class="req-id">AIE-007</td><td>课程中心</td><td><span class="status p0">P0</span></td><td>支持免费公开课引流、低价线上课和线下深度课，并追踪转化来源</td></tr>
+              <tr><td class="req-id">AIE-008</td><td>每周 AI 个案</td><td><span class="status p1">P1</span></td><td>运营可创建固定周期的线上 AI 咨询活动，并沉淀脱敏案例</td></tr>
+              <tr><td class="req-id">AIE-009</td><td>安全护栏</td><td><span class="status p0">P0</span></td><td>包含敏感内容审核、免责声明、人工升级、异常限流和用户举报</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="platform">
+        <p class="section-label">07 / MULTI-BRAND PLATFORM</p>
+        <h2>双壳与渠道平台</h2>
+        <p>“沈阳渠道定制版”和“九章通用版”不是两套代码，而是同一平台中的两个租户/渠道空间。代码、AI 工具和公共课程共享，品牌、角色、会员和私域内容按渠道隔离。</p>
+
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>ID</th><th>平台能力</th><th>业务规则</th></tr></thead>
+            <tbody>
+              <tr><td class="req-id">TEN-001</td><td>渠道/租户</td><td>用户、活动、商品、订单和内容均记录 tenant_id 与 channel_id</td></tr>
+              <tr><td class="req-id">TEN-002</td><td>品牌配置</td><td>名称、Logo、主题色、首页区块、客服码、协议、分享图和小程序配置可按壳覆盖</td></tr>
+              <tr><td class="req-id">TEN-003</td><td>角色配置</td><td>渠道可启用不同人物角色和申请材料，但底层权限标识保持统一</td></tr>
+              <tr><td class="req-id">TEN-004</td><td>数据隔离</td><td>渠道运营只能访问本渠道私有会员与订单；超级管理员可跨渠道管理</td></tr>
+              <tr><td class="req-id">TEN-005</td><td>共享资源</td><td>九章可将 AI 工具、公开课、导师和商品标记为跨渠道共享</td></tr>
+              <tr><td class="req-id">TEN-006</td><td>渠道归因</td><td>记录首次渠道、当前渠道、推荐人和活动来源，支持渠道业绩报表</td></tr>
+              <tr><td class="req-id">TEN-007</td><td>配置发布</td><td>品牌和首页配置支持草稿、预览、发布与回滚</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="callout risk">
+          <strong>架构红线：</strong>不得为每个渠道复制数据库和代码仓库；不得在业务代码中硬编码“沈阳”“恒志”或某位合作人名称；所有数据访问必须带租户范围校验。
+        </div>
+      </section>
+
+      <section id="business">
+        <p class="section-label">08 / TRANSACTION &amp; SETTLEMENT</p>
+        <h2>交易、审核与分账</h2>
+
+        <h3>8.1 收入类型</h3>
+        <div class="table-wrap">
+          <table class="compact">
+            <thead><tr><th>收入</th><th>支付对象</th><th>履约主体</th><th>结算基础</th></tr></thead>
+            <tbody>
+              <tr><td>L3/L4 会员费</td><td>平台/渠道</td><td>渠道运营方</td><td>按渠道会籍分成规则</td></tr>
+              <tr><td>活动费</td><td>活动主办方</td><td>主办方/讲师</td><td>扣退款、支付手续费和活动成本后结算</td></tr>
+              <tr><td>课程和商品</td><td>平台商户</td><td>商品发布者</td><td>按商品佣金规则结算</td></tr>
+              <tr><td>大咖咨询</td><td>平台商户</td><td>导师/教练/领袖</td><td>确认履约后进入可结算余额</td></tr>
+              <tr><td>企业 AI 咨询</td><td>九章/渠道</td><td>九章与交付团队</td><td>按项目合同单独结算</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>8.2 分账规则</h3>
+        <ul>
+          <li>分账规则使用“平台、渠道、推荐人、服务方”四个角色配置百分比，不在代码里固定具体人员。</li>
+          <li>首发版先生成可审计的分账台账和财务导出，财务人工确认后结算。</li>
+          <li>获得微信支付分账产品能力并完成商户关系配置后，再开启自动分账。</li>
+          <li>退款、拒付或履约争议必须冻结未结算金额，并按原分账比例冲正。</li>
+          <li>任何比例修改只影响新订单，历史订单保存下单时的规则快照。</li>
+        </ul>
+
+        <h3>8.3 审核工作台</h3>
+        <div class="table-wrap">
+          <table class="compact">
+            <thead><tr><th>审核类型</th><th>审核对象</th><th>状态</th><th>审计要求</th></tr></thead>
+            <tbody>
+              <tr><td>毕业生认证</td><td>班级、渠道、证明材料</td><td>待审/通过/退回/拒绝</td><td>记录审核人、意见和时间</td></tr>
+              <tr><td>人物角色</td><td>导师、教练、行业领袖材料</td><td>待审/通过/到期/撤销</td><td>记录资质有效期</td></tr>
+              <tr><td>商品服务</td><td>内容、价格、履约和退款规则</td><td>草稿/待审/上架/下架</td><td>保留每次提交版本</td></tr>
+              <tr><td>内容安全</td><td>主页、活动、课程和 AI 反馈</td><td>正常/隐藏/删除/申诉</td><td>敏感操作不可物理删除日志</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="ia">
+        <p class="section-label">09 / INFORMATION ARCHITECTURE</p>
+        <h2>信息架构与页面清单</h2>
+
+        <h3>9.1 小程序/H5 主导航</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>一级导航</th><th>核心页面</th><th>说明</th></tr></thead>
+            <tbody>
+              <tr><td>首页</td><td>品牌首页、快捷入口、近期活动、大咖、AI 工具、课程</td><td>区块和排序按渠道配置</td></tr>
+              <tr><td>活动</td><td>月历、列表、详情、报名、订单、签到、回顾</td><td>三类活动固定可筛选</td></tr>
+              <tr><td>同学</td><td>会员目录、搜索筛选、排行榜、会员详情、好友申请</td><td>L2+ 可访问私域目录</td></tr>
+              <tr><td>AI 生态</td><td>AI 咨询、工具、陪跑、课程、企业服务</td><td>AI 是核心价值入口之一</td></tr>
+              <tr><td>我的</td><td>会籍、会员卡、积分、贡献值、订单、预约、好友、创作者中心、客服</td><td>所有个人资产统一收口</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>商城不单独占用底部导航，作为首页和 AI 生态中的服务交易能力，同时可通过“我的订单”统一管理。</p>
+
+        <h3>9.2 运营后台</h3>
+        <div class="two-col">
+          <div class="panel"><h4>会员经营</h4><p>会员审核、会籍、角色、标签、积分、贡献值、推荐关系、客服和黑名单。</p></div>
+          <div class="panel"><h4>内容与活动</h4><p>活动、课程、大咖、首页装修、内容审核、消息通知和发布会模式。</p></div>
+          <div class="panel"><h4>交易与履约</h4><p>商品审核、订单、退款、核销、预约、分账台账和财务导出。</p></div>
+          <div class="panel"><h4>平台与 AI</h4><p>渠道、品牌、权限、AI 工具、知识库、配额、调用日志、成本和安全事件。</p></div>
+        </div>
+      </section>
+
+      <section id="architecture">
+        <p class="section-label">10 / TECHNICAL ARCHITECTURE</p>
+        <h2>AI + CRMEB 技术架构</h2>
+
+        <div class="arch">┌──────────────────────────────────────────────────────────────┐
+│ Client                                                       │
+│ UniApp: 微信小程序 + H5     PC: CRMEB Admin                   │
+└───────────────────────────────┬──────────────────────────────┘
+                                │ HTTPS / JWT
+┌───────────────────────────────▼──────────────────────────────┐
+│ Nginx / API Gateway                                         │
+│ TLS · 限流 · 请求追踪 · 灰度 · 静态资源                      │
+└─────────────────────┬───────────────────────┬────────────────┘
+                      │                       │
+┌─────────────────────▼────────────────┐  ┌───▼────────────────┐
+│ CRMEB Open Source + Custom Modules   │  │ AI Gateway         │
+│ PHP / ThinkPHP                       │  │ FastAPI            │
+│                                      │  │                    │
+│ 会员 · 会籍 · 积分 · 商品 · 订单      │  │ 对话 · RAG · 工具   │
+│ 活动 · 目录 · 好友 · 大咖 · 预约      │  │ 配额 · 护栏 · 审计   │
+│ 渠道 · 双壳 · 审核 · 分账台账         │  │ 多模型路由           │
+└──────────────┬───────────────┬───────┘  └───┬───────────────┘
+               │               │              │
+        ┌──────▼──────┐ ┌──────▼──────┐ ┌────▼────────────────┐
+        │ MySQL       │ │ Redis       │ │ DeepSeek / Qwen API │
+        │ 主业务数据   │ │ 缓存/队列/锁 │ │ 经 AI 网关统一访问   │
+        └─────────────┘ └─────────────┘ └─────────────────────┘
+               │
+        ┌──────▼──────────────────────────────────────────────┐
+        │ 云 OSS · 短信 · 微信支付 · 地图 · 会议/RTC · 监控    │
+        └─────────────────────────────────────────────────────┘</div>
+
+        <h3>10.1 架构原则</h3>
+        <ul>
+          <li><strong>一个业务主库：</strong>CRMEB/MySQL 是会员、积分、商品、订单和活动的唯一事实来源。</li>
+          <li><strong>AI 服务无权直接改账：</strong>AI 只能调用受控业务 API，不直接写积分、订单和支付表。</li>
+          <li><strong>租户从第一天进入数据模型：</strong>渠道隔离由后端中间件强制执行，不能依赖前端过滤。</li>
+          <li><strong>扩展不污染核心：</strong>自研模块通过独立命名空间、事件和服务层接入，减少 CRMEB 升级冲突。</li>
+          <li><strong>H5 作为发布会兜底：</strong>小程序审核延迟时，同一 UniApp 代码构建 H5，现场二维码仍可完成业务闭环。</li>
+        </ul>
+
+        <h3>10.2 AI 原生开发流程</h3>
+        <div class="table-wrap">
+          <table class="compact">
+            <thead><tr><th>AI 工作流</th><th>主要产出</th><th>人工门禁</th></tr></thead>
+            <tbody>
+              <tr><td>需求到接口</td><td>数据表、API、权限矩阵、测试样例</td><td>架构负责人确认领域边界</td></tr>
+              <tr><td>并行编码</td><td>PHP 模块、UniApp 页面、FastAPI、后台页面</td><td>代码审查和集成测试</td></tr>
+              <tr><td>自动测试</td><td>单元、接口、端到端、回归和异常场景</td><td>支付、权限和数据隔离必须人工验收</td></tr>
+              <tr><td>运维生成</td><td>Docker、CI/CD、监控、告警和 Runbook</td><td>备份恢复与发布演练</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="data">
+        <p class="section-label">11 / DATA MODEL</p>
+        <h2>核心数据模型</h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>领域</th><th>核心实体</th><th>关键约束</th></tr></thead>
+            <tbody>
+              <tr><td>平台</td><td>Tenant、Channel、BrandConfig、FeatureFlag</td><td>所有私域实体必须归属租户；配置有版本</td></tr>
+              <tr><td>会员</td><td>User、MemberProfile、GraduateVerification、Membership</td><td>账号、认证和付费会籍独立；会籍保留历史</td></tr>
+              <tr><td>角色</td><td>PersonaRole、RoleApplication、AdminRole</td><td>人物角色与后台权限分离</td></tr>
+              <tr><td>关系</td><td>FriendRequest、Friendship、Referral</td><td>好友关系与推荐关系分表</td></tr>
+              <tr><td>激励</td><td>PointAccount、PointLedger、ContributionLedger</td><td>账本只追加、使用冲正，不直接改历史</td></tr>
+              <tr><td>活动</td><td>Activity、Ticket、Registration、CheckIn</td><td>报名支付、名额和签到幂等</td></tr>
+              <tr><td>交易</td><td>Product、SKU、Order、Payment、Refund、Fulfillment</td><td>订单保存价格、权益、分账规则快照</td></tr>
+              <tr><td>大咖</td><td>ExpertProfile、Availability、Appointment</td><td>档期锁和订单状态一致</td></tr>
+              <tr><td>结算</td><td>SettlementRule、SettlementLedger</td><td>履约前不可结算，退款自动冲正</td></tr>
+              <tr><td>AI</td><td>Assistant、KnowledgeBase、Conversation、UsageLedger</td><td>记录同意、配额、模型、成本和删除状态</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="nfr">
+        <p class="section-label">12 / NON-FUNCTIONAL &amp; COMPLIANCE</p>
+        <h2>非功能、安全与合规</h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>类别</th><th>要求</th><th>验收方式</th></tr></thead>
+            <tbody>
+              <tr><td>性能</td><td>核心页面 4G 网络首屏 P75 ≤ 2.5 秒；业务 API P95 ≤ 800ms</td><td>真机和压测报告</td></tr>
+              <tr><td>容量</td><td>发布会支持 300 人同时在线、50 笔/分钟支付回调、200 次/分钟签到</td><td>按业务模型压测，不使用模糊“1000 并发”</td></tr>
+              <tr><td>可用性</td><td>生产稳定版月度可用性 ≥ 99.5%，关键服务具备降级和告警</td><td>监控报表</td></tr>
+              <tr><td>支付安全</td><td>回调验签、幂等、金额二次校验、订单状态机、退款冲正</td><td>故障注入与重复回调测试</td></tr>
+              <tr><td>租户安全</td><td>后台和 API 均强制租户范围；禁止通过 ID 枚举访问他方数据</td><td>越权专项测试</td></tr>
+              <tr><td>备份</td><td>数据库每日全量、关键账本增量备份；RPO ≤ 24h，RTO ≤ 4h</td><td>恢复演练记录</td></tr>
+              <tr><td>隐私</td><td>资料字段分级可见；支持查阅、更正、导出、注销和删除申请</td><td>隐私流程验收</td></tr>
+              <tr><td>AI 数据</td><td>对话用途明确告知；大咖语料取得授权；敏感资料默认不送入外部模型</td><td>数据流图和授权记录</td></tr>
+              <tr><td>AI 标识</td><td>AI 生成内容按适用规定显著/隐式标识，支持用户举报和退出拟人化互动</td><td>合规检查清单</td></tr>
+              <tr><td>审计</td><td>审核、积分、订单、退款、角色、权限和 AI 工具调用均有审计日志</td><td>随机抽查可还原完整链路</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="schedule">
+        <p class="section-label">13 / DELIVERY PLAN</p>
+        <h2>AI 原生排期与里程碑</h2>
+        <p class="lead">推荐配置为 2 名人工负责人配合并行 AI 开发：一名负责架构、后端、支付与 AI 服务，一名负责产品、UniApp、后台和验收。业务团队同步准备内容、导师、商品和发布会。</p>
+
+        <h3>13.1 发布会版本：2026-07-17 至 2026-08-10</h3>
+        <div class="timeline">
+          <div class="timeline-item">
+            <h4>7 月 17–19 日 · 需求与底座冻结</h4>
+            <p>确认品牌、等级、角色、渠道和分账；CRMEB PoC；建立仓库、CI/CD、数据字典和接口契约。</p>
+          </div>
+          <div class="timeline-item">
+            <h4>7 月 20–26 日 · 会员与交易主链路</h4>
+            <p>双壳配置、微信登录、L1–L4、毕业生认证、资料、积分/贡献值、商品类型、会员费和支付。</p>
+          </div>
+          <div class="timeline-item">
+            <h4>7 月 27 日–8 月 2 日 · 五模块并行完成</h4>
+            <p>活动与签到、会员目录与好友、商城审核、大咖主页与预约、AI 生态首页与对话工具。</p>
+          </div>
+          <div class="timeline-item">
+            <h4>8 月 3–7 日 · 集成、内容与真机测试</h4>
+            <p>退款、积分冲正、审核台、分账台账；导入导师、活动、课程和工具；小程序提审与 H5 兜底。</p>
+          </div>
+          <div class="timeline-item launch">
+            <h4>8 月 8–9 日 · 发布演练</h4>
+            <p>真实支付小额测试、现场网络与二维码、数据看板、演示账号、故障降级和发布会完整彩排。</p>
+          </div>
+          <div class="timeline-item launch">
+            <h4>8 月 10 日 · 发布会全量版</h4>
+            <p>五大模块全部可见可操作，现场用户可完成注册、付费、报名、浏览会员、预约和 AI 体验。</p>
+          </div>
+        </div>
+
+        <h3>13.2 生产稳定版：2026-08-11 至 2026-09-15</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>阶段</th><th>周期</th><th>重点</th><th>出口条件</th></tr></thead>
+            <tbody>
+              <tr><td>线上观察</td><td>8/11–8/17</td><td>修复真实用户问题、漏斗埋点、客服工单</td><td>连续 3 天无 P0</td></tr>
+              <tr><td>业务补强</td><td>8/18–8/31</td><td>候补、虚拟履约、每周 AI 个案、课程转化、分账报表</td><td>所有 P0/P1 验收通过</td></tr>
+              <tr><td>平台化</td><td>9/1–9/7</td><td>九章通用版品牌壳、跨渠道共享资源、配置发布</td><td>第二品牌可独立运行</td></tr>
+              <tr><td>生产加固</td><td>9/8–9/15</td><td>压测、安全、备份恢复、监控告警和运维手册</td><td>正式生产评审通过</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="callout good">
+          <strong>周期结论：</strong>8 月 10 日可交付全量发布会版本；生产稳定版总周期为 8–9 周；预留两周外部审核和重大问题缓冲后，立项承诺上限为 10–12 周。
+        </div>
+      </section>
+
+      <section id="acceptance">
+        <p class="section-label">14 / ACCEPTANCE &amp; TESTING</p>
+        <h2>验收标准与测试策略</h2>
+
+        <h3>14.1 8 月 10 日发布会门禁</h3>
+        <ul class="checklist">
+          <li>两套品牌壳可访问，首发品牌内容完整，无测试占位文本。</li>
+          <li>新用户可在 5 分钟内完成微信登录、资料、L2 申请或 L3/L4 支付。</li>
+          <li>活动支持等级/积分门槛、现金支付、地图和现场扫码签到。</li>
+          <li>L2 用户可搜索会员、发起好友申请并查看贡献榜。</li>
+          <li>L2 用户可提交至少一种服务商品，运营可审核并上架。</li>
+          <li>至少 12 位导师/教练/行业领袖资料完整，其中 3 位开放预约。</li>
+          <li>AI 生态至少包含 3 个工具、1 项咨询、1 项陪跑和 2 门课程。</li>
+          <li>真实微信支付、重复回调、退款和积分冲正测试通过。</li>
+          <li>发布会现场 H5 备用二维码、客服和人工补单方案已演练。</li>
+          <li>不存在阻断注册、支付、报名、签到、预约或 AI 对话的 P0 缺陷。</li>
+        </ul>
+
+        <h3>14.2 自动化测试</h3>
+        <div class="table-wrap">
+          <table class="compact">
+            <thead><tr><th>测试层</th><th>覆盖内容</th><th>最低门槛</th></tr></thead>
+            <tbody>
+              <tr><td>单元测试</td><td>等级、积分、贡献值、价格、分账、状态机</td><td>关键领域逻辑 ≥ 80%</td></tr>
+              <tr><td>API 测试</td><td>认证、租户隔离、支付回调、退款、审核、AI 配额</td><td>P0 API 100%</td></tr>
+              <tr><td>端到端</td><td>入会、活动、商城、大咖、AI 五条主旅程</td><td>每次发布自动运行</td></tr>
+              <tr><td>安全测试</td><td>越权、注入、XSS、文件上传、重放、接口刷量</td><td>无高危未修复项</td></tr>
+              <tr><td>真机测试</td><td>主流 iOS/Android 微信版本、弱网与扫码</td><td>发布会设备全部通过</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="team">
+        <p class="section-label">15 / TEAM &amp; OPERATING MODEL</p>
+        <h2>团队、分工与协作</h2>
+
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>职责</th><th>负责人</th><th>交付物</th></tr></thead>
+            <tbody>
+              <tr><td>业务负责人</td><td>静雄</td><td>品牌确认、会员规则、渠道关系、联合发起人、发布会邀约和现场运营</td></tr>
+              <tr><td>产品与交付</td><td>杨宏宇、罗坤</td><td>PRD、页面验收、AI 工具整合、课程内容和交付流程</td></tr>
+              <tr><td>技术负责人</td><td>杨宏宇</td><td>架构、CRMEB 二开、支付、数据安全、发布和平台迭代</td></tr>
+              <tr><td>课程与导师资源</td><td>杨宏宇牵头</td><td>百度培训师等导师团、课程清单、合作方式与首发内容</td></tr>
+              <tr><td>财务与审核</td><td>待指定</td><td>商户号、退款、审核、分账比例、对账和结算确认</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>15.1 AI 开发团队配置</h3>
+        <div class="two-col">
+          <div class="panel">
+            <h4>人工负责人 A</h4>
+            <p>架构、CRMEB/PHP、支付、数据、AI 网关、DevOps 和最终代码审查。</p>
+          </div>
+          <div class="panel">
+            <h4>人工负责人 B</h4>
+            <p>产品、UniApp、后台页面、测试数据、端到端验收、小程序发布和业务沟通。</p>
+          </div>
+          <div class="panel">
+            <h4>并行 AI 工作流</h4>
+            <p>分别处理后端模块、前端页面、AI 服务、自动测试、迁移脚本、文档和运维配置。</p>
+          </div>
+          <div class="panel">
+            <h4>业务验收组</h4>
+            <p>静雄及种子会员每日验收可运行版本，24 小时内确认规则，避免需求等待。</p>
+          </div>
+        </div>
+
+        <h3>15.2 协作节奏</h3>
+        <ul>
+          <li>每天 10:00 发布可验收构建，18:00 完成业务确认与缺陷分级。</li>
+          <li>需求变更必须写明影响的需求 ID、上线节点和验收口径。</li>
+          <li>8 月 3 日后冻结发布会范围，只接受 P0 缺陷和合规修改。</li>
+          <li>导师、活动、商品、课程和 AI 工具内容由业务团队与研发并行准备，不等待代码完成。</li>
+        </ul>
+      </section>
+
+      <section id="budget">
+        <p class="section-label">16 / BUDGET &amp; TCO</p>
+        <h2>AI 原生开发预算</h2>
+        <p>以下为技术建设和首年运行成本，不含发布会场地、课程制作、销售、客服、大咖分成和线下活动成本。</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>类别</th><th>预算范围</th><th>说明</th></tr></thead>
+            <tbody>
+              <tr><td>发布会版本开发人力</td><td>3–5 万元</td><td>2 名 AI 原生开发负责人约 3.5 周</td></tr>
+              <tr><td>生产加固与平台化</td><td>3–5 万元</td><td>发布后约 5 周，包括第二品牌壳和运维加固</td></tr>
+              <tr><td>AI 开发工具与模型</td><td>0.4–1 万元</td><td>编码模型、测试生成、业务 AI PoC 与上线初期额度</td></tr>
+              <tr><td>云资源与第三方服务</td><td>1.2–2.5 万元/年</td><td>ECS/RDS 或自建 DB、Redis、OSS、CDN、短信、监控和备份</td></tr>
+              <tr><td>认证、测试与安全</td><td>0.5–1.5 万元</td><td>小程序认证、域名、压测、安全检查和必要服务</td></tr>
+              <tr><td>风险储备</td><td>1.2–2.5 万元</td><td>按约 15% 预留</td></tr>
+              <tr><td><strong>首年技术预算</strong></td><td><strong>9.3–17.5 万元</strong></td><td>内部团队机会成本口径；外包交付需单独询价</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>16.1 成本控制原则</h3>
+        <ul>
+          <li>CRMEB、UniApp、MySQL、Redis 等版本必须锁定，建立第三方软件清单。</li>
+          <li>优先使用云 OSS，不在首发阶段自行维护对象存储集群。</li>
+          <li>AI 成本按模型、输入/输出 Token、用户和功能分别记账，不使用模糊月度包干估算。</li>
+          <li>上线前设置 L1–L4 配额、单用户限流、总预算熔断和异常告警。</li>
+        </ul>
+      </section>
+
+      <section id="risks">
+        <p class="section-label">17 / RISKS &amp; DECISIONS</p>
+        <h2>风险、应对与止损线</h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>风险</th><th>等级</th><th>应对</th><th>止损线</th></tr></thead>
+            <tbody>
+              <tr><td>小程序审核未按时通过</td><td>高</td><td>7 月底前提交首版；同一 UniApp 构建 H5，发布会二维码自动切换</td><td>8 月 7 日未过审即启用 H5 主入口</td></tr>
+              <tr><td>CRMEB 二开冲突</td><td>中高</td><td>核心代码最小修改，自研模块独立命名空间，关键链路先 PoC</td><td>7 月 19 日支付/会员 PoC 不通则冻结版本并调整扩展点</td></tr>
+              <tr><td>双壳造成越权</td><td>高</td><td>租户中间件、自动越权测试、后台数据范围控制</td><td>任何跨租户读写缺陷阻断上线</td></tr>
+              <tr><td>支付和积分不一致</td><td>高</td><td>状态机、幂等键、账本、补偿任务和每日对账</td><td>无法自动对账则关闭积分混合支付</td></tr>
+              <tr><td>业务规则确认慢</td><td>高</td><td>每日验收，规则由静雄当日确认，逾期采用本文默认值</td><td>超过 24 小时未确认不阻塞开发</td></tr>
+              <tr><td>首发内容不足</td><td>高</td><td>内容团队同步准备 12 位大咖、3 场活动、5 项服务、5 个 AI 入口</td><td>8 月 3 日内容未齐，负责人每日补齐清单</td></tr>
+              <tr><td>AI 输出或数据风险</td><td>中高</td><td>授权、护栏、举报、配额、日志、敏感数据脱敏和人工升级</td><td>无法满足告知与授权的数字分身不得上线</td></tr>
+              <tr><td>自动分账资质未完成</td><td>中</td><td>首发使用分账台账与人工结算，后续开通微信分账</td><td>禁止使用个人账户私下自动拆分</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>17.1 已确定决策</h3>
+        <ul class="checklist">
+          <li>五大模块全量首发，不按模块拆成二期。</li>
+          <li>CRMEB 是业务主平台，会员等级不使用 Discourse Trust Level。</li>
+          <li>双壳共用代码和数据平台，通过租户/渠道配置实现。</li>
+          <li>会员等级、人物角色和运营权限分开建模。</li>
+          <li>8 月 10 日是发布会全量版，9 月 15 日是生产稳定版。</li>
+        </ul>
+
+        <h3>17.2 待业务确认</h3>
+        <ul>
+          <li>统一对外品牌名称、小程序名称、主体和 Logo。</li>
+          <li>L3/L4 各自的最终权益清单、是否允许渠道调整价格。</li>
+          <li>阿雪老师、静雄、九章及服务方的默认分账比例。</li>
+          <li>首发导师、活动、商品、AI 工具和课程清单。</li>
+          <li>微信支付商户号、退款权限、发票与财务负责人。</li>
+        </ul>
+      </section>
+
+      <section id="traceability">
+        <p class="section-label">18 / REQUIREMENT TRACEABILITY</p>
+        <h2>附件需求追踪</h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>附件需求</th><th>落地位置</th><th>状态</th></tr></thead>
+            <tbody>
+              <tr><td>活动三分类、地图、等级/费用/积分门槛、签到积分</td><td>ACT-001 至 ACT-010</td><td>已覆盖</td></tr>
+              <tr><td>会员列表、资料、搜索筛选、好友、积分排名、分销码、客服码</td><td>MEM-001 至 MEM-011</td><td>已覆盖</td></tr>
+              <tr><td>L1 游客、L2 毕业生、L3 1000 元、L4 5000 元</td><td>4.2 会籍等级</td><td>已覆盖</td></tr>
+              <tr><td>导师、教练、行业领袖、游客/普通会员角色</td><td>4.3、EXP-001</td><td>已覆盖</td></tr>
+              <tr><td>L2+ 上架、平台审核、虚拟产品/服务/课程</td><td>COM-001 至 COM-009</td><td>已覆盖</td></tr>
+              <tr><td>大咖主页、AI 对话、线上线下付费预约</td><td>EXP-001 至 EXP-007</td><td>已覆盖</td></tr>
+              <tr><td>AI 咨询、工具、陪跑、课程和企业服务</td><td>AIE-001 至 AIE-009</td><td>已覆盖</td></tr>
+              <tr><td>微信通讯录暂时隐藏</td><td>MEM-011 功能开关</td><td>已覆盖</td></tr>
+              <tr><td>毕业生同学会外壳、AI 服务内核</td><td>2.2 产品定位</td><td>已覆盖</td></tr>
+              <tr><td>渠道定制版 + 九章通用版双壳</td><td>TEN-001 至 TEN-007</td><td>已覆盖</td></tr>
+              <tr><td>会员费、服务收入和合作方分账</td><td>第 8 章</td><td>规则待比例确认</td></tr>
+              <tr><td>8 月 10 日发布会现场注册付费</td><td>第 13、14 章</td><td>已纳入硬节点</td></tr>
+              <tr><td>百度培训师、公开课引流、每周 AI 个案</td><td>AIE-007、AIE-008、第 15 章</td><td>产品已覆盖，资源待落实</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>签字确认</h3>
+        <p>本 PRD 确认后，需求 ID、默认规则和里程碑作为开发与验收基线。任何影响 8 月 10 日发布的变更，必须由业务负责人和技术负责人共同确认。</p>
+        <div class="signature">
+          <div>业务负责人 / 日期</div>
+          <div>产品负责人 / 日期</div>
+          <div>技术负责人 / 日期</div>
+        </div>
+      </section>
+    </article>
+  </div>
+  <footer class="footer">VP 毕业生同学会数字平台 · PRD v2.0 · 2026-07-17</footer>
+</main>
+</body>
+</html>

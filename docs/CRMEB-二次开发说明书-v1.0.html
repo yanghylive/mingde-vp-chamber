@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CRMEB 二次开发说明书 v1.0 · VP 毕业生同学会数字平台</title>
+<style>
+:root {
+  --ink:#16212b; --muted:#5c6873; --line:#d9dfe4; --paper:#fff; --soft:#f4f6f7;
+  --navy:#18324b; --green:#14735a; --green-soft:#e8f4ef; --blue:#276ca5;
+  --blue-soft:#eaf2f9; --coral:#bd4c3a; --coral-soft:#faece9; --gold:#8b6218; --gold-soft:#faf2df;
+}
+*{box-sizing:border-box} html{scroll-behavior:smooth}
+body{margin:0;background:#edf0f2;color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;font-size:15px;line-height:1.72;letter-spacing:0}
+a{color:var(--blue);text-underline-offset:3px}.doc{width:min(1220px,100%);margin:auto;background:var(--paper);box-shadow:0 12px 42px rgba(22,33,43,.08)}
+.cover{min-height:570px;padding:66px clamp(26px,7vw,88px) 50px;background:var(--navy);color:white;display:flex;flex-direction:column;justify-content:space-between}
+.eyebrow{margin:0 0 34px;color:#9ed4c0;font-size:13px;font-weight:800}.cover h1{max-width:880px;margin:0;font-size:clamp(38px,5vw,62px);line-height:1.14;letter-spacing:0}.subtitle{max-width:800px;margin:22px 0 0;color:#d3e0ea;font-size:19px}.baseline{margin-top:38px;max-width:860px;padding:16px 18px;background:rgba(255,255,255,.08);border-left:5px solid #54bb98}.baseline code{overflow-wrap:anywhere;word-break:break-all}.cover-meta{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:20px;padding-top:30px;border-top:1px solid rgba(255,255,255,.2)}.cover-meta small{display:block;color:#9eb1c1}.cover-meta strong{font-size:14px}
+.layout{display:grid;grid-template-columns:270px minmax(0,1fr)}.toc{padding:36px 23px;background:#f7f8f9;border-right:1px solid var(--line)}.toc-inner{position:sticky;top:18px}.toc h2{margin:0 0 12px;border:0;padding:0;font-size:13px;color:var(--muted)}.toc ol{margin:0;padding:0;list-style:none;counter-reset:toc}.toc li{counter-increment:toc;border-bottom:1px solid #e5e9ec}.toc a{display:block;padding:8px 0;text-decoration:none;color:#394550;font-size:13px}.toc a:before{content:counter(toc,decimal-leading-zero) " ";color:var(--green);font-weight:800}
+.content{min-width:0;padding:52px clamp(24px,5vw,70px) 78px}section{margin:0 0 68px;scroll-margin-top:24px}.label{margin:0 0 7px;color:var(--green);font-weight:800;font-size:12px}h2{margin:0 0 23px;padding-bottom:12px;border-bottom:3px solid var(--navy);font-size:28px;line-height:1.28;letter-spacing:0}h3{margin:31px 0 13px;color:var(--navy);font-size:20px;letter-spacing:0}h4{margin:23px 0 9px;font-size:16px;letter-spacing:0}p{margin:0 0 13px}ul,ol{margin:0 0 18px;padding-left:24px}li{margin-bottom:6px}.lead{font-size:18px;color:#33414d}
+.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:22px 0 28px}.metric{min-height:112px;padding:16px;border:1px solid var(--line);border-top:5px solid var(--green);border-radius:6px}.metric b{display:block;font-size:24px;color:var(--navy)}.metric span{display:block;margin-top:7px;color:var(--muted);font-size:12px}
+.callout{margin:18px 0;padding:16px 18px;border-left:5px solid var(--blue);background:var(--blue-soft)}.callout.good{border-color:var(--green);background:var(--green-soft)}.callout.warn{border-color:var(--gold);background:var(--gold-soft)}.callout.risk{border-color:var(--coral);background:var(--coral-soft)}
+.table-wrap{width:100%;margin:14px 0 25px;overflow-x:auto;border:1px solid var(--line);border-radius:6px}table{width:100%;min-width:720px;border-collapse:collapse;font-size:13px}th{padding:10px 12px;background:var(--navy);color:#fff;text-align:left;vertical-align:top}td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}tbody tr:nth-child(even){background:#f8f9fa}tbody tr:last-child td{border-bottom:0}.code-path{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:#1f5f92;font-size:12px}.tag{display:inline-block;padding:2px 7px;border-radius:4px;font-size:11px;font-weight:800;white-space:nowrap}.reuse{background:#e5f3ed;color:#126149}.extend{background:#f8edce;color:#76530e}.new{background:#f8e5e1;color:#8b2f21}.avoid{background:#e8ebee;color:#4b5660}
+.two-col{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}.panel{padding:18px 19px;border:1px solid var(--line);border-radius:6px}.panel h3,.panel h4{margin-top:0}.panel p:last-child,.panel ul:last-child{margin-bottom:0}
+pre{margin:16px 0 24px;padding:20px;overflow:auto;border-radius:6px;background:#192632;color:#e9f1f6;font:12.5px/1.58 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;white-space:pre}code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;overflow-wrap:anywhere;word-break:break-word}.inline{padding:1px 5px;border-radius:3px;background:#edf1f4;color:#244965;font-size:.92em}
+.sequence{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:7px;margin:20px 0}.sequence div{position:relative;min-height:80px;padding:12px;border:1px solid var(--line);border-radius:6px;font-size:12px}.sequence b{display:block;color:var(--green);margin-bottom:4px}.sequence div:not(:last-child):after{content:"→";position:absolute;right:-9px;top:25px;color:var(--coral);font-weight:900;z-index:2}
+.checklist{padding:0;list-style:none}.checklist li{position:relative;padding:7px 0 7px 27px;border-bottom:1px solid #e7eaed}.checklist li:before{content:"✓";position:absolute;left:2px;color:var(--green);font-weight:900}.footer{padding:25px;background:#edf1f3;text-align:center;color:#67737d;font-size:12px}
+@media(max-width:920px){.layout{display:block}.toc{border-right:0;border-bottom:1px solid var(--line)}.toc-inner{position:static}.toc ol{columns:2}.cover-meta,.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.sequence{grid-template-columns:1fr}.sequence div:not(:last-child):after{content:"↓";right:auto;left:50%;top:auto;bottom:-17px}}
+@media(max-width:620px){body{font-size:14px}.cover{min-height:610px;padding-top:42px}.cover h1{font-size:37px}.cover-meta,.metrics,.two-col{grid-template-columns:1fr}.content{padding:38px 18px 60px}.toc ol{columns:1}h2{font-size:24px}}
+@media print{@page{size:A4;margin:14mm 12mm 16mm}body{background:#fff;font-size:10.5pt}.doc{width:100%;box-shadow:none}.cover{min-height:260mm;page-break-after:always;print-color-adjust:exact;-webkit-print-color-adjust:exact}.layout{display:block}.toc{page-break-after:always;border:0}.toc ol{columns:2}.content{padding:0}section{page-break-before:always;margin-bottom:0}h2,h3,h4{page-break-after:avoid}.table-wrap,.panel,.callout,pre{page-break-inside:avoid}.footer{display:none}}
+</style>
+</head>
+<body>
+<main class="doc">
+  <header class="cover">
+    <div>
+      <p class="eyebrow">TECHNICAL DESIGN DOCUMENT · V1.0</p>
+      <h1>CRMEB 二次开发说明书</h1>
+      <p class="subtitle">VP 毕业生同学会数字平台：源码调研、能力复用、扩展架构、数据设计与交付规范。</p>
+      <div class="baseline"><strong>技术基线：</strong>CRMEB-KY v6.0.0，官方 Gitee 标签 <code>v6.0.0</code>，提交 <code>7dcddffff73ec542d689f159724296351f29ea9a</code>。</div>
+    </div>
+    <div class="cover-meta">
+      <div><small>项目</small><strong>mingde-vp-chamber</strong></div>
+      <div><small>基线日期</small><strong>2026-07-17</strong></div>
+      <div><small>关联需求</small><strong>PRD v2.0</strong></div>
+      <div><small>状态</small><strong>开发基线</strong></div>
+    </div>
+  </header>
+
+  <div class="layout">
+    <nav class="toc" aria-label="目录"><div class="toc-inner">
+      <h2>目录</h2>
+      <ol>
+        <li><a href="#conclusion">结论与技术决策</a></li>
+        <li><a href="#baseline">源码基线</a></li>
+        <li><a href="#stack">真实技术栈</a></li>
+        <li><a href="#code-map">代码结构</a></li>
+        <li><a href="#capability">现有能力盘点</a></li>
+        <li><a href="#gaps">误用点与缺口</a></li>
+        <li><a href="#target">目标架构</a></li>
+        <li><a href="#overlay">二开目录与覆盖机制</a></li>
+        <li><a href="#domain">领域与数据模型</a></li>
+        <li><a href="#membership">会员与关系改造</a></li>
+        <li><a href="#event">活动与签到改造</a></li>
+        <li><a href="#commerce">商城、审核与分账</a></li>
+        <li><a href="#expert">大咖与预约</a></li>
+        <li><a href="#ai">AI 服务</a></li>
+        <li><a href="#api">API 与事件契约</a></li>
+        <li><a href="#frontend">前端与后台</a></li>
+        <li><a href="#security">安全与租户隔离</a></li>
+        <li><a href="#test">测试策略</a></li>
+        <li><a href="#delivery">构建与部署</a></li>
+        <li><a href="#upgrade">上游升级策略</a></li>
+        <li><a href="#plan">开发计划</a></li>
+        <li><a href="#rules">AI 编码规则</a></li>
+      </ol>
+    </div></nav>
+
+    <article class="content">
+      <section id="conclusion">
+        <p class="label">01 / CONCLUSION</p>
+        <h2>结论与技术决策</h2>
+        <p class="lead">CRMEB v6.0.0 可以承担账号、商品、订单、支付、退款、核销、客服、分销和后台权限，但不能直接等同于毕业生商会业务。二开必须以“复用交易底座、重建商会领域”为原则。</p>
+        <div class="metrics">
+          <div class="metric"><b>14,298</b><span>官方仓库文件数</span></div>
+          <div class="metric"><b>157</b><span>安装 SQL 数据表</span></div>
+          <div class="metric"><b>419 / 958</b><span>移动 API / 管理 API 路由定义</span></div>
+          <div class="metric"><b>854</b><span>UniApp 与管理端 Vue 页面</span></div>
+        </div>
+
+        <h3>1.1 已确定的架构决策</h3>
+        <ul class="checklist">
+          <li>CRMEB 作为唯一交易主系统，不引入第二套商城或会员主库。</li>
+          <li>官方源码以 Git 子模块固定版本，不直接在子模块中提交业务代码。</li>
+          <li>业务二开采用父仓库 overlay，构建时叠加到 CRMEB 干净工作副本。</li>
+          <li>L1-L4 不复用 <code class="inline">eb_user.level</code>，该字段属于经验成长等级。</li>
+          <li>渠道双壳使用新租户领域，不把 CRMEB 事业部/分销代理当作数据租户。</li>
+          <li>活动不复用 <code class="inline">eb_store_activity</code>，该表服务于秒杀活动。</li>
+          <li>AI 网关独立部署，只通过受控 API 操作 CRMEB，不直接写业务数据库。</li>
+          <li>所有支付、积分、贡献值、退款和分账使用追加式账本与冲正。</li>
+        </ul>
+
+        <div class="callout risk"><strong>核心警告：</strong>类名“会员、好友、活动、事业部”与 PRD 用词相似，但实际语义不同。AI 编码前必须查阅本说明书的能力矩阵，禁止仅根据文件名判断可复用性。</div>
+      </section>
+
+      <section id="baseline">
+        <p class="label">02 / SOURCE BASELINE</p>
+        <h2>源码基线与仓库策略</h2>
+        <div class="table-wrap"><table>
+          <thead><tr><th>项目</th><th>值</th><th>说明</th></tr></thead>
+          <tbody>
+            <tr><td>上游</td><td><a href="https://gitee.com/ZhongBangKeJi/CRMEB">CRMEB 官方 Gitee</a></td><td>网络可达的官方源仓库</td></tr>
+            <tr><td>镜像</td><td><a href="https://github.com/crmeb/CRMEB">CRMEB 官方 GitHub</a></td><td>GitHub 镜像；本次拉取时 GitHub 443 超时</td></tr>
+            <tr><td>发行版</td><td><code>CRMEB-KY v6.0.0</code></td><td>源码内 <a href="../backend/crmeb/crmeb/.version">.version</a> 与 README 一致</td></tr>
+            <tr><td>标签</td><td><code>v6.0.0</code></td><td>最新版正式标签</td></tr>
+            <tr><td>提交</td><td><code>7dcddffff73ec542d689f159724296351f29ea9a</code></td><td>父仓库锁定的子模块指针</td></tr>
+            <tr><td>子模块目录</td><td><code>backend/crmeb</code></td><td>不在此目录直接开发业务功能</td></tr>
+            <tr><td>许可证</td><td>根目录 Apache-2.0</td><td>源码头部另有“不得移除版权”声明，必须保留全部版权标识并在商业发布前复核</td></tr>
+          </tbody>
+        </table></div>
+
+        <h3>2.1 为什么固定正式标签</h3>
+        <p>官方 <code>master</code> 在发布后仍持续更新文档和辅助文件。二开基线必须可重复，因此父仓库固定到 <code>v6.0.0</code>。更新上游只能通过独立升级任务完成，禁止在日常开发中执行无审查的 <code>git pull</code>。</p>
+
+        <h3>2.2 父仓库与子模块边界</h3>
+        <pre>mingde-vp-chamber/                 # 我方主仓库，推送到私有 GitHub
+├── backend/crmeb/                # 官方 CRMEB 子模块，固定 v6.0.0
+├── backend/custom/               # 我方 PHP、路由、迁移、监听器
+├── frontend/custom/              # 我方 UniApp 与 Admin 覆盖层
+├── ai-service/                   # 我方 FastAPI AI 网关
+├── deployment/                   # 构建、容器、环境与运维
+├── scripts/                      # 基线校验、构建和发布脚本
+└── docs/                         # HTML 文档</pre>
+      </section>
+
+      <section id="stack">
+        <p class="label">03 / ACTUAL STACK</p>
+        <h2>真实技术栈与运行要求</h2>
+        <p>以下信息来自当前锁定源码，不沿用旧方案中的假设。</p>
+        <div class="table-wrap"><table>
+          <thead><tr><th>层</th><th>实际技术</th><th>源码证据</th><th>二开约束</th></tr></thead>
+          <tbody>
+            <tr><td>后端</td><td>PHP ≥ 7.1、ThinkPHP 6 多应用</td><td><a href="../backend/crmeb/crmeb/composer.json" class="code-path">crmeb/composer.json</a></td><td>生产建议 PHP 7.4；不得直接升级 PHP8 后假定兼容</td></tr>
+            <tr><td>ORM</td><td>ThinkORM，Model/Dao/Services 分层</td><td><span class="code-path">app/model, app/dao, app/services</span></td><td>控制器不得直接查询数据库</td></tr>
+            <tr><td>管理端</td><td>Vue 2.5、Vuex 3、Element UI 2、Vue CLI</td><td><a href="../backend/crmeb/template/admin/package.json" class="code-path">template/admin/package.json</a></td><td>不使用 Vue3/Pinia 写入官方管理端</td></tr>
+            <tr><td>用户端</td><td>UniApp 传统项目、Vue 2 风格</td><td><a href="../backend/crmeb/template/uni-app/package.json" class="code-path">template/uni-app/package.json</a></td><td>新增页面遵循现有 API/store/i18n 结构</td></tr>
+            <tr><td>数据库</td><td>MySQL 5.7-8.0</td><td><span class="code-path">public/install/crmeb.sql</span></td><td>金额使用 decimal 与 BCMath，不用浮点</td></tr>
+            <tr><td>缓存/队列</td><td>Redis、think-queue、锁服务</td><td><span class="code-path">crmeb/services/LockService.php</span></td><td>支付、名额和档期必须加分布式锁</td></tr>
+            <tr><td>长连接</td><td>Workerman</td><td><span class="code-path">crmeb/services/workerman</span></td><td>复用客服消息，不用于替代 AI SSE</td></tr>
+            <tr><td>支付</td><td>微信、支付宝、余额，统一 PayServices</td><td><span class="code-path">app/services/pay</span></td><td>所有业务订单进入已有支付回调体系</td></tr>
+            <tr><td>AI</td><td>源码不含</td><td>无</td><td>独立 FastAPI 服务实现</td></tr>
+          </tbody>
+        </table></div>
+        <div class="callout warn"><strong>环境结论：</strong>原项目骨架中“PHP 8 + Vue3 + Pinia”的描述不适用于当前 CRMEB v6.0.0。自研 AI 服务可使用 Python 3.11，但 CRMEB 管理端和 UniApp 必须先按官方 Vue2 架构开发。</div>
+      </section>
+
+      <section id="code-map">
+        <p class="label">04 / CODE MAP</p>
+        <h2>代码结构与请求链路</h2>
+        <h3>4.1 发行包结构</h3>
+        <div class="table-wrap"><table>
+          <thead><tr><th>目录</th><th>内容</th><th>规模/说明</th></tr></thead>
+          <tbody>
+            <tr><td class="code-path">backend/crmeb/crmeb</td><td>后端应用、vendor、安装 SQL、运行入口</td><td>实际 PHP 运行根目录</td></tr>
+            <tr><td class="code-path">backend/crmeb/template/admin</td><td>管理端 Vue 源码</td><td>约 585 个 Vue 文件</td></tr>
+            <tr><td class="code-path">backend/crmeb/template/uni-app</td><td>H5/小程序/App 源码</td><td>约 269 个 Vue 文件</td></tr>
+            <tr><td class="code-path">backend/crmeb/help</td><td>Docker、开发说明和资源</td><td>上游参考，不作为我方规范</td></tr>
+          </tbody>
+        </table></div>
+
+        <h3>4.2 后端分层</h3>
+        <div class="sequence">
+          <div><b>Route</b>v1/v2 或 admin route</div>
+          <div><b>Middleware</b>Token、状态、租户</div>
+          <div><b>Controller</b>参数与响应</div>
+          <div><b>Services</b>事务和业务规则</div>
+          <div><b>Dao/Model</b>查询与关联</div>
+          <div><b>Event/Job</b>异步副作用</div>
+        </div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>层</th><th>数量</th><th>主要位置</th><th>二开规则</th></tr></thead>
+          <tbody>
+            <tr><td>Model</td><td>157</td><td class="code-path">app/model</td><td>只处理字段、搜索器、关联与访问器</td></tr>
+            <tr><td>Dao</td><td>176</td><td class="code-path">app/dao</td><td>封装查询，不承载支付或权限规则</td></tr>
+            <tr><td>Services</td><td>240</td><td class="code-path">app/services</td><td>所有跨表事务和领域规则集中在此</td></tr>
+            <tr><td>移动 API Controller</td><td>56</td><td class="code-path">app/api/controller</td><td>薄控制器，使用 Request postMore/getMore</td></tr>
+            <tr><td>管理 Controller</td><td>123</td><td class="code-path">app/adminapi/controller</td><td>复用 Admin 权限和表单生成</td></tr>
+            <tr><td>Listener</td><td>20</td><td class="code-path">app/listener</td><td>支付、退款、注册等扩展首选事件</td></tr>
+            <tr><td>Job</td><td>30</td><td class="code-path">app/jobs</td><td>通知、对账、超时和 AI 异步任务</td></tr>
+          </tbody>
+        </table></div>
+
+        <h3>4.3 多应用入口</h3>
+        <ul>
+          <li><code class="inline">app/api</code>：小程序/H5 用户 API，现有约 419 条路由。</li>
+          <li><code class="inline">app/adminapi</code>：管理后台 API，现有约 958 条路由。</li>
+          <li><code class="inline">app/kefuapi</code>：客服和核销相关 API。</li>
+          <li><code class="inline">app/outapi</code>：外部系统接口，应优先用于受控第三方接入。</li>
+        </ul>
+      </section>
+
+      <section id="capability">
+        <p class="label">05 / CAPABILITY MATRIX</p>
+        <h2>现有能力与复用矩阵</h2>
+        <div class="table-wrap"><table>
+          <thead><tr><th>PRD 能力</th><th>CRMEB 现状</th><th>结论</th><th>主要代码</th></tr></thead>
+          <tbody>
+            <tr><td>微信登录/手机号</td><td>已完整实现登录、授权、Token、绑定与注销</td><td><span class="tag reuse">直接复用</span></td><td class="code-path">api/LoginController.php, services/user/LoginServices.php</td></tr>
+            <tr><td>商品、SKU、库存</td><td>成熟 SPU/SKU、分类、标签、限购、会员价</td><td><span class="tag reuse">直接复用</span></td><td class="code-path">services/product, model/product</td></tr>
+            <tr><td>订单/支付/退款</td><td>创建、计算、收银台、回调、售后、退款、冲正</td><td><span class="tag reuse">直接复用</span></td><td class="code-path">services/order, services/pay</td></tr>
+            <tr><td>积分抵现</td><td>已有 use_integral、deduction_price、退款退积分</td><td><span class="tag extend">扩展租户账本</span></td><td class="code-path">StoreOrderComputedServices, StoreOrderRefundServices</td></tr>
+            <tr><td>虚拟商品</td><td>已有卡密和核销，但不等于课程/咨询履约</td><td><span class="tag extend">扩展类型</span></td><td class="code-path">StoreProductVirtual, StoreProductVirtualServices</td></tr>
+            <tr><td>付费会员</td><td>月/季/年/永久卡及支付订单，但用户只有全局付费状态</td><td><span class="tag extend">重建会籍层</span></td><td class="code-path">services/user/member, OtherOrderServices</td></tr>
+            <tr><td>用户等级</td><td>由经验 exp 解锁并改变折扣</td><td><span class="tag avoid">不可映射 L1-L4</span></td><td class="code-path">UserLevelServices.php</td></tr>
+            <tr><td>积分记录</td><td>用户积分、积分商品、记录、统计、导出</td><td><span class="tag reuse">复用模式</span></td><td class="code-path">UserBillServices, StorePointRecordServices</td></tr>
+            <tr><td>好友</td><td>存在 user_friends 表，但只在推荐绑定时写入单向关系</td><td><span class="tag new">新建申请系统</span></td><td class="code-path">UserFriendsServices, UserServices::spread</td></tr>
+            <tr><td>活动</td><td>store_activity 是秒杀活动分组，不含报名/地图/票种</td><td><span class="tag new">新建活动领域</span></td><td class="code-path">services/activity/StoreActivityServices.php</td></tr>
+            <tr><td>订单核销</td><td>门店核销、核销员、核销码已完整</td><td><span class="tag reuse">复用模式</span></td><td class="code-path">StoreOrderWriteOffServices, system/store</td></tr>
+            <tr><td>会员上架</td><td>开源版仍是平台单商户，mer_id 基本固定 0</td><td><span class="tag new">新建提交审核</span></td><td class="code-path">StoreProductServices.php</td></tr>
+            <tr><td>分销/渠道码</td><td>推广人、佣金、海报、渠道码、事业部</td><td><span class="tag extend">复用归因</span></td><td class="code-path">services/agent, UserSpreadServices</td></tr>
+            <tr><td>双壳租户</td><td>事业部用于分销组织，不提供全表租户隔离</td><td><span class="tag new">新建租户领域</span></td><td class="code-path">services/agent/DivisionServices.php</td></tr>
+            <tr><td>客服</td><td>客服列表、聊天、反馈、Workerman 通道</td><td><span class="tag reuse">直接复用</span></td><td class="code-path">app/kefuapi, services/kefu</td></tr>
+            <tr><td>后台权限</td><td>管理员、角色、菜单、接口权限</td><td><span class="tag reuse">直接复用</span></td><td class="code-path">adminapi/route/setting.php</td></tr>
+            <tr><td>大咖/档期</td><td>无人物角色、档期和预约状态机</td><td><span class="tag new">新建</span></td><td>无</td></tr>
+            <tr><td>AI 对话/工具</td><td>无</td><td><span class="tag new">独立服务</span></td><td>无</td></tr>
+          </tbody>
+        </table></div>
+      </section>
+
+      <section id="gaps">
+        <p class="label">06 / SEMANTIC GAPS</p>
+        <h2>高风险误用点与业务缺口</h2>
+        <div class="two-col">
+          <div class="panel"><h4>付费会员不等于 L1-L4</h4><p><code>eb_member_ship</code> 可卖时长卡，但 <code>eb_user.is_money_level</code> 只表示付费来源，无法表达每个租户的 L3/L4 和历史变更。</p></div>
+          <div class="panel"><h4>用户等级不等于会籍</h4><p><code>eb_user.level</code> 由经验值和折扣驱动。把它用于付费等级会导致签到、消费和后台调级改变会籍。</p></div>
+          <div class="panel"><h4>好友记录不等于社交关系</h4><p><code>eb_user_friends</code> 没有申请状态、处理人、拒绝、拉黑和双向唯一约束，当前写入发生在推荐绑定流程。</p></div>
+          <div class="panel"><h4>营销活动不等于线下活动</h4><p><code>eb_store_activity</code> 管理秒杀商品时间段，不支持地点、地图、嘉宾、票种、资格、报名和签到。</p></div>
+          <div class="panel"><h4>事业部不等于租户</h4><p>事业部主要服务分销层级，订单、商品、会员 API 没有强制事业部过滤，不能作为双品牌的数据隔离边界。</p></div>
+          <div class="panel"><h4>虚拟卡密不等于服务履约</h4><p>课程、咨询和陪跑需要档期、参与人、会议链接、核销、交付凭证和争议处理，不能只发一组卡密。</p></div>
+        </div>
+      </section>
+
+      <section id="target">
+        <p class="label">07 / TARGET ARCHITECTURE</p>
+        <h2>目标架构与系统边界</h2>
+        <pre>┌──────────────────────────────────────────────────────────┐
+│ UniApp 小程序/H5                CRMEB Admin + Custom UI  │
+└─────────────────────────┬────────────────────────────────┘
+                          │ HTTPS / JWT
+┌─────────────────────────▼────────────────────────────────┐
+│ CRMEB API + Chamber Overlay                              │
+│                                                         │
+│ CRMEB Core              Chamber Domain                  │
+│ Auth / Product / Order   Tenant / Membership / Profile  │
+│ Pay / Refund / Writeoff  Friendship / Contribution      │
+│ Customer / RBAC          Event / Expert / Appointment    │
+│ Distribution / Notice    Submission / Settlement        │
+└──────────────┬──────────────────────┬────────────────────┘
+               │                      │ signed service API
+       ┌───────▼────────┐     ┌───────▼────────────────────┐
+       │ MySQL + Redis  │     │ FastAPI AI Gateway        │
+       │ eb_* + ch_*    │     │ Chat / RAG / Tools / Quota│
+       └────────────────┘     └────────────┬───────────────┘
+                                          │
+                                  DeepSeek / Qwen APIs</pre>
+
+        <h3>7.1 数据所有权</h3>
+        <div class="table-wrap"><table>
+          <thead><tr><th>系统</th><th>拥有的数据</th><th>禁止事项</th></tr></thead>
+          <tbody>
+            <tr><td>CRMEB Core</td><td>用户账号、商品、订单、支付、退款、客服、平台权限</td><td>不得让 AI 服务直接修改</td></tr>
+            <tr><td>Chamber Domain</td><td>租户、会籍、角色、活动、好友、贡献值、大咖、档期、分账</td><td>不得写入 CRMEB 核心含义相近但语义不同的字段</td></tr>
+            <tr><td>AI Gateway</td><td>助手配置、知识库索引、对话、配额、调用与成本</td><td>不得成为会员/积分/订单事实来源</td></tr>
+            <tr><td>云 OSS</td><td>头像、证明材料、活动资料、课程文件和知识库原文</td><td>不得公开暴露私有对象 URL</td></tr>
+          </tbody>
+        </table></div>
+      </section>
+
+      <section id="overlay">
+        <p class="label">08 / OVERLAY DESIGN</p>
+        <h2>二开目录与覆盖机制</h2>
+        <h3>8.1 自研代码目录</h3>
+        <pre>backend/custom/
+├── app/chamber/
+│   ├── controller/api/          # 移动端控制器
+│   ├── controller/admin/        # 管理端控制器
+│   ├── services/                # 领域服务与事务
+│   ├── dao/                     # 查询对象
+│   ├── model/                   # ch_* 表模型
+│   ├── middleware/              # TenantContext / 权限
+│   ├── listener/                # 支付、退款、注册事件
+│   ├── jobs/                    # 超时、提醒、对账
+│   └── validate/                # 输入校验
+├── route/
+│   ├── chamber_api.php
+│   └── chamber_admin.php
+├── database/migrations/         # 仅追加迁移，不回写安装 SQL
+└── config/                      # 默认值，不含密钥
+
+frontend/custom/
+├── uniapp/                      # 用户端新增/覆盖页面
+└── admin/                       # 管理后台新增/覆盖页面
+
+ai-service/
+├── app/api/                     # chat, tools, quota, webhook
+├── app/core/                    # auth, llm, guardrails, logging
+├── app/services/                # assistant, rag, recommendation
+└── tests/</pre>
+
+        <h3>8.2 构建原则</h3>
+        <ol>
+          <li>CI 检出父仓库与固定子模块。</li>
+          <li>复制 CRMEB 发行包到临时构建目录。</li>
+          <li>把 <code>backend/custom</code> 按 manifest 叠加到构建目录。</li>
+          <li>执行数据库迁移、PHP 静态检查与自动测试。</li>
+          <li>构建管理端和 UniApp，生成版本化产物。</li>
+          <li>打包镜像并记录父仓库提交、子模块提交和迁移版本。</li>
+        </ol>
+        <div class="callout warn"><strong>禁止：</strong>在 <code>backend/crmeb</code> 子模块中直接提交业务修改、在线编辑生产代码、把生产 <code>.env</code> 或 CRMEB <code>.version</code> 中可能存在的认证信息复制到父仓库。</div>
+      </section>
+
+      <section id="domain">
+        <p class="label">09 / DOMAIN &amp; DATA</p>
+        <h2>领域模型与新增数据表</h2>
+        <p>新增表统一使用 <code>ch_</code> 前缀，与 CRMEB <code>eb_</code> 表隔离。迁移脚本必须可重复执行、带索引、保留回滚说明。</p>
+        <div class="table-wrap"><table>
+          <thead><tr><th>领域</th><th>新增表</th><th>关键字段/约束</th></tr></thead>
+          <tbody>
+            <tr><td>租户</td><td><code>ch_tenant</code>, <code>ch_channel</code>, <code>ch_brand_config</code>, <code>ch_feature_flag</code></td><td>slug 唯一；配置版本化；功能开关按租户覆盖</td></tr>
+            <tr><td>租户会员</td><td><code>ch_tenant_member</code>, <code>ch_graduate_verification</code>, <code>ch_member_profile</code></td><td>(tenant_id, uid) 唯一；会籍与全局 eb_user 解耦</td></tr>
+            <tr><td>会籍</td><td><code>ch_membership_plan</code>, <code>ch_membership_term</code></td><td>L1-L4、价格、权益快照、起止时间、来源订单</td></tr>
+            <tr><td>人物角色</td><td><code>ch_persona_role</code>, <code>ch_member_role</code>, <code>ch_role_application</code></td><td>支持多角色；每租户一个主展示角色</td></tr>
+            <tr><td>关系</td><td><code>ch_friend_request</code>, <code>ch_friendship</code>, <code>ch_member_block</code></td><td>规范化双向唯一键；申请状态机；拉黑优先</td></tr>
+            <tr><td>积分/贡献</td><td><code>ch_point_account</code>, <code>ch_point_ledger</code>, <code>ch_contribution_ledger</code></td><td>租户级余额；幂等业务键；仅追加与冲正</td></tr>
+            <tr><td>活动</td><td><code>ch_event</code>, <code>ch_event_ticket</code>, <code>ch_event_registration</code>, <code>ch_event_checkin</code></td><td>三类活动；票种关联 CRMEB product；报名关联 order</td></tr>
+            <tr><td>商品审核</td><td><code>ch_product_submission</code>, <code>ch_product_scope</code>, <code>ch_fulfillment</code></td><td>提交版本、审核日志、商品所有者、租户可见范围</td></tr>
+            <tr><td>大咖</td><td><code>ch_expert_profile</code>, <code>ch_expert_slot</code>, <code>ch_appointment</code></td><td>档期唯一；下单锁定；线上/线下履约状态</td></tr>
+            <tr><td>分账</td><td><code>ch_settlement_rule</code>, <code>ch_settlement_ledger</code></td><td>规则快照；平台/渠道/服务方/推荐人；退款冲正</td></tr>
+            <tr><td>订单上下文</td><td><code>ch_order_context</code></td><td>关联 eb_store_order，保存 tenant/channel/业务类型/分账规则</td></tr>
+            <tr><td>AI</td><td><code>ch_ai_assistant</code>, <code>ch_ai_conversation</code>, <code>ch_ai_usage</code></td><td>授权状态、模型、Token、成本、删除状态</td></tr>
+          </tbody>
+        </table></div>
+
+        <h3>9.1 不变量</h3>
+        <ul>
+          <li>所有 <code>ch_*</code> 私域表必须含 <code>tenant_id</code>，后台查询必须同时受管理员数据范围限制。</li>
+          <li>任何余额类字段必须能由账本重放验证，禁止只改余额不写账。</li>
+          <li>业务关联 CRMEB 订单时保存数字主键和业务订单号，不能只保存展示字符串。</li>
+          <li>订单、会籍、分账和权益保存下单时快照，配置修改不得改变历史订单。</li>
+          <li>软删除用于内容；账本、支付、退款、审核和安全日志禁止物理删除。</li>
+        </ul>
+      </section>
+
+      <section id="membership">
+        <p class="label">10 / MEMBERSHIP &amp; RELATIONSHIP</p>
+        <h2>会员、会籍、积分与关系改造</h2>
+
+        <h3>10.1 会籍实现</h3>
+        <p>CRMEB 原生付费会员最终写入全局 <code>eb_user.is_money_level</code> 和 <code>overdue_time</code>，不能表达双租户会籍。因此采用“CRMEB 虚拟会籍商品 + 自定义会籍期限”模式：</p>
+        <ol>
+          <li>L3/L4 各自对应租户下的虚拟商品 SKU，复用商品、订单、微信支付和退款。</li>
+          <li><code>OrderPaySuccessListener</code> 识别 <code>ch_order_context.business_type=membership</code>。</li>
+          <li>事务内创建或延长 <code>ch_membership_term</code>，刷新 <code>ch_tenant_member.tier</code>。</li>
+          <li>退款监听器按权益使用情况撤销或缩短会籍，并生成冲正记录。</li>
+          <li>到期 Job 将用户降至 L2，不删除积分、贡献值、好友和订单。</li>
+        </ol>
+
+        <h3>10.2 积分与贡献值</h3>
+        <div class="table-wrap"><table>
+          <thead><tr><th>资产</th><th>来源</th><th>消费</th><th>CRMEB 复用</th></tr></thead>
+          <tbody>
+            <tr><td>租户积分</td><td>活动、邀请、购买、运营发放</td><td>活动票、商品、AI 配额</td><td>复用订单抵扣和退款算法，存储改为 ch_point_*</td></tr>
+            <tr><td>贡献值</td><td>教练、助教、分享、签到、邀请</td><td>不可消费</td><td>不复用 eb_user.exp，新增独立账本</td></tr>
+            <tr><td>推广佣金</td><td>商品与会籍推广</td><td>提现/结算</td><td>复用 CRMEB brokerage，和积分严格分开</td></tr>
+          </tbody>
+        </table></div>
+
+        <h3>10.3 好友状态机</h3>
+        <pre>PENDING ──accept──▶ ACCEPTED
+   │                    │
+   ├──reject──▶ REJECTED│
+   ├──cancel──▶ CANCELED│
+   └──timeout──▶ EXPIRED│
+
+任何状态 ──block──▶ BLOCKED（阻断目录可见性与再次申请）</pre>
+        <p>CRMEB 的 <code>eb_user_friends</code> 不作为新好友系统事实来源。历史记录如需保留，只能通过一次性迁移并标记 <code>source=legacy_referral</code>。</p>
+      </section>
+
+      <section id="event">
+        <p class="label">11 / EVENT</p>
+        <h2>活动、报名、票务与签到</h2>
+        <h3>11.1 复用策略</h3>
+        <ul>
+          <li><strong>活动内容：</strong>新建 <code>ch_event</code>，不用 CRMEB 秒杀活动表。</li>
+          <li><strong>票种：</strong>每个收费票种映射为 CRMEB 虚拟商品，免费票也生成零元订单/报名记录。</li>
+          <li><strong>支付退款：</strong>复用 CRMEB 订单、收银台、支付回调和退款。</li>
+          <li><strong>核销：</strong>复用核销码、核销员和防重复模式，但新建活动签到令牌与签到记录。</li>
+          <li><strong>通知：</strong>复用 NoticeListener、队列与模板消息，增加活动模板。</li>
+        </ul>
+
+        <h3>11.2 报名事务</h3>
+        <pre>1. 读取 TenantContext 与活动配置
+2. 校验 L1-L4、人物角色、积分、渠道、时间窗
+3. 获取 event_ticket 分布式锁
+4. 检查 paid + reserved 是否小于容量
+5. 创建 CRMEB 购物车/订单与 ch_order_context
+6. 创建 registration=PENDING_PAYMENT 并占用名额
+7. 支付成功监听器更新 PAID；超时 Job 释放名额
+8. 退款成功监听器更新 REFUNDED 并释放/保留名额</pre>
+
+        <h3>11.3 签到安全</h3>
+        <ul>
+          <li>二维码内容只包含短期随机 Token，不直接暴露活动 ID 和用户 ID。</li>
+          <li>Token 带活动、票种、过期时间和签名；服务端再次验证报名状态。</li>
+          <li><code>(event_id, uid)</code> 唯一，重复请求返回原签到结果。</li>
+          <li>人工补签必须写审核人、原因、时间和原报名状态。</li>
+          <li>积分和贡献值发放使用签到 ID 作为幂等业务键。</li>
+        </ul>
+      </section>
+
+      <section id="commerce">
+        <p class="label">12 / COMMERCE</p>
+        <h2>商城、会员上架、履约与分账</h2>
+
+        <h3>12.1 商品类型扩展</h3>
+        <p>不修改 CRMEB SPU/SKU 主结构，使用 <code>ch_product_scope.business_type</code> 扩展业务类型：</p>
+        <div class="table-wrap"><table>
+          <thead><tr><th>business_type</th><th>CRMEB 形态</th><th>额外数据/履约</th></tr></thead>
+          <tbody>
+            <tr><td><code>physical</code></td><td>标准商品</td><td>物流、收货、售后</td></tr>
+            <tr><td><code>course_online</code></td><td>虚拟商品</td><td>课程链接、观看权限、有效期</td></tr>
+            <tr><td><code>course_offline</code></td><td>虚拟/核销商品</td><td>场次、地点、签到</td></tr>
+            <tr><td><code>ai_tool</code></td><td>虚拟商品</td><td>配额包、工具权限、到期时间</td></tr>
+            <tr><td><code>consulting</code></td><td>服务商品</td><td>档期、主题、交付凭证</td></tr>
+            <tr><td><code>coaching</code></td><td>服务商品</td><td>周期、教练、里程碑、核销</td></tr>
+            <tr><td><code>membership</code></td><td>虚拟商品</td><td>租户、L3/L4、会籍期限</td></tr>
+            <tr><td><code>event_ticket</code></td><td>虚拟商品</td><td>活动、票种、报名与签到</td></tr>
+          </tbody>
+        </table></div>
+
+        <h3>12.2 会员上架流程</h3>
+        <pre>DRAFT → SUBMITTED → IN_REVIEW → APPROVED → PUBLISHED
+  ▲          │             │          │           │
+  └─RETURNED─┘             └─REJECTED─┘           └─SUSPENDED</pre>
+        <p>开源版不是多商户平台。L2+ 用户提交的是 <code>ch_product_submission</code>，审核通过后由平台服务账号创建 <code>eb_store_product</code>，并在 <code>ch_product_scope</code> 记录 owner_uid、tenant_id 和结算规则。用户不能直接获得 CRMEB 商品管理后台权限。</p>
+
+        <h3>12.3 分账台账</h3>
+        <ol>
+          <li>下单时冻结平台、渠道、服务方、推荐人的比例与金额快照。</li>
+          <li>支付成功只记“待结算”，不得立即提现。</li>
+          <li>履约确认或售后期结束后转为“可结算”。</li>
+          <li>退款按原规则生成负向账本，不修改历史记录。</li>
+          <li>首发人工结算导出；微信自动分账开通后由 Job 执行并回写渠道单号。</li>
+        </ol>
+      </section>
+
+      <section id="expert">
+        <p class="label">13 / EXPERT &amp; APPOINTMENT</p>
+        <h2>大咖主页、档期与预约</h2>
+        <div class="table-wrap"><table>
+          <thead><tr><th>组件</th><th>实现</th><th>关键约束</th></tr></thead>
+          <tbody>
+            <tr><td>人物角色</td><td>ch_persona_role + ch_member_role</td><td>多角色，一个主角色；角色审核到期</td></tr>
+            <tr><td>主页</td><td>ch_expert_profile + CRMEB 文章/商品关联</td><td>按租户和隐私范围展示</td></tr>
+            <tr><td>档期</td><td>ch_expert_slot</td><td>开始/结束、容量、渠道、线上/线下、唯一锁</td></tr>
+            <tr><td>预约</td><td>ch_appointment + CRMEB order</td><td>订单创建预占、支付确认、超时释放</td></tr>
+            <tr><td>履约</td><td>会议链接/线下地点 + ch_fulfillment</td><td>双方确认、售后、凭证与评价</td></tr>
+            <tr><td>AI 助手</td><td>ch_ai_assistant + FastAPI</td><td>语料授权、引用、转人工与预约入口</td></tr>
+          </tbody>
+        </table></div>
+      </section>
+
+      <section id="ai">
+        <p class="label">14 / AI SERVICE</p>
+        <h2>AI 网关、知识库与工具调用</h2>
+        <h3>14.1 服务边界</h3>
+        <pre>UniApp ──JWT──▶ CRMEB Chamber API ──短期服务令牌──▶ AI Gateway
+                                                   │
+                                                   ├─ Model Router
+                                                   ├─ RAG / Citation
+                                                   ├─ Tool Registry
+                                                   ├─ Guardrails
+                                                   └─ Usage Ledger</pre>
+        <ul>
+          <li>用户端不直接持有 DeepSeek/Qwen API Key。</li>
+          <li>CRMEB 根据租户、会籍和功能生成 5 分钟短期 AI 服务令牌。</li>
+          <li>AI 工具通过白名单调用 CRMEB OutAPI，只读操作默认允许，写操作必须二次确认并使用幂等键。</li>
+          <li>工具调用记录用户、租户、助手、参数摘要、结果、耗时和错误，不记录不必要的敏感明文。</li>
+          <li>大咖知识库按助手隔离，文档必须记录授权人、授权范围、有效期和删除状态。</li>
+        </ul>
+
+        <h3>14.2 首发工具</h3>
+        <div class="table-wrap"><table>
+          <thead><tr><th>工具</th><th>权限</th><th>数据源</th><th>失败降级</th></tr></thead>
+          <tbody>
+            <tr><td>活动查询/推荐</td><td>公开 + 会员</td><td>ch_event</td><td>返回活动列表链接</td></tr>
+            <tr><td>积分/贡献值查询</td><td>仅本人</td><td>ch_point_*, ch_contribution_*</td><td>跳转会员中心</td></tr>
+            <tr><td>订单查询</td><td>仅本人</td><td>CRMEB order API</td><td>跳转订单页</td></tr>
+            <tr><td>课程与服务推荐</td><td>按租户/会籍</td><td>CRMEB product + ch_product_scope</td><td>返回搜索页</td></tr>
+            <tr><td>内容管理/GEO/CRM</td><td>按已购权限</td><td>九章现有工具</td><td>展示工具介绍和客服</td></tr>
+          </tbody>
+        </table></div>
+      </section>
+
+      <section id="api">
+        <p class="label">15 / API &amp; EVENTS</p>
+        <h2>API 命名、幂等与事件契约</h2>
+        <h3>15.1 CRMEB 现有 API 文档与可信度</h3>
+        <div class="table-wrap"><table>
+          <thead><tr><th>来源</th><th>入口</th><th>可信度</th><th>用法</th></tr></thead>
+          <tbody>
+            <tr><td>当前 v6.0.0 路由源码</td><td class="code-path">crmeb/app/{api,adminapi,kefuapi,outapi}/route</td><td><span class="tag reuse">唯一执行真相</span></td><td>每次开发、联调和发布均以锁定提交中的路由、中间件与控制器为准。</td></tr>
+            <tr><td>CRMEB 官方帮助站</td><td><a href="https://doc.crmeb.com/single_open/open_v54/21040">PHP 开源版 API 接口文档</a></td><td><span class="tag extend">官方参考</span></td><td>页面登记了管理端和用户端两个 Apifox 共享文档；页面标识为 v5，不得默认与 v6.0.0 完全一致。</td></tr>
+            <tr><td>仓库开发资料</td><td><a href="../backend/crmeb/help/dev-docs/phpapi/API接口文档.md" class="code-path">help/dev-docs/phpapi/API接口文档.md</a></td><td><span class="tag avoid">仅线索</span></td><td>文件自身标注“由 AI 生成，仅供参考”，示例路径和 JWT 描述不能直接当作测试契约。</td></tr>
+            <tr><td>系统内建 OutAPI 文档</td><td>后台“设置 → 接口文档”</td><td><span class="tag extend">运行时配置</span></td><td>由 <code>SystemOutAccount</code> 与 <code>OutInterfaceServices</code> 维护对外账号、接口权限和说明，它不会自动生成全量 OpenAPI。</td></tr>
+          </tbody>
+        </table></div>
+        <div class="callout good"><strong>已归档：</strong>完整链接、路由位置、鉴权和更新规则见 <a href="CRMEB-API资料索引.html">CRMEB API 资料索引</a>。任何二开 API 应同步维护该索引和项目 OpenAPI 产物。</div>
+
+        <h3>15.2 API 前缀</h3>
+        <div class="table-wrap"><table>
+          <thead><tr><th>范围</th><th>前缀</th><th>示例</th></tr></thead>
+          <tbody>
+            <tr><td>用户端</td><td><code>/api/chamber/v1</code></td><td><code>GET /events</code>, <code>POST /friend-requests</code></td></tr>
+            <tr><td>管理端</td><td><code>/admin/chamber/v1</code></td><td><code>POST /verifications/{id}/approve</code></td></tr>
+            <tr><td>AI 内部</td><td><code>/internal/chamber/v1</code></td><td><code>GET /me/context</code>, <code>POST /tools/order-query</code></td></tr>
+            <tr><td>Webhook</td><td><code>/webhooks/chamber/v1</code></td><td><code>POST /ai/usage</code></td></tr>
+          </tbody>
+        </table></div>
+
+        <h3>15.3 统一响应</h3>
+        <pre>{
+  "status": 200,
+  "msg": "success",
+  "data": {},
+  "request_id": "01J..."
+}</pre>
+        <p>沿用 CRMEB 响应外壳，新增 <code>request_id</code>。业务错误使用稳定错误码，不根据中文消息做前端逻辑。</p>
+
+        <h3>15.4 必须监听的 CRMEB 事件</h3>
+        <div class="table-wrap"><table>
+          <thead><tr><th>现有事件</th><th>我方监听器</th><th>用途</th></tr></thead>
+          <tbody>
+            <tr><td>UserRegisterListener</td><td>ChamberMemberBootstrapListener</td><td>创建租户会员上下文与默认 L1</td></tr>
+            <tr><td>OrderCreateAfterListener</td><td>ChamberOrderContextListener</td><td>保存活动/会籍/预约/分账上下文</td></tr>
+            <tr><td>OrderPaySuccessListener</td><td>ChamberEntitlementListener</td><td>开通会籍、报名、预约、课程和 AI 配额</td></tr>
+            <tr><td>OrderRefundCreateAfterListener</td><td>ChamberRefundFreezeListener</td><td>冻结权益与分账</td></tr>
+            <tr><td>OrderRefundCancelAfterListener</td><td>ChamberRefundRestoreListener</td><td>恢复权益</td></tr>
+            <tr><td>CustomNoticeListener</td><td>ChamberNoticePayload</td><td>活动、审核、预约消息</td></tr>
+          </tbody>
+        </table></div>
+
+        <h3>15.5 幂等键</h3>
+        <ul>
+          <li>支付权益：<code>order_paid:{order_id}:{business_type}</code></li>
+          <li>退款冲正：<code>refund:{refund_id}:{ledger_type}</code></li>
+          <li>签到：<code>event_checkin:{event_id}:{uid}</code></li>
+          <li>积分：<code>point:{source_type}:{source_id}:{uid}</code></li>
+          <li>AI 写工具：客户端提供 <code>Idempotency-Key</code>，服务端保存结果 24 小时。</li>
+        </ul>
+      </section>
+
+      <section id="frontend">
+        <p class="label">16 / FRONTEND &amp; ADMIN</p>
+        <h2>UniApp 与管理后台改造</h2>
+        <h3>16.1 UniApp 页面</h3>
+        <div class="table-wrap"><table>
+          <thead><tr><th>模块</th><th>新增页面</th><th>复用组件</th></tr></thead>
+          <tbody>
+            <tr><td>首页/双壳</td><td>渠道首页、品牌加载、发布会模式</td><td>DIY 区块、轮播、商品卡片、客服入口</td></tr>
+            <tr><td>活动</td><td>月历、列表、详情、票种、报名、签到、回顾</td><td>订单确认、支付、二维码、地图</td></tr>
+            <tr><td>同学</td><td>目录、筛选、会员详情、好友申请、排行榜</td><td>用户头像、标签、分页、空状态</td></tr>
+            <tr><td>商城</td><td>服务类型筛选、提交上架、履约详情</td><td>商品列表、详情、订单、退款</td></tr>
+            <tr><td>大咖</td><td>角色列表、主页、档期、预约、咨询记录</td><td>商品详情、评价、支付</td></tr>
+            <tr><td>AI</td><td>生态首页、对话、工具、课程、配额</td><td>流式文本需新增，订单/商品复用</td></tr>
+            <tr><td>我的</td><td>租户会籍、积分、贡献值、好友、创作者中心</td><td>CRMEB 用户中心和账单</td></tr>
+          </tbody>
+        </table></div>
+
+        <h3>16.2 管理端页面</h3>
+        <ul>
+          <li>渠道与品牌：租户、首页配置、客服码、协议、功能开关。</li>
+          <li>会员经营：毕业生审核、会籍、人物角色、目录隐私、积分和贡献值。</li>
+          <li>活动运营：活动、票种、报名、退款、签到、补签和统计。</li>
+          <li>内容交易：商品提交审核、服务履约、预约、退款、结算台账。</li>
+          <li>AI 管理：助手、知识库、工具、配额、成本、举报和安全日志。</li>
+        </ul>
+
+        <h3>16.3 前端约束</h3>
+        <ul>
+          <li>遵循现有 Vue2 Options API，不在官方模板中混入 Vue3 Composition API。</li>
+          <li>所有页面先调用租户品牌配置，禁止在页面硬编码“沈阳”“恒志”“九章”。</li>
+          <li>小程序不使用 iframe；外部工具使用受控 web-view，H5 可同源嵌入。</li>
+          <li>长列表必须分页/虚拟化；会员敏感字段按后端返回的可见字段展示。</li>
+          <li>小程序审核失败时，同一 UniApp 代码必须能够构建 H5 作为发布会兜底。</li>
+        </ul>
+      </section>
+
+      <section id="security">
+        <p class="label">17 / SECURITY</p>
+        <h2>租户隔离、权限和隐私</h2>
+        <h3>17.1 TenantContext</h3>
+        <ol>
+          <li>从已签名渠道链接、小程序配置或域名解析 tenant/channel。</li>
+          <li>中间件验证租户状态、用户关系和管理员数据范围。</li>
+          <li>把 TenantContext 注入 Request/Container，业务服务不自行读取前端 tenant_id。</li>
+          <li>Dao 查询必须通过 tenant-aware 基类或显式条件；缺少条件时测试失败。</li>
+          <li>跨租户共享资源使用显式 scope 表，不使用 tenant_id=0 的隐含约定。</li>
+        </ol>
+
+        <h3>17.2 权限矩阵</h3>
+        <div class="table-wrap"><table>
+          <thead><tr><th>主体</th><th>可见数据</th><th>可执行操作</th></tr></thead>
+          <tbody>
+            <tr><td>L1 游客</td><td>公开活动、大咖、AI 工具</td><td>登录、申请认证、购买会籍</td></tr>
+            <tr><td>L2+ 会员</td><td>本租户会员目录和会员内容</td><td>好友、活动、上架申请、购买</td></tr>
+            <tr><td>导师/教练/领袖</td><td>本人主页、档期、订单</td><td>编辑资料、管理档期、确认履约</td></tr>
+            <tr><td>渠道运营</td><td>本渠道会员、活动、商品、订单</td><td>审核与运营，不可改平台配置</td></tr>
+            <tr><td>财务</td><td>订单、退款、分账和导出</td><td>对账、结算、冻结</td></tr>
+            <tr><td>超级管理员</td><td>全平台</td><td>租户配置、跨租户共享与审计</td></tr>
+          </tbody>
+        </table></div>
+
+        <h3>17.3 敏感数据</h3>
+        <ul>
+          <li>毕业证明、身份证明、手机号和咨询主题属于受限字段，默认不进入 AI 上下文。</li>
+          <li>对象存储使用私有桶和短期签名 URL，数据库只保存对象键。</li>
+          <li>日志中屏蔽 Token、手机号、支付参数、证明材料 URL 和模型 API Key。</li>
+          <li>知识库入库前记录授权，删除时同步删除对象、索引与缓存。</li>
+        </ul>
+      </section>
+
+      <section id="test">
+        <p class="label">18 / TEST</p>
+        <h2>测试策略与质量门禁</h2>
+        <div class="table-wrap"><table>
+          <thead><tr><th>层级</th><th>范围</th><th>门禁</th></tr></thead>
+          <tbody>
+            <tr><td>PHP 单元</td><td>会籍、积分、贡献值、资格、分账、状态机</td><td>关键领域分支覆盖 ≥ 80%</td></tr>
+            <tr><td>API 集成</td><td>Token、TenantContext、订单事件、退款、审核</td><td>P0 API 100% 覆盖</td></tr>
+            <tr><td>数据库</td><td>迁移、索引、唯一键、并发、账本重放</td><td>空库与升级库均成功</td></tr>
+            <tr><td>前端组件</td><td>表单、列表、状态、权限、错误反馈</td><td>主流微信版本真机通过</td></tr>
+            <tr><td>端到端</td><td>入会、活动、商城、大咖、AI 五条旅程</td><td>每次候选发布自动运行</td></tr>
+            <tr><td>安全</td><td>跨租户、水平越权、重放、注入、上传、刷量</td><td>无高危/严重未修复项</td></tr>
+            <tr><td>压测</td><td>发布会注册、支付回调、签到、AI 并发</td><td>满足 PRD NFR</td></tr>
+          </tbody>
+        </table></div>
+
+        <h3>18.1 必测异常</h3>
+        <ul>
+          <li>支付回调重复 10 次只开通一次会籍/报名/预约。</li>
+          <li>同一档期并发下单只能成功到容量上限。</li>
+          <li>积分扣除后支付失败可完整补偿。</li>
+          <li>退款后积分、权益、名额、分账全部冲正。</li>
+          <li>渠道管理员无法通过修改 ID 读取另一渠道数据。</li>
+          <li>AI 工具调用超时、模型限流或余额不足时不影响 CRMEB 主链路。</li>
+        </ul>
+      </section>
+
+      <section id="delivery">
+        <p class="label">19 / DELIVERY</p>
+        <h2>开发环境、构建与部署</h2>
+        <h3>19.1 环境矩阵</h3>
+        <div class="table-wrap"><table>
+          <thead><tr><th>环境</th><th>用途</th><th>数据</th><th>发布</th></tr></thead>
+          <tbody>
+            <tr><td>local</td><td>个人开发与 AI 编码</td><td>脱敏种子数据</td><td>Docker Compose/本地服务</td></tr>
+            <tr><td>test</td><td>集成和自动化测试</td><td>每次可重建</td><td>develop 自动部署</td></tr>
+            <tr><td>staging</td><td>业务验收和发布会演练</td><td>脱敏近生产配置</td><td>release 候选版本</td></tr>
+            <tr><td>production</td><td>正式运营</td><td>真实数据</td><td>审批、备份、灰度、回滚</td></tr>
+          </tbody>
+        </table></div>
+
+        <h3>19.2 发布产物</h3>
+        <ul>
+          <li>后端镜像：CRMEB v6.0.0 + overlay + 迁移版本。</li>
+          <li>管理端静态包：Vue2 构建产物和 sourcemap 私有存档。</li>
+          <li>UniApp：H5 包和微信小程序上传版本。</li>
+          <li>AI 镜像：FastAPI、模型路由和安全策略版本。</li>
+          <li>Release manifest：父仓库 SHA、CRMEB SHA、镜像摘要、数据库版本。</li>
+        </ul>
+
+        <h3>19.3 回滚</h3>
+        <p>应用回滚与数据库回滚分开。破坏性迁移使用 expand/contract 两阶段，发布会前禁止直接删除列。账本和支付表不做逆向数据删除，使用兼容代码或补偿迁移恢复。</p>
+      </section>
+
+      <section id="upgrade">
+        <p class="label">20 / UPSTREAM UPGRADE</p>
+        <h2>CRMEB 上游升级策略</h2>
+        <ol>
+          <li>创建 <code>chore/crmeb-upgrade-x.y.z</code> 分支。</li>
+          <li>读取官方 release、许可证和安装 SQL 差异。</li>
+          <li>更新子模块指针，不在原分支直接拉 master。</li>
+          <li>在全新构建目录应用 overlay，记录冲突和废弃 API。</li>
+          <li>执行迁移 dry-run、PHP 测试、API 回归和五条 E2E。</li>
+          <li>staging 运行至少 3 天，完成支付/退款/签到演练。</li>
+          <li>批准后合并，并更新本说明书的源码基线。</li>
+        </ol>
+        <div class="callout risk"><strong>禁止使用 CRMEB 后台在线升级覆盖生产代码。</strong>在线升级会绕过父仓库、overlay、代码审查和可重复构建，导致生产状态无法从 Git 还原。</div>
+      </section>
+
+      <section id="plan">
+        <p class="label">21 / IMPLEMENTATION PLAN</p>
+        <h2>按 PRD 的二开实施计划</h2>
+        <div class="table-wrap"><table>
+          <thead><tr><th>周期</th><th>后端/数据</th><th>前端/后台</th><th>AI/运维</th><th>出口</th></tr></thead>
+          <tbody>
+            <tr><td>7/17-7/19</td><td>overlay PoC、TenantContext、迁移框架</td><td>品牌壳和页面路由 PoC</td><td>仓库、CI、AI 鉴权 PoC</td><td>基线评审</td></tr>
+            <tr><td>7/20-7/26</td><td>租户会员、认证、会籍、积分/贡献、商品上下文</td><td>登录、认证、会籍、会员中心、商城类型</td><td>环境、监控骨架</td><td>注册与会费支付</td></tr>
+            <tr><td>7/27-8/2</td><td>活动、好友、上架审核、大咖、档期、预约</td><td>活动、同学、大咖、创作者页面</td><td>AI 对话、工具和配额</td><td>五模块可运行</td></tr>
+            <tr><td>8/3-8/7</td><td>退款冲正、分账台账、通知、统计</td><td>后台审核、发布会内容、真机修复</td><td>护栏、日志、H5 兜底</td><td>候选版本</td></tr>
+            <tr><td>8/8-8/10</td><td>只修 P0</td><td>发布会演练与上线</td><td>告警、值守、降级</td><td>发布会全量版</td></tr>
+            <tr><td>8/11-9/15</td><td>生产加固、第二品牌、完整履约</td><td>体验优化和增长功能</td><td>压测、安全、成本治理</td><td>生产稳定版</td></tr>
+          </tbody>
+        </table></div>
+      </section>
+
+      <section id="rules">
+        <p class="label">22 / AI CODING RULES</p>
+        <h2>AI 编码与代码审查规则</h2>
+        <p>后续 AI 开发必须把以下规则作为仓库级约束：</p>
+        <ul class="checklist">
+          <li>修改前先定位 CRMEB v6.0.0 的同类 Controller/Services/Dao/Model，列出复用点。</li>
+          <li>不得直接修改 <code>backend/crmeb</code>；所有变更进入 overlay 或我方独立服务。</li>
+          <li>不得把 <code>eb_user.level</code>、<code>is_money_level</code>、<code>store_activity</code>、<code>division</code> 当作 PRD 同名领域。</li>
+          <li>Controller 不直接操作数据库；跨表写入必须在 Services 事务内完成。</li>
+          <li>每个私域查询明确 tenant_id；每个写操作声明权限、幂等键和审计事件。</li>
+          <li>金额只使用字符串 decimal 与 BCMath；时间统一存 Unix 秒并明确时区。</li>
+          <li>支付、退款、积分、贡献和分账必须先写测试，再写实现。</li>
+          <li>新增 API 同时提交路由、验证器、权限菜单、错误码和 HTML 文档更新。</li>
+          <li>数据库迁移只能追加，不直接编辑 CRMEB 安装 SQL。</li>
+          <li>任何真实会员资料、会议纪要和密钥不得上传到外部模型。</li>
+        </ul>
+
+        <h3>22.1 Definition of Done</h3>
+        <ul>
+          <li>需求 ID、代码、测试和验收截图/日志可相互追踪。</li>
+          <li>单元、API、E2E 和租户越权测试通过。</li>
+          <li>不存在子模块未提交修改和未登记依赖。</li>
+          <li>迁移可在空库与现有测试库成功执行。</li>
+          <li>监控、日志、告警、回滚和运维说明已更新。</li>
+          <li>产品与技术负责人共同验收。</li>
+        </ul>
+
+        <div class="callout good"><strong>开发入口：</strong>先阅读 <a href="PRD-v2.0.html">PRD v2.0</a> 确认业务需求，再使用本文确定复用策略和代码边界。两份文档发生冲突时，业务行为以 PRD 为准，技术实现以本文为准，并通过变更评审消除冲突。</div>
+      </section>
+    </article>
+  </div>
+  <footer class="footer">VP 毕业生同学会数字平台 · CRMEB 二次开发说明书 v1.0 · 2026-07-17</footer>
+</main>
+</body>
+</html>

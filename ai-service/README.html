@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>AI 服务开发入口</title><link rel="stylesheet" href="../docs/project-docs.css"></head>
+<body><header class="doc-head"><div class="wrap"><p class="eyebrow">AI GATEWAY</p><h1>AI 服务开发入口</h1><p>项目独立 FastAPI 服务的边界。AI 是受鉴权、可限额、可审计的能力层，不是绕过 CRMEB 业务规则的数据库通道。</p></div></header>
+<main class="doc-main"><div class="wrap"><nav class="doc-nav"><a href="../index.html">项目首页</a><a href="../docs/CRMEB-二次开发说明书-v1.0.html#ai">AI 设计</a><a href="../docs/CRMEB-API资料索引.html">API 索引</a></nav>
+<section><h2>预期目录</h2><pre>ai-service/
+├── app/
+│   ├── api/            # FastAPI routes / SSE
+│   ├── auth/           # CRMEB 短期服务令牌
+│   ├── models/         # 模型路由与降级
+│   ├── rag/            # 授权知识库与引用
+│   ├── tools/          # 白名单工具注册表
+│   ├── guardrails/     # 输入/输出安全策略
+│   └── usage/          # 配额、成本、审计账本
+└── tests/               # 权限、工具、注入、超时测试</pre></section>
+<section><h2>安全契约</h2><ul class="checklist"><li>客户端不持有模型 API Key；CRMEB 签发有效期不超过 5 分钟的服务令牌。</li><li>令牌声明包含 uid、tenant_id、membership、scopes、quota 和 jti。</li><li>只通过 CRMEB Chamber API/OutAPI 读写业务，写工具必须二次确认和 <code>Idempotency-Key</code>。</li><li>会员证明、手机号、支付参数和咨询隐私默认不进入模型上下文。</li><li>所有工具调用记录租户、主体、助手、工具、参数摘要、结果、延迟和错误。</li><li>模型失败、限流或余额不足时必须降级，不阻塞支付、报名和订单主链路。</li></ul></section>
+<section><h2>首发工具范围</h2><p>活动查询/推荐、本人积分/贡献值查询、本人订单查询、按租户和会籍的课程/服务推荐。涉及退款、转账、权限变更的工具不进入首发白名单。</p></section>
+</div></main><footer><div class="wrap">mingde-vp-chamber · AI Gateway</div></footer></body></html>

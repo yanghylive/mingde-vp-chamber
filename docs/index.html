@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>项目文档中心 · mingde-vp-chamber</title><link rel="stylesheet" href="project-docs.css"></head>
+<body><header class="doc-head"><div class="wrap"><p class="eyebrow">DOCUMENT CONTROL</p><h1>项目文档中心</h1><p>当前生效的业务、技术与开发规范。新文档统一使用 HTML，历史 Markdown 文件仅保留为归档证据。</p></div></header>
+<main class="doc-main"><div class="wrap">
+  <nav class="doc-nav"><a href="../index.html">项目首页</a><a href="#active">生效文档</a><a href="#rules">优先级</a><a href="#legacy">历史归档</a></nav>
+  <section id="active"><h2>生效文档</h2><div class="table-wrap"><table><thead><tr><th>文档</th><th>版本/日期</th><th>作用</th><th>状态</th></tr></thead><tbody>
+    <tr><td><a href="PRD-v2.0.html">PRD - AI 毕业生商会 v2.0</a></td><td>v2.0 / 2026-07-17</td><td>业务范围、需求 ID、验收、周期与风险</td><td>开发基线</td></tr>
+    <tr><td><a href="CRMEB-二次开发说明书-v1.0.html">CRMEB 二次开发说明书</a></td><td>v1.0 / 2026-07-17</td><td>源码盘点、复用矩阵、数据模型、实施和测试</td><td>技术基线</td></tr>
+    <tr><td><a href="CRMEB-API资料索引.html">CRMEB API 资料索引</a></td><td>2026-07-17</td><td>官方文档、Apifox、路由源码、OutAPI 鉴权</td><td>已核验</td></tr>
+    <tr><td><a href="开发目录与工作流.html">开发目录与工作流</a></td><td>v1.0 / 2026-07-17</td><td>仓库边界、overlay、分支、提交、构建和发布</td><td>生效</td></tr>
+    <tr><td><a href="../backend/custom/README.html">后端二开入口</a></td><td>v1.0</td><td>PHP 领域分层、路由、迁移和事件目录</td><td>生效</td></tr>
+    <tr><td><a href="../frontend/custom/README.html">前端二开入口</a></td><td>v1.0</td><td>UniApp/Admin overlay 边界和页面规范</td><td>生效</td></tr>
+    <tr><td><a href="../ai-service/README.html">AI 服务开发入口</a></td><td>v1.0</td><td>网关、短期令牌、工具、RAG 和用量账本</td><td>生效</td></tr>
+    <tr><td><a href="../deployment/README.html">构建与部署入口</a></td><td>v1.0</td><td>环境、发布产物、密钥与回滚边界</td><td>生效</td></tr>
+  </tbody></table></div></section>
+  <section id="rules"><h2>文档优先级</h2><ol><li>业务行为以 PRD v2.0 和已批准变更单为准。</li><li>二开架构与代码边界以 CRMEB 二次开发说明书为准。</li><li>CRMEB 实际接口以锁定子模块中的路由、中间件和控制器为准。</li><li>文档与实现冲突时不猜测，创建变更评审并同步修正文档。</li></ol></section>
+  <section id="legacy"><h2>历史归档</h2><p><code>00-原始方案参考.md</code>、<code>01-可行性方案.md</code> 和 <code>PRD-立项书.html</code> 保留原貌，用于追溯早期方案，不再作为开发依据。</p></section>
+</div></main><footer><div class="wrap">mingde-vp-chamber · 文档中心 · 2026-07-17</div></footer></body></html>

@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CRMEB API 资料索引 · mingde-vp-chamber</title>
+<style>
+:root{--ink:#17222c;--muted:#5e6972;--line:#dbe1e5;--paper:#fff;--soft:#f3f6f7;--navy:#19344c;--green:#14735a;--blue:#21689e;--warn:#8b6218;--warn-bg:#fbf3df;--risk:#a74334;--risk-bg:#f9eae7}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:#edf1f2;color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;font-size:15px;line-height:1.7;letter-spacing:0}a{color:var(--blue);text-underline-offset:3px}.doc{width:min(1160px,100%);margin:auto;background:var(--paper);box-shadow:0 10px 36px rgba(23,34,44,.08)}header{padding:56px clamp(24px,7vw,76px) 46px;background:var(--navy);color:#fff}header p{max-width:790px;color:#d3e0e8;font-size:18px}.eyebrow{color:#91d2b9;font-size:12px;font-weight:800}h1{margin:10px 0 16px;font-size:44px;line-height:1.15;letter-spacing:0}.meta{display:flex;flex-wrap:wrap;gap:9px 25px;margin-top:28px;padding-top:20px;border-top:1px solid rgba(255,255,255,.2);font-size:13px}.content{padding:48px clamp(20px,6vw,70px) 72px}section{margin-bottom:58px;scroll-margin-top:20px}h2{margin:0 0 20px;padding-bottom:10px;border-bottom:3px solid var(--navy);font-size:27px;letter-spacing:0}h3{margin:28px 0 11px;color:var(--navy);font-size:19px;letter-spacing:0}p{margin:0 0 13px}ul,ol{margin:0 0 18px;padding-left:23px}li{margin-bottom:6px}.toc{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 42px}.toc a{padding:7px 10px;border:1px solid var(--line);border-radius:4px;text-decoration:none;font-size:12px}.table-wrap{overflow-x:auto;margin:14px 0 24px;border:1px solid var(--line);border-radius:6px}table{width:100%;min-width:720px;border-collapse:collapse;font-size:13px}th{padding:10px 12px;background:var(--navy);color:#fff;text-align:left;vertical-align:top}td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}tr:last-child td{border-bottom:0}tbody tr:nth-child(even){background:#f8fafb}code,.path{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px}.path{color:#1d5f91}.callout{margin:17px 0;padding:15px 17px;border-left:5px solid var(--green);background:#eaf5f0}.callout.warn{border-color:var(--warn);background:var(--warn-bg)}.callout.risk{border-color:var(--risk);background:var(--risk-bg)}.rank{display:inline-block;padding:2px 7px;border-radius:4px;font-size:11px;font-weight:800;white-space:nowrap}.r1{background:#dff2e9;color:#0f6248}.r2{background:#e9f1f8;color:#235d89}.r3{background:#faedcc;color:#76530e}.r4{background:#eeeef0;color:#555f68}pre{overflow:auto;padding:18px;border-radius:6px;background:#192632;color:#edf3f6;font:12.5px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace}.footer{padding:24px;background:var(--soft);color:var(--muted);text-align:center;font-size:12px}@media(max-width:620px){h1{font-size:35px}.content{padding:36px 17px 58px}body{font-size:14px}}@media print{body{background:#fff}.doc{width:100%;box-shadow:none}header{print-color-adjust:exact;-webkit-print-color-adjust:exact}.content{padding:15mm}.table-wrap,.callout,pre{page-break-inside:avoid}}
+</style>
+</head>
+<body>
+<main class="doc">
+  <header>
+    <div class="eyebrow">TECHNICAL REFERENCE · 2026-07-17</div>
+    <h1>CRMEB API 资料索引</h1>
+    <p>对 CRMEB-KY v6.0.0 的官方文档、源码路由、运行时鉴权与二开契约进行统一登记。本文档是导航和治理索引，不替代锁定提交中的可执行路由源码。</p>
+    <div class="meta"><span>项目：mingde-vp-chamber</span><span>上游：v6.0.0</span><span>提交：7dcddffff73e</span><span>状态：已核验</span></div>
+  </header>
+  <div class="content">
+    <nav class="toc" aria-label="页内目录">
+      <a href="#answer">结论</a><a href="#sources">文档入口</a><a href="#runtime">源码入口</a><a href="#auth">鉴权</a><a href="#governance">二开治理</a><a href="#checklist">联调清单</a>
+    </nav>
+
+    <section id="answer">
+      <h2>1. 结论</h2>
+      <p>CRMEB 有 API 文档，但不是一份可无条件信任的 v6 OpenAPI 文件。当前可用资料由四部分组成：官方帮助站及 Apifox、仓库内开发文档、应用路由源码、后台 OutAPI 接口文档模块。</p>
+      <div class="callout"><strong>优先级：</strong>路由 + 中间件 + Controller + Services 是唯一执行真相；Apifox 用于快速理解和联调；仓库内 AI 生成的简要 API 文档只能当搜索线索。</div>
+    </section>
+
+    <section id="sources">
+      <h2>2. 已登记文档入口</h2>
+      <div class="table-wrap"><table>
+        <thead><tr><th>级别</th><th>资料</th><th>位置</th><th>核验结论</th></tr></thead>
+        <tbody>
+          <tr><td><span class="rank r2">L2 官方参考</span></td><td>CRMEB 开源版 API 入口</td><td><a href="https://doc.crmeb.com/single_open/open_v54/21040">doc.crmeb.com / 21040</a></td><td>2026-07-17 可访问；标题为“PHP 开源版 v5 API 接口文档”，页面给出下面两个 Apifox 链接。</td></tr>
+          <tr><td><span class="rank r2">L2 官方参考</span></td><td>管理端 Apifox</td><td><a href="https://www.apifox.cn/apidoc/shared-8cccbdcf-9856-4e3c-a553-f13ac2013257">shared-8cccbdcf...</a></td><td>链接由 CRMEB 官方帮助站提供；使用前仍需与 v6.0.0 <code>adminapi/route</code> 对比。</td></tr>
+          <tr><td><span class="rank r2">L2 官方参考</span></td><td>用户端 Apifox</td><td><a href="https://www.apifox.cn/apidoc/shared-726c028f-3be6-48a8-a8ea-938eedd88e66">shared-726c028f...</a></td><td>链接由 CRMEB 官方帮助站提供；使用前仍需与 v6.0.0 <code>api/route</code> 对比。</td></tr>
+          <tr><td><span class="rank r3">L3 开发资料</span></td><td>仓库 API 简要说明</td><td><a class="path" href="../backend/crmeb/help/dev-docs/phpapi/API接口文档.md">help/dev-docs/phpapi/API接口文档.md</a></td><td>文件明示“由 AI 生成，仅供参考”，其中接口示例不经源码核验不可使用。</td></tr>
+          <tr><td><span class="rank r3">L3 开发资料</span></td><td>PHP 各模块开发文档</td><td class="path">help/dev-docs/phpapi/*.md</td><td>含会员、商品、订单、支付、客服、事件、队列、错误码等说明，适合阅读业务链路。</td></tr>
+          <tr><td><span class="rank r4">L4 运行配置</span></td><td>后台“接口文档”</td><td class="path">setting/system_out_interface/index</td><td>为 OutAPI 手工维护说明和权限，不是 Swagger/OpenAPI 自动生成器。</td></tr>
+        </tbody>
+      </table></div>
+      <div class="callout warn"><strong>版本提示：</strong>官方入口页仍标为 v5，而本项目锁定 CRMEB-KY v6.0.0。因此其参数、路径、错误码和鉴权头均需以本地 v6.0.0 源码复核。</div>
+    </section>
+
+    <section id="runtime">
+      <h2>3. 源码路由入口</h2>
+      <div class="table-wrap"><table>
+        <thead><tr><th>应用</th><th>路由目录</th><th>用途</th><th>鉴权特征</th></tr></thead>
+        <tbody>
+          <tr><td>api</td><td class="path">crmeb/app/api/route/{v1,v2,pc}.php</td><td>UniApp/H5/PC 用户端</td><td><code>AuthTokenMiddleware</code> 按路由组启用；公共路由不要求登录。</td></tr>
+          <tr><td>adminapi</td><td class="path">crmeb/app/adminapi/route/*.php</td><td>Vue 管理后台</td><td>管理员 Token、菜单/API 权限和数据范围。</td></tr>
+          <tr><td>kefuapi</td><td class="path">crmeb/app/kefuapi/route/route.php</td><td>客服、工作台等</td><td>独立应用鉴权与中间件。</td></tr>
+          <tr><td>outapi</td><td class="path">crmeb/app/outapi/route/route.php</td><td>受控第三方商品、订单、用户等接入</td><td><code>access_token</code>/<code>refresh_token</code> + 账号路由权限。</td></tr>
+        </tbody>
+      </table></div>
+      <p>当前锁定源码约有 419 条移动端路由定义和 958 条管理端路由定义。数量只用于规模评估，不得取代发布时生成的路由清单。</p>
+    </section>
+
+    <section id="auth">
+      <h2>4. 鉴权与对外接口</h2>
+      <h3>4.1 OutAPI 请求链路</h3>
+      <pre>POST /outapi/access_token  -- appid + appsecret --&gt; access token
+API request               -- Authori-zation: Bearer &lt;token&gt;
+AuthTokenMiddleware       -- parseToken + account status
+OutInterfaceServices      -- verify method/path against account rules
+Controller / Services     -- execute business operation</pre>
+      <p>鉴权头名从 CRMEB 配置 <code>cookie.token_name</code> 读取，默认为源码中的 <code>Authori-zation</code>。二开不应擅自改为标准 <code>Authorization</code> 而不同步全端。</p>
+      <h3>4.2 内建文档管理</h3>
+      <p>后台路由 <code>system_out_interface/list|save|info|edit_name|del</code> 对应 <code>SystemOutAccount</code> 控制器，数据由 <code>OutInterfaceServices</code> 维护。它保存请求参数、返回参数、示例和错误码，但并不会扫描全部用户端/管理端路由生成 OpenAPI。</p>
+      <div class="callout risk"><strong>MCP 注意：</strong>v6.0.0 <code>outapi</code> 中还有独立 <code>POST mcp</code> 路由，源码注释说明其支持 appid + appsecret 且不经 Token 中间件。上线前必须单独做权限、重放、限流和日志审计；非必需时应关闭或在网关拦截。</div>
+    </section>
+
+    <section id="governance">
+      <h2>5. 本项目 API 治理</h2>
+      <ul>
+        <li>新增用户端契约使用 <code>/api/chamber/v1</code>，管理端使用 <code>/admin/chamber/v1</code>，不与上游 v1/v2 路由混写。</li>
+        <li>以项目管理的 OpenAPI 3.1 文件作为二开接口契约，测试环境自动发布 HTML 文档。</li>
+        <li>每个接口必须登记需求 ID、租户数据范围、主体权限、幂等方式、业务错误码和审计事件。</li>
+        <li>CRMEB 上游升级后，先生成路由 diff，再对 Apifox 和项目 OpenAPI 执行契约回归。</li>
+        <li>不将仓库内原始 Apifox 链接当作可写管理账号；项目自建文档空间必须由项目组保管。</li>
+      </ul>
+      <div class="table-wrap"><table>
+        <thead><tr><th>变更</th><th>必须同步的产物</th><th>门禁</th></tr></thead>
+        <tbody>
+          <tr><td>新增/修改二开 API</td><td>路由、Controller/Services、OpenAPI、HTML 变更记录、测试</td><td>CI 契约测试通过</td></tr>
+          <tr><td>修改认证或权限</td><td>权限矩阵、负向测试、安全评审</td><td>无跨租户/水平越权</td></tr>
+          <tr><td>更新 CRMEB 子模块</td><td>路由差异、中间件差异、文档基线、回归报告</td><td>五条 P0 旅程全通过</td></tr>
+        </tbody>
+      </table></div>
+    </section>
+
+    <section id="checklist">
+      <h2>6. 联调与发布检查</h2>
+      <ol>
+        <li>确认当前子模块 SHA 为 <code>7dcddffff73ec542d689f159724296351f29ea9a</code>。</li>
+        <li>在源码中定位路由所属组、中间件、Controller 和 Services。</li>
+        <li>使用真实请求验证 method/path/header/params/response，不仅看文档示例。</li>
+        <li>验证未登录、过期 Token、无权限、跨租户、重复请求和限流场景。</li>
+        <li>更新项目 OpenAPI 与 HTML 文档，在 PR 中附上契约差异。</li>
+      </ol>
+      <p>相关文档：<a href="CRMEB-二次开发说明书-v1.0.html">CRMEB 二次开发说明书 v1.0</a> · <a href="PRD-v2.0.html">PRD v2.0</a> · <a href="../index.html">项目立项首页</a></p>
+    </section>
+  </div>
+  <footer class="footer">mingde-vp-chamber · CRMEB API 资料索引 · 最后核验 2026-07-17</footer>
+</main>
+</body>
+</html>

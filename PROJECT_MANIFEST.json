@@ -1,0 +1,25 @@
+{
+  "project": {
+    "code": "mingde-vp-chamber",
+    "name": "VP 毕业生同学会数字平台",
+    "status": "development-baseline",
+    "established_on": "2026-07-17",
+    "default_branch": "main",
+    "repository_visibility": "private"
+  },
+  "upstream": {
+    "name": "CRMEB-KY",
+    "version": "v6.0.0",
+    "commit": "7dcddffff73ec542d689f159724296351f29ea9a",
+    "submodule_path": "backend/crmeb",
+    "source": "https://gitee.com/ZhongBangKeJi/CRMEB.git",
+    "github_mirror": "https://github.com/crmeb/CRMEB"
+  },
+  "documents": {
+    "portal": "index.html",
+    "prd": "docs/PRD-v2.0.html",
+    "technical_design": "docs/CRMEB-二次开发说明书-v1.0.html",
+    "api_index": "docs/CRMEB-API资料索引.html",
+    "workflow": "docs/开发目录与工作流.html"
+  }
+}

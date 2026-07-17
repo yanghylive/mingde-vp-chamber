@@ -1,0 +1,46 @@
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+
+# Logs and runtime
+*.log
+logs/
+runtime/
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+*.local.*
+*.pem
+*.key
+secrets/
+
+# Dependencies and virtual environments
+node_modules/
+vendor/
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+
+# Build and test output
+dist/
+build/
+coverage/
+htmlcov/
+unpackage/
+
+# Runtime data
+public/uploads/
+storage/
+backups/
+*.backup.sql
+*.dump.sql
+*.tar.gz
+
+# Local workspaces
+work/
+.build-workspace/

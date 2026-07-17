@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>明德恒智 VP 商会 · 项目立项书 (PRD)</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; line-height: 1.7; color: #2c3e50; background: #f5f7fa; }
+.cover { background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); color: white; padding: 120px 60px; text-align: center; page-break-after: always; }
+.cover h1 { font-size: 48px; margin-bottom: 30px; letter-spacing: 4px; }
+.cover h2 { font-size: 28px; font-weight: 300; margin-bottom: 60px; opacity: 0.9; }
+.cover .meta { font-size: 16px; opacity: 0.8; margin-top: 80px; }
+.cover .badge { display: inline-block; background: rgba(255,255,255,0.2); padding: 8px 24px; border-radius: 20px; font-size: 14px; margin-top: 30px; }
+.container { max-width: 900px; margin: 0 auto; background: white; padding: 60px 80px; box-shadow: 0 0 30px rgba(0,0,0,0.08); }
+.doc-info { background: #f8f9fa; border-left: 4px solid #2a5298; padding: 20px 30px; margin-bottom: 40px; border-radius: 4px; }
+.doc-info table { width: 100%; }
+.doc-info td { padding: 6px 0; }
+.doc-info td:first-child { color: #666; width: 120px; }
+.toc { background: #f8f9fa; padding: 30px 40px; margin-bottom: 50px; border-radius: 4px; page-break-after: always; }
+.toc h2 { color: #1e3c72; margin-bottom: 20px; font-size: 22px; }
+.toc ol { list-style: none; counter-reset: toc-counter; }
+.toc li { counter-increment: toc-counter; padding: 8px 0; border-bottom: 1px dashed #ddd; }
+.toc li::before { content: counter(toc-counter) ". "; color: #2a5298; font-weight: bold; }
+.toc li a { color: #2c3e50; text-decoration: none; }
+.toc li a:hover { color: #2a5298; }
+section { margin-bottom: 50px; page-break-inside: avoid; }
+h1.section-title { font-size: 28px; color: #1e3c72; padding-bottom: 15px; border-bottom: 3px solid #2a5298; margin-bottom: 30px; }
+h2 { font-size: 22px; color: #1e3c72; margin: 30px 0 15px; }
+h3 { font-size: 18px; color: #2a5298; margin: 20px 0 10px; }
+p { margin-bottom: 12px; text-align: justify; }
+ul, ol { margin-left: 25px; margin-bottom: 15px; }
+li { margin-bottom: 6px; }
+.highlight { background: linear-gradient(120deg, #fff3cd 0%, #ffe69c 100%); padding: 2px 6px; border-radius: 3px; font-weight: 500; }
+.danger { background: #f8d7da; border-left: 4px solid #dc3545; padding: 15px 20px; margin: 15px 0; border-radius: 4px; }
+.warning { background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px 20px; margin: 15px 0; border-radius: 4px; }
+.success { background: #d4edda; border-left: 4px solid #28a745; padding: 15px 20px; margin: 15px 0; border-radius: 4px; }
+.info { background: #d1ecf1; border-left: 4px solid #17a2b8; padding: 15px 20px; margin: 15px 0; border-radius: 4px; }
+table { width: 100%; border-collapse: collapse; margin: 15px 0; font-size: 14px; }
+th { background: #1e3c72; color: white; padding: 12px; text-align: left; }
+td { padding: 10px 12px; border-bottom: 1px solid #e0e0e0; }
+tr:nth-child(even) { background: #f8f9fa; }
+tr:hover { background: #e3f2fd; }
+.cost-table th { background: #28a745; }
+.code { background: #2d2d2d; color: #f8f8f2; padding: 15px 20px; border-radius: 4px; font-family: "Menlo", monospace; font-size: 13px; overflow-x: auto; margin: 15px 0; }
+.kpi-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin: 25px 0; }
+.kpi { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 25px; border-radius: 8px; text-align: center; }
+.kpi .num { font-size: 36px; font-weight: bold; }
+.kpi .label { font-size: 14px; opacity: 0.9; margin-top: 8px; }
+.module-card { border: 1px solid #e0e0e0; border-radius: 8px; padding: 25px; margin: 20px 0; background: #fafbfc; }
+.module-card h3 { color: #1e3c72; margin-top: 0; }
+.signoff { margin-top: 60px; padding-top: 30px; border-top: 2px solid #e0e0e0; page-break-inside: avoid; }
+.signoff table { border: none; }
+.signoff td { border: none; padding: 15px 10px; }
+.signoff td:first-child { width: 100px; font-weight: bold; color: #666; }
+@media print { body { background: white; } .container { box-shadow: none; padding: 30px; } section { page-break-inside: avoid; } }
+</style>
+</head>
+<body>
+<div class="cover">
+<h1>明德恒智 VP 商会</h1>
+<h2>项目立项书 (Product Requirements Document)</h2>
+<div class="badge">内部立项 · v1.0</div>
+<div class="meta">
+<p>文档版本：v1.0</p>
+<p>编制日期：2026-07-17</p>
+<p>文档状态：待评审</p>
+</div>
+</div>
+
+<div class="container">
+<div class="doc-info">
+<table>
+<tr><td>项目名称</td><td>明德恒智 VP 商会全栈数字化平台</td></tr>
+<tr><td>项目代号</td><td>mingde-vp-chamber</td></tr>
+<tr><td>项目负责人</td><td>（待定）</td></tr>
+<tr><td>技术负责人</td><td>（待定）</td></tr>
+<tr><td>业务负责人</td><td>（待定）</td></tr>
+<tr><td>预算范围</td><td>¥9.75-13.3 万 / 首年（含人力）</td></tr>
+<tr><td>预计周期</td><td>4-6 个月（2-3 人小团队）</td></tr>
+<tr><td>文档版本</td><td>v1.0 · 2026-07-17</td></tr>
+</table>
+</div>
+
+<div class="toc">
+<h2>📋 目录</h2>
+<ol>
+<li><a href="#s1">项目背景与立项依据</a></li>
+<li><a href="#s2">市场与竞品分析</a></li>
+<li><a href="#s3">项目目标与成功指标</a></li>
+<li><a href="#s4">目标用户与核心场景</a></li>
+<li><a href="#s5">功能需求详述（5 大模块）</a></li>
+<li><a href="#s6">非功能需求</a></li>
+<li><a href="#s7">技术选型与许可证说明</a></li>
+<li><a href="#s8">系统架构设计</a></li>
+<li><a href="#s9">实施计划与里程碑</a></li>
+<li><a href="#s10">团队配置与预算拆解</a></li>
+<li><a href="#s11">风险评估与应对策略</a></li>
+<li><a href="#s12">ROI 与未来升级路径</a></li>
+<li><a href="#s13">附录：术语表与参考资料</a></li>
+</ol>
+</div>
+
+<section id="s1">
+<h1 class="section-title">1. 项目背景与立项依据</h1>
+<h2>1.1 行业背景</h2>
+<p>中国高端商会、行业协会、校友会、私董会等"VP 级"人脉社群近年快速增长。这类组织的典型特征：</p>
+<ul>
+<li><strong>客单价高</strong>：年费通常 ¥5,000-50,000，会员对品质和服务敏感</li>
+<li><strong>关系深度优先</strong>：会员期待的不是"信息流"，而是"被精准匹配的人脉"</li>
+<li><strong>活动密度高</strong>：沙龙、晚宴、参访、路演每月 4-10 场</li>
+<li><strong>支付场景多元</strong>：会费、活动费、商城、大咖咨询费、AI 增值服务</li>
+<li><strong>数据资产核心</strong>：会员画像、人脉图谱是组织最值钱的资产</li>
+</ul>
+
+<h2>1.2 痛点分析</h2>
+<table>
+<thead><tr><th>痛点维度</th><th>现状（人工 / 通用 SaaS）</th><th>期望（理想状态）</th></tr></thead>
+<tbody>
+<tr><td>会员管理</td><td>Excel + 微信群，会费催缴手动</td><td>在线会费、等级、续费提醒全自动化</td></tr>
+<tr><td>活动运营</td><td>接龙 + 现场签到纸质</td><td>在线报名、扫码签到、限流、票务一站式</td></tr>
+<tr><td>商城变现</td><td>无独立商城，仅靠会费</td><td>积分+现金混合的私域商城</td></tr>
+<tr><td>大咖连接</td><td>朋友圈、公众号单向</td><td>大咖主页 + 付费预约 + AI 助手</td></tr>
+<tr><td>AI 增值</td><td>无</td><td>AI 陪跑、AI 咨询、AI 工具调用</td></tr>
+</tbody>
+</table>
+
+<h2>1.3 立项依据</h2>
+<p>市面现成方案存在以下问题：</p>
+<div class="warning">
+<strong>方案 A（Discourse + 插件扩展）</strong>：Discourse Trust Level 是<strong>活跃度自动升降</strong>，无法映射"付费等级"。好友、L1-L4 等级、商城、活动报名均需要深度定制，论坛基因 ≠ 商会基因。<br><br>
+<strong>方案 B（fuint + bbs-go 双系统）</strong>：双系统数据同步复杂（会员状态、积分、订单需双向同步），运维成本翻倍，团队需同时掌握 Java + Go。<br><br>
+<strong>现成 SaaS（如知识星球、鲸会）</strong>：年费 ¥3-10 万，但定制性差、数据不私有、无法接入自有 AI 大模型，无法沉淀核心资产。
+</div>
+
+<p><strong>本方案核心主张</strong>：采用 Apache-2.0 / GPLv2 <strong>纯开源免费组件</strong> 自建，技术风险可控、首年综合成本 ¥9.75-13.3 万（含人力），<strong>有收入后再升级</strong>到 CRMEB 商业版（平滑迁移路径已规划）。
+</p>
+</section>
+
+<section id="s2">
+<h1 class="section-title">2. 市场与竞品分析</h1>
+<h2>2.1 直接竞品对比</h2>
+<table>
+<thead><tr><th>产品</th><th>类型</th><th>年费</th><th>优势</th><th>劣势</th></tr></thead>
+<tbody>
+<tr><td>知识星球</td><td>SaaS</td><td>¥3-5 万</td><td>开箱即用</td><td>不可定制、数据非私有、无 AI</td></tr>
+<tr><td>鲸会（会议易）</td><td>SaaS</td><td>¥5-8 万</td><td>活动管理强</td><td>无商城、无会员深度运营</td></tr>
+<tr><td>微盟 / 有赞</td><td>SaaS</td><td>¥1-3 万</td><td>商城成熟</td><td>无社区、无 AI、无大咖主页</td></tr>
+<tr><td>CRMEB 商业版</td><td>开源+商业授权</td><td>¥1-3 万/年</td><td>全功能、PHP 生态成熟</td><td>不含 AI 模块、需授权费</td></tr>
+<tr><td><strong>本方案（自建）</strong></td><td>自建</td><td>¥0 授权</td><td><strong>完全可控、可深度定制</strong></td><td><strong>需自建团队或外包</strong></td></tr>
+</tbody>
+</table>
+
+<h2>2.2 我们的差异化优势</h2>
+<ul>
+<li>✅ <strong>数据完全私有</strong>：会员数据、人脉图谱在自己服务器</li>
+<li>✅ <strong>AI 原生</strong>：内置 AI 助手、AI 工具调用、AI 推荐</li>
+<li>✅ <strong>深度定制</strong>：L1-L4 等级、好友、大咖主页、私域商城全可定制</li>
+<li>✅ <strong>零授权费</strong>：开源 Apache-2.0 / GPLv2，先免费跑通再升级</li>
+<li>✅ <strong>演进路径清晰</strong>：从开源版平滑迁移到 CRMEB 商业版，无需重构</li>
+</ul>
+</section>
+
+<section id="s3">
+<h1 class="section-title">3. 项目目标与成功指标</h1>
+<h2>3.1 业务目标（OKR）</h2>
+<table>
+<thead><tr><th>目标</th><th>关键结果（KR）</th><th>时间</th></tr></thead>
+<tbody>
+<tr><td rowspan="2"><strong>O1：搭建商会数字基座</strong></td><td>KR1：5 大模块全部上线，会员可自助完成会费缴纳、活动报名、商城下单、大咖预约</td><td>M6</td></tr>
+<tr><td>KR2：PC + H5 + 小程序三端可用，无重大 P0 故障</td><td>M6</td></tr>
+<tr><td rowspan="2"><strong>O2：跑通商业模式</strong></td><td>KR3：上线 6 个月内付费会员 ≥ 100 人</td><td>M12</td></tr>
+<tr><td>KR4：月 GMV ≥ ¥5 万（商城 + 大咖预约 + 活动）</td><td>M12</td></tr>
+<tr><td rowspan="2"><strong>O3：AI 增值变现</strong></td><td>KR5：AI 对话月活 ≥ 500 人</td><td>M9</td></tr>
+<tr><td>KR6：AI 增值付费转化率 ≥ 5%</td><td>M12</td></tr>
+</tbody>
+</table>
+
+<h2>3.2 成功指标（北极星 + 过程指标）</h2>
+<div class="kpi-grid">
+<div class="kpi"><div class="num">100</div><div class="label">付费会员数（M12）</div></div>
+<div class="kpi"><div class="num">¥5万</div><div class="label">月 GMV（M12）</div></div>
+<div class="kpi"><div class="num">500</div><div class="label">AI 月活（M9）</div></div>
+</div>
+</section>
+
+<section id="s4">
+<h1 class="section-title">4. 目标用户与核心场景</h1>
+<h2>4.1 用户角色</h2>
+<table>
+<thead><tr><th>角色</th><th>占比</th><th>核心诉求</th><th>核心场景</th></tr></thead>
+<tbody>
+<tr><td><strong>普通会员（VIP）</strong></td><td>70%</td><td>参加活动、兑换积分、结识人脉</td><td>浏览活动 → 报名 → 扫码签到 → 评价</td></tr>
+<tr><td><strong>高级会员（SVIP）</strong></td><td>20%</td><td>深度链接、私域商城优惠、AI 助手</td><td>会费缴纳 → 商城下单 → AI 咨询</td></tr>
+<tr><td><strong>大咖（KOL）</strong></td><td>5%</td><td>个人品牌变现、付费咨询</td><td>编辑主页 → 设置咨询档位 → 收到预约</td></tr>
+<tr><td><strong>运营人员</strong></td><td>3%</td><td>会员管理、活动发布、数据看板</td><td>后台发布活动、审核会员、查看 GMV</td></tr>
+<tr><td><strong>管理员</strong></td><td>2%</td><td>系统配置、权限分配</td><td>配置等级权益、对接财务、导出报表</td></tr>
+</tbody>
+</table>
+
+<h2>4.2 核心用户旅程</h2>
+<h3>场景 A：会员首次入会</h3>
+<ol>
+<li>通过邀请链接进入小程序 → 浏览会籍介绍</li>
+<li>选择会籍等级（L1/L2/L3/L4）→ 微信支付会费</li>
+<li>自动开通会员权益 → 收到欢迎礼包（积分 + 优惠券）</li>
+<li>完善个人画像（行业、兴趣、资源）→ 进入会员社区</li>
+</ol>
+
+<h3>场景 B：参加月度沙龙</h3>
+<ol>
+<li>在"活动中心"看到本月沙龙 → 详情查看大咖嘉宾</li>
+<li>在线报名 → 支付活动费（积分可抵 50%）</li>
+<li>活动前 1 天收到提醒 → 现场扫码签到</li>
+<li>活动后评价 → 获得积分奖励</li>
+<li>在社区发帖讨论 → AI 自动生成精华摘要</li>
+</ol>
+
+<h3>场景 C：大咖付费咨询</h3>
+<ol>
+<li>在大咖主页浏览 → 查看档位（¥500/¥2000/¥5000）</li>
+<li>选择时段 → 支付 + 提交咨询主题</li>
+<li>收到大咖确认 → 1v1 视频/文字咨询</li>
+<li>咨询后获得 AI 整理的纪要 PDF</li>
+</ol>
+</section>
+
+<section id="s5">
+<h1 class="section-title">5. 功能需求详述（5 大模块）</h1>
+
+<div class="module-card">
+<h3>📅 模块 1：活动中心</h3>
+<p><strong>核心定位</strong>：商会活动的全生命周期管理平台。</p>
+<table>
+<thead><tr><th>功能</th><th>优先级</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td>活动发布</td><td>P0</td><td>运营后台发布：标题、时间、地点、嘉宾、票种、封面</td></tr>
+<tr><td>在线报名</td><td>P0</td><td>会员分级票价、积分抵扣、限流、退款规则</td></tr>
+<tr><td>扫码签到</td><td>P0</td><td>现场二维码、地理位置校验、防代签</td></tr>
+<tr><td>日历视图</td><td>P1</td><td>会员端按月/周查看活动</td></tr>
+<tr><td>活动回顾</td><td>P1</td><td>图文直播 + AI 自动生成精华纪要</td></tr>
+<tr><td>活动评价</td><td>P2</td><td>会后 5 星评价，差评触发运营介入</td></tr>
+<tr><td>票务分发</td><td>P2</td><td>大咖邀请码、合作伙伴分销</td></tr>
+</tbody>
+</table>
+<p><strong>技术实现</strong>：CRMEB 营销活动模块 + Discourse Calendar 插件联动</p>
+</div>
+
+<div class="module-card">
+<h3>👥 模块 2：会员体系</h3>
+<p><strong>核心定位</strong>：付费会员 + 等级会员双轨制，覆盖 L1-L4 全等级。</p>
+<table>
+<thead><tr><th>功能</th><th>优先级</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td>会员注册/登录</td><td>P0</td><td>微信一键登录 + 手机号绑定</td></tr>
+<tr><td>会员等级 L1-L4</td><td>P0</td><td>基于消费金额 + 活跃度自动升降</td></tr>
+<tr><td>付费会籍</td><td>P0</td><td>月度/年度/终身，自动续费</td></tr>
+<tr><td>积分体系</td><td>P0</td><td>获得（消费、活动、签到）+ 消耗（兑换、抵扣）</td></tr>
+<tr><td>好友/分销</td><td>P1</td><td>推荐码、上下级关系链、分润</td></tr>
+<tr><td>会员画像</td><td>P1</td><td>行业、兴趣、资源标签（AI 自动补全）</td></tr>
+<tr><td>专属客服</td><td>P2</td><td>L3+ 配专属客服（人工 + AI 兜底）</td></tr>
+</tbody>
+</table>
+<p><strong>技术实现</strong>：CRMEB 付费会员 + 等级会员 + 分销裂变（Apache-2.0 全功能）</p>
+<div class="success">
+<strong>关键说明</strong>：原方案依赖 Discourse Trust Level 是活跃度自动升降，<strong>无法</strong>映射"花钱买等级"。本方案改用 CRMEB 付费会员 + 等级会员（消费驱动），语义和业务完全对齐。
+</div>
+</div>
+
+<div class="module-card">
+<h3>🛒 模块 3：商城</h3>
+<p><strong>核心定位</strong>：私域商城 + 积分+现金混合支付的会员专享商城。</p>
+<table>
+<thead><tr><th>功能</th><th>优先级</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td>商品 SPU/SKU</td><td>P0</td><td>多规格、库存、限购</td></tr>
+<tr><td>积分+现金混合支付</td><td>P0</td><td>积分抵扣比例可配置</td></tr>
+<tr><td>会员专享价</td><td>P0</td><td>L2+ 专享折扣、专属商品</td></tr>
+<tr><td>优惠券</td><td>P1</td><td>新人券、生日券、等级券</td></tr>
+<tr><td>拼团/秒杀</td><td>P2</td><td>营销工具</td></tr>
+<tr><td>分销商品</td><td>P2</td><td>会员可成为分销员</td></tr>
+</tbody>
+</table>
+<p><strong>技术实现</strong>：CRMEB 内置商城（避免 iframe 割裂，与会员/积分一体化）</p>
+</div>
+
+<div class="module-card">
+<h3>🌟 模块 4：大咖主页</h3>
+<p><strong>核心定位</strong>：每个大咖一个独立主页，集成 AI 助手 + 付费预约。</p>
+<table>
+<thead><tr><th>功能</th><th>优先级</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td>主页编辑</td><td>P0</td><td>富文本简介、案例、荣誉、社媒链接</td></tr>
+<tr><td>付费咨询档位</td><td>P0</td><td>¥500/¥2000/¥5000 三档，可自定义</td></tr>
+<tr><td>档期管理</td><td>P0</td><td>日历选时段、容量、提前预约时长</td></tr>
+<tr><td>1v1 咨询</td><td>P0</td><td>视频/语音/文字三选一</td></tr>
+<tr><td>AI 数字分身</td><td>P1</td><td>用大咖语料训练 AI，自动回答常见问题</td></tr>
+<tr><td>粉丝关注</td><td>P1</td><td>关注后接收动态</td></tr>
+<tr><td>主页 SEO</td><td>P2</td><td>百度/微信搜索收录</td></tr>
+</tbody>
+</table>
+<p><strong>技术实现</strong>：自研主页 + Discourse 评论嵌入 + AI Service 对话</p>
+</div>
+
+<div class="module-card">
+<h3>🤖 模块 5：AI 生态</h3>
+<p><strong>核心定位</strong>：AI 助手 + AI 工具调用 + AI 推荐，构建差异化壁垒。</p>
+<table>
+<thead><tr><th>功能</th><th>优先级</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td>通用 AI 助手</td><td>P0</td><td>DeepSeek 驱动的对话 UI（基于 LobeChat）</td></tr>
+<tr><td>大咖 AI 数字分身</td><td>P1</td><td>基于大咖历史发言/文章训练</td></tr>
+<tr><td>AI 工具调用</td><td>P1</td><td>联网搜索、计算器、订场地、生成 PPT 大纲</td></tr>
+<tr><td>AI 推荐</td><td>P2</td><td>基于画像推荐活动/人脉/商品</td></tr>
+<tr><td>AI 内容生成</td><td>P2</td><td>活动纪要、朋友圈文案、营销文案</td></tr>
+<tr><td>Token 用量统计</td><td>P1</td><td>会员 Token 配额 + 超出按量</td></tr>
+</tbody>
+</table>
+<p><strong>技术实现</strong>：自研 FastAPI 网关 + DeepSeek API + LobeChat 前端</p>
+</div>
+</section>
+
+<section id="s6">
+<h1 class="section-title">6. 非功能需求</h1>
+<table>
+<thead><tr><th>类别</th><th>指标</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td rowspan="4"><strong>性能</strong></td><td>首页加载 &lt; 2 秒</td><td>国内 4G 网络</td></tr>
+<tr><td>API 响应 P95 &lt; 500ms</td><td>CRMEB / Discourse 接口</td></tr>
+<tr><td>AI 对话首字 &lt; 3 秒</td><td>DeepSeek 流式输出</td></tr>
+<tr><td>支持 1000 并发</td><td>中型商会规模</td></tr>
+<tr><td rowspan="3"><strong>可用性</strong></td><td>SLA 99.5%</td><td>月度停机 &lt; 4 小时</td></tr>
+<tr><td>数据库每日自动备份</td><td>保留 30 天</td></tr>
+<tr><td>关键操作幂等</td><td>支付回调、签到防重</td></tr>
+<tr><td rowspan="3"><strong>安全</strong></td><td>HTTPS 全站加密</td><td>Let's Encrypt</td></tr>
+<tr><td>SQL 注入 / XSS 防护</td><td>框架层 + WAF</td></tr>
+<tr><td>用户密码 bcrypt</td><td>CRMEB 默认实现</td></tr>
+<tr><td rowspan="3"><strong>合规</strong></td><td>个保法合规</td><td>用户授权 + 数据可导出/删除</td></tr>
+<tr><td>支付合规</td><td>微信支付商户号 + 财务对账</td></tr>
+<tr><td>ICP 备案 + 等保 2.0 二级</td><td>运营 1 年内完成</td></tr>
+<tr><td rowspan="3"><strong>可维护</strong></td><td>代码覆盖率 &gt; 60%</td><td>关键业务逻辑</td></tr>
+<tr><td>文档覆盖率 100%</td><td>核心 API + 部署手册</td></tr>
+<tr><td>CI/CD 全自动</td><td>GitHub Actions + 镜像推送</td></tr>
+</tbody>
+</table>
+</section>
+
+<section id="s7">
+<h1 class="section-title">7. 技术选型与许可证说明</h1>
+<h2>7.1 技术栈总览</h2>
+<table>
+<thead><tr><th>层级</th><th>组件</th><th>选型</th><th>许可证</th><th>商用风险</th></tr></thead>
+<tbody>
+<tr><td>会员/积分/等级</td><td>CRMEB 开源版</td><td>PHP / ThinkPHP 6</td><td>Apache-2.0</td><td>✅ 无</td></tr>
+<tr><td>商城</td><td>CRMEB 内置商城</td><td>PHP</td><td>Apache-2.0</td><td>✅ 无</td></tr>
+<tr><td>社区/活动</td><td>Discourse</td><td>Ruby on Rails</td><td>GPLv2</td><td>⚠️ 仅自用，不可 SaaS 转售</td></tr>
+<tr><td>小程序/H5</td><td>UniApp（CRMEB 自带）</td><td>Vue 3</td><td>Apache-2.0</td><td>✅ 无</td></tr>
+<tr><td>AI 对话前端</td><td>LobeChat</td><td>Next.js</td><td>Apache-2.0 + 附加条款</td><td>⚠️ 不改源码可直接商用，二次分发需许可</td></tr>
+<tr><td>AI 后端</td><td>自研 FastAPI</td><td>Python 3.11</td><td>MIT（自研）</td><td>✅ 无</td></tr>
+<tr><td>AI 大模型</td><td>DeepSeek API</td><td>外部 API</td><td>商业服务</td><td>✅ 按量付费</td></tr>
+<tr><td>数据库</td><td>MySQL 5.7 + PG 15 + Redis 6</td><td>开源</td><td>GPL / BSD</td><td>✅ 无</td></tr>
+<tr><td>对象存储</td><td>MinIO / 阿里云 OSS</td><td>Apache-2.0 / 商业</td><td>Apache-2.0</td><td>✅ 无</td></tr>
+<tr><td>部署</td><td>Docker Compose + Nginx</td><td>开源</td><td>Apache-2.0</td><td>✅ 无</td></tr>
+</tbody>
+</table>
+
+<h2>7.2 关键选型理由</h2>
+<h3>为什么选 CRMEB 开源版？</h3>
+<ul>
+<li>✅ 唯一在 PHP 生态提供"付费会员 + 等级会员 + 商城 + 分销"四件套的开源项目</li>
+<li>✅ Apache-2.0 协议，<strong>明确允许免费商用</strong></li>
+<li>✅ 国内社区活跃、文档中文、招 PHP 工程师容易</li>
+<li>✅ <strong>平滑升级路径</strong>：业务跑通后升级到商业版（¥1-3 万/年）无需重构</li>
+</ul>
+
+<h3>为什么不用 Discourse 做会员主库？</h3>
+<div class="warning">
+Discourse Trust Level 是<strong>活跃度自动升降</strong>（新人→基础→会员→活跃→领袖），无法映射"花钱买等级"。原方案将 Trust Level 对应 L1-L4 是<strong>业务理解错误</strong>。本方案将会员主库放在 CRMEB，Discourse 仅承担社区/活动补充。
+</div>
+
+<h3>为什么选 LobeChat？</h3>
+<ul>
+<li>Apache-2.0，<strong>不改源码可直接商用</strong></li>
+<li>UI 美观、支持多模型（DeepSeek/通义/文心）</li>
+<li>Plugin 生态丰富（联网、计算、绘图）</li>
+<li>注意：二次开发并<strong>分发衍生作品</strong>需购买商业许可（自用 OK）</li>
+</ul>
+</section>
+
+<section id="s8">
+<h1 class="section-title">8. 系统架构设计</h1>
+<h2>8.1 整体架构</h2>
+<div class="code">
+┌─────────────────────────────────────────────────────┐
+│  Client Layer                                       │
+│  ├── UniApp (小程序 / H5)                            │
+│  ├── LobeChat Web (AI 对话)                          │
+│  └── Discourse Web (社区/活动补充)                    │
+└──────────────────┬──────────────────────────────────┘
+                   ↓
+┌─────────────────────────────────────────────────────┐
+│  Nginx (HTTPS / 反向代理 / 限流)                      │
+└──────────────────┬──────────────────────────────────┘
+                   ↓
+┌──────────┬──────────────────┬──────────────────┐
+│  CRMEB   │   Discourse      │   AI Service     │
+│  (PHP)   │   (Ruby)         │   (FastAPI)      │
+│  主业务   │   社区/活动       │   AI 网关         │
+└────┬─────┴────────┬─────────┴────────┬─────────┘
+     │              │                  │
+     ↓              ↓                  ↓
+┌─────────────────────────────────────────────────────┐
+│  Data Layer                                         │
+│  MySQL (CRMEB) + PostgreSQL (Discourse)             │
+│  Redis (缓存/队列) + MinIO (对象存储)                │
+└─────────────────────────────────────────────────────┘
+</div>
+
+<h2>8.2 SSO 单点登录流程</h2>
+<ol>
+<li>用户从 UniApp 小程序登录，CRMEB 颁发 JWT Token</li>
+<li>访问 Discourse 时，CRMEB 网关验证 Token → 调用 Discourse API 创建/同步用户 → 颁发 Discourse Session Cookie</li>
+<li>访问 LobeChat 时，AI Service 验证 Token → 返回 LobeChat 临时访问凭证</li>
+<li>退出登录时，CRMEB 通知 Discourse / LobeChat 清除会话</li>
+</ol>
+
+<h2>8.3 数据流</h2>
+<ul>
+<li><strong>会员主数据</strong>：CRMEB（Source of Truth）→ 同步至 Discourse / AI Service</li>
+<li><strong>积分变动</strong>：CRMEB 触发 → 异步通知 AI Service 同步 → Redis 缓存</li>
+<li><strong>订单数据</strong>：CRMEB 写入 MySQL → OSS 存储电子凭证 → AI Service 用于推荐</li>
+<li><strong>对话历史</strong>：AI Service 写入 PG → 用于大咖 AI 分身训练</li>
+</ul>
+</section>
+
+<section id="s9">
+<h1 class="section-title">9. 实施计划与里程碑</h1>
+<h2>9.1 阶段甘特图</h2>
+<table>
+<thead><tr><th>阶段</th><th>周期</th><th>关键产出</th><th>里程碑</th></tr></thead>
+<tbody>
+<tr><td><strong>PoC 验证</strong></td><td>M1（2 周）</td><td>CRMEB + Discourse + AI 三件套跑通基础链路</td><td>M1 止损线决策：继续/调整</td></tr>
+<tr><td><strong>基础搭建</strong></td><td>M2-M3（4 周）</td><td>会员体系、商城、SSO、CI/CD</td><td>M3 内部 Demo</td></tr>
+<tr><td><strong>5 大模块</strong></td><td>M4-M5（4 周）</td><td>活动中心、大咖主页、AI 生态</td><td>M5 Beta 内测</td></tr>
+<tr><td><strong>上线运营</strong></td><td>M6（2 周）</td><td>压力测试、灰度发布、运营 SOP</td><td>M6 正式上线</td></tr>
+</tbody>
+</table>
+
+<h2>9.2 关键里程碑</h2>
+<div class="success">
+<strong>🚀 M1（2 周）</strong>：2 周 PoC 验证<br>
+- CRMEB 开源版本地部署 + Discourse 容器化 + LobeChat 接入 DeepSeek<br>
+- 跑通：用户注册 → 加积分 → 发帖 → AI 对话<br>
+- <strong>止损线</strong>：2 周内任一环节无法跑通则重新评估技术栈
+</div>
+
+<div class="success">
+<strong>🚀 M3（2 个月）</strong>：内部 Demo<br>
+- 会员体系 + 商城 + SSO + 基础 AI 对话<br>
+- 邀请 10 位种子会员内测<br>
+- <strong>验收</strong>：核心流程顺畅，无 P0 故障
+</div>
+
+<div class="success">
+<strong>🚀 M6（4 个月）</strong>：正式上线<br>
+- 5 大模块全功能上线<br>
+- 微信小程序审核通过<br>
+- 100+ 付费会员<br>
+- <strong>验收</strong>：SLA 99.5%、月 GMV ¥1 万+
+</div>
+
+<h2>9.3 升级触发条件（量化指标）</h2>
+<p>满足以下<strong>任意 3 项</strong>时，强烈建议升级到 CRMEB 商业版：</p>
+<table>
+<thead><tr><th>指标</th><th>触发值</th><th>当前</th></tr></thead>
+<tbody>
+<tr><td>月 GMV</td><td>&gt; ¥50,000</td><td>¥0</td></tr>
+<tr><td>付费会员</td><td>&gt; 200 人</td><td>0</td></tr>
+<tr><td>月活用户</td><td>&gt; 5,000</td><td>0</td></tr>
+<tr><td>需要直播/多门店</td><td>是</td><td>否</td></tr>
+<tr><td>团队规模</td><td>&gt; 3 人协作</td><td>1-2 人</td></tr>
+</tbody>
+</table>
+</section>
+
+<section id="s10">
+<h1 class="section-title">10. 团队配置与预算拆解</h1>
+<h2>10.1 团队方案</h2>
+<table>
+<thead><tr><th>方案</th><th>人数</th><th>角色</th><th>工期</th><th>人力成本</th></tr></thead>
+<tbody>
+<tr><td><strong>A：最小启动</strong></td><td>1 人</td><td>全栈工程师（PHP + Vue + DevOps）</td><td>6 个月</td><td>¥15-20 万</td></tr>
+<tr><td><strong>B：推荐方案</strong></td><td>2-3 人</td><td>PHP 后端 + 前端 + 产品/测试</td><td>3-4 个月</td><td>¥20-35 万</td></tr>
+<tr><td><strong>C：外包开发</strong></td><td>外包团队 3-5 人</td><td>全栈外包</td><td>3-4 个月</td><td>¥30-50 万</td></tr>
+</tbody>
+</table>
+
+<h2>10.2 首年预算拆解</h2>
+<table class="cost-table">
+<thead><tr><th>类别</th><th>项目</th><th>金额</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td rowspan="4"><strong>软件授权</strong></td><td>CRMEB 开源版</td><td>¥0</td><td>Apache-2.0 免费商用</td></tr>
+<tr><td>Discourse 自托管</td><td>¥0</td><td>GPLv2 自用免费</td></tr>
+<tr><td>LobeChat</td><td>¥0</td><td>不改源码免费商用</td></tr>
+<tr><td>UniApp + 其他</td><td>¥0</td><td>Apache-2.0</td></tr>
+<tr><td rowspan="6"><strong>运营成本（年）</strong></td><td>服务器（2 台 ECS + DB）</td><td>¥12,000</td><td>¥1,000/月</td></tr>
+<tr><td>OSS / 对象存储</td><td>¥360</td><td>¥30/月</td></tr>
+<tr><td>短信服务</td><td>¥5,400</td><td>¥450/月（10K 条）</td></tr>
+<tr><td>域名 + SSL</td><td>¥100</td><td>年付</td></tr>
+<tr><td>DeepSeek API</td><td>¥12,000</td><td>¥1,000/月（约 500K tokens）</td></tr>
+<tr><td>其他（监控、CDN）</td><td>¥1,800</td><td>¥150/月</td></tr>
+<tr><td><strong>人力成本（推荐 B 方案）</strong></td><td>2-3 人 4 个月</td><td>¥80,000</td><td>含五险一金</td></tr>
+<tr><td><strong>应急储备（10%）</strong></td><td>—</td><td>¥11,170</td><td>预留</td></tr>
+<tr><td colspan="2"><strong>首年合计</strong></td><td><strong>¥122,830</strong></td><td>范围 ¥9.75-13.3 万（不含人力）/ 含人力 ~¥12-22 万</td></tr>
+</tbody>
+</table>
+
+<div class="info">
+<strong>重要说明</strong>：<br>
+- 软件授权费：<span class="highlight">¥0</span>（Apache-2.0 / GPLv2 全开源）<br>
+- 运营成本：<strong>¥3.1 万/年</strong>（约 ¥2,600/月）<br>
+- 人力成本：<strong>¥8-20 万/年</strong>（1-3 人 4-6 个月）<br>
+- <strong>开源 ≠ 零成本</strong>，人力是最大头
+</div>
+
+<h2>10.3 5 年 TCO 对比</h2>
+<table>
+<thead><tr><th>年份</th><th>本方案（自建）</th><th>CRMEB 商业版</th><th>知识星球 SaaS</th></tr></thead>
+<tbody>
+<tr><td>Y1</td><td>¥12.3 万（首建）</td><td>¥15.3 万</td><td>¥5 万</td></tr>
+<tr><td>Y2</td><td>¥5 万（运营 + 维护）</td><td>¥6 万</td><td>¥5 万</td></tr>
+<tr><td>Y3</td><td>¥5 万</td><td>¥6 万</td><td>¥5 万</td></tr>
+<tr><td>Y4</td><td>¥6 万（升级商业版）</td><td>¥6 万</td><td>¥6 万</td></tr>
+<tr><td>Y5</td><td>¥5 万</td><td>¥6 万</td><td>¥6 万</td></tr>
+<tr><td><strong>5 年合计</strong></td><td><strong>¥33.3 万</strong></td><td><strong>¥39.3 万</strong></td><td><strong>¥27 万</td></tr>
+</tbody>
+</table>
+<div class="info">
+<strong>结论</strong>：5 年 TCO 比商业版<strong>节省 ¥6 万</strong>，比知识星球<strong>多花 ¥6 万</strong>但获得<strong>数据私有 + AI 原生 + 深度定制</strong>。
+</div>
+</section>
+
+<section id="s11">
+<h1 class="section-title">11. 风险评估与应对策略</h1>
+<table>
+<thead><tr><th>风险</th><th>等级</th><th>应对策略</th></tr></thead>
+<tbody>
+<tr><td><strong>Discourse Ruby 开发者稀缺</strong></td><td>🟡 中</td><td>Discourse 仅承担社区/活动，主业务用 PHP。需要 Ruby 改动时外包或培训现有团队</td></tr>
+<tr><td><strong>CRMEB 开源版功能受限</strong></td><td>🟡 中</td><td>不含 SCRM/直播/多门店/三级分销。需求出现时升级商业版（¥1-3 万/年）</td></tr>
+<tr><td><strong>Discourse 不支持小程序原生</strong></td><td>🟡 中</td><td>小程序端用 H5 容器（WebView）包裹 Discourse，已验证可行</td></tr>
+<tr><td><strong>SSO 单点登录开发</strong></td><td>🟢 低</td><td>预留 1 周开发时间，参考 Discourse OAuth 文档</td></tr>
+<tr><td><strong>小程序审核被拒</strong></td><td>🟡 中</td><td>"社交-社区"类目审核严格。建议先用 H5 跑通，小程序作为补充渠道</td></tr>
+<tr><td><strong>LobeChat 商用条款</strong></td><td>🟢 低</td><td>不改源码、不分发衍生作品的前提下可直接商用。自用场景无风险</td></tr>
+<tr><td><strong>AI 成本失控</strong></td><td>🟡 中</td><td>设置用户 Token 配额，超出按量付费。监控异常调用</td></tr>
+<tr><td><strong>团队流动</strong></td><td>🟡 中</td><td>完善文档（CI/CD、部署手册、Runbook），关键知识双人备份</td></tr>
+</tbody>
+</table>
+</section>
+
+<section id="s12">
+<h1 class="section-title">12. ROI 与未来升级路径</h1>
+<h2>12.1 ROI 测算</h2>
+<table>
+<thead><tr><th>指标</th><th>M6</th><th>M12</th><th>M24</th></tr></thead>
+<tbody>
+<tr><td>付费会员</td><td>30</td><td>100</td><td>300</td></tr>
+<tr><td>平均年费</td><td>¥8,000</td><td>¥8,000</td><td>¥8,000</td></tr>
+<tr><td>会员收入</td><td>¥24 万/年</td><td>¥80 万/年</td><td>¥240 万/年</td></tr>
+<tr><td>商城 + 大咖 GMV</td><td>¥1 万/月</td><td>¥5 万/月</td><td>¥20 万/月</td></tr>
+<tr><td>GMV 抽佣（10%）</td><td>¥1.2 万/年</td><td>¥6 万/年</td><td>¥24 万/年</td></tr>
+<tr><td>AI 增值</td><td>¥0</td><td>¥3 万/年</td><td>¥30 万/年</td></tr>
+<tr><td><strong>总营收</strong></td><td><strong>¥25 万</strong></td><td><strong>¥89 万</strong></td><td><strong>¥294 万</strong></td></tr>
+<tr><td>运营成本</td><td>¥12 万</td><td>¥5 万</td><td>¥10 万</td></tr>
+<tr><td><strong>净收益</strong></td><td><strong>¥13 万</strong></td><td><strong>¥84 万</strong></td><td><strong>¥284 万</strong></td></tr>
+</tbody>
+</table>
+<p>预计 M12 收回首年投入，<strong>M18 开始盈利</strong>。</p>
+
+<h2>12.2 三阶段演进路径</h2>
+<div class="success">
+<strong>阶段 1（M1-M6）</strong>：纯开源版起步<br>
+- 技术栈：CRMEB 开源 + Discourse + LobeChat + DeepSeek<br>
+- 投入：¥12.3 万（首建）<br>
+- 目标：跑通 MVP，100 付费会员
+</div>
+
+<div class="success">
+<strong>阶段 2（M7-M18）</strong>：升级到 CRMEB 商业版<br>
+<strong>触发条件</strong>：月 GMV > ¥5 万 / 付费会员 > 200 / 月活 > 5000<br>
+- 新增：商业版授权（¥1-3 万/年）<br>
+- 新增功能：SCRM、直播、多门店、三级分销<br>
+- 投入：¥6 万/年<br>
+- 目标：300+ 付费会员，月 GMV ¥20 万
+</div>
+
+<div class="success">
+<strong>阶段 3（M19+）</strong>：自研 + AI 深度集成<br>
+- 自研会员画像引擎、推荐算法<br>
+- 自研大咖 AI 分身、知识库<br>
+- 投入：¥10-20 万/年（团队扩张）<br>
+- 目标：AI 增值收入占 30%+，技术壁垒成型
+</div>
+</section>
+
+<section id="s13">
+<h1 class="section-title">13. 附录：术语表与参考资料</h1>
+<h2>13.1 术语表</h2>
+<table>
+<thead><tr><th>术语</th><th>解释</th></tr></thead>
+<tbody>
+<tr><td>CRMEB</td><td>基于 ThinkPHP 的开源电商/会员营销系统</td></tr>
+<tr><td>Discourse</td><td>开源论坛系统，基于 Ruby on Rails</td></tr>
+<tr><td>LobeChat</td><td>开源 AI 对话前端，支持多模型</td></tr>
+<tr><td>UniApp</td><td>跨端开发框架，一套代码编译到小程序/H5/App</td></tr>
+<tr><td>FastAPI</td><td>Python 高性能 Web 框架</td></tr>
+<tr><td>DeepSeek</td><td>国产大模型 API，性价比高</td></tr>
+<tr><td>SSO</td><td>Single Sign-On，单点登录</td></tr>
+<tr><td>PoC</td><td>Proof of Concept，概念验证</td></tr>
+<tr><td>TCO</td><td>Total Cost of Ownership，总拥有成本</td></tr>
+<tr><td>GMV</td><td>Gross Merchandise Volume，成交总额</td></tr>
+</tbody>
+</table>
+
+<h2>13.2 参考资料</h2>
+<ul>
+<li>CRMEB 官方：<a href="https://www.crmeb.com">https://www.crmeb.com</a></li>
+<li>CRMEB Gitee：<a href="https://gitee.com/ZhongBangKeJi/CRMEB">https://gitee.com/ZhongBangKeJi/CRMEB</a></li>
+<li>Discourse 官方：<a href="https://www.discourse.org">https://www.discourse.org</a></li>
+<li>LobeChat GitHub：<a href="https://github.com/lobehub/lobe-chat">https://github.com/lobehub/lobe-chat</a></li>
+<li>DeepSeek 开放平台：<a href="https://platform.deepseek.com">https://platform.deepseek.com</a></li>
+<li>可行性方案详细文档：<a href="01-可行性方案.md">docs/01-可行性方案.md</a></li>
+<li>原始方案参考：<a href="00-原始方案参考.md">docs/00-原始方案参考.md</a></li>
+</ul>
+
+<div class="signoff">
+<h2>📝 签字确认</h2>
+<table>
+<tr><td>项目负责人</td><td>_________________</td><td>日期：__________</td></tr>
+<tr><td>技术负责人</td><td>_________________</td><td>日期：__________</td></tr>
+<tr><td>业务负责人</td><td>_________________</td><td>日期：__________</td></tr>
+<tr><td>财务审批</td><td>_________________</td><td>日期：__________</td></tr>
+</table>
+</div>
+
+<p style="text-align: center; color: #999; margin-top: 60px; padding-top: 30px; border-top: 1px solid #e0e0e0;">
+<strong>明德恒智 VP 商会 · 项目立项书</strong><br>
+版本 v1.0 · 编制日期 2026-07-17 · 文档状态：待评审
+</p>
+
+</div>
+</body>
+</html>

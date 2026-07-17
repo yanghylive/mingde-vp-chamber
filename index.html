@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>mingde-vp-chamber · 项目立项与开发入口</title>
+<link rel="stylesheet" href="docs/project-docs.css">
+</head>
+<body>
+<header class="masthead">
+  <div class="wrap">
+    <p class="eyebrow">PROJECT CHARTER · 2026-07-17</p>
+    <h1>VP 毕业生同学会数字平台</h1>
+    <p class="lead">CRMEB 开源版 + AI 开发的独立项目仓库。本页是立项状态、技术基线、文档与代码入口的唯一首页。</p>
+    <div class="status-line">
+      <span><b>项目代号</b> mingde-vp-chamber</span>
+      <span><b>状态</b> 已立项 / 开发基线</span>
+      <span><b>主分支</b> main</span>
+      <span><b>CRMEB</b> v6.0.0</span>
+    </div>
+  </div>
+</header>
+
+<nav class="nav"><div class="wrap">
+  <a href="#decision">立项决议</a><a href="#baseline">基线</a><a href="#docs">文档</a><a href="#repo">仓库</a><a href="#scope">范围</a><a href="#milestones">里程碑</a><a href="#rules">开发门禁</a>
+</div></nav>
+
+<main>
+  <section id="decision" class="band"><div class="wrap">
+    <p class="section-no">01 / CHARTER</p>
+    <h2>立项决议</h2>
+    <div class="decision-grid">
+      <article><small>项目目标</small><strong>五大业务模块一体化</strong><p>会员、活动、商城、大咖和 AI 生态在同一账号、订单与运营体系内交付。</p></article>
+      <article><small>技术策略</small><strong>复用交易底座，重建商会领域</strong><p>CRMEB 承担账号、商品、订单、支付和后台权限；租户、会籍、好友、活动和预约由项目独立建模。</p></article>
+      <article><small>交付原则</small><strong>一次立项，全量开发</strong><p>不拆成用后即弃的演示系统；发布会版先保证主链路可用，随后在同一代码基线上加固。</p></article>
+    </div>
+    <div class="callout good"><strong>立项日：</strong>2026-07-17。<strong>启动条件：</strong>PRD v2.0、CRMEB v6.0.0 源码基线和二开说明书已归档。<strong>下一门禁：</strong>完成 overlay + TenantContext 技术 PoC 后进入并行功能开发。</div>
+  </div></section>
+
+  <section id="baseline" class="band alt"><div class="wrap">
+    <p class="section-no">02 / BASELINE</p>
+    <h2>可重现技术基线</h2>
+    <div class="table-wrap"><table>
+      <thead><tr><th>基线项</th><th>已锁定值</th><th>决策</th></tr></thead>
+      <tbody>
+        <tr><td>上游源码</td><td><a href="https://gitee.com/ZhongBangKeJi/CRMEB">CRMEB 官方 Gitee</a></td><td>作为 Git 子模块，不复制粘贴成无历史代码。</td></tr>
+        <tr><td>发行版</td><td><code>CRMEB-KY v6.0.0</code></td><td>固定正式 tag，不跟随日常变动的 master。</td></tr>
+        <tr><td>子模块提交</td><td><code>7dcddffff73ec542d689f159724296351f29ea9a</code></td><td>CI 校验，变更必须走上游升级评审。</td></tr>
+        <tr><td>二开方式</td><td><code>backend/custom</code> + <code>frontend/custom</code></td><td>业务修改在父仓库管理，不直接提交到子模块。</td></tr>
+        <tr><td>AI 服务</td><td><code>ai-service</code></td><td>独立网关和使用量账本，不持有客户端长期模型密钥。</td></tr>
+      </tbody>
+    </table></div>
+  </div></section>
+
+  <section id="docs" class="band"><div class="wrap">
+    <p class="section-no">03 / DOCUMENTS</p>
+    <h2>开发前必读</h2>
+    <div class="link-list">
+      <a href="docs/PRD-v2.0.html"><span>01</span><div><b>PRD v2.0</b><small>范围、需求 ID、业务规则、验收和计划</small></div></a>
+      <a href="docs/CRMEB-二次开发说明书-v1.0.html"><span>02</span><div><b>CRMEB 二次开发说明书</b><small>源码盘点、复用矩阵、数据模型、实施约束</small></div></a>
+      <a href="docs/CRMEB-API资料索引.html"><span>03</span><div><b>CRMEB API 资料索引</b><small>官方 Apifox、源码路由、OutAPI 鉴权与可信度</small></div></a>
+      <a href="docs/开发目录与工作流.html"><span>04</span><div><b>开发目录与工作流</b><small>仓库边界、分支、overlay、迁移、构建与发布</small></div></a>
+    </div>
+    <p class="subtle">完整文档导航：<a href="docs/index.html">docs/index.html</a></p>
+  </div></section>
+
+  <section id="repo" class="band alt"><div class="wrap">
+    <p class="section-no">04 / REPOSITORY</p>
+    <h2>仓库目录与所有权</h2>
+    <pre>mingde-vp-chamber/
+├── index.html                     # 立项与开发入口
+├── docs/                         # HTML 需求、技术、API 文档
+├── backend/
+│   ├── crmeb/                    # 官方子模块，固定 v6.0.0
+│   └── custom/                   # 我方 PHP/SQL overlay
+├── frontend/custom/               # 我方 UniApp/Admin overlay
+├── ai-service/                   # 我方 AI 网关代码
+├── deployment/                   # 构建、环境、运维
+├── scripts/                      # 校验、构建、发布脚本
+└── .github/workflows/            # GitHub CI</pre>
+    <div class="callout warn"><strong>第三方边界：</strong><code>backend/crmeb</code> 保留 CRMEB 原始历史和版权声明。我方的商业数据、会议纪要、密钥、上传材料不得进入 Git。</div>
+  </div></section>
+
+  <section id="scope" class="band"><div class="wrap">
+    <p class="section-no">05 / SCOPE</p>
+    <h2>全量功能范围</h2>
+    <div class="table-wrap"><table>
+      <thead><tr><th>领域</th><th>复用 CRMEB</th><th>项目新增</th></tr></thead>
+      <tbody>
+        <tr><td>会员</td><td>登录、用户、标签、积分基础</td><td>租户会员、L1-L4、毕业认证、目录隐私、好友、贡献值</td></tr>
+        <tr><td>活动</td><td>订单、支付、退款、核销、通知</td><td>活动、场次、票种、报名、名额、签到和回顾</td></tr>
+        <tr><td>商城</td><td>SPU/SKU、库存、下单、售后、客服</td><td>会员提交审核、服务履约、商品租户范围、结算台账</td></tr>
+        <tr><td>大咖</td><td>用户、商品、订单、评价</td><td>角色、主页、档期、预约、咨询履约、授权知识库</td></tr>
+        <tr><td>AI</td><td>OutAPI 和账号上下文</td><td>模型路由、RAG、工具白名单、配额、安全护栏、用量账本</td></tr>
+      </tbody>
+    </table></div>
+  </div></section>
+
+  <section id="milestones" class="band alt"><div class="wrap">
+    <p class="section-no">06 / MILESTONES</p>
+    <h2>开发与发布节点</h2>
+    <div class="timeline">
+      <div><b>7/17-7/19</b><span>基线 + overlay/Tenant PoC</span></div>
+      <div><b>7/20-7/26</b><span>会员、会籍、积分、交易上下文</span></div>
+      <div><b>7/27-8/2</b><span>活动、好友、大咖、预约、AI</span></div>
+      <div><b>8/3-8/7</b><span>退款、分账、后台、真机、降级</span></div>
+      <div><b>8/8-8/10</b><span>发布会候选版与演练</span></div>
+      <div><b>8/11-9/15</b><span>生产加固与第二品牌</span></div>
+    </div>
+    <p class="subtle">详细出口条件见二开说明书第 21 节，业务时间表以 PRD v2.0 为准。</p>
+  </div></section>
+
+  <section id="rules" class="band"><div class="wrap">
+    <p class="section-no">07 / GATES</p>
+    <h2>开发门禁</h2>
+    <ul class="checklist">
+      <li>禁止直接修改 CRMEB 子模块；必须走 overlay 或独立服务。</li>
+      <li>私域数据查询必须有 TenantContext，跨租户负向测试必须通过。</li>
+      <li>支付、退款、积分、贡献值和分账采用追加账本与冲正。</li>
+      <li>新增 API 同步提交路由、鉴权、错误码、OpenAPI 和 HTML 文档。</li>
+      <li>PR 合并前执行 <code>scripts/check-project.sh</code>，不得带入子模块未提交修改。</li>
+    </ul>
+  </div></section>
+</main>
+
+<footer><div class="wrap">mingde-vp-chamber · 项目立项与开发入口 · 2026-07-17</div></footer>
+</body>
+</html>

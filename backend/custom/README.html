@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>后端二开入口</title><link rel="stylesheet" href="../../docs/project-docs.css"></head>
+<body><header class="doc-head"><div class="wrap"><p class="eyebrow">BACKEND OVERLAY</p><h1>后端二开入口</h1><p>CRMEB v6.0.0 的 PHP 业务 overlay。本目录是商会领域后端代码的所有权边界，官方子模块保持干净。</p></div></header>
+<main class="doc-main"><div class="wrap"><nav class="doc-nav"><a href="../../index.html">项目首页</a><a href="../../docs/CRMEB-二次开发说明书-v1.0.html">二开说明书</a><a href="../../docs/CRMEB-API资料索引.html">API 索引</a></nav>
+<section><h2>目录</h2><pre>backend/custom/
+├── app/chamber/              # 领域 PHP overlay
+│   ├── controller/           # 用户端/管理端薄控制器
+│   ├── services/             # 事务与领域规则
+│   ├── dao/                  # 数据查询
+│   ├── model/                # 字段、搜索器、关联
+│   ├── listener/             # CRMEB 事件扩展
+│   └── jobs/                 # 队列副作用
+└── database/migrations/      # 只追加的 ch_* 迁移</pre></section>
+<section><h2>不可破坏的规则</h2><ul class="checklist"><li>Controller 只处理参数、权限和响应，不直接查库。</li><li>跨表写入进入 Services 事务，关键资源同时加 Redis/数据库锁。</li><li>私域 Dao 必须显式带 TenantContext，禁止信任客户端传入的 tenant_id。</li><li>会籍不复用 <code>eb_user.level</code>，好友不复用推荐关系，活动不复用秒杀 <code>store_activity</code>。</li><li>迁移不修改 CRMEB 安装 SQL，表名统一 <code>ch_</code> 前缀。</li><li>金额用 decimal 字符串 + BCMath，积分、贡献值、分账和退款用追加账本。</li></ul></section>
+<section><h2>提交单个功能的最小产物</h2><p>路由、中间件/权限、Controller、Services、Dao/Model、迁移、事件/队列（如有）、单元与 API 测试、OpenAPI 和 HTML 文档必须同时可评审。</p></section>
+</div></main><footer><div class="wrap">mingde-vp-chamber · Backend Overlay</div></footer></body></html>

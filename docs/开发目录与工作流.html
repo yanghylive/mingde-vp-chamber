@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>开发目录与工作流 · mingde-vp-chamber</title><link rel="stylesheet" href="project-docs.css"></head>
+<body><header class="doc-head"><div class="wrap"><p class="eyebrow">ENGINEERING WORKFLOW · V1.0</p><h1>开发目录与工作流</h1><p>统一上游子模块、业务 overlay、AI 服务、数据库迁移和发布产物的责任边界。</p></div></header>
+<main class="doc-main"><div class="wrap"><nav class="doc-nav"><a href="../index.html">项目首页</a><a href="#layout">目录</a><a href="#flow">开发流程</a><a href="#git">Git</a><a href="#build">构建</a><a href="#done">完成定义</a></nav>
+<section id="layout"><h2>1. 目录边界</h2><div class="table-wrap"><table><thead><tr><th>目录</th><th>所有者</th><th>内容</th><th>规则</th></tr></thead><tbody>
+<tr><td><code>backend/crmeb</code></td><td>CRMEB 上游</td><td>官方 v6.0.0 完整源码</td><td>只更新子模块指针，日常开发不直接改动。</td></tr>
+<tr><td><code>backend/custom/app/chamber</code></td><td>项目后端</td><td>Controller/Services/Dao/Model/Listener/Job</td><td>保持 CRMEB 分层；领域表统一 <code>ch_</code> 前缀。</td></tr>
+<tr><td><code>backend/custom/database/migrations</code></td><td>项目后端</td><td>可追踪 SQL 迁移</td><td>只追加版本，不编辑 CRMEB 安装 SQL。</td></tr>
+<tr><td><code>frontend/custom/uniapp</code></td><td>移动端</td><td>页面、组件、API、资源 overlay</td><td>Vue2/UniApp 风格，禁止混入 Vue3 专用语法。</td></tr>
+<tr><td><code>frontend/custom/admin</code></td><td>管理端</td><td>Vue2/Element UI 页面与 API</td><td>菜单、API 权限和页面必须一起提交。</td></tr>
+<tr><td><code>ai-service</code></td><td>AI 平台</td><td>FastAPI 网关、RAG、工具、配额和审计</td><td>不直连 CRMEB 数据库，只调用受控 API。</td></tr>
+<tr><td><code>deployment</code></td><td>DevOps</td><td>Compose/Nginx/CI/发布 manifest</td><td>不提交密钥和真实环境配置。</td></tr>
+</tbody></table></div></section>
+<section id="flow"><h2>2. 功能开发流程</h2><ol><li>从 PRD 需求 ID 开始，确定验收条件和影响范围。</li><li>在 CRMEB v6.0.0 中定位同类路由、Controller、Services、Dao/Model 和事件。</li><li>对照复用矩阵，明确“直接复用 / 扩展 / 新建 / 禁用误用”。</li><li>先提交数据迁移、API 契约和失败用例，再实现服务与页面。</li><li>在干净 CRMEB 工作副本中应用 overlay，构建并执行单元/API/E2E 测试。</li><li>更新 HTML 文档和 release manifest，提交 PR 评审。</li></ol></section>
+<section id="git"><h2>3. Git 约定</h2><ul><li><code>main</code> 始终可发布；功能分支使用 <code>feature/&lt;req-id&gt;-&lt;name&gt;</code>。</li><li>提交使用 <code>feat:</code>、<code>fix:</code>、<code>docs:</code>、<code>test:</code>、<code>chore:</code>。</li><li>上游升级使用 <code>chore/crmeb-upgrade-x.y.z</code>，单独审查子模块和 SQL 差异。</li><li>仓库默认私有；不得提交 <code>.env</code>、私钥、会员资料、上传文件和生产备份。</li></ul></section>
+<section id="build"><h2>4. 构建产物</h2><pre>1. git submodule update --init --recursive
+2. verify CRMEB SHA and clean submodule
+3. copy backend/crmeb to an isolated build workspace
+4. apply backend/custom and frontend/custom overlays
+5. run database/API/frontend tests
+6. build CRMEB, Admin, UniApp and AI images/packages
+7. emit release-manifest.json with every source SHA</pre><p>overlay 冲突必须终止构建，不得静默覆盖上游新文件。生产部署使用已构建产物，不在服务器直接 <code>git pull</code> 或运行 CRMEB 后台在线升级。</p></section>
+<section id="done"><h2>5. Definition of Done</h2><ul class="checklist"><li>需求 ID、代码、数据迁移、测试和文档可相互追踪。</li><li>子模块指针正确且无未提交修改。</li><li>租户越权、重放、支付回调和退款冲正测试通过。</li><li>空库与升级库迁移均通过。</li><li>监控、日志、告警和回滚说明已更新。</li></ul></section>
+</div></main><footer><div class="wrap">mingde-vp-chamber · 开发目录与工作流 v1.0</div></footer></body></html>
