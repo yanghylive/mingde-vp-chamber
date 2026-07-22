@@ -1,0 +1,8 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>本地 CRMEB Docker 环境</title><link rel="stylesheet" href="../../docs/project-docs.css"></head>
+<body><header class="doc-head"><div class="wrap"><p class="eyebrow">LOCAL DEVELOPMENT</p><h1>本地 CRMEB Docker 环境</h1><p>用于在 Mac 上运行 CRMEB 后端、Nginx、MySQL 和 Redis。运行数据保存在 <code>deployment/local/.data</code>，不进入 Git。</p></div></header>
+<main class="doc-main"><div class="wrap"><nav class="doc-nav"><a href="../../index.html">项目首页</a><a href="../../docs/开工基线与首轮任务.html">开工基线</a></nav>
+<section><h2>启动命令</h2><pre>docker compose -f deployment/local/docker-compose.crmeb.yml up -d</pre><p>启动后访问 <code>http://localhost:8011</code>。MySQL 端口为 <code>33061</code>，Redis 端口为 <code>63791</code>。</p></section>
+<section><h2>停止命令</h2><pre>docker compose -f deployment/local/docker-compose.crmeb.yml down</pre></section>
+<section><h2>边界</h2><ul class="checklist"><li>本 compose 不写入 CRMEB 官方 docker 目录，避免污染子模块。</li><li>PHP 容器挂载 <code>backend/crmeb/crmeb</code>，运行时目录和上传目录由本地数据卷覆盖。</li><li>本地账号密码仅用于开发环境，生产环境另走部署配置。</li></ul></section>
+</div></main><footer><div class="wrap">mingde-vp-chamber · Local Development</div></footer></body></html>

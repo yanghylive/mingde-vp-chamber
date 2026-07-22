@@ -17,11 +17,17 @@ required_files=(
   "docs/CRMEB-二次开发说明书-v1.0.html"
   "docs/CRMEB-API资料索引.html"
   "docs/开发目录与工作流.html"
+  "docs/开工基线与首轮任务.html"
+  "docs/本地开发环境基线.html"
   "docs/Codex-Agent团队全量开发计划-v1.0.html"
   "backend/custom/README.html"
   "frontend/custom/README.html"
   "ai-service/README.html"
   "deployment/README.html"
+  "deployment/local/README.html"
+  "deployment/local/docker-compose.crmeb.yml"
+  "deployment/local/nginx-vhost.conf"
+  "scripts/check-local-env.sh"
 )
 
 for file in "${required_files[@]}"; do

@@ -44,3 +44,4 @@ backups/
 # Local workspaces
 work/
 .build-workspace/
+deployment/local/.data/
