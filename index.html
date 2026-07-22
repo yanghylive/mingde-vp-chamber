@@ -34,7 +34,7 @@
       <article><small>技术策略</small><strong>复用交易底座，重建商会领域</strong><p>CRMEB 承担账号、商品、订单、支付和后台权限；租户、会籍、好友、活动和预约由项目独立建模。</p></article>
       <article><small>交付原则</small><strong>一次立项，全量开发</strong><p>不拆成用后即弃的演示系统；发布会版先保证主链路可用，随后在同一代码基线上加固。</p></article>
     </div>
-    <div class="callout good"><strong>立项日：</strong>2026-07-17。<strong>G0 验收：</strong>2026-07-21，隔离运行、迁移、TenantContext、OpenAPI、前端基线、支付退款事件审计和自动门禁均通过。<strong>下一门禁：</strong>完成注册、L2 认证、L3/L4 会籍支付和幂等权益的 G1 垂直切片。</div>
+    <div class="callout good"><strong>立项日：</strong>2026-07-17。<strong>G0 验收：</strong>2026-07-21。<strong>G1-01A 验收：</strong>2026-07-22，会籍交易迁移、会员投影约束、领域状态和 OpenAPI 0.3.0 已完成。<strong>下一门禁：</strong>实现 CRMEB Token 接入、会员初始化与 L2 认证服务。</div>
   </div></section>
 
   <section id="baseline" class="band alt"><div class="wrap">
@@ -69,6 +69,7 @@
       <a href="docs/ADR-索引.html"><span>09</span><div><b>ADR 架构决策索引</b><small>上游、Overlay、主库、租户隔离和敏感数据的长期决策</small></div></a>
       <a href="backend/custom/openapi/README.html"><span>10</span><div><b>Chamber API 契约</b><small>已实现端点、追踪、租户错误、金额时间和状态枚举</small></div></a>
       <a href="docs/CRMEB-支付退款事件核验.html"><span>11</span><div><b>CRMEB 支付退款事件核验</b><small>真实完成语义、六类统一事件、幂等表和源码兼容证据</small></div></a>
+      <a href="docs/G1-会员交易开发基线.html"><span>12</span><div><b>G1 会员交易开发基线</b><small>会员、认证、会籍数据事实、planned API、锁序与后续切片</small></div></a>
     </div>
     <p class="subtle">完整文档导航：<a href="docs/index.html">docs/index.html</a></p>
   </div></section>
@@ -127,7 +128,7 @@
       <li>私域数据查询必须有 TenantContext，跨租户负向测试必须通过。</li>
       <li>支付、退款、积分、贡献值和分账采用追加账本与冲正。</li>
       <li>新增 API 同步提交路由、鉴权、错误码、OpenAPI 和 HTML 文档。</li>
-      <li>PR 合并前执行 <code>scripts/check-g0-baseline.sh</code>，不得带入子模块未提交修改。</li>
+      <li>PR 合并前执行当前总门禁 <code>scripts/check-g1-membership-baseline.sh</code>，不得带入子模块未提交修改。</li>
     </ul>
   </div></section>
 </main>

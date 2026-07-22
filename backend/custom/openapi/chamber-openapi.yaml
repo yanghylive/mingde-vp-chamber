@@ -2,16 +2,16 @@ openapi: 3.1.0
 jsonSchemaDialect: https://json-schema.org/draft/2020-12/schema
 info:
   title: Mingde VP Chamber API
-  version: 0.2.0
-  summary: Chamber overlay G0 contract and commerce-event baseline
+  version: 0.3.0
+  summary: Chamber overlay G0 runtime and G1 membership contract baseline
   description: |
     This document is the source-controlled contract for the independently developed
     Chamber API overlay. Runtime behavior is defined by the locked CRMEB v6.0.0
     source plus `backend/custom/app/chamber`.
 
-    Only routes implemented in the G0 baseline are listed under `paths`. Schemas for
-    member verification, events, and orders are reusable vocabulary for later work;
-    their presence does not imply that an endpoint exists.
+    Every operation declares `x-implementation-status`. G0 routes marked
+    `implemented` are live. G1 membership routes marked `planned` freeze the next
+    implementation contract and MUST NOT be represented as runtime-delivered yet.
 
     All response envelopes contain `status`, `msg`, `data`, and `request_id`.
     The G0 request tracing middleware returns independent request/correlation IDs
@@ -28,10 +28,17 @@ tags:
     description: Process-level probes that do not require tenant context.
   - name: Bootstrap
     description: Tenant-aware application bootstrap.
+  - name: Member
+    description: Authenticated tenant member, profile, and graduate verification.
+  - name: Membership
+    description: Tenant/channel membership plans and effective entitlement summary.
+  - name: Administration
+    description: Tenant-scoped operator review commands guarded by CRMEB admin authentication.
 x-contract-policy:
   source-of-truth: backend/custom/openapi/chamber-openapi.yaml
   upstream-baseline: CRMEB-KY v6.0.0 at 7dcddffff73ec542d689f159724296351f29ea9a
-  implemented-paths-only: true
+  operation-status-required: true
+  implemented-paths-only: false
   response-envelope-required:
     - status
     - msg
@@ -51,6 +58,7 @@ paths:
         Public liveness probe. It proves that the Chamber ThinkPHP application can
         route and return JSON; it does not prove MySQL, Redis, or tenant readiness.
       operationId: getChamberHealth
+      x-implementation-status: implemented
       security: []
       x-requirement-id: G0-API-01
       x-tenant-context: none
@@ -79,6 +87,7 @@ paths:
         `METHOD`, normalized host, normalized path, tenant slug, channel code,
         10-digit Unix timestamp, and nonce. The signature is lowercase hex.
       operationId: getChamberBootstrap
+      x-implementation-status: implemented
       security: []
       x-requirement-id: G0-API-02
       x-tenant-context: required
@@ -104,7 +113,384 @@ paths:
           $ref: '#/components/responses/InternalServerError'
         '503':
           $ref: '#/components/responses/TenantServiceUnavailable'
+  /chamber/v1/me/bootstrap:
+    post:
+      tags:
+        - Member
+      summary: Bootstrap the authenticated member inside the trusted tenant
+      operationId: bootstrapChamberMember
+      security:
+        - CrmebBearerAuth: []
+      x-implementation-status: planned
+      x-requirement-id: MEM-001,MEM-009
+      x-tenant-context: required
+      x-signed-headers-all-or-none: true
+      parameters:
+        - $ref: '#/components/parameters/RequestIdHeader'
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+        - $ref: '#/components/parameters/ChamberTenantHeader'
+        - $ref: '#/components/parameters/ChamberChannelHeader'
+        - $ref: '#/components/parameters/ChamberTimestampHeader'
+        - $ref: '#/components/parameters/ChamberNonceHeader'
+        - $ref: '#/components/parameters/ChamberSignatureHeader'
+        - $ref: '#/components/parameters/IdempotencyKeyHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MemberBootstrapRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/MemberBootstrapSuccess'
+        '400':
+          $ref: '#/components/responses/ChamberRequestError'
+        '401':
+          $ref: '#/components/responses/ChamberRequestError'
+        '403':
+          $ref: '#/components/responses/ChamberRequestError'
+        '409':
+          $ref: '#/components/responses/MemberTransactionError'
+        '422':
+          $ref: '#/components/responses/MemberTransactionError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/TenantServiceUnavailable'
+  /chamber/v1/me/profile:
+    get:
+      tags:
+        - Member
+      summary: Get the authenticated member profile in the trusted tenant
+      operationId: getChamberMemberProfile
+      security:
+        - CrmebBearerAuth: []
+      x-implementation-status: planned
+      x-requirement-id: MEM-003
+      x-tenant-context: required
+      x-signed-headers-all-or-none: true
+      parameters:
+        - $ref: '#/components/parameters/RequestIdHeader'
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+        - $ref: '#/components/parameters/ChamberTenantHeader'
+        - $ref: '#/components/parameters/ChamberChannelHeader'
+        - $ref: '#/components/parameters/ChamberTimestampHeader'
+        - $ref: '#/components/parameters/ChamberNonceHeader'
+        - $ref: '#/components/parameters/ChamberSignatureHeader'
+      responses:
+        '200':
+          $ref: '#/components/responses/MemberProfileSuccess'
+        '400':
+          $ref: '#/components/responses/ChamberRequestError'
+        '401':
+          $ref: '#/components/responses/ChamberRequestError'
+        '403':
+          $ref: '#/components/responses/ChamberRequestError'
+        '404':
+          $ref: '#/components/responses/MemberTransactionError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/TenantServiceUnavailable'
+    patch:
+      tags:
+        - Member
+      summary: Update allowed fields on the authenticated member profile
+      operationId: updateChamberMemberProfile
+      security:
+        - CrmebBearerAuth: []
+      x-implementation-status: planned
+      x-requirement-id: MEM-003
+      x-tenant-context: required
+      x-signed-headers-all-or-none: true
+      parameters:
+        - $ref: '#/components/parameters/RequestIdHeader'
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+        - $ref: '#/components/parameters/ChamberTenantHeader'
+        - $ref: '#/components/parameters/ChamberChannelHeader'
+        - $ref: '#/components/parameters/ChamberTimestampHeader'
+        - $ref: '#/components/parameters/ChamberNonceHeader'
+        - $ref: '#/components/parameters/ChamberSignatureHeader'
+        - $ref: '#/components/parameters/IdempotencyKeyHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MemberProfilePatch'
+      responses:
+        '200':
+          $ref: '#/components/responses/MemberProfileSuccess'
+        '400':
+          $ref: '#/components/responses/ChamberRequestError'
+        '401':
+          $ref: '#/components/responses/ChamberRequestError'
+        '403':
+          $ref: '#/components/responses/ChamberRequestError'
+        '404':
+          $ref: '#/components/responses/MemberTransactionError'
+        '409':
+          $ref: '#/components/responses/MemberTransactionError'
+        '422':
+          $ref: '#/components/responses/MemberTransactionError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/TenantServiceUnavailable'
+  /chamber/v1/me/graduate-verifications:
+    get:
+      tags:
+        - Member
+      summary: Get the authenticated member graduate-verification summary
+      operationId: getGraduateVerification
+      security:
+        - CrmebBearerAuth: []
+      x-implementation-status: planned
+      x-requirement-id: MEM-002
+      x-tenant-context: required
+      x-signed-headers-all-or-none: true
+      parameters:
+        - $ref: '#/components/parameters/RequestIdHeader'
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+        - $ref: '#/components/parameters/ChamberTenantHeader'
+        - $ref: '#/components/parameters/ChamberChannelHeader'
+        - $ref: '#/components/parameters/ChamberTimestampHeader'
+        - $ref: '#/components/parameters/ChamberNonceHeader'
+        - $ref: '#/components/parameters/ChamberSignatureHeader'
+      responses:
+        '200':
+          $ref: '#/components/responses/GraduateVerificationSuccess'
+        '400':
+          $ref: '#/components/responses/ChamberRequestError'
+        '401':
+          $ref: '#/components/responses/ChamberRequestError'
+        '403':
+          $ref: '#/components/responses/ChamberRequestError'
+        '404':
+          $ref: '#/components/responses/MemberTransactionError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/TenantServiceUnavailable'
+    post:
+      tags:
+        - Member
+      summary: Submit a new immutable graduate-verification application
+      operationId: submitGraduateVerification
+      security:
+        - CrmebBearerAuth: []
+      x-implementation-status: planned
+      x-requirement-id: MEM-002
+      x-tenant-context: required
+      x-signed-headers-all-or-none: true
+      parameters:
+        - $ref: '#/components/parameters/RequestIdHeader'
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+        - $ref: '#/components/parameters/ChamberTenantHeader'
+        - $ref: '#/components/parameters/ChamberChannelHeader'
+        - $ref: '#/components/parameters/ChamberTimestampHeader'
+        - $ref: '#/components/parameters/ChamberNonceHeader'
+        - $ref: '#/components/parameters/ChamberSignatureHeader'
+        - $ref: '#/components/parameters/IdempotencyKeyHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GraduateVerificationSubmission'
+      responses:
+        '201':
+          $ref: '#/components/responses/GraduateVerificationCreated'
+        '400':
+          $ref: '#/components/responses/ChamberRequestError'
+        '401':
+          $ref: '#/components/responses/ChamberRequestError'
+        '403':
+          $ref: '#/components/responses/ChamberRequestError'
+        '409':
+          $ref: '#/components/responses/MemberTransactionError'
+        '422':
+          $ref: '#/components/responses/MemberTransactionError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/TenantServiceUnavailable'
+  /chamber/admin/v1/graduate-verifications/{application_id}/reviews:
+    post:
+      tags:
+        - Administration
+      summary: Append a tenant-scoped graduate-verification review decision
+      operationId: reviewGraduateVerification
+      security:
+        - CrmebAdminBearerAuth: []
+      x-implementation-status: planned
+      x-requirement-id: MEM-002
+      x-tenant-context: required
+      x-signed-headers-all-or-none: true
+      x-admin-permission: chamber.graduate_verification.review
+      parameters:
+        - name: application_id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/PositiveId'
+        - $ref: '#/components/parameters/RequestIdHeader'
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+        - $ref: '#/components/parameters/ChamberTenantHeader'
+        - $ref: '#/components/parameters/ChamberChannelHeader'
+        - $ref: '#/components/parameters/ChamberTimestampHeader'
+        - $ref: '#/components/parameters/ChamberNonceHeader'
+        - $ref: '#/components/parameters/ChamberSignatureHeader'
+        - $ref: '#/components/parameters/IdempotencyKeyHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GraduateVerificationReviewRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/GraduateVerificationReviewSuccess'
+        '400':
+          $ref: '#/components/responses/ChamberRequestError'
+        '401':
+          $ref: '#/components/responses/ChamberRequestError'
+        '403':
+          $ref: '#/components/responses/ChamberRequestError'
+        '404':
+          $ref: '#/components/responses/MemberTransactionError'
+        '409':
+          $ref: '#/components/responses/MemberTransactionError'
+        '422':
+          $ref: '#/components/responses/MemberTransactionError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/TenantServiceUnavailable'
+  /chamber/v1/membership/plans:
+    get:
+      tags:
+        - Membership
+      summary: List purchasable membership plans for the trusted tenant and channel
+      operationId: listMembershipPlans
+      security:
+        - CrmebBearerAuth: []
+      x-implementation-status: planned
+      x-requirement-id: MEM-006
+      x-tenant-context: required
+      x-signed-headers-all-or-none: true
+      parameters:
+        - $ref: '#/components/parameters/RequestIdHeader'
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+        - $ref: '#/components/parameters/ChamberTenantHeader'
+        - $ref: '#/components/parameters/ChamberChannelHeader'
+        - $ref: '#/components/parameters/ChamberTimestampHeader'
+        - $ref: '#/components/parameters/ChamberNonceHeader'
+        - $ref: '#/components/parameters/ChamberSignatureHeader'
+      responses:
+        '200':
+          $ref: '#/components/responses/MembershipPlansSuccess'
+        '400':
+          $ref: '#/components/responses/ChamberRequestError'
+        '401':
+          $ref: '#/components/responses/ChamberRequestError'
+        '403':
+          $ref: '#/components/responses/ChamberRequestError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/TenantServiceUnavailable'
+  /chamber/v1/membership/checkouts:
+    post:
+      tags:
+        - Membership
+      summary: Create or replay a single-plan CRMEB membership order and OrderContext
+      operationId: createMembershipCheckout
+      security:
+        - CrmebBearerAuth: []
+      x-implementation-status: planned
+      x-requirement-id: MEM-006
+      x-tenant-context: required
+      x-signed-headers-all-or-none: true
+      parameters:
+        - $ref: '#/components/parameters/RequestIdHeader'
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+        - $ref: '#/components/parameters/ChamberTenantHeader'
+        - $ref: '#/components/parameters/ChamberChannelHeader'
+        - $ref: '#/components/parameters/ChamberTimestampHeader'
+        - $ref: '#/components/parameters/ChamberNonceHeader'
+        - $ref: '#/components/parameters/ChamberSignatureHeader'
+        - $ref: '#/components/parameters/IdempotencyKeyHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MembershipCheckoutRequest'
+      responses:
+        '201':
+          $ref: '#/components/responses/MembershipCheckoutCreated'
+        '400':
+          $ref: '#/components/responses/ChamberRequestError'
+        '401':
+          $ref: '#/components/responses/ChamberRequestError'
+        '403':
+          $ref: '#/components/responses/ChamberRequestError'
+        '409':
+          $ref: '#/components/responses/MemberTransactionError'
+        '422':
+          $ref: '#/components/responses/MemberTransactionError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/TenantServiceUnavailable'
+  /chamber/v1/me/membership:
+    get:
+      tags:
+        - Membership
+      summary: Get effective membership and active term summaries
+      operationId: getMembershipSummary
+      security:
+        - CrmebBearerAuth: []
+      x-implementation-status: planned
+      x-requirement-id: MEM-006
+      x-tenant-context: required
+      x-signed-headers-all-or-none: true
+      parameters:
+        - $ref: '#/components/parameters/RequestIdHeader'
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+        - $ref: '#/components/parameters/ChamberTenantHeader'
+        - $ref: '#/components/parameters/ChamberChannelHeader'
+        - $ref: '#/components/parameters/ChamberTimestampHeader'
+        - $ref: '#/components/parameters/ChamberNonceHeader'
+        - $ref: '#/components/parameters/ChamberSignatureHeader'
+      responses:
+        '200':
+          $ref: '#/components/responses/MembershipSummarySuccess'
+        '400':
+          $ref: '#/components/responses/ChamberRequestError'
+        '401':
+          $ref: '#/components/responses/ChamberRequestError'
+        '403':
+          $ref: '#/components/responses/ChamberRequestError'
+        '404':
+          $ref: '#/components/responses/MemberTransactionError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/TenantServiceUnavailable'
 components:
+  securitySchemes:
+    CrmebBearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: CRMEB API token
+      description: Token validated by CRMEB AuthTokenMiddleware; UID is never accepted from request data.
+    CrmebAdminBearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: CRMEB admin API token
+      description: Token validated by CRMEB admin authentication plus an explicit Chamber permission.
   parameters:
     RequestIdHeader:
       name: X-Request-Id
@@ -171,6 +557,13 @@ components:
         type: string
         pattern: '^[a-f0-9]{64}$'
         example: 9d9f13ca7b6c0cbf0f4f28a26fb1bda361f95c170c98dfd3fb156320a9012ee1
+    IdempotencyKeyHeader:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: Stable caller key. The service derives a tenant/operation/principal-scoped internal SHA-256 key before persistence; reusing the caller key with a different normalized request returns HTTP 409.
+      schema:
+        $ref: '#/components/schemas/IdempotencyKey'
     PageQuery:
       name: page
       in: query
@@ -379,6 +772,116 @@ components:
                 msg: Internal server error
                 data: {}
                 request_id: 01K0N7G0V3X1VQ44R3GY2X6D1A
+    MemberBootstrapSuccess:
+      description: The authenticated CRMEB user is bound to exactly one member in this tenant.
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestIdResponseHeader'
+        X-Correlation-Id:
+          $ref: '#/components/headers/CorrelationIdResponseHeader'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/MemberBootstrapEnvelope'
+    MemberProfileSuccess:
+      description: Tenant-scoped profile returned or updated.
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestIdResponseHeader'
+        X-Correlation-Id:
+          $ref: '#/components/headers/CorrelationIdResponseHeader'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/MemberProfileEnvelope'
+    GraduateVerificationSuccess:
+      description: Current graduate-verification summary returned.
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestIdResponseHeader'
+        X-Correlation-Id:
+          $ref: '#/components/headers/CorrelationIdResponseHeader'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GraduateVerificationQueryEnvelope'
+    GraduateVerificationCreated:
+      description: A new immutable graduate-verification application was submitted.
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestIdResponseHeader'
+        X-Correlation-Id:
+          $ref: '#/components/headers/CorrelationIdResponseHeader'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GraduateVerificationCreatedEnvelope'
+    GraduateVerificationReviewSuccess:
+      description: The review decision and member verification projection were committed.
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestIdResponseHeader'
+        X-Correlation-Id:
+          $ref: '#/components/headers/CorrelationIdResponseHeader'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GraduateVerificationReviewEnvelope'
+    MembershipPlansSuccess:
+      description: Enabled tenant/channel membership plans returned.
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestIdResponseHeader'
+        X-Correlation-Id:
+          $ref: '#/components/headers/CorrelationIdResponseHeader'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/MembershipPlansEnvelope'
+    MembershipSummarySuccess:
+      description: Effective member tier and active term summaries returned.
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestIdResponseHeader'
+        X-Correlation-Id:
+          $ref: '#/components/headers/CorrelationIdResponseHeader'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/MembershipSummaryEnvelope'
+    MembershipCheckoutCreated:
+      description: A membership-only CRMEB order and its immutable OrderContext were created or replayed.
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestIdResponseHeader'
+        X-Correlation-Id:
+          $ref: '#/components/headers/CorrelationIdResponseHeader'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/MembershipCheckoutEnvelope'
+    MemberTransactionError:
+      description: Stable authentication, validation, state, or idempotency error.
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestIdResponseHeader'
+        X-Correlation-Id:
+          $ref: '#/components/headers/CorrelationIdResponseHeader'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/MemberTransactionErrorEnvelope'
+    ChamberRequestError:
+      description: Tenant/CORS resolution error or authenticated member transaction error.
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestIdResponseHeader'
+        X-Correlation-Id:
+          $ref: '#/components/headers/CorrelationIdResponseHeader'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ChamberRequestErrorEnvelope'
   schemas:
     RequestId:
       type: string
@@ -415,7 +918,8 @@ components:
       type: integer
       format: int64
       minimum: 0
-      description: UTC Unix timestamp in seconds. Milliseconds and localized strings are forbidden.
+      maximum: 4294967295
+      description: UTC Unix timestamp in seconds, bounded to MySQL UNSIGNED INT. Milliseconds and localized strings are forbidden.
       example: 1784625600
     MoneyAmount:
       type: string
@@ -975,3 +1479,826 @@ components:
         A completed refund requires a unique completion_id and trusted completion
         source; provider acceptance is processing only. The PHP domain validator
         enforces these conditional rules before persistence.
+    IdempotencyKey:
+      type: string
+      minLength: 8
+      maxLength: 128
+      pattern: '^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$'
+      x-internal-scope: tenant-operation-principal
+      x-internal-key-derivation: sha256-v1
+      description: Opaque caller-generated key. The service persists SHA-256 over a versioned tuple of trusted tenant, operationId, authenticated principal type/id, and this key; the raw caller key is never the database identity by itself.
+    InviteCode:
+      type: string
+      minLength: 8
+      maxLength: 16
+      pattern: '^[A-Za-z0-9]{8,16}$'
+    ObjectStorageKey:
+      type: string
+      minLength: 1
+      maxLength: 255
+      pattern: '^(?!https?://)(?!/)(?!.*//)(?!.*(?:^|/)\.{1,2}(?:/|$))(?!.*\/$)[A-Za-z0-9][A-Za-z0-9._/-]*$'
+      description: Private object-storage key. Public URLs, absolute paths, empty path segments, trailing slashes, and dot path segments are forbidden.
+    ConsentAcceptanceRequest:
+      type: object
+      additionalProperties: false
+      description: The server resolves this tenant-controlled document version and persists its own content SHA-256.
+      required:
+        - document_code
+        - document_version
+        - accepted
+      properties:
+        document_code:
+          type: string
+          minLength: 1
+          maxLength: 32
+          pattern: '^[A-Za-z0-9][A-Za-z0-9._-]*$'
+        document_version:
+          type: string
+          minLength: 1
+          maxLength: 64
+        accepted:
+          type: boolean
+          const: true
+    MemberBootstrapRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        invite_code:
+          $ref: '#/components/schemas/InviteCode'
+        consents:
+          type: array
+          maxItems: 10
+          uniqueItems: true
+          items:
+            $ref: '#/components/schemas/ConsentAcceptanceRequest'
+    MemberSummary:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - tier
+        - status
+        - verification_status
+        - joined_at
+        - tier_expires_at
+      properties:
+        id:
+          $ref: '#/components/schemas/PositiveId'
+        tier:
+          $ref: '#/components/schemas/MembershipTier'
+        status:
+          $ref: '#/components/schemas/MemberStatus'
+        verification_status:
+          $ref: '#/components/schemas/GraduateVerificationStatus'
+        joined_at:
+          $ref: '#/components/schemas/UnixTimestampSeconds'
+        tier_expires_at:
+          $ref: '#/components/schemas/UnixTimestampSeconds'
+    MemberAttributionSummary:
+      type: object
+      additionalProperties: false
+      required:
+        - own_invite_code
+        - referrer_bound
+        - locked_at
+      properties:
+        own_invite_code:
+          $ref: '#/components/schemas/InviteCode'
+        referrer_bound:
+          type: boolean
+        locked_at:
+          $ref: '#/components/schemas/UnixTimestampSeconds'
+    MemberCapabilities:
+      type: object
+      additionalProperties: false
+      required:
+        - can_edit_profile
+        - can_submit_verification
+        - can_purchase_membership
+        - can_view_member_directory
+      properties:
+        can_edit_profile:
+          type: boolean
+        can_submit_verification:
+          type: boolean
+        can_purchase_membership:
+          type: boolean
+        can_view_member_directory:
+          type: boolean
+    MemberBootstrapData:
+      type: object
+      additionalProperties: false
+      required:
+        - tenant
+        - channel
+        - api_version
+        - phone_bound
+        - member
+        - profile_complete
+        - attribution
+        - membership
+        - capabilities
+      properties:
+        tenant:
+          $ref: '#/components/schemas/TenantReference'
+        channel:
+          $ref: '#/components/schemas/ChannelReference'
+        api_version:
+          type: string
+          const: v1
+        phone_bound:
+          type: boolean
+        member:
+          $ref: '#/components/schemas/MemberSummary'
+        profile_complete:
+          type: boolean
+        attribution:
+          $ref: '#/components/schemas/MemberAttributionSummary'
+        membership:
+          $ref: '#/components/schemas/MembershipSummaryData'
+        capabilities:
+          $ref: '#/components/schemas/MemberCapabilities'
+    MemberBootstrapEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelopeBase'
+        - type: object
+          required:
+            - data
+          properties:
+            status:
+              const: 200
+            msg:
+              const: ok
+            data:
+              $ref: '#/components/schemas/MemberBootstrapData'
+    VisibilityScope:
+      type: string
+      enum:
+        - private
+        - members
+        - friends
+        - public
+    MemberProfilePrivacy:
+      type: object
+      additionalProperties: false
+      properties:
+        avatar_object_key:
+          $ref: '#/components/schemas/VisibilityScope'
+        real_name:
+          $ref: '#/components/schemas/VisibilityScope'
+        class_name:
+          $ref: '#/components/schemas/VisibilityScope'
+        graduation_year:
+          $ref: '#/components/schemas/VisibilityScope'
+        industry:
+          $ref: '#/components/schemas/VisibilityScope'
+        company_name:
+          $ref: '#/components/schemas/VisibilityScope'
+        job_title:
+          $ref: '#/components/schemas/VisibilityScope'
+        main_business:
+          $ref: '#/components/schemas/VisibilityScope'
+        province:
+          $ref: '#/components/schemas/VisibilityScope'
+        city:
+          $ref: '#/components/schemas/VisibilityScope'
+        bio:
+          $ref: '#/components/schemas/VisibilityScope'
+        resources:
+          $ref: '#/components/schemas/VisibilityScope'
+        needs:
+          $ref: '#/components/schemas/VisibilityScope'
+        interests:
+          $ref: '#/components/schemas/VisibilityScope'
+        expertise:
+          $ref: '#/components/schemas/VisibilityScope'
+    MemberProfile:
+      type: object
+      additionalProperties: false
+      required:
+        - real_name
+        - avatar_object_key
+        - class_name
+        - graduation_year
+        - industry
+        - company_name
+        - job_title
+        - main_business
+        - province
+        - city
+        - bio
+        - resources
+        - needs
+        - interests
+        - expertise
+        - privacy
+        - profile_complete
+        - updated_at
+      properties:
+        real_name:
+          type: string
+          maxLength: 40
+        avatar_object_key:
+          oneOf:
+            - $ref: '#/components/schemas/ObjectStorageKey'
+            - type: string
+              const: ''
+        class_name:
+          type: string
+          maxLength: 80
+        graduation_year:
+          type: integer
+          minimum: 0
+          maximum: 2106
+          description: Zero means the incomplete profile has not supplied a year yet.
+        industry:
+          type: string
+          maxLength: 80
+        company_name:
+          type: string
+          maxLength: 120
+        job_title:
+          type: string
+          maxLength: 80
+        main_business:
+          type: string
+          maxLength: 500
+        province:
+          type: string
+          maxLength: 40
+        city:
+          type: string
+          maxLength: 40
+        bio:
+          type: string
+          maxLength: 1000
+        resources:
+          type: array
+          maxItems: 30
+          items:
+            type: string
+            minLength: 1
+            maxLength: 100
+        needs:
+          type: array
+          maxItems: 30
+          items:
+            type: string
+            minLength: 1
+            maxLength: 100
+        interests:
+          type: array
+          maxItems: 30
+          items:
+            type: string
+            minLength: 1
+            maxLength: 60
+        expertise:
+          type: array
+          maxItems: 30
+          items:
+            type: string
+            minLength: 1
+            maxLength: 60
+        privacy:
+          $ref: '#/components/schemas/MemberProfilePrivacy'
+        profile_complete:
+          type: boolean
+        updated_at:
+          $ref: '#/components/schemas/UnixTimestampSeconds'
+    MemberProfilePatch:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        real_name:
+          type: string
+          minLength: 1
+          maxLength: 40
+        avatar_object_key:
+          $ref: '#/components/schemas/ObjectStorageKey'
+        class_name:
+          type: string
+          maxLength: 80
+        graduation_year:
+          type: integer
+          minimum: 1900
+          maximum: 2106
+        industry:
+          type: string
+          maxLength: 80
+        company_name:
+          type: string
+          maxLength: 120
+        job_title:
+          type: string
+          maxLength: 80
+        main_business:
+          type: string
+          maxLength: 500
+        province:
+          type: string
+          maxLength: 40
+        city:
+          type: string
+          maxLength: 40
+        bio:
+          type: string
+          maxLength: 1000
+        resources:
+          type: array
+          maxItems: 30
+          items:
+            type: string
+            minLength: 1
+            maxLength: 100
+        needs:
+          type: array
+          maxItems: 30
+          items:
+            type: string
+            minLength: 1
+            maxLength: 100
+        interests:
+          type: array
+          maxItems: 30
+          items:
+            type: string
+            minLength: 1
+            maxLength: 60
+        expertise:
+          type: array
+          maxItems: 30
+          items:
+            type: string
+            minLength: 1
+            maxLength: 60
+        privacy:
+          $ref: '#/components/schemas/MemberProfilePrivacy'
+    MemberProfileEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelopeBase'
+        - type: object
+          required:
+            - data
+          properties:
+            status:
+              const: 200
+            msg:
+              const: ok
+            data:
+              $ref: '#/components/schemas/MemberProfile'
+    GraduateVerificationSubmission:
+      type: object
+      additionalProperties: false
+      required:
+        - class_name
+        - graduation_year
+        - proof_object_keys
+      properties:
+        class_name:
+          type: string
+          minLength: 1
+          maxLength: 80
+        graduation_year:
+          type: integer
+          minimum: 1900
+          maximum: 2106
+        graduation_at:
+          $ref: '#/components/schemas/UnixTimestampSeconds'
+        proof_object_keys:
+          type: array
+          minItems: 1
+          maxItems: 10
+          uniqueItems: true
+          items:
+            $ref: '#/components/schemas/ObjectStorageKey'
+        supersedes_id:
+          $ref: '#/components/schemas/PositiveId'
+    GraduateVerificationApplication:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - application_no
+        - status
+        - class_name
+        - graduation_year
+        - proof_object_keys
+        - submitted_at
+        - reviewed_at
+        - review_note
+        - can_resubmit
+      properties:
+        id:
+          $ref: '#/components/schemas/PositiveId'
+        application_no:
+          type: string
+          minLength: 1
+          maxLength: 32
+        status:
+          $ref: '#/components/schemas/GraduateVerificationStatus'
+        class_name:
+          type: string
+          maxLength: 80
+        graduation_year:
+          type: integer
+          minimum: 1900
+          maximum: 2106
+        graduation_at:
+          $ref: '#/components/schemas/UnixTimestampSeconds'
+        proof_object_keys:
+          type: array
+          maxItems: 10
+          items:
+            $ref: '#/components/schemas/ObjectStorageKey'
+        submitted_at:
+          $ref: '#/components/schemas/UnixTimestampSeconds'
+        reviewed_at:
+          $ref: '#/components/schemas/UnixTimestampSeconds'
+        review_note:
+          type: string
+          maxLength: 500
+        can_resubmit:
+          type: boolean
+    GraduateVerificationQueryData:
+      type: object
+      additionalProperties: false
+      required:
+        - current_status
+        - latest_application
+        - can_submit
+      properties:
+        current_status:
+          $ref: '#/components/schemas/GraduateVerificationStatus'
+        latest_application:
+          oneOf:
+            - $ref: '#/components/schemas/GraduateVerificationApplication'
+            - type: 'null'
+        can_submit:
+          type: boolean
+    GraduateVerificationQueryEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelopeBase'
+        - type: object
+          required:
+            - data
+          properties:
+            status:
+              const: 200
+            msg:
+              const: ok
+            data:
+              $ref: '#/components/schemas/GraduateVerificationQueryData'
+    GraduateVerificationCreatedEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelopeBase'
+        - type: object
+          required:
+            - data
+          properties:
+            status:
+              const: 201
+            msg:
+              const: created
+            data:
+              $ref: '#/components/schemas/GraduateVerificationApplication'
+    GraduateVerificationReviewAction:
+      type: string
+      enum:
+        - approve
+        - return
+        - reject
+        - revoke
+    GraduateVerificationReviewRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - action
+      properties:
+        action:
+          $ref: '#/components/schemas/GraduateVerificationReviewAction'
+        note:
+          type: string
+          maxLength: 500
+      allOf:
+        - if:
+            properties:
+              action:
+                enum: [return, reject, revoke]
+          then:
+            required:
+              - note
+            properties:
+              note:
+                minLength: 1
+    GraduateVerificationReviewEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelopeBase'
+        - type: object
+          required:
+            - data
+          properties:
+            status:
+              const: 200
+            msg:
+              const: ok
+            data:
+              $ref: '#/components/schemas/GraduateVerificationApplication'
+    MembershipPlanTier:
+      type: string
+      enum:
+        - L3
+        - L4
+    MembershipDurationUnit:
+      type: string
+      enum:
+        - year
+    MembershipPlanSummary:
+      type: object
+      additionalProperties: false
+      required:
+        - code
+        - version
+        - name
+        - tier
+        - price
+        - currency
+        - duration_value
+        - duration_unit
+        - benefits
+        - eligible
+        - ineligible_reason
+      properties:
+        code:
+          type: string
+          minLength: 1
+          maxLength: 32
+          pattern: '^[A-Za-z0-9][A-Za-z0-9._-]*$'
+        version:
+          type: integer
+          minimum: 1
+        name:
+          type: string
+          minLength: 1
+          maxLength: 80
+        tier:
+          $ref: '#/components/schemas/MembershipPlanTier'
+        price:
+          $ref: '#/components/schemas/MoneyAmount'
+        currency:
+          $ref: '#/components/schemas/CurrencyCode'
+        duration_value:
+          type: integer
+          const: 1
+        duration_unit:
+          $ref: '#/components/schemas/MembershipDurationUnit'
+        benefits:
+          type: array
+          maxItems: 50
+          items:
+            type: string
+            minLength: 1
+            maxLength: 200
+        eligible:
+          type: boolean
+        ineligible_reason:
+          oneOf:
+            - $ref: '#/components/schemas/MemberTransactionErrorCode'
+            - type: 'null'
+    MembershipTermStatus:
+      type: string
+      enum:
+        - scheduled
+        - active
+        - expired
+        - revoked
+        - refunded
+      description: Computed from immutable fact state and the half-open effective interval.
+    MembershipTermSummary:
+      type: object
+      additionalProperties: false
+      required:
+        - term_no
+        - tier
+        - plan_code
+        - plan_version
+        - status
+        - starts_at
+        - ends_at
+        - source_order_no
+      properties:
+        term_no:
+          type: string
+          minLength: 1
+          maxLength: 32
+        tier:
+          $ref: '#/components/schemas/MembershipPlanTier'
+        plan_code:
+          type: string
+          minLength: 1
+          maxLength: 32
+        plan_version:
+          type: integer
+          minimum: 1
+        status:
+          $ref: '#/components/schemas/MembershipTermStatus'
+        starts_at:
+          $ref: '#/components/schemas/UnixTimestampSeconds'
+        ends_at:
+          $ref: '#/components/schemas/UnixTimestampSeconds'
+        source_order_no:
+          type: string
+          minLength: 1
+          maxLength: 64
+    MembershipSummaryData:
+      type: object
+      additionalProperties: false
+      required:
+        - effective_tier
+        - verification_status
+        - tier_expires_at
+        - current_term
+        - active_terms
+        - can_purchase
+      properties:
+        effective_tier:
+          $ref: '#/components/schemas/MembershipTier'
+        verification_status:
+          $ref: '#/components/schemas/GraduateVerificationStatus'
+        tier_expires_at:
+          $ref: '#/components/schemas/UnixTimestampSeconds'
+        current_term:
+          oneOf:
+            - $ref: '#/components/schemas/MembershipTermSummary'
+            - type: 'null'
+        active_terms:
+          type: array
+          maxItems: 100
+          items:
+            $ref: '#/components/schemas/MembershipTermSummary'
+        can_purchase:
+          type: boolean
+    MembershipPlansData:
+      type: object
+      additionalProperties: false
+      required:
+        - plans
+      properties:
+        plans:
+          type: array
+          maxItems: 10
+          items:
+            $ref: '#/components/schemas/MembershipPlanSummary'
+    MembershipPlansEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelopeBase'
+        - type: object
+          required:
+            - data
+          properties:
+            status:
+              const: 200
+            msg:
+              const: ok
+            data:
+              $ref: '#/components/schemas/MembershipPlansData'
+    MembershipCheckoutRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - plan_code
+        - plan_version
+        - expected_amount
+        - currency
+      properties:
+        plan_code:
+          type: string
+          minLength: 1
+          maxLength: 32
+          pattern: '^[A-Za-z0-9][A-Za-z0-9._-]*$'
+        plan_version:
+          type: integer
+          minimum: 1
+        expected_amount:
+          $ref: '#/components/schemas/MoneyAmount'
+        currency:
+          $ref: '#/components/schemas/CurrencyCode'
+    MembershipCheckoutData:
+      type: object
+      additionalProperties: false
+      required:
+        - context_no
+        - order_no
+        - order_status
+        - payable_amount
+        - currency
+        - payment_required
+        - replayed
+      properties:
+        context_no:
+          type: string
+          minLength: 1
+          maxLength: 32
+        order_no:
+          type: string
+          minLength: 1
+          maxLength: 64
+        order_status:
+          $ref: '#/components/schemas/OrderLifecycleStatus'
+        payable_amount:
+          $ref: '#/components/schemas/MoneyAmount'
+        currency:
+          $ref: '#/components/schemas/CurrencyCode'
+        payment_required:
+          type: boolean
+        replayed:
+          type: boolean
+    MembershipCheckoutEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelopeBase'
+        - type: object
+          required:
+            - data
+          properties:
+            status:
+              const: 201
+            msg:
+              const: created
+            data:
+              $ref: '#/components/schemas/MembershipCheckoutData'
+    MembershipSummaryEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelopeBase'
+        - type: object
+          required:
+            - data
+          properties:
+            status:
+              const: 200
+            msg:
+              const: ok
+            data:
+              $ref: '#/components/schemas/MembershipSummaryData'
+    MemberTransactionErrorCode:
+      type: string
+      enum:
+        - authentication_required
+        - permission_denied
+        - idempotency_key_required
+        - idempotency_conflict
+        - request_validation_failed
+        - member_not_found
+        - member_disabled
+        - member_attribution_locked
+        - profile_invalid
+        - consent_document_stale
+        - verification_already_pending
+        - verification_application_not_found
+        - verification_transition_invalid
+        - verification_supersedes_mismatch
+        - membership_verification_required
+        - membership_plan_unavailable
+        - membership_downgrade_not_allowed
+    FieldError:
+      type: object
+      additionalProperties: false
+      required:
+        - field
+        - code
+      properties:
+        field:
+          type: string
+          minLength: 1
+          maxLength: 128
+        code:
+          type: string
+          minLength: 1
+          maxLength: 64
+    MemberTransactionErrorData:
+      type: object
+      additionalProperties: false
+      required:
+        - reason
+        - field_errors
+      properties:
+        reason:
+          $ref: '#/components/schemas/MemberTransactionErrorCode'
+        field_errors:
+          type: array
+          maxItems: 50
+          items:
+            $ref: '#/components/schemas/FieldError'
+    MemberTransactionErrorEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelopeBase'
+        - type: object
+          required:
+            - data
+          properties:
+            data:
+              $ref: '#/components/schemas/MemberTransactionErrorData'
+    ChamberRequestErrorEnvelope:
+      oneOf:
+        - $ref: '#/components/schemas/TenantErrorEnvelope'
+        - $ref: '#/components/schemas/MemberTransactionErrorEnvelope'

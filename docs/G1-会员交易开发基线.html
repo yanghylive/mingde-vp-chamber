@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>G1 会员交易开发基线 · mingde-vp-chamber</title><link rel="stylesheet" href="project-docs.css"></head>
+<body><header class="doc-head"><div class="wrap"><p class="eyebrow">G1 MEMBERSHIP BASELINE · 2026-07-22</p><h1>G1 会员交易开发基线</h1><p>冻结会员身份、毕业生认证、L3/L4 会籍交易的数据事实、接口边界、幂等规则与实施顺序。</p></div></header>
+<main class="doc-main"><div class="wrap"><nav class="doc-nav"><a href="../index.html">项目首页</a><a href="开发任务板.html">开发任务板</a><a href="../backend/custom/openapi/README.html">API 契约</a><a href="CRMEB-支付退款事件核验.html">支付退款核验</a></nav>
+
+<section><h2>1. 本批范围与状态</h2><div class="table-wrap"><table><thead><tr><th>需求</th><th>G1 覆盖</th><th>当前状态</th><th>下一实施点</th></tr></thead><tbody>
+<tr><td>MEM-001 登录与协议</td><td>复用 CRMEB Token；新增租户会员惰性初始化与追加式协议记录</td><td>数据/API 契约完成</td><td>认证中间件与 bootstrap 服务</td></tr>
+<tr><td>MEM-002 毕业生认证</td><td>不可变申请、单一当前申请、审核状态机、L2 投影</td><td>数据/API/状态机完成</td><td>用户提交与管理审核服务</td></tr>
+<tr><td>MEM-003 个人资料</td><td>补齐头像对象键、主营、资源、需求、兴趣和隐私范围</td><td>数据/API 契约完成</td><td>白名单读写服务</td></tr>
+<tr><td>MEM-006 会籍购买</td><td>计划、订单上下文、期限事实、追加式效果、等级投影</td><td>数据/状态/API 契约完成</td><td>下单编排与支付事件消费</td></tr>
+<tr><td>MEM-009 推荐归因</td><td>租户内推荐码、首次渠道和推荐人锁定</td><td>数据/API 契约完成</td><td>bootstrap 并发归因</td></tr>
+</tbody></table></div><p><strong>当前交付：</strong>G1-01A 建立 5 张新表、3 张现有表扩展、4 个 PHP 领域状态类和 OpenAPI 0.3.0；003/004 迁移分别通过 158/71 项结构复验，会员领域测试 37 项通过。契约共 9 条路径、11 个操作和 77 个 Schema，其中 G1 的 9 个操作标记为 <code>planned</code>，尚未伪装成可调用路由。</p></section>
+
+<section><h2>2. CRMEB 源码假设修正</h2><div class="table-wrap"><table><thead><tr><th>原假设</th><th>源码事实</th><th>确定方案</th></tr></thead><tbody>
+<tr><td>监听 <code>UserRegisterListener</code> 即可创建租户会员</td><td>事件没有 TenantContext，且既有用户绑定推广关系时也会触发；事件本身不耐久</td><td>在受保护 Chamber API 首次访问时，以可信 tenant + CRMEB uid 幂等惰性创建</td></tr>
+<tr><td><code>OrderCreateAfterListener</code> 可与订单原子写 OrderContext</td><td>CRMEB 订单事务提交后才触发该事件</td><td>会籍下单编排器先建 nullable-order Context，再建 CRMEB 订单并绑定；补扫任务修复提交间隙</td></tr>
+<tr><td>支付成功监听器可直接开权益</td><td>现有 G0 只把统一商业事实写入 inbox，尚无领域消费者</td><td>消费者在同库事务内锁 inbox/context/order/member/term，创建唯一期限并标记事件完成</td></tr>
+</tbody></table></div><div class="callout warn"><strong>安全边界：</strong>用户身份只取 CRMEB <code>AuthTokenMiddleware</code> 验证后的 <code>request-&gt;uid()</code>。正文、查询和路径中的 uid、member_id、tenant_id、channel_id 一律不可信。</div></section>
+
+<section><h2>3. 第一条纵向闭环</h2><pre>CRMEB Token
+  -> TenantContext
+  -> 幂等创建 L1 member + profile + invite code
+  -> 提交毕业生认证
+  -> 运营审批为 L2
+  -> 查询当前渠道 L3/L4 plan
+  -> 创建 OrderContext（先 creating，后绑定 CRMEB order）
+  -> CRMEB 支付/零元完成事实进入 commerce inbox
+  -> 同库事务创建唯一 membership term + grant effect
+  -> 从有效期限重算 member tier
+  -> 期限到期时投影回 L2</pre><p>L3 默认 <code>1000.00 CNY/年</code>，L4 默认 <code>5000.00 CNY/年</code>，必须先通过 L2。L3 升 L4 购买完整 L4 计划，不自动按天补差价；有效 L4 期间拒绝购买 L3。</p></section>
+
+<section><h2>4. 数据事实</h2><div class="table-wrap"><table><thead><tr><th>表</th><th>职责</th><th>关键约束</th></tr></thead><tbody>
+<tr><td><code>ch_membership_plan</code></td><td>租户渠道的 L3/L4 价格、期限、商品映射和政策</td><td>tenant + channel + code/tier 唯一；历史订单只读快照</td></tr>
+<tr><td><code>ch_order_context</code></td><td>CRMEB 订单与领域业务唯一绑定</td><td><code>order_pk</code> 全局唯一且绑定前可 NULL；身份、归属和快照不可改</td></tr>
+<tr><td><code>ch_membership_term</code></td><td>每个可信完成订单对应一段独立会籍期限</td><td>context 与 grant event 幂等唯一；使用半开区间 <code>[start,end)</code></td></tr>
+<tr><td><code>ch_membership_term_effect</code></td><td>追加记录授予、退款和人工调整</td><td>effect key 同键同 hash 重放，异 hash 冲突；无软删除</td></tr>
+<tr><td><code>ch_member_consent</code></td><td>追加记录协议接受/撤回证据</td><td>不保存原始 IP 或 User-Agent，只保存加盐摘要</td></tr>
+<tr><td><code>ch_tenant_member</code></td><td>当前等级与认证的可重算投影</td><td>tenant + uid、tenant + invite code 唯一；首次归因锁定</td></tr>
+<tr><td><code>ch_graduate_verification</code></td><td>不可变认证申请历史</td><td>nullable current_slot 唯一键阻止同会员多个当前申请</td></tr>
+</tbody></table></div><p><code>ch_tenant_member.tier</code> 与 <code>tier_expire_time</code> 不是财务事实源。支付、退款、认证撤销、重新认证和到期任务都必须锁会员行并从期限事实重新投影。</p><div class="callout"><strong>协议版本信任边界：</strong><code>document_code + document_version</code> 必须在服务端维护的 tenant-scoped 协议注册表中解析；客户端不提交、也不能指定 <code>content_sha256</code>。服务端只接受当前有效版本，并根据受控正文计算和保存 SHA-256；旧版本提交返回 <code>409 consent_document_stale</code>。</div></section>
+
+<section><h2>5. 状态规则</h2><div class="table-wrap"><table><thead><tr><th>对象</th><th>允许迁移</th><th>禁止猜测</th></tr></thead><tbody>
+<tr><td>毕业生认证</td><td>draft → pending → approved / returned / rejected；approved → revoked</td><td>returned/rejected 后新建申请并引用 previous_application_id，不覆盖旧材料</td></tr>
+<tr><td>会籍期限事实</td><td>granted → revoked / fully_refunded</td><td>scheduled/active/expired 按时间计算，不靠 Job 改事实状态</td></tr>
+<tr><td>支付</td><td>pending → completed / cancelled / closed</td><td>支付完成只接受统一完成事件及重读订单一致性</td></tr>
+<tr><td>退款</td><td>none → requested → processing → partially_completed / completed；失败或取消可重新申请</td><td>渠道受理和 CRMEB 同步“成功”仅是 processing；可信资金完成才改变期限</td></tr>
+</tbody></table></div></section>
+
+<section><h2>6. Planned API</h2><div class="table-wrap"><table><thead><tr><th>操作</th><th>用途</th><th>安全要求</th></tr></thead><tbody>
+<tr><td><code>POST /chamber/v1/me/bootstrap</code></td><td>会员初始化、首次归因、协议记录</td><td>Bearer + TenantContext + Idempotency-Key</td></tr>
+<tr><td><code>GET/PATCH /chamber/v1/me/profile</code></td><td>资料读取与白名单更新</td><td>PATCH 要求 Idempotency-Key</td></tr>
+<tr><td><code>GET/POST /chamber/v1/me/graduate-verifications</code></td><td>认证查询与提交</td><td>POST 要求 Idempotency-Key</td></tr>
+<tr><td><code>POST /chamber/admin/v1/graduate-verifications/{application_id}/reviews</code></td><td>运营审批、退回、拒绝或撤销认证</td><td>Admin Bearer + TenantContext + <code>chamber.graduate_verification.review</code> + Idempotency-Key</td></tr>
+<tr><td><code>GET /chamber/v1/membership/plans</code></td><td>当前租户渠道可售计划</td><td>不向前端暴露 CRMEB 商品/SKU 内部映射</td></tr>
+<tr><td><code>POST /chamber/v1/membership/checkouts</code></td><td>创建或重放单会籍计划 CRMEB 订单及 OrderContext</td><td>Bearer + TenantContext + Idempotency-Key；校验计划版本、金额和币种</td></tr>
+<tr><td><code>GET /chamber/v1/me/membership</code></td><td>有效等级、期限和购买资格</td><td>只返回当前认证用户自己的租户域数据</td></tr>
+</tbody></table></div><p>完整请求、响应、错误码和 Schema 见 <a href="../backend/custom/openapi/chamber-openapi.yaml">OpenAPI 0.3.0</a>。本批新增的稳定错误码包括：无审核权限 <code>403 permission_denied</code>、认证申请不存在 <code>404 verification_application_not_found</code>、客户端协议版本已失效 <code>409 consent_document_stale</code>。</p></section>
+
+<section><h2>7. 幂等、事务与锁序</h2><pre>inbox
+  -> ch_order_context
+  -> eb_store_order
+  -> ch_tenant_member
+  -> ch_membership_term</pre><ul class="checklist"><li>term、effect、member 投影与 inbox processed 必须在同一个数据库事务提交。</li><li>两个并发续费事件依靠 member 行锁串行；后一个在获得锁后重新计算开始时间。</li><li>同支付事件重放 10 次只允许 1 个 term 和 1 个 grant effect；同一 term 的退款 <code>completion_id</code> 跨 partial/full effect 类型只能入账一次。</li><li>HTTP 幂等内部键必须由版本号、可信 tenant、operationId、认证主体类型/ID 和客户端键规范化后计算 SHA-256；不得直接持久化客户端原始键作为唯一身份。</li><li>订单 tenant、channel、uid、金额、币种、状态或 Context 任一不一致时失败关闭，进入人工核验，不静默开通。</li><li>MySQL 必须启用 <code>STRICT_TRANS_TABLES</code> 或 <code>STRICT_ALL_TABLES</code>，防止负数和越界金额被静默截断；服务仍必须校验 refunded ≤ paid 等跨字段关系。</li><li>L3 升 L4 时保留原 L3 term；L4 全额退款后可自动回落到仍有效的 L3。</li></ul></section>
+
+<section><h2>8. 验收矩阵</h2><div class="table-wrap"><table><thead><tr><th>层级</th><th>必须通过</th></tr></thead><tbody>
+<tr><td>迁移</td><td>MySQL 8 空库/升级库、重复执行、verify、可重跑 rollback；MySQL 5.7 语法保持兼容</td></tr>
+<tr><td>会员</td><td>bootstrap 重放与 20 路并发只创建一组 member/profile；跨租户隔离；退出会员不复活</td></tr>
+<tr><td>认证</td><td>全部合法/非法迁移；approve/reject 并发仅一方成功；旧材料不可覆盖</td></tr>
+<tr><td>支付</td><td>事件 10 次重放、两笔续费并发、事务中断重试、订单/Context 任一字段不匹配</td></tr>
+<tr><td>等级</td><td>L3→L4、L4 到期回落 L3/L2、认证撤销到 L1、重新认证恢复有效 term</td></tr>
+<tr><td>HTTP</td><td>无 Token 401、租户伪造 403、幂等冲突 409、字段错误 422、追踪 ID 完整</td></tr>
+</tbody></table></div></section>
+
+<section><h2>9. 信息与暂缓项</h2><p><strong>现在不需要用户提供：</strong>微信 AppID、支付商户号、品牌素材、真实毕业名单、正式协议正文、运营账号、生产域名和对象存储。当前可使用 PRD 默认价格和中性本地夹具继续开发。</p><div class="table-wrap"><table><thead><tr><th>到达节点</th><th>届时需要</th></tr></thead><tbody>
+<tr><td>微信真登录/真支付</td><td>AppID、AppSecret、商户号、证书/密钥、回调域名</td></tr>
+<tr><td>页面验收</td><td>Logo、品牌色、会员权益文案、客服二维码</td></tr>
+<tr><td>认证上传联调</td><td>正式字段口径、证明材料规则、对象存储配置</td></tr>
+<tr><td>生产验收</td><td>协议正文、隐私政策、运营审核账号、域名和部署信息</td></tr>
+</tbody></table></div><div class="callout warn"><strong>暂缓：</strong>真实微信支付、部分退款期限折算、按天补差价、自动续费、推荐奖励与退款冲正、用户端/管理端 UI。部分退款在财务规则确认前只进入人工处理，不能按金额比例自行换算期限。</div></section>
+
+<section><h2>10. 下一开发批次</h2><ol><li>G1-01B：CRMEB Token 接入、MemberContext、会员/profile 并发初始化与协议记录。</li><li>G1-01C：毕业生认证提交、审核、审计记录与 L2 投影。</li><li>G1-01D：计划查询、会籍下单、OrderContext 绑定与缺口补扫。</li><li>G1-01E：支付 inbox 消费、期限/效果、等级投影、到期任务和真实库并发测试。</li></ol></section>
+
+</div></main><footer><div class="wrap">mingde-vp-chamber · G1 会员交易开发基线 · 2026-07-22</div></footer></body></html>

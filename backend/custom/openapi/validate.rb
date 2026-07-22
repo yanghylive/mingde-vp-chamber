@@ -77,47 +77,295 @@ def resolve_pointer(root, reference)
   end
 end
 
+def resolve_reference(root, node, seen_refs = {})
+  return node unless node.is_a?(Hash) && node['$ref'].is_a?(String)
+
+  reference = node['$ref']
+  return nil unless reference.start_with?('#/')
+  return nil if seen_refs[reference]
+
+  resolved = resolve_pointer(root, reference)
+  return nil unless resolved
+
+  resolve_reference(root, resolved, seen_refs.merge(reference => true))
+end
+
+def collect_property_keys(root, node, path = '$', seen_refs = {})
+  return [] unless node.is_a?(Hash) || node.is_a?(Array)
+
+  if node.is_a?(Hash) && node['$ref'].is_a?(String) && node['$ref'].start_with?('#/')
+    reference = node['$ref']
+    return [] if seen_refs[reference]
+
+    resolved = resolve_pointer(root, reference)
+    return [] unless resolved
+
+    return collect_property_keys(root, resolved, path, seen_refs.merge(reference => true))
+  end
+
+  if node.is_a?(Array)
+    return node.each_with_index.flat_map do |child, index|
+      collect_property_keys(root, child, "#{path}[#{index}]", seen_refs)
+    end
+  end
+
+  found = []
+  properties = node['properties']
+  if properties.is_a?(Hash)
+    properties.each do |name, child|
+      found << ["#{path}.#{name}", name]
+      found.concat(collect_property_keys(root, child, "#{path}.#{name}", seen_refs))
+    end
+  end
+  node.each do |key, child|
+    next if key == 'properties' || key == '$ref'
+
+    found.concat(collect_property_keys(root, child, path, seen_refs))
+  end
+  found
+end
+
 unless spec.is_a?(Hash)
   warn 'FAIL: YAML root must be an object'
   exit 1
 end
 
 errors << 'openapi must equal 3.1.0' unless spec['openapi'] == '3.1.0'
-errors << 'info.version must equal 0.2.0' unless dig_hash(spec, 'info', 'version') == '0.2.0'
+errors << 'info.version must equal 0.3.0' unless dig_hash(spec, 'info', 'version') == '0.3.0'
 
-expected_paths = ['/chamber/health', '/chamber/v1/bootstrap']
+expected_paths = [
+  '/chamber/health',
+  '/chamber/v1/bootstrap',
+  '/chamber/v1/me/bootstrap',
+  '/chamber/v1/me/profile',
+  '/chamber/v1/me/graduate-verifications',
+  '/chamber/admin/v1/graduate-verifications/{application_id}/reviews',
+  '/chamber/v1/membership/plans',
+  '/chamber/v1/membership/checkouts',
+  '/chamber/v1/me/membership'
+]
 actual_paths = spec.fetch('paths', {}).keys.sort
 errors << "paths must contain only #{expected_paths.join(', ')}" unless actual_paths == expected_paths.sort
 
-expected_operations = {
-  '/chamber/health' => 'getChamberHealth',
-  '/chamber/v1/bootstrap' => 'getChamberBootstrap'
+expected_operations = [
+  ['/chamber/health', 'get', 'getChamberHealth', 'implemented', '200', nil],
+  ['/chamber/v1/bootstrap', 'get', 'getChamberBootstrap', 'implemented', '200', nil],
+  ['/chamber/v1/me/bootstrap', 'post', 'bootstrapChamberMember', 'planned', '200', 'CrmebBearerAuth'],
+  ['/chamber/v1/me/profile', 'get', 'getChamberMemberProfile', 'planned', '200', 'CrmebBearerAuth'],
+  ['/chamber/v1/me/profile', 'patch', 'updateChamberMemberProfile', 'planned', '200', 'CrmebBearerAuth'],
+  ['/chamber/v1/me/graduate-verifications', 'get', 'getGraduateVerification', 'planned', '200', 'CrmebBearerAuth'],
+  ['/chamber/v1/me/graduate-verifications', 'post', 'submitGraduateVerification', 'planned', '201', 'CrmebBearerAuth'],
+  ['/chamber/admin/v1/graduate-verifications/{application_id}/reviews', 'post', 'reviewGraduateVerification', 'planned', '200', 'CrmebAdminBearerAuth'],
+  ['/chamber/v1/membership/plans', 'get', 'listMembershipPlans', 'planned', '200', 'CrmebBearerAuth'],
+  ['/chamber/v1/membership/checkouts', 'post', 'createMembershipCheckout', 'planned', '201', 'CrmebBearerAuth'],
+  ['/chamber/v1/me/membership', 'get', 'getMembershipSummary', 'planned', '200', 'CrmebBearerAuth']
+]
+expected_operation_contracts = {
+  ['/chamber/health', 'get'] => {
+    request_schema: nil,
+    success_response: '#/components/responses/HealthSuccess'
+  },
+  ['/chamber/v1/bootstrap', 'get'] => {
+    request_schema: nil,
+    success_response: '#/components/responses/BootstrapSuccess'
+  },
+  ['/chamber/v1/me/bootstrap', 'post'] => {
+    request_schema: '#/components/schemas/MemberBootstrapRequest',
+    success_response: '#/components/responses/MemberBootstrapSuccess'
+  },
+  ['/chamber/v1/me/profile', 'get'] => {
+    request_schema: nil,
+    success_response: '#/components/responses/MemberProfileSuccess'
+  },
+  ['/chamber/v1/me/profile', 'patch'] => {
+    request_schema: '#/components/schemas/MemberProfilePatch',
+    success_response: '#/components/responses/MemberProfileSuccess'
+  },
+  ['/chamber/v1/me/graduate-verifications', 'get'] => {
+    request_schema: nil,
+    success_response: '#/components/responses/GraduateVerificationSuccess'
+  },
+  ['/chamber/v1/me/graduate-verifications', 'post'] => {
+    request_schema: '#/components/schemas/GraduateVerificationSubmission',
+    success_response: '#/components/responses/GraduateVerificationCreated'
+  },
+  ['/chamber/admin/v1/graduate-verifications/{application_id}/reviews', 'post'] => {
+    request_schema: '#/components/schemas/GraduateVerificationReviewRequest',
+    success_response: '#/components/responses/GraduateVerificationReviewSuccess'
+  },
+  ['/chamber/v1/membership/plans', 'get'] => {
+    request_schema: nil,
+    success_response: '#/components/responses/MembershipPlansSuccess'
+  },
+  ['/chamber/v1/membership/checkouts', 'post'] => {
+    request_schema: '#/components/schemas/MembershipCheckoutRequest',
+    success_response: '#/components/responses/MembershipCheckoutCreated'
+  },
+  ['/chamber/v1/me/membership', 'get'] => {
+    request_schema: nil,
+    success_response: '#/components/responses/MembershipSummarySuccess'
+  }
 }
 operation_ids = []
-expected_operations.each do |path, operation_id|
-  operation = dig_hash(spec, 'paths', path, 'get')
+expected_operations.each do |path, method, operation_id, implementation_status, success_status, security_scheme|
+  operation = dig_hash(spec, 'paths', path, method)
   if !operation.is_a?(Hash)
-    errors << "missing GET operation for #{path}"
+    errors << "missing #{method.upcase} operation for #{path}"
     next
   end
 
   errors << "#{path} operationId must be #{operation_id}" unless operation['operationId'] == operation_id
+  errors << "#{method.upcase} #{path} implementation status differs" unless operation['x-implementation-status'] == implementation_status
   operation_ids << operation['operationId']
-  errors << "#{path} must define a 200 response" unless operation.fetch('responses', {}).key?('200')
+  responses = operation['responses'].is_a?(Hash) ? operation['responses'] : {}
+  errors << "#{method.upcase} #{path} must define a #{success_status} response" unless responses.key?(success_status)
 
-  parameter_refs = operation.fetch('parameters', []).map { |item| item.is_a?(Hash) ? item['$ref'] : nil }.compact
+  contract = expected_operation_contracts.fetch([path, method])
+  expected_success = { '$ref' => contract.fetch(:success_response) }
+  unless responses[success_status] == expected_success
+    errors << "#{method.upcase} #{path} #{success_status} response must be #{contract.fetch(:success_response)}"
+  end
+
+  expected_request_schema = contract.fetch(:request_schema)
+  if expected_request_schema.nil?
+    errors << "#{method.upcase} #{path} must not define requestBody" if operation.key?('requestBody')
+  else
+    request_body = operation['requestBody']
+    if !request_body.is_a?(Hash)
+      errors << "#{method.upcase} #{path} must define requestBody"
+    else
+      errors << "#{method.upcase} #{path} requestBody must be required" unless request_body['required'] == true
+      content = request_body['content'].is_a?(Hash) ? request_body['content'] : {}
+      content_types = content.keys
+      errors << "#{method.upcase} #{path} requestBody must use only application/json" unless content_types == ['application/json']
+      request_schema = dig_hash(request_body, 'content', 'application/json', 'schema')
+      unless request_schema == { '$ref' => expected_request_schema }
+        errors << "#{method.upcase} #{path} requestBody schema must be #{expected_request_schema}"
+      end
+    end
+  end
+
+  parameter_refs = Array(operation['parameters']).map { |item| item.is_a?(Hash) ? item['$ref'] : nil }.compact
   %w[RequestIdHeader CorrelationIdHeader].each do |name|
     reference = "#/components/parameters/#{name}"
-    errors << "#{path} is missing #{reference}" unless parameter_refs.include?(reference)
+    errors << "#{method.upcase} #{path} is missing #{reference}" unless parameter_refs.include?(reference)
+  end
+
+  next unless implementation_status == 'planned'
+
+  errors << "#{method.upcase} #{path} must require tenant context" unless operation['x-tenant-context'] == 'required'
+  errors << "#{method.upcase} #{path} must enforce all-or-none signed headers" unless operation['x-signed-headers-all-or-none'] == true
+  errors << "#{method.upcase} #{path} must require #{security_scheme}" unless operation['security'] == [{ security_scheme => [] }]
+  if security_scheme == 'CrmebAdminBearerAuth'
+    expected_permission = 'chamber.graduate_verification.review'
+    errors << "#{method.upcase} #{path} x-admin-permission must be #{expected_permission}" unless operation['x-admin-permission'] == expected_permission
+  end
+  %w[ChamberTenantHeader ChamberChannelHeader ChamberTimestampHeader ChamberNonceHeader ChamberSignatureHeader].each do |name|
+    reference = "#/components/parameters/#{name}"
+    errors << "#{method.upcase} #{path} is missing #{reference}" unless parameter_refs.include?(reference)
+  end
+  if %w[post patch].include?(method)
+    errors << "#{method.upcase} #{path} is missing Idempotency-Key" unless parameter_refs.include?('#/components/parameters/IdempotencyKeyHeader')
+  end
+  expected_error_responses = {
+    '400' => '#/components/responses/ChamberRequestError',
+    '401' => '#/components/responses/ChamberRequestError',
+    '403' => '#/components/responses/ChamberRequestError',
+    '500' => '#/components/responses/InternalServerError',
+    '503' => '#/components/responses/TenantServiceUnavailable'
+  }
+  expected_error_responses.each do |status, reference|
+    unless responses[status] == { '$ref' => reference }
+      errors << "#{method.upcase} #{path} #{status} response must be #{reference}"
+    end
+  end
+  %w[404 409 422].each do |status|
+    next unless responses.key?(status)
+
+    reference = '#/components/responses/MemberTransactionError'
+    unless responses[status] == { '$ref' => reference }
+      errors << "#{method.upcase} #{path} #{status} response must be #{reference}"
+    end
   end
 end
 errors << 'operationId values must be unique' unless operation_ids.compact.uniq.length == operation_ids.compact.length
+
+http_methods = %w[get put post delete options head patch trace]
+actual_operation_pairs = spec.fetch('paths', {}).flat_map do |path, path_item|
+  next [] unless path_item.is_a?(Hash)
+
+  path_item.keys.select { |key| http_methods.include?(key) }.map { |method| [path, method] }
+end.sort
+expected_operation_pairs = expected_operations.map { |operation| operation.first(2) }.sort
+unexpected_operations = actual_operation_pairs - expected_operation_pairs
+missing_operations = expected_operation_pairs - actual_operation_pairs
+errors << "unexpected HTTP operations: #{unexpected_operations.map { |pair| pair.join(' ') }.join(', ')}" unless unexpected_operations.empty?
+errors << "missing HTTP operations: #{missing_operations.map { |pair| pair.join(' ') }.join(', ')}" unless missing_operations.empty?
+
+implemented_count = expected_operations.count { |operation| operation[3] == 'implemented' }
+planned_count = expected_operations.count { |operation| operation[3] == 'planned' }
 
 bootstrap_refs = dig_hash(spec, 'paths', '/chamber/v1/bootstrap', 'get', 'parameters') || []
 bootstrap_refs = bootstrap_refs.map { |item| item.is_a?(Hash) ? item['$ref'] : nil }.compact
 %w[ChamberTenantHeader ChamberChannelHeader ChamberTimestampHeader ChamberNonceHeader ChamberSignatureHeader].each do |name|
   reference = "#/components/parameters/#{name}"
   errors << "bootstrap is missing #{reference}" unless bootstrap_refs.include?(reference)
+end
+
+bearer_auth = dig_hash(spec, 'components', 'securitySchemes', 'CrmebBearerAuth') || {}
+errors << 'CrmebBearerAuth must use HTTP bearer' unless bearer_auth['type'] == 'http' && bearer_auth['scheme'] == 'bearer'
+admin_bearer_auth = dig_hash(spec, 'components', 'securitySchemes', 'CrmebAdminBearerAuth') || {}
+errors << 'CrmebAdminBearerAuth must use HTTP bearer' unless admin_bearer_auth['type'] == 'http' && admin_bearer_auth['scheme'] == 'bearer'
+
+expected_parameter_contracts = {
+  'RequestIdHeader' => {
+    name: 'X-Request-Id', required: false,
+    schema: { '$ref' => '#/components/schemas/RequestId' }
+  },
+  'CorrelationIdHeader' => {
+    name: 'X-Correlation-Id', required: false,
+    schema: { '$ref' => '#/components/schemas/CorrelationId' }
+  },
+  'ChamberTenantHeader' => {
+    name: 'X-Chamber-Tenant', required: false,
+    schema: { '$ref' => '#/components/schemas/TenantSlug' }
+  },
+  'ChamberChannelHeader' => {
+    name: 'X-Chamber-Channel', required: false,
+    schema: { '$ref' => '#/components/schemas/ChannelCode' }
+  },
+  'ChamberTimestampHeader' => {
+    name: 'X-Chamber-Timestamp', required: false,
+    schema: { 'type' => 'string', 'pattern' => '^[0-9]{10}$' }
+  },
+  'ChamberNonceHeader' => {
+    name: 'X-Chamber-Nonce', required: false,
+    schema: {
+      'type' => 'string', 'minLength' => 16, 'maxLength' => 128,
+      'pattern' => '^[A-Za-z0-9._~-]{16,128}$'
+    }
+  },
+  'ChamberSignatureHeader' => {
+    name: 'X-Chamber-Signature', required: false,
+    schema: { 'type' => 'string', 'pattern' => '^[a-f0-9]{64}$' }
+  },
+  'IdempotencyKeyHeader' => {
+    name: 'Idempotency-Key', required: true,
+    schema: { '$ref' => '#/components/schemas/IdempotencyKey' }
+  }
+}
+expected_parameter_contracts.each do |component_name, expected|
+  parameter = dig_hash(spec, 'components', 'parameters', component_name) || {}
+  errors << "#{component_name} name must be #{expected.fetch(:name)}" unless parameter['name'] == expected.fetch(:name)
+  errors << "#{component_name} must be a header parameter" unless parameter['in'] == 'header'
+  unless parameter['required'] == expected.fetch(:required)
+    errors << "#{component_name} required must be #{expected.fetch(:required)}"
+  end
+  parameter_schema = parameter['schema'].is_a?(Hash) ? parameter['schema'] : {}
+  semantic_schema = parameter_schema.reject { |key, _value| key == 'example' }
+  unless semantic_schema == expected.fetch(:schema)
+    errors << "#{component_name} schema differs from the frozen contract"
+  end
 end
 
 each_node(spec) do |node, path|
@@ -137,8 +385,44 @@ actual_envelope_fields = schemas.dig('ResponseEnvelopeBase', 'required') || []
 missing_fields = required_envelope_fields - actual_envelope_fields
 errors << "response envelope missing required fields: #{missing_fields.join(', ')}" unless missing_fields.empty?
 
-request_id_pattern = schemas.dig('RequestId', 'pattern')
-errors << 'RequestId must define a pattern' unless request_id_pattern.is_a?(String) && !request_id_pattern.empty?
+expected_identifier_schemas = {
+  'RequestId' => {
+    'type' => 'string', 'minLength' => 8, 'maxLength' => 128,
+    'pattern' => '^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$'
+  },
+  'CorrelationId' => {
+    'type' => 'string', 'minLength' => 8, 'maxLength' => 128,
+    'pattern' => '^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$'
+  },
+  'TenantSlug' => {
+    'type' => 'string', 'minLength' => 1, 'maxLength' => 63,
+    'pattern' => '^[a-z0-9][a-z0-9-]{0,62}$'
+  },
+  'ChannelCode' => {
+    'type' => 'string', 'minLength' => 1, 'maxLength' => 64,
+    'pattern' => '^[a-z0-9][a-z0-9_-]{0,63}$'
+  },
+  'IdempotencyKey' => {
+    'type' => 'string', 'minLength' => 8, 'maxLength' => 128,
+    'pattern' => '^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$'
+  }
+}
+expected_identifier_schemas.each do |schema_name, expected|
+  schema = schemas[schema_name] || {}
+  expected.each do |key, value|
+    errors << "#{schema_name} #{key} differs from the frozen contract" unless schema[key] == value
+  end
+end
+
+idempotency_key = schemas['IdempotencyKey'] || {}
+expected_idempotency_scope = 'tenant-operation-principal'
+expected_idempotency_derivation = 'sha256-v1'
+unless idempotency_key['x-internal-scope'] == expected_idempotency_scope
+  errors << "IdempotencyKey x-internal-scope must be #{expected_idempotency_scope}"
+end
+unless idempotency_key['x-internal-key-derivation'] == expected_idempotency_derivation
+  errors << "IdempotencyKey x-internal-key-derivation must be #{expected_idempotency_derivation}"
+end
 
 expected_tenant_reasons = %w[
   bad_signature conflicting_context cors_origin_denied cross_channel_access cross_tenant_access
@@ -150,7 +434,11 @@ errors << 'TenantErrorReason enum differs from the frozen vocabulary' unless act
 
 expected_enums = {
   'MembershipTier' => %w[L1 L2 L3 L4],
+  'MembershipPlanTier' => %w[L3 L4],
+  'MembershipDurationUnit' => %w[year],
+  'MembershipTermStatus' => %w[scheduled active expired revoked refunded],
   'GraduateVerificationStatus' => %w[draft pending approved returned rejected revoked],
+  'GraduateVerificationReviewAction' => %w[approve return reject revoke],
   'EventType' => %w[growth industry public_welfare],
   'EventStatus' => %w[draft published registration_closed ended cancelled],
   'EventRegistrationStatus' => %w[pending_payment registered cancelled refunded waitlisted completed],
@@ -160,12 +448,70 @@ expected_enums = {
     commerce.refund.processing.v1 commerce.refund.completed.v1 commerce.refund.failed.v1
   ],
   'CommerceCompletionKind' => %w[paid zero_amount],
-  'RefundLifecycleState' => %w[none requested cancelled processing partially_completed completed failed]
+  'RefundLifecycleState' => %w[none requested cancelled processing partially_completed completed failed],
+  'MemberTransactionErrorCode' => %w[
+    authentication_required permission_denied idempotency_key_required idempotency_conflict request_validation_failed
+    member_not_found member_disabled member_attribution_locked profile_invalid consent_document_stale
+    verification_already_pending verification_application_not_found verification_transition_invalid verification_supersedes_mismatch
+    membership_verification_required membership_plan_unavailable membership_downgrade_not_allowed
+  ]
 }
 expected_enums.each do |name, values|
   actual = Array(schemas.dig(name, 'enum'))
   errors << "#{name} enum differs from the frozen vocabulary" unless actual == values
 end
+
+forbidden_identity_keys = %w[tenantid channelid uid userid memberid accountid openid]
+actual_operation_pairs.each do |path, method|
+  path_item = dig_hash(spec, 'paths', path) || {}
+  operation = path_item[method] || {}
+  parameters = Array(path_item['parameters']) + Array(operation['parameters'])
+  parameters.each_with_index do |parameter_or_ref, index|
+    parameter = resolve_reference(spec, parameter_or_ref)
+    next unless parameter.is_a?(Hash) && %w[query path header cookie].include?(parameter['in'])
+
+    normalized_name = parameter['name'].to_s.gsub(/[^A-Za-z0-9]/, '').downcase
+    next unless forbidden_identity_keys.include?(normalized_name)
+
+    errors << "#{method.upcase} #{path} parameter #{index} accepts trusted identity field #{parameter['name']}"
+  end
+end
+
+admin_review_parameters = Array(dig_hash(
+  spec,
+  'paths',
+  '/chamber/admin/v1/graduate-verifications/{application_id}/reviews',
+  'post',
+  'parameters'
+))
+expected_application_id = {
+  'name' => 'application_id',
+  'in' => 'path',
+  'required' => true,
+  'schema' => { '$ref' => '#/components/schemas/PositiveId' }
+}
+unless admin_review_parameters.include?(expected_application_id)
+  errors << 'graduate-verification review must require the PositiveId application_id path parameter'
+end
+
+expected_operations.each do |path, method, _operation_id, _status, _success, _security|
+  request_schema = dig_hash(spec, 'paths', path, method, 'requestBody', 'content', 'application/json', 'schema')
+  next unless request_schema
+
+  forbidden_paths = collect_property_keys(spec, request_schema).select do |_property_path, name|
+    forbidden_identity_keys.include?(name.gsub(/[^A-Za-z0-9]/, '').downcase)
+  end.map(&:first)
+  errors << "#{method.upcase} #{path} accepts trusted identity fields: #{forbidden_paths.join(', ')}" unless forbidden_paths.empty?
+end
+
+expected_member_envelopes = %w[
+  MemberBootstrapEnvelope MemberProfileEnvelope GraduateVerificationQueryEnvelope
+  GraduateVerificationCreatedEnvelope GraduateVerificationReviewEnvelope MembershipPlansEnvelope
+  MembershipCheckoutEnvelope MembershipSummaryEnvelope MemberTransactionErrorEnvelope
+  ChamberRequestErrorEnvelope
+]
+missing_member_envelopes = expected_member_envelopes.reject { |name| schemas[name].is_a?(Hash) }
+errors << "member envelopes missing: #{missing_member_envelopes.join(', ')}" unless missing_member_envelopes.empty?
 
 money = schemas['MoneyAmount'] || {}
 errors << 'MoneyAmount must be a string' unless money['type'] == 'string'
@@ -173,6 +519,22 @@ errors << 'MoneyAmount must require exactly two decimal places' unless money['pa
 
 timestamp = schemas['UnixTimestampSeconds'] || {}
 errors << 'UnixTimestampSeconds must be integer/int64' unless timestamp['type'] == 'integer' && timestamp['format'] == 'int64'
+errors << 'UnixTimestampSeconds must fit MySQL UNSIGNED INT' unless timestamp['maximum'] == 4_294_967_295
+
+object_storage_key = schemas['ObjectStorageKey'] || {}
+expected_object_storage_key_pattern = '^(?!https?://)(?!/)(?!.*//)(?!.*(?:^|/)\.{1,2}(?:/|$))(?!.*\/$)[A-Za-z0-9][A-Za-z0-9._/-]*$'
+errors << 'ObjectStorageKey normalization guards differ from the frozen contract' unless object_storage_key['pattern'] == expected_object_storage_key_pattern
+begin
+  object_storage_key_regexp = Regexp.new(expected_object_storage_key_pattern)
+  %w[member/42/avatar.jpg verification/2026/proof_01.png].each do |sample|
+    errors << "ObjectStorageKey rejects valid sample: #{sample}" unless object_storage_key_regexp.match?(sample)
+  end
+  ['https://example.test/a.jpg', '/absolute/key', 'a//b', 'a/', 'a/./b', 'a/../secret'].each do |sample|
+    errors << "ObjectStorageKey accepts ambiguous sample: #{sample}" if object_storage_key_regexp.match?(sample)
+  end
+rescue RegexpError => e
+  errors << "ObjectStorageKey pattern is invalid: #{e.message}"
+end
 
 page_meta_required = Array(schemas.dig('PageMeta', 'required'))
 expected_page_meta = %w[page limit total total_pages has_more]
@@ -245,7 +607,7 @@ if errors.empty?
   puts "PASS: #{spec_path}"
   puts "  OpenAPI: #{spec['openapi']}"
   puts "  Contract version: #{dig_hash(spec, 'info', 'version')}"
-  puts "  Implemented paths: #{actual_paths.length}"
+  puts "  Paths: #{actual_paths.length} (#{implemented_count} implemented, #{planned_count} planned operations)"
   puts "  Component schemas: #{schemas.length}"
   puts "  Contract references: resolved"
   puts "  Governance invariants: satisfied"

@@ -105,12 +105,12 @@ done < <(find backend/custom/app/chamber -type f -name '*.php' -print0)
 
 tenant_test_output="$(docker exec mingde_crmeb_php php /var/www/app/chamber/tests/run.php)"
 printf '%s\n' "${tenant_test_output}"
-grep -Fq '25 tests, 0 failures' <<<"${tenant_test_output}" \
+grep -Fxq '25 tests, 0 failures' <<<"${tenant_test_output}" \
     || fail "tenant test count changed"
 
 commerce_test_output="$(docker exec mingde_crmeb_php php /var/www/app/chamber/tests/commerce_run.php)"
 printf '%s\n' "${commerce_test_output}"
-grep -Fq '18 tests, 0 failures' <<<"${commerce_test_output}" \
+grep -Fxq '18 tests, 0 failures' <<<"${commerce_test_output}" \
     || fail "commerce domain test count changed"
 
 commerce_db_output="$(docker exec -w /var/www mingde_crmeb_php php app/chamber/tests/commerce_db_run.php)"
@@ -130,8 +130,9 @@ grep -Fq 'Result: 11/11 locked expectations matched.' <<<"${commerce_audit_outpu
 
 openapi_output="$(ruby backend/custom/openapi/validate.rb)"
 printf '%s\n' "${openapi_output}"
-grep -Fq 'Component schemas: 37' <<<"${openapi_output}" \
-    || fail "OpenAPI schema count changed"
+openapi_schema_count="$(awk '/Component schemas:/ { print $3 }' <<<"${openapi_output}")"
+[[ "${openapi_schema_count}" =~ ^[0-9]+$ ]] || fail "OpenAPI schema count is unavailable"
+[ "${openapi_schema_count}" -ge 37 ] || fail "OpenAPI lost a G0 schema"
 
 request_id='client-request-id-0001'
 correlation_id='client-correlation-id-0001'
@@ -188,12 +189,13 @@ status="$(request cors \
     -X OPTIONS \
     -H "Origin: ${CORS_ALLOWED_ORIGIN}" \
     -H 'Access-Control-Request-Method: GET' \
-    -H 'Access-Control-Request-Headers: X-Request-Id,X-Correlation-Id,X-Chamber-Signature' \
+    -H 'Access-Control-Request-Headers: Idempotency-Key,X-Request-Id,X-Correlation-Id,X-Chamber-Signature' \
     "${BASE_URL}/chamber/v1/bootstrap")"
 [ "${status}" = '200' ] || fail "CORS preflight returned HTTP ${status}"
 allowed_headers="$(header_value "${TMP_DIR}/cors.headers" Access-Control-Allow-Headers | tr '[:upper:]' '[:lower:]')"
 exposed_headers="$(header_value "${TMP_DIR}/cors.headers" Access-Control-Expose-Headers | tr '[:upper:]' '[:lower:]')"
 [[ "${allowed_headers}" == *x-chamber-signature* ]] || fail "CORS does not allow Chamber signature headers"
+[[ "${allowed_headers}" == *idempotency-key* ]] || fail "CORS does not allow Idempotency-Key"
 [[ "${allowed_headers}" == *x-request-id* ]] || fail "CORS does not allow request tracing headers"
 [[ "${exposed_headers}" == *x-correlation-id* ]] || fail "CORS does not expose tracing headers"
 [ "$(header_value "${TMP_DIR}/cors.headers" Access-Control-Allow-Origin)" = "${CORS_ALLOWED_ORIGIN}" ] \
@@ -217,4 +219,4 @@ printf 'G0 baseline OK\n'
 printf 'HTTP: health, host tenant, signed tenant, replay rejection, CORS allow/deny\n'
 printf 'Database: 174+ tables, 165+ migration checks, seed verification, real commerce adapter\n'
 printf 'Commerce: 18 domain tests, 7 database assertions, 11 CRMEB source checks\n'
-printf 'Frontend: shared bootstrap tests; OpenAPI: 37-schema contract validation\n'
+printf 'Frontend: shared bootstrap tests; OpenAPI: current contract preserves G0 vocabulary\n'

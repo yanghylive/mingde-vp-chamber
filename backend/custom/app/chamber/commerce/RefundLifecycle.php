@@ -5,6 +5,9 @@ namespace app\chamber\commerce;
 use app\chamber\exceptions\CommerceEventConflictException;
 use InvalidArgumentException;
 
+/**
+ * Refund facts for one CRMEB refund aggregate across one or more channel attempts.
+ */
 final class RefundLifecycle
 {
     public const NONE = 'none';
@@ -68,7 +71,7 @@ final class RefundLifecycle
         $next = clone $this;
         switch ($event->eventType()) {
             case CommerceEventType::REFUND_REQUESTED:
-                $next->assertStatus([self::NONE], 'request');
+                $next->assertStatus([self::NONE, self::FAILED, self::CANCELLED, self::PARTIALLY_COMPLETED], 'request');
                 $next->assertCumulativeUnchanged($event);
                 $next->status = self::REQUESTED;
                 break;

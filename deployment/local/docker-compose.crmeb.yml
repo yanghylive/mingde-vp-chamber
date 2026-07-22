@@ -2,6 +2,8 @@ services:
   mysql:
     container_name: mingde_crmeb_mysql
     image: ccr.ccs.tencentyun.com/crmebky_php/mysql:v8.0.45
+    command:
+      - --sql-mode=STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION
     ports:
       - "127.0.0.1:${CRMEB_MYSQL_PORT:-33061}:3306"
     environment:

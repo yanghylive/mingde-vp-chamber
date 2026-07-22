@@ -2,7 +2,7 @@
   "project": {
     "code": "mingde-vp-chamber",
     "name": "VP 毕业生同学会数字平台",
-    "status": "g0-baseline-complete",
+    "status": "g1-01a-membership-baseline-complete",
     "established_on": "2026-07-17",
     "default_branch": "main",
     "repository_visibility": "private"
@@ -27,6 +27,7 @@
     "delivery_board": "docs/开发任务板.html",
     "architecture_decisions": "docs/ADR-索引.html",
     "commerce_event_audit": "docs/CRMEB-支付退款事件核验.html",
+    "g1_membership_baseline": "docs/G1-会员交易开发基线.html",
     "commerce_source_audit": "backend/custom/commerce/README.html",
     "api_contract": "backend/custom/openapi/README.html",
     "database_baseline": "backend/custom/database/README.html"
@@ -48,5 +49,28 @@
     "crmeb_commerce_source_checks": 11,
     "openapi_schemas": 37,
     "gate": "scripts/check-g0-baseline.sh"
+  },
+  "g1_membership_baseline": {
+    "completed_on": "2026-07-22",
+    "membership_commerce_tables": 4,
+    "member_consent_tables": 1,
+    "chamber_domain_tables": 21,
+    "migration_registry_tables": 1,
+    "database_tables_total": 179,
+    "membership_commerce_structural_checks": 158,
+    "member_verification_structural_checks": 71,
+    "g1_migration_structural_checks": 229,
+    "g1_migration_structural_checks_minimum": 229,
+    "migration_structural_checks_total": 394,
+    "membership_domain_tests": 37,
+    "membership_domain_tests_minimum": 37,
+    "openapi_version": "0.3.0",
+    "openapi_paths": 9,
+    "openapi_operations_total": 11,
+    "openapi_operations_implemented": 2,
+    "openapi_operations_planned": 9,
+    "openapi_schemas": 77,
+    "openapi_schemas_minimum": 77,
+    "gate": "scripts/check-g1-membership-baseline.sh"
   }
 }

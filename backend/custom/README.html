@@ -8,7 +8,7 @@
 </head>
 <body>
   <header class="doc-head"><div class="wrap">
-    <p class="eyebrow">BACKEND OVERLAY · G0 COMPLETE</p>
+    <p class="eyebrow">BACKEND OVERLAY · G0 COMPLETE · G1-01A COMPLETE</p>
     <h1>后端二开入口</h1>
     <p>CRMEB v6.0.0 的 PHP 业务 overlay。本目录是商会领域后端代码的所有权边界，官方子模块保持干净。</p>
   </div></header>
@@ -36,11 +36,21 @@
       </table></div>
     </section>
     <section>
+      <h2>G1-01A 已落地能力</h2>
+      <div class="table-wrap"><table><thead><tr><th>能力</th><th>实现</th><th>验证</th></tr></thead><tbody>
+        <tr><td>会籍商业事实</td><td>plan、order context、term、term effect 四表</td><td>158 项结构复验</td></tr>
+        <tr><td>会员与认证加固</td><td>推荐码/归因锁、资料字段、认证 current slot、协议事件</td><td>71 项结构复验</td></tr>
+        <tr><td>领域状态</td><td>会员等级、毕业认证、会籍期限、订单支付/退款三维</td><td>37 项 PHP 测试</td></tr>
+        <tr><td>接口契约</td><td>OpenAPI 0.3.0，2 个 implemented + 9 个 planned 操作</td><td>9 条路径、11 个操作、77 个 Schema</td></tr>
+      </tbody></table></div>
+    </section>
+    <section>
       <h2>目录</h2>
       <pre>backend/custom/
 ├── app/chamber/
 │   ├── config/               # 路由、租户与 Cookie 配置
 │   ├── commerce/             # 商业事件、金额和退款状态机
+│   ├── membership/           # 会员等级、认证、期限和订单上下文状态
 │   ├── contracts/            # 领域依赖契约
 │   ├── controller/           # 用户端/管理端薄控制器
 │   ├── middleware/           # TenantContext 与链路追踪
@@ -55,11 +65,12 @@
     </section>
     <section>
       <h2>本地验证</h2>
-      <pre>./scripts/check-g0-baseline.sh
+      <pre>./scripts/check-g1-membership-baseline.sh
 
 # 分项执行
 docker exec mingde_crmeb_php php /var/www/app/chamber/tests/run.php
 docker exec mingde_crmeb_php php /var/www/app/chamber/tests/commerce_run.php
+docker exec mingde_crmeb_php php /var/www/app/chamber/tests/membership_run.php
 docker exec -w /var/www mingde_crmeb_php php app/chamber/tests/commerce_db_run.php
 ./scripts/manage-local-database.sh status
 ruby backend/custom/commerce/audit_crmeb_v6.rb

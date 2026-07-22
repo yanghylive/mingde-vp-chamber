@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Chamber API 契约基线 · G0</title>
+  <title>Chamber API 契约基线 · G0 + G1</title>
   <style>
     :root{--ink:#17222c;--muted:#5d6972;--line:#dbe1e5;--paper:#fff;--soft:#f3f6f7;--navy:#19344c;--green:#14735a;--blue:#21689e;--warn:#8b6218;--warn-bg:#fbf3df;--risk:#a74334;--risk-bg:#f9eae7}
     *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:#edf1f2;color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;font-size:15px;line-height:1.7;letter-spacing:0}.doc{width:min(1120px,100%);margin:auto;background:var(--paper);box-shadow:0 10px 36px rgba(23,34,44,.08)}header{padding:54px clamp(22px,7vw,72px) 44px;background:var(--navy);color:#fff}header p{max-width:820px;color:#d3e0e8;font-size:17px}.eyebrow{color:#91d2b9;font-size:12px;font-weight:800}h1{margin:9px 0 15px;font-size:42px;line-height:1.18;letter-spacing:0}.meta{display:flex;flex-wrap:wrap;gap:8px 24px;margin-top:26px;padding-top:18px;border-top:1px solid rgba(255,255,255,.2);font-size:13px}.content{padding:45px clamp(18px,6vw,68px) 70px}.toc{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 40px}.toc a{padding:7px 10px;border:1px solid var(--line);border-radius:4px;color:var(--blue);text-decoration:none;font-size:12px}section{margin-bottom:55px;scroll-margin-top:20px}h2{margin:0 0 20px;padding-bottom:10px;border-bottom:3px solid var(--navy);font-size:26px;letter-spacing:0}h3{margin:27px 0 10px;color:var(--navy);font-size:18px;letter-spacing:0}p{margin:0 0 13px}ul,ol{margin:0 0 17px;padding-left:23px}li{margin-bottom:6px}code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px}.table-wrap{overflow-x:auto;margin:14px 0 24px;border:1px solid var(--line);border-radius:6px}table{width:100%;min-width:690px;border-collapse:collapse;font-size:13px}th{padding:10px 12px;background:var(--navy);color:#fff;text-align:left;vertical-align:top}td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}tr:last-child td{border-bottom:0}tbody tr:nth-child(even){background:#f8fafb}.callout{margin:17px 0;padding:15px 17px;border-left:5px solid var(--green);background:#eaf5f0}.callout.warn{border-color:var(--warn);background:var(--warn-bg)}.callout.risk{border-color:var(--risk);background:var(--risk-bg)}pre{overflow:auto;padding:17px;border-radius:6px;background:#192632;color:#edf3f6;font:12.5px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace}.pill{display:inline-block;padding:2px 7px;border-radius:4px;background:#e8f2f8;color:#235d89;font-size:11px;font-weight:800;white-space:nowrap}.footer{padding:23px;background:var(--soft);color:var(--muted);text-align:center;font-size:12px}@media(max-width:620px){h1{font-size:34px}.content{padding:34px 16px 55px}body{font-size:14px}}@media print{body{background:#fff}.doc{width:100%;box-shadow:none}header{print-color-adjust:exact;-webkit-print-color-adjust:exact}.content{padding:15mm}.table-wrap,.callout,pre{page-break-inside:avoid}}
@@ -12,25 +12,27 @@
 <body>
 <main class="doc">
   <header>
-    <div class="eyebrow">API CONTRACT · G0 BASELINE · 2026-07-21</div>
+    <div class="eyebrow">API CONTRACT · G0 RUNTIME + G1 PLANNED · 2026-07-22</div>
     <h1>Chamber API 契约基线</h1>
-    <p>把当前已实现路由和后续领域对象使用的公共格式固定下来。YAML 是机器可读的唯一契约源；本页负责解释决策、边界和联调规则。</p>
-    <div class="meta"><span>OpenAPI 3.1.0</span><span>契约版本 0.2.0</span><span>CRMEB-KY v6.0.0</span><span>路径数量 2</span><span>Schema 37</span></div>
+    <p>同时固定 G0 已实现运行契约与 G1 会员交易待实现契约。YAML 是机器可读的唯一事实源；每个操作显式标记 implemented 或 planned，避免把设计稿误当成已交付接口。</p>
+    <div class="meta"><span>OpenAPI 3.1.0</span><span>契约版本 0.3.0</span><span>CRMEB-KY v6.0.0</span><span>9 路径 / 11 操作</span><span>Schema 77</span></div>
   </header>
   <div class="content">
     <nav class="toc" aria-label="页内目录">
-      <a href="#scope">范围</a><a href="#routes">现有端点</a><a href="#envelope">响应与追踪</a><a href="#tenant">租户上下文</a><a href="#formats">公共格式</a><a href="#schemas">领域词汇</a><a href="#validation">验证</a>
+      <a href="#scope">范围</a><a href="#routes">操作状态</a><a href="#envelope">响应与追踪</a><a href="#tenant">认证与租户</a><a href="#formats">公共格式</a><a href="#schemas">领域词汇</a><a href="#validation">验证</a>
     </nav>
 
     <section id="scope">
       <h2>1. 范围与结论</h2>
-      <p><a href="chamber-openapi.yaml">chamber-openapi.yaml</a> 是二开接口契约的版本库事实源。当前仅登记 <code>GET /chamber/health</code> 和 <code>GET /chamber/v1/bootstrap</code>；会员认证、活动、订单和商业事件只登记可复用 Schema，不声明尚未实现的路径。</p>
-      <div class="callout"><strong>冻结原则：</strong>新增或修改 API 时，路由、实现、错误码、OpenAPI、测试必须在同一个变更中完成。前端不得根据中文 <code>msg</code> 分支。</div>
+      <p><a href="chamber-openapi.yaml">chamber-openapi.yaml</a> 是二开接口契约的版本库事实源。G0 两个操作标记为 <code>implemented</code>；G1 九个会员及管理操作标记为 <code>planned</code>，用于先冻结请求、响应、安全边界和错误码。</p>
+      <div class="callout"><strong>交付边界：</strong><code>planned</code> 只表示契约已确定，不表示路由已上线。实现完成时必须在同一变更中加入路由、服务、测试，并把状态改为 <code>implemented</code>。前端不得根据中文 <code>msg</code> 分支。</div>
       <div class="callout"><strong>运行时已对齐：</strong>G0 Controller、中间件和异常处理器均返回 <code>request_id</code>，并分别回传 <code>X-Request-Id</code> 与 <code>X-Correlation-Id</code>。Host、HMAC、Redis 重放、CORS 和异常响应已通过运行时门禁。</div>
+      <p>详细的 G1 实施边界、数据结构和锁序见 <a href="../../../docs/G1-会员交易开发基线.html">G1 会员交易开发基线</a>。</p>
     </section>
 
     <section id="routes">
-      <h2>2. 当前已实现端点</h2>
+      <h2>2. 操作状态</h2>
+      <h3>2.1 已实现</h3>
       <div class="table-wrap"><table>
         <thead><tr><th>方法与路径</th><th>租户要求</th><th>成功数据</th><th>主要失败</th></tr></thead>
         <tbody>
@@ -39,6 +41,21 @@
         </tbody>
       </table></div>
       <p><code>health</code> 仅证明 Chamber 应用可路由并返回 JSON，不代表 MySQL、Redis、支付或租户数据全部就绪。</p>
+      <h3>2.2 G1 待实现契约</h3>
+      <div class="table-wrap"><table>
+        <thead><tr><th>方法与路径</th><th>需求</th><th>用途</th><th>状态</th></tr></thead>
+        <tbody>
+          <tr><td><code>POST /chamber/v1/me/bootstrap</code></td><td>MEM-001 / 009</td><td>按可信 tenant + CRMEB uid 幂等创建 L1 会员、首次归因和协议记录</td><td><span class="pill">planned</span></td></tr>
+          <tr><td><code>GET /chamber/v1/me/profile</code></td><td>MEM-003</td><td>读取当前租户资料</td><td><span class="pill">planned</span></td></tr>
+          <tr><td><code>PATCH /chamber/v1/me/profile</code></td><td>MEM-003</td><td>白名单更新资料及隐私范围</td><td><span class="pill">planned</span></td></tr>
+          <tr><td><code>GET /chamber/v1/me/graduate-verifications</code></td><td>MEM-002</td><td>读取当前认证状态和最近申请</td><td><span class="pill">planned</span></td></tr>
+          <tr><td><code>POST /chamber/v1/me/graduate-verifications</code></td><td>MEM-002</td><td>提交不可变毕业生认证申请</td><td><span class="pill">planned</span></td></tr>
+          <tr><td><code>POST /chamber/admin/v1/graduate-verifications/{application_id}/reviews</code></td><td>MEM-002</td><td>按租户追加运营审核决定并同步认证投影</td><td><span class="pill">planned</span></td></tr>
+          <tr><td><code>GET /chamber/v1/membership/plans</code></td><td>MEM-006</td><td>列出当前租户渠道可购买的 L3/L4 计划</td><td><span class="pill">planned</span></td></tr>
+          <tr><td><code>POST /chamber/v1/membership/checkouts</code></td><td>MEM-006</td><td>创建或重放单会籍计划 CRMEB 订单及不可变 OrderContext</td><td><span class="pill">planned</span></td></tr>
+          <tr><td><code>GET /chamber/v1/me/membership</code></td><td>MEM-006</td><td>读取有效等级、期限和购买能力</td><td><span class="pill">planned</span></td></tr>
+        </tbody>
+      </table></div>
     </section>
 
     <section id="envelope">
@@ -58,7 +75,8 @@
     </section>
 
     <section id="tenant">
-      <h2>4. 租户上下文与错误码</h2>
+      <h2>4. 认证、租户上下文与错误码</h2>
+      <p>G1 用户端操作复用 CRMEB <code>AuthTokenMiddleware</code> 校验 Bearer Token，可信用户 ID 只取认证后的 <code>request-&gt;uid()</code>。管理审核操作使用 CRMEB Admin Bearer，并额外要求权限 <code>chamber.graduate_verification.review</code>。请求正文或查询参数中的 <code>uid</code>、<code>member_id</code>、<code>tenant_id</code>、<code>channel_id</code> 均不得参与身份判断。</p>
       <p>租户从 Host 映射或签名渠道解析。客户端传入的普通 <code>tenant_id</code>/<code>channel_id</code> 永远不能作为权限依据。只要出现任意一个签名头，以下五个头必须全部提供：</p>
       <pre>X-Chamber-Tenant
 X-Chamber-Channel
@@ -76,6 +94,19 @@ X-Chamber-Signature</pre>
         </tbody>
       </table></div>
       <p>跨域请求只允许 <code>CHAMBER_CORS_ALLOWED_ORIGINS</code> 中逗号分隔的精确 Origin。白名单不接受 <code>*</code> 或带路径地址；启用凭据时也不会回显任意 Origin。</p>
+      <div class="callout"><strong>幂等：</strong>G1 的 POST/PATCH 必须携带 <code>Idempotency-Key</code>。服务端用可信 tenant、稳定 operationId、认证主体类型/ID 和客户端键组成带版本的规范化元组，计算 SHA-256 后再写入幂等表；客户端原始键不得单独作为数据库身份。同作用域同键同请求返回原结果，同键不同规范化请求返回 <code>409 idempotency_conflict</code>。</div>
+      <div class="callout"><strong>协议版本：</strong>bootstrap 请求只提交 <code>document_code</code>、<code>document_version</code> 和接受决定，不接收内容哈希。服务端以 tenant-scoped、不可由客户端改写的协议注册表为事实源，解析当前正文并自行计算、保存 <code>content_sha256</code>；旧版本返回 <code>409 consent_document_stale</code>。</div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>HTTP</th><th>G1 稳定 reason</th><th>处理原则</th></tr></thead>
+        <tbody>
+          <tr><td>400</td><td><code>idempotency_key_required</code>、<code>request_validation_failed</code></td><td>请求结构或必需幂等头错误</td></tr>
+          <tr><td>401</td><td><code>authentication_required</code></td><td>CRMEB Token 缺失、过期、退出或用户失效</td></tr>
+          <tr><td>403</td><td><code>permission_denied</code>、<code>member_disabled</code>、<code>membership_verification_required</code></td><td>缺少管理审核权限、会员被禁用/退出，或购买前未通过 L2</td></tr>
+          <tr><td>404</td><td><code>member_not_found</code>、<code>verification_application_not_found</code></td><td>会员或租户域内认证申请不存在</td></tr>
+          <tr><td>409</td><td><code>idempotency_conflict</code>、<code>member_attribution_locked</code>、<code>consent_document_stale</code>、<code>verification_already_pending</code>、<code>verification_transition_invalid</code>、<code>verification_supersedes_mismatch</code>、<code>membership_downgrade_not_allowed</code></td><td>请求与当前不可变事实、协议版本或状态冲突</td></tr>
+          <tr><td>422</td><td><code>profile_invalid</code>、<code>membership_plan_unavailable</code></td><td>字段业务校验或当前渠道计划不可用</td></tr>
+        </tbody>
+      </table></div>
     </section>
 
     <section id="formats">
@@ -93,11 +124,14 @@ X-Chamber-Signature</pre>
 
     <section id="schemas">
       <h2>6. 可复用领域词汇</h2>
-      <p>下列枚举为后续接口统一命名，不能据此推断 API 已存在。</p>
+      <p>下列枚举和 Schema 是统一命名；是否可调用必须以操作的 <code>x-implementation-status</code> 为准。</p>
       <div class="table-wrap"><table>
         <thead><tr><th>领域</th><th>Schema</th><th>状态枚举</th></tr></thead>
         <tbody>
           <tr><td>会员认证</td><td><code>MemberVerification</code>、<code>MembershipTier</code></td><td><code>draft</code> / <code>pending</code> / <code>approved</code> / <code>returned</code> / <code>rejected</code> / <code>revoked</code></td></tr>
+          <tr><td>会员资料</td><td><code>MemberProfile</code>、<code>MemberProfilePatch</code>、<code>VisibilityScope</code></td><td>资料请求不接受 tenant、channel、uid 或 member_id</td></tr>
+          <tr><td>协议证据</td><td><code>ConsentAcceptanceRequest</code></td><td>客户端只引用服务端登记版本，不提交正文哈希</td></tr>
+          <tr><td>会籍</td><td><code>MembershipPlanSummary</code>、<code>MembershipTermSummary</code>、<code>MembershipSummaryData</code></td><td><code>scheduled</code> / <code>active</code> / <code>expired</code> / <code>revoked</code> / <code>refunded</code></td></tr>
           <tr><td>活动</td><td><code>EventSummary</code>、<code>EventType</code></td><td>活动：<code>draft</code> 至 <code>cancelled</code>；报名：<code>pending_payment</code> 至 <code>completed</code></td></tr>
           <tr><td>订单</td><td><code>OrderSummary</code></td><td><code>pending_payment</code>、<code>paid</code>、<code>fulfilling</code>、<code>completed</code>、<code>cancelled</code>、退款相关状态</td></tr>
           <tr><td>商业事件</td><td><code>CommerceEvent</code>、<code>CommerceEventType</code>、<code>CommerceCompletionKind</code>、<code>RefundLifecycleState</code></td><td>1 类订单完成事件、5 类退款事实；退款生命周期含 <code>partially_completed</code></td></tr>
@@ -114,11 +148,11 @@ X-Chamber-Signature</pre>
 
 # 也可指定待验证文件
 ruby backend/custom/openapi/validate.rb path/to/chamber-openapi.yaml</pre>
-      <p>它会检查 YAML 重复键、本地 <code>$ref</code>、路径白名单、operationId、响应追踪头、统一 envelope、租户错误码、金额/时间/分页规则、商业事件哈希与无 PII 约束，以及领域枚举是否完整。它是项目治理校验，不代替完整 OpenAPI JSON Schema 校验器；CI 后续可再接入 Spectral 或 Redocly。</p>
+      <p>它会检查 YAML 重复键、本地 <code>$ref</code>、9 条路径与 11 个 operationId、77 个 Schema、implemented/planned 状态、用户/管理 Bearer 认证、租户头、幂等头、响应追踪头、统一 envelope、金额/时间/分页规则、商业事件哈希与无 PII 约束，以及会员请求不得接收可信身份字段。它是项目治理校验，不代替完整 OpenAPI JSON Schema 校验器。</p>
       <div class="callout warn"><strong>变更规则：</strong>破坏性变更必须提升 API 主版本；非破坏性字段扩展提升契约次版本；仅文案/示例修订提升补丁版本。</div>
     </section>
   </div>
-  <footer class="footer">mingde-vp-chamber · Chamber API contract 0.2.0 · 2026-07-21</footer>
+  <footer class="footer">mingde-vp-chamber · Chamber API contract 0.3.0 · 2026-07-22</footer>
 </main>
 </body>
 </html>

@@ -9,5 +9,6 @@
 - [CRMEB API 资料索引](./docs/CRMEB-API资料索引.html)
 - [开发目录与工作流](./docs/开发目录与工作流.html)
 - [Codex Agent 团队全量开发计划](./docs/Codex-Agent团队全量开发计划-v1.0.html)
+- [G1 会员交易开发基线](./docs/G1-会员交易开发基线.html)
 
 CRMEB 上游以 Git 子模块锁定在 `backend/crmeb` 的 `v6.0.0`。

@@ -39,6 +39,7 @@ final class ChamberCorsMiddleware implements MiddlewareInterface
                 'Authorization',
                 'Authori-zation',
                 'Content-Type',
+                'Idempotency-Key',
                 'X-Requested-With',
                 'X-Request-Id',
                 'X-Correlation-Id',

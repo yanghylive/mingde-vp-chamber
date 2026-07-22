@@ -23,6 +23,7 @@ required_files=(
   "docs/开发任务板.html"
   "docs/ADR-索引.html"
   "docs/CRMEB-支付退款事件核验.html"
+  "docs/G1-会员交易开发基线.html"
   "backend/custom/README.html"
   "backend/custom/app/chamber/provider.php"
   "backend/custom/app/chamber/route/route.php"
@@ -37,6 +38,11 @@ required_files=(
   "backend/custom/app/chamber/commerce/CommerceEventType.php"
   "backend/custom/app/chamber/commerce/Money.php"
   "backend/custom/app/chamber/commerce/RefundLifecycle.php"
+  "backend/custom/app/chamber/membership/MemberTier.php"
+  "backend/custom/app/chamber/membership/GraduateVerificationState.php"
+  "backend/custom/app/chamber/membership/MembershipTermState.php"
+  "backend/custom/app/chamber/membership/OrderContextState.php"
+  "backend/custom/app/chamber/tests/membership_run.php"
   "backend/custom/app/chamber/contracts/CommerceEventStoreInterface.php"
   "backend/custom/app/chamber/exceptions/CommerceEventConflictException.php"
   "backend/custom/app/chamber/services/CommerceEventRecorder.php"
@@ -51,6 +57,12 @@ required_files=(
   "backend/custom/database/migrations/202607210002_create_commerce_event_baseline.up.sql"
   "backend/custom/database/migrations/202607210002_create_commerce_event_baseline.verify.sql"
   "backend/custom/database/migrations/202607210002_create_commerce_event_baseline.down.sql"
+  "backend/custom/database/migrations/202607210003_create_membership_commerce.up.sql"
+  "backend/custom/database/migrations/202607210003_create_membership_commerce.verify.sql"
+  "backend/custom/database/migrations/202607210003_create_membership_commerce.down.sql"
+  "backend/custom/database/migrations/202607210004_harden_member_verification_projection.up.sql"
+  "backend/custom/database/migrations/202607210004_harden_member_verification_projection.verify.sql"
+  "backend/custom/database/migrations/202607210004_harden_member_verification_projection.down.sql"
   "backend/custom/database/seeds/202607210001_local_ci_baseline.sql"
   "backend/custom/database/seeds/202607210001_local_ci_baseline.verify.sql"
   "backend/custom/openapi/README.html"
@@ -71,6 +83,7 @@ required_files=(
   "scripts/manage-local-database.sh"
   "scripts/prepare-local-frontend.sh"
   "scripts/check-g0-baseline.sh"
+  "scripts/check-g1-membership-baseline.sh"
 )
 
 required_executables=(
@@ -80,6 +93,7 @@ required_executables=(
   "scripts/manage-local-database.sh"
   "scripts/prepare-local-frontend.sh"
   "scripts/check-g0-baseline.sh"
+  "scripts/check-g1-membership-baseline.sh"
 )
 
 for file in "${required_files[@]}"; do

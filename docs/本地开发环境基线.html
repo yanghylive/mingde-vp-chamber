@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>本地开发环境基线 · mingde-vp-chamber</title><link rel="stylesheet" href="project-docs.css"></head>
-<body><header class="doc-head"><div class="wrap"><p class="eyebrow">ENVIRONMENT BASELINE · 2026-07-21</p><h1>本地开发环境基线</h1><p>记录当前机器能直接跑什么、缺什么，以及推荐的本地 CRMEB 启动方式。</p></div></header>
+<body><header class="doc-head"><div class="wrap"><p class="eyebrow">ENVIRONMENT BASELINE · 2026-07-22</p><h1>本地开发环境基线</h1><p>记录当前机器能直接跑什么、缺什么，以及推荐的本地 CRMEB 启动方式。</p></div></header>
 <main class="doc-main"><div class="wrap"><nav class="doc-nav"><a href="../index.html">项目首页</a><a href="开工基线与首轮任务.html">开工基线</a><a href="../deployment/local/README.html">Docker 环境</a></nav>
 <section><h2>1. 当前探测结果</h2><div class="table-wrap"><table><thead><tr><th>工具</th><th>当前状态</th><th>影响</th></tr></thead><tbody>
 <tr><td>Docker / Docker Compose</td><td>可用，CRMEB 本地容器已启动</td><td>推荐用容器跑 CRMEB 后端、MySQL、Redis、Nginx</td></tr>
@@ -17,11 +17,11 @@
 ./scripts/prepare-local-crmeb-runtime.sh start</pre><p>访问地址：<code>http://localhost:8011</code>。运行源码位于 <code>.build-workspace/crmeb-runtime</code>，本地数据位于 <code>deployment/local/.data</code>。</p></section>
 <section><h2>3. 已验证结果</h2><div class="table-wrap"><table><thead><tr><th>检查项</th><th>结果</th></tr></thead><tbody>
 <tr><td>容器</td><td><code>mingde_crmeb_nginx</code>、<code>mingde_crmeb_php</code>、<code>mingde_crmeb_mysql</code>、<code>mingde_crmeb_redis</code> 均已启动</td></tr>
-<tr><td>CRMEB 数据库</td><td>157 张官方表 + 16 张商会领域/可靠性表 + 1 张迁移记录表，共 174 张</td></tr>
+<tr><td>CRMEB 数据库</td><td>157 张官方表 + 21 张商会领域/可靠性表 + 1 张迁移记录表，共 179 张</td></tr>
 <tr><td>HTTP 入口</td><td><code>/</code>、<code>/adminapi/login/info</code>、<code>/chamber/health</code> 和可信租户 <code>/chamber/v1/bootstrap</code> 均返回 <code>200</code></td></tr>
 <tr><td>PHP 容器</td><td>PHP 7.4.33</td></tr>
 <tr><td>Admin 前端</td><td>隔离 <code>npm ci</code> 和生产构建成功；上游保留 11 个 CSS/体积告警</td></tr>
 <tr><td>CRMEB 子模块</td><td>保持干净，无业务改动</td></tr>
 </tbody></table></div></section>
-<section><h2>4. 当前验证与下一步</h2><pre>./scripts/check-g0-baseline.sh</pre><ul class="checklist"><li>G0 自动门禁已覆盖 Docker、数据库、TenantContext、签名重放、CORS、商业事件、CRMEB 支付退款源码审计、前端和 OpenAPI。</li><li>G0-06 已完成，下一步开发注册、L2 认证和 L3/L4 会籍交易。</li><li>本机 PHP/Composer/Redis 仍不必单独安装，继续使用隔离容器环境。</li></ul></section>
+<section><h2>4. 当前验证与下一步</h2><pre>./scripts/check-g1-membership-baseline.sh</pre><ul class="checklist"><li>当前门禁完整包含 G0，并追加 003/004 迁移、会员状态测试和 OpenAPI 0.3.0。</li><li>G1-01A 已完成，下一步实现 CRMEB Token、会员初始化和 L2 认证服务。</li><li>本机 PHP/Composer/Redis 仍不必单独安装，继续使用隔离容器环境。</li></ul></section>
 </div></main><footer><div class="wrap">mingde-vp-chamber · 本地开发环境基线</div></footer></body></html>

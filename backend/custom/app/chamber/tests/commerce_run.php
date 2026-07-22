@@ -228,7 +228,7 @@ $tests['balance transaction and manual finance confirmation are trusted completi
     }
 };
 
-$tests['refund request may fail or cancel without changing completed amount'] = function (): void {
+$tests['refund request may retry after failure or cancellation without changing completed amount'] = function (): void {
     $lifecycle = new RefundLifecycle(1, 101, 501, '1000.00');
     $lifecycle = $lifecycle->apply(CommerceEvent::fromArray(refundPayload(CommerceEventType::REFUND_REQUESTED)));
     $lifecycle = $lifecycle->apply(CommerceEvent::fromArray(refundPayload(
@@ -237,10 +237,24 @@ $tests['refund request may fail or cancel without changing completed amount'] = 
     )));
     assertSame(RefundLifecycle::FAILED, $lifecycle->status());
     $lifecycle = $lifecycle->apply(CommerceEvent::fromArray(refundPayload(
+        CommerceEventType::REFUND_REQUESTED,
+        ['source_event_id' => 'refund:501:requested:retry-after-failure']
+    )));
+    assertSame(RefundLifecycle::REQUESTED, $lifecycle->status());
+    $lifecycle = $lifecycle->apply(CommerceEvent::fromArray(refundPayload(
+        CommerceEventType::REFUND_FAILED,
+        ['source_event_id' => 'refund:501:failed:retry', 'provider_status' => 'closed']
+    )));
+    $lifecycle = $lifecycle->apply(CommerceEvent::fromArray(refundPayload(
         CommerceEventType::REFUND_CANCELLED,
         ['source_event_id' => 'refund:501:cancelled']
     )));
     assertSame(RefundLifecycle::CANCELLED, $lifecycle->status());
+    $lifecycle = $lifecycle->apply(CommerceEvent::fromArray(refundPayload(
+        CommerceEventType::REFUND_REQUESTED,
+        ['source_event_id' => 'refund:501:requested:retry-after-cancel']
+    )));
+    assertSame(RefundLifecycle::REQUESTED, $lifecycle->status());
     assertSame('0.00', $lifecycle->cumulativeAmount());
 };
 
@@ -306,6 +320,10 @@ $tests['partial refunds require distinct completion ids and exact cumulative amo
     assertSame(RefundLifecycle::PARTIALLY_COMPLETED, $lifecycle->status());
     assertSame('400.00', $lifecycle->cumulativeAmount());
 
+    $lifecycle = $lifecycle->apply(CommerceEvent::fromArray(refundPayload(CommerceEventType::REFUND_REQUESTED, [
+        'source_event_id' => 'refund:501:requested:part-2',
+        'cumulative_refunded_amount' => '400.00',
+    ])));
     $lifecycle = $lifecycle->apply(CommerceEvent::fromArray(refundPayload(CommerceEventType::REFUND_PROCESSING, [
         'source_event_id' => 'refund:501:processing:part-2',
         'cumulative_refunded_amount' => '400.00',

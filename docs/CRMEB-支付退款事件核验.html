@@ -84,7 +84,7 @@
         <thead><tr><th>表</th><th>用途</th><th>关键约束</th></tr></thead>
         <tbody>
           <tr><td><code>ch_commerce_event_inbox</code></td><td>持久化事实事件及处理状态</td><td><code>(tenant_id,source,event_type,source_event_id)</code> 唯一；同 hash 去重，不同 hash 冲突</td></tr>
-          <tr><td><code>ch_idempotency_record</code></td><td>业务副作用租约、结果重放和失败记录</td><td><code>(tenant_id,idempotency_key)</code> 唯一；数据库约束承担并发仲裁</td></tr>
+          <tr><td><code>ch_idempotency_record</code></td><td>业务副作用租约、结果重放和失败记录</td><td><code>(tenant_id,internal_idempotency_key)</code> 唯一；内部键由 operation、可信主体和客户端键派生</td></tr>
           <tr><td><code>ch_refund_attempt</code></td><td>持久退款号、渠道状态、查询重试和最终确认</td><td>退款号唯一；每次部分退款独立 attempt/completion ID</td></tr>
         </tbody>
       </table></div>

@@ -8,9 +8,9 @@
 </head>
 <body>
   <header class="doc-head"><div class="wrap">
-    <p class="eyebrow">DATABASE BASELINE · 202607210001—202607210002</p>
+    <p class="eyebrow">DATABASE BASELINE · 202607210001—202607210004</p>
     <h1>商会数据库迁移基线</h1>
-    <p>在租户会员、认证审核、人物角色和活动报名基础上，增加商业事件收件、跨请求幂等与可靠退款三项基础能力；CRMEB 原表保持不变。</p>
+    <p>在租户会员、认证审核、人物角色、活动报名和商业事件可靠性基础上，增加 G1 会籍计划、订单上下文、期限事实、效果流水、协议证据和会员投影约束；CRMEB 原表保持不变。</p>
   </div></header>
   <main class="doc-main"><div class="wrap">
     <section>
@@ -24,6 +24,12 @@
           <tr><td><code>migrations/202607210002_create_commerce_event_baseline.up.sql</code></td><td>创建事件 inbox、幂等记录和退款尝试 3 张可靠性表</td><td>是，使用 <code>CREATE TABLE IF NOT EXISTS</code></td></tr>
           <tr><td><code>migrations/202607210002_create_commerce_event_baseline.verify.sql</code></td><td>验证 3 张表、全部必需列、关键类型、字符集和索引</td><td>是，只使用 <code>information_schema</code> 与临时表</td></tr>
           <tr><td><code>migrations/202607210002_create_commerce_event_baseline.down.sql</code></td><td>删除商业事件可靠性表及其历史记录</td><td>是，仅限本地/CI 未发布回滚</td></tr>
+          <tr><td><code>migrations/202607210003_create_membership_commerce.up.sql</code></td><td>创建会籍计划、订单上下文、期限事实和追加式效果 4 张表</td><td>是，使用 <code>CREATE TABLE IF NOT EXISTS</code></td></tr>
+          <tr><td><code>migrations/202607210003_create_membership_commerce.verify.sql</code></td><td>158 项复验：4 张表的必需列、类型/默认值、完整索引、数据不变量、追加式边界和严格 SQL 模式</td><td>是，允许后续迁移追加字段</td></tr>
+          <tr><td><code>migrations/202607210003_create_membership_commerce.down.sql</code></td><td>删除未发布的会籍商业事实</td><td>是，仅限本地/CI</td></tr>
+          <tr><td><code>migrations/202607210004_harden_member_verification_projection.up.sql</code></td><td>加固会员归因/投影、资料、认证单一当前申请并创建协议事件表</td><td>是，所有 ALTER 使用条件 DDL</td></tr>
+          <tr><td><code>migrations/202607210004_harden_member_verification_projection.verify.sql</code></td><td>71 项复验：新增列/默认值、完整索引、current_slot 与会员投影一致性、协议及资料隐私约束</td><td>是，只读验证</td></tr>
+          <tr><td><code>migrations/202607210004_harden_member_verification_projection.down.sql</code></td><td>条件删除 G1 加固列、索引和协议表</td><td>是，中断后可重跑</td></tr>
           <tr><td><code>seeds/202607210001_local_ci_baseline.sql</code></td><td>创建两个通用测试租户、默认渠道和人物角色</td><td>是，只补缺，不覆盖已有配置</td></tr>
           <tr><td><code>seeds/202607210001_local_ci_baseline.verify.sql</code></td><td>核对租户、渠道和角色数量及明细</td><td>是，只读查询</td></tr>
         </tbody>
@@ -43,7 +49,7 @@
 ./scripts/manage-local-database.sh verify</pre>
       <p><code>setup</code> 先确认每个 <code>*.up.sql</code> 都有同版本 <code>*.verify.sql</code>，再按文件名顺序执行迁移。新迁移只有在结构验证通过后，才把版本、SHA-256 校验和与执行时间写入 <code>ch_schema_migration</code>；验证失败会保留未登记状态，修复结构后可安全重跑。</p>
       <p>已登记迁移不会只做跳过：脚本先核对历史校验和，再重新运行对应结构验证，用于发现缺表、缺列、关键类型变化、索引缺失等常见漂移。独立执行 <code>verify</code> 会同时复验全部迁移结构和本地种子；若结构完整但版本未登记，会明确要求执行 <code>migrate</code> 完成登记。</p>
-      <p>当前本地基线为 CRMEB 157 张原表、16 张商会领域/可靠性表和 1 张迁移登记表，共 174 张。MySQL DDL 会自动提交，发布时先执行迁移再切换应用版本；生产环境不得执行通用种子或 <code>down.sql</code>。后续变更必须新增迁移文件，不回写已登记的迁移，也不修改 CRMEB 的 <code>public/install/crmeb.sql</code>。</p>
+      <p>当前本地基线为 CRMEB 157 张原表、21 张商会领域/可靠性表和 1 张迁移登记表，共 179 张。四个迁移验证器合计 394 项结构复验，其中 G0 为 165 项，G1 的 003/004 为 158 + 71 = 229 项。MySQL DDL 会自动提交，发布时先执行迁移再切换应用版本；生产环境不得执行通用种子或 <code>down.sql</code>。后续变更必须新增迁移文件，不回写已登记的迁移，也不修改 CRMEB 的 <code>public/install/crmeb.sql</code>。</p>
     </section>
     <section>
       <h2>本地与 CI 种子边界</h2>
@@ -64,8 +70,9 @@
         <li>人物角色：<code>ch_persona_role</code>、<code>ch_role_application</code>、<code>ch_member_role</code>。</li>
         <li>活动报名：<code>ch_event</code>、<code>ch_event_ticket</code>、<code>ch_event_registration</code>、<code>ch_event_checkin</code>。</li>
         <li>商业事件可靠性：<code>ch_commerce_event_inbox</code>、<code>ch_idempotency_record</code>、<code>ch_refund_attempt</code>。</li>
+        <li>会籍交易：<code>ch_membership_plan</code>、<code>ch_order_context</code>、<code>ch_membership_term</code>、<code>ch_membership_term_effect</code>、<code>ch_member_consent</code>。</li>
       </ul>
-      <p>会籍历史、好友关系、积分/贡献账本、商品审核、订单上下文、分账、大咖预约和 AI 账本不属于当前迁移，待对应服务契约确认后分批追加。</p>
+      <p>好友关系、积分/贡献账本、商品审核、分账、大咖预约和 AI 账本不属于当前迁移，待对应服务契约确认后分批追加。</p>
     </section>
     <section>
       <h2>商业事件与退款契约</h2>
@@ -73,7 +80,7 @@
         <li><code>ch_commerce_event_inbox</code> 只接收最小化、脱敏后的商业事件。禁止写入姓名、手机号、邮箱、地址、OpenID、证件号或未经筛选的渠道原始报文。</li>
         <li><code>event_id</code> 是由 <code>tenant_id + source + event_type + source_event_id + schema_version</code> 生成的确定性 SHA-256 全局事件标识；<code>tenant_id + source + event_type + source_event_id</code> 同时保持来源唯一。重复事件命中唯一键后，服务必须比较 <code>payload_hash</code>：同哈希返回已有结果，异哈希标记冲突并告警，禁止覆盖原载荷。</li>
         <li><code>channel_id</code>、<code>order_pk/order_no</code>、<code>business_type/context_id</code> 和 <code>correlation_id</code> 是公共非 PII 运维上下文。订单与领域上下文必须写入这些结构化列，不能只埋在 <code>payload_json</code>。</li>
-        <li><code>ch_idempotency_record</code> 的唯一身份是 <code>tenant_id + idempotency_key</code>。首次执行方持有有期限的 <code>lease_token</code>；相同键只在请求哈希一致时重放结果，异哈希必须返回冲突。</li>
+        <li><code>ch_idempotency_record</code> 的数据库唯一身份是 <code>tenant_id + internal_idempotency_key</code>：服务端把版本号、稳定 operationId、可信认证主体类型/ID 与客户端 <code>Idempotency-Key</code> 组成规范化元组并计算 SHA-256，结果写入现有 <code>idempotency_key</code> 列。禁止把客户端原始键直接作为数据库身份；首次执行方持有有期限的 <code>lease_token</code>，同内部键仅在请求哈希一致时重放，异哈希返回冲突。</li>
         <li><code>ch_refund_attempt</code> 必须在调用支付渠道前持久化 <code>refund_no</code> 和 <code>provider_refund_no</code>。网络超时进入 <code>unknown</code>，由同一退款号查询恢复，不得生成新号盲目重试。</li>
         <li>退款状态只允许按服务状态机使用 <code>requested / processing / succeeded / failed / unknown / manual</code>。<code>manual</code> 表示等待线下凭证和人工确认，不等于成功。</li>
         <li>只有余额退款事务提交、主动查询确认渠道成功或人工财务复核产生最终证据后，才能设置 <code>final_confirmed=1</code>；对应 <code>final_confirm_source</code> 只能是 <code>balance_transaction</code>、<code>provider_query_success</code> 或 <code>manual_finance_confirm</code>。渠道同步受理和 CRMEB 本地退款状态都不能作为完成证据。</li>
@@ -91,6 +98,16 @@
         <li>一个会员只能有一个有效主展示角色，由事务同步 <code>ch_member_role.is_primary</code> 与 <code>ch_tenant_member.primary_role_id</code>；MySQL 5.7 不使用条件唯一索引。</li>
         <li>票种的 <code>reserved_count</code> 与 <code>paid_count</code> 是并发缓存，必须在锁内与报名状态一起更新，并可由报名表重算。</li>
         <li>每个新增 <code>*.up.sql</code> 必须同步新增同版本 <code>*.verify.sql</code>；校验应描述该迁移长期成立的后置条件，并允许后续迁移追加新列或新索引。</li>
+      </ul>
+    </section>
+    <section>
+      <h2>G1 会籍事实约束</h2>
+      <ul class="checklist">
+        <li><code>ch_order_context.order_pk</code> 绑定前允许 NULL，绑定后全库唯一；同一 CRMEB 订单不能落入两个租户或两个领域上下文。</li>
+        <li><code>ch_membership_term.state</code> 只保存 granted、revoked、fully_refunded 三类事实；scheduled、active、expired 由 <code>[effective_start_time,effective_end_time)</code> 实时计算。</li>
+        <li><code>ch_tenant_member.tier</code>、<code>tier_expire_time</code> 和 current term 是可重算投影，不得代替期限与效果流水。</li>
+        <li><code>ch_graduate_verification.current_slot</code> 对当前申请写 1，历史申请写 NULL；利用 MySQL 多 NULL 唯一键阻止同会员并发产生两条当前申请。</li>
+        <li><code>ch_member_consent</code> 和 <code>ch_membership_term_effect</code> 只追加，不软删除；前者禁止保存原始 IP/User-Agent，后者以 effect key/hash 检测重放冲突，同一 term 的 <code>completion_id</code> 跨 partial/full effect 类型只能入账一次。</li>
       </ul>
     </section>
   </div></main>
