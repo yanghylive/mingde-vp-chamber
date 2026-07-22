@@ -20,18 +20,56 @@ required_files=(
   "docs/开工基线与首轮任务.html"
   "docs/本地开发环境基线.html"
   "docs/Codex-Agent团队全量开发计划-v1.0.html"
+  "docs/开发任务板.html"
+  "docs/ADR-索引.html"
   "backend/custom/README.html"
+  "backend/custom/app/chamber/provider.php"
+  "backend/custom/app/chamber/route/route.php"
+  "backend/custom/app/chamber/middleware/ChamberCorsMiddleware.php"
+  "backend/custom/app/chamber/middleware/TenantContextMiddleware.php"
+  "backend/custom/app/chamber/middleware/RequestTraceMiddleware.php"
+  "backend/custom/app/chamber/tests/run.php"
+  "backend/custom/database/README.html"
+  "backend/custom/database/migrations/202607210001_create_chamber_core.up.sql"
+  "backend/custom/database/migrations/202607210001_create_chamber_core.verify.sql"
+  "backend/custom/database/migrations/202607210001_create_chamber_core.down.sql"
+  "backend/custom/database/seeds/202607210001_local_ci_baseline.sql"
+  "backend/custom/database/seeds/202607210001_local_ci_baseline.verify.sql"
+  "backend/custom/openapi/README.html"
+  "backend/custom/openapi/chamber-openapi.yaml"
+  "backend/custom/openapi/validate.rb"
   "frontend/custom/README.html"
+  "frontend/custom/shared/README.html"
+  "frontend/custom/shared/tenant-brand.js"
+  "frontend/custom/shared/vue2-tenant-brand.js"
+  "frontend/custom/shared/tests/tenant-brand.test.js"
   "ai-service/README.html"
   "deployment/README.html"
   "deployment/local/README.html"
   "deployment/local/docker-compose.crmeb.yml"
   "deployment/local/nginx-vhost.conf"
   "scripts/check-local-env.sh"
+  "scripts/prepare-local-crmeb-runtime.sh"
+  "scripts/manage-local-database.sh"
+  "scripts/prepare-local-frontend.sh"
+  "scripts/check-g0-baseline.sh"
+)
+
+required_executables=(
+  "scripts/check-local-env.sh"
+  "scripts/check-project.sh"
+  "scripts/prepare-local-crmeb-runtime.sh"
+  "scripts/manage-local-database.sh"
+  "scripts/prepare-local-frontend.sh"
+  "scripts/check-g0-baseline.sh"
 )
 
 for file in "${required_files[@]}"; do
   [[ -s "$ROOT/$file" ]] || fail "missing or empty required file: $file"
+done
+
+for file in "${required_executables[@]}"; do
+  [[ -x "$ROOT/$file" ]] || fail "required script is not executable: $file"
 done
 
 [[ -f "$ROOT/.gitmodules" ]] || fail "missing .gitmodules"
@@ -52,4 +90,4 @@ done
 
 printf 'Project baseline OK\n'
 printf 'CRMEB: %s\n' "$actual_sha"
-printf 'Required documents: %s\n' "${#required_files[@]}"
+printf 'Required project artifacts: %s\n' "${#required_files[@]}"

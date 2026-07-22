@@ -4,18 +4,24 @@
 <main class="doc-main"><div class="wrap"><nav class="doc-nav"><a href="../index.html">项目首页</a><a href="开工基线与首轮任务.html">开工基线</a><a href="../deployment/local/README.html">Docker 环境</a></nav>
 <section><h2>1. 当前探测结果</h2><div class="table-wrap"><table><thead><tr><th>工具</th><th>当前状态</th><th>影响</th></tr></thead><tbody>
 <tr><td>Docker / Docker Compose</td><td>可用，CRMEB 本地容器已启动</td><td>推荐用容器跑 CRMEB 后端、MySQL、Redis、Nginx</td></tr>
-<tr><td>Node / NPM</td><td>可用，Node v22.22.2，NPM 10.9.7</td><td>可继续做前端源码分析；CRMEB Admin 要注意官方要求 Node &gt;14 且 &lt;23</td></tr>
+<tr><td>Node / NPM</td><td>可用，Node v22.22.2，NPM 10.9.7</td><td>CRMEB Admin 已完成 <code>npm ci</code> 和生产构建；版本满足 Node &gt;14 且 &lt;23</td></tr>
 <tr><td>MySQL client</td><td>可用，Homebrew MySQL 9.6.0 客户端</td><td>可连本地或容器数据库做检查</td></tr>
 <tr><td>PHP</td><td>本机命令缺失</td><td>不影响 Docker 方案；若不用 Docker，需要安装 PHP 7.4</td></tr>
 <tr><td>Composer</td><td>本机命令缺失</td><td>CRMEB 已带 vendor；本机安装依赖需补 Composer</td></tr>
 <tr><td>Redis server</td><td>本机命令缺失</td><td>不影响 Docker 方案；容器内提供 Redis</td></tr>
 </tbody></table></div></section>
-<section><h2>2. 推荐启动方式</h2><pre>docker compose -f deployment/local/docker-compose.crmeb.yml up -d</pre><p>访问地址：<code>http://localhost:8011</code>。本地数据目录：<code>deployment/local/.data</code>。</p></section>
+<section><h2>2. 推荐启动方式</h2><pre># 首次或确保数据库已安装
+./scripts/prepare-local-crmeb-runtime.sh install
+
+# 日常启动
+./scripts/prepare-local-crmeb-runtime.sh start</pre><p>访问地址：<code>http://localhost:8011</code>。运行源码位于 <code>.build-workspace/crmeb-runtime</code>，本地数据位于 <code>deployment/local/.data</code>。</p></section>
 <section><h2>3. 已验证结果</h2><div class="table-wrap"><table><thead><tr><th>检查项</th><th>结果</th></tr></thead><tbody>
 <tr><td>容器</td><td><code>mingde_crmeb_nginx</code>、<code>mingde_crmeb_php</code>、<code>mingde_crmeb_mysql</code>、<code>mingde_crmeb_redis</code> 均已启动</td></tr>
-<tr><td>HTTP 入口</td><td><code>http://localhost:8011/</code> 返回 <code>302</code>，跳转到 <code>/install/index.php</code></td></tr>
+<tr><td>CRMEB 数据库</td><td>157 张官方表 + 13 张领域表 + 1 张迁移记录表，共 171 张</td></tr>
+<tr><td>HTTP 入口</td><td><code>/</code>、<code>/adminapi/login/info</code>、<code>/chamber/health</code> 和可信租户 <code>/chamber/v1/bootstrap</code> 均返回 <code>200</code></td></tr>
 <tr><td>PHP 容器</td><td>PHP 7.4.33</td></tr>
+<tr><td>Admin 前端</td><td>隔离 <code>npm ci</code> 和生产构建成功；上游保留 11 个 CSS/体积告警</td></tr>
 <tr><td>CRMEB 子模块</td><td>保持干净，无业务改动</td></tr>
 </tbody></table></div></section>
-<section><h2>4. 下一步</h2><ul class="checklist"><li>进入 CRMEB 安装页，确认数据库、Redis、Nginx、PHP-FPM 联通。</li><li>完成安装后记录后台入口、默认账号、数据库名和需要变更的安全项。</li><li>开始 TenantContext 和首批 <code>ch_</code> 迁移 PoC。</li></ul></section>
+<section><h2>4. 当前验证与下一步</h2><pre>./scripts/check-g0-baseline.sh</pre><ul class="checklist"><li>G0 自动门禁已覆盖 Docker、数据库、TenantContext、签名重放、CORS、前端和 OpenAPI。</li><li>下一步核验 CRMEB 支付/退款真实完成事件，再开发注册、L2 认证和 L3/L4 会籍交易。</li><li>本机 PHP/Composer/Redis 仍不必单独安装，继续使用隔离容器环境。</li></ul></section>
 </div></main><footer><div class="wrap">mingde-vp-chamber · 本地开发环境基线</div></footer></body></html>

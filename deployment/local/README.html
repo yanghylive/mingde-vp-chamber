@@ -1,8 +1,77 @@
 <!DOCTYPE html>
-<html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>本地 CRMEB Docker 环境</title><link rel="stylesheet" href="../../docs/project-docs.css"></head>
-<body><header class="doc-head"><div class="wrap"><p class="eyebrow">LOCAL DEVELOPMENT</p><h1>本地 CRMEB Docker 环境</h1><p>用于在 Mac 上运行 CRMEB 后端、Nginx、MySQL 和 Redis。运行数据保存在 <code>deployment/local/.data</code>，不进入 Git。</p></div></header>
-<main class="doc-main"><div class="wrap"><nav class="doc-nav"><a href="../../index.html">项目首页</a><a href="../../docs/开工基线与首轮任务.html">开工基线</a></nav>
-<section><h2>启动命令</h2><pre>docker compose -f deployment/local/docker-compose.crmeb.yml up -d</pre><p>启动后访问 <code>http://localhost:8011</code>。MySQL 端口为 <code>33061</code>，Redis 端口为 <code>63791</code>。</p></section>
-<section><h2>停止命令</h2><pre>docker compose -f deployment/local/docker-compose.crmeb.yml down</pre></section>
-<section><h2>边界</h2><ul class="checklist"><li>本 compose 不写入 CRMEB 官方 docker 目录，避免污染子模块。</li><li>PHP 容器挂载 <code>backend/crmeb/crmeb</code>，运行时目录和上传目录由本地数据卷覆盖。</li><li>本地账号密码仅用于开发环境，生产环境另走部署配置。</li></ul></section>
-</div></main><footer><div class="wrap">mingde-vp-chamber · Local Development</div></footer></body></html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>本地 CRMEB Docker 环境</title>
+  <link rel="stylesheet" href="../../docs/project-docs.css">
+</head>
+<body>
+  <header class="doc-head"><div class="wrap">
+    <p class="eyebrow">LOCAL DEVELOPMENT · G0 VERIFIED</p>
+    <h1>本地 CRMEB Docker 环境</h1>
+    <p>用于在 Mac 上运行 CRMEB 后端、Nginx、MySQL 和 Redis。源码与商会 overlay 同步到隔离运行副本，安装配置和运行数据都不进入 Git。</p>
+  </div></header>
+  <main class="doc-main"><div class="wrap">
+    <nav class="doc-nav">
+      <a href="../../index.html">项目首页</a>
+      <a href="../../docs/开工基线与首轮任务.html">开工基线</a>
+      <a href="../../backend/custom/database/README.html">数据库迁移</a>
+      <a href="../../backend/custom/app/chamber/TenantContext-CRMEB注入说明.html">TenantContext</a>
+    </nav>
+    <section>
+      <h2>首次准备</h2>
+      <pre>./scripts/prepare-local-crmeb-runtime.sh install
+./scripts/manage-local-database.sh setup</pre>
+      <p>第一条命令准备运行副本、启动容器、等待 MySQL/Redis、安装 CRMEB、同步商会 overlay 并锁定安装器；第二条命令执行商会迁移、本地通用种子和数据校验。默认后台账号为 <code>admin</code>，密码为 <code>Admin@123456</code>，仅供本机开发。</p>
+    </section>
+    <section>
+      <h2>日常启动</h2>
+      <pre>./scripts/prepare-local-crmeb-runtime.sh start
+./scripts/prepare-local-crmeb-runtime.sh status
+./scripts/manage-local-database.sh status</pre>
+      <p>应用入口为 <code>http://localhost:8011</code>，MySQL 端口为 <code>33061</code>，Redis 端口为 <code>63791</code>；三者只绑定本机回环地址。PHP-FPM 和 40001/40002 WebSocket 端口仅在 Docker 内网可达。每次启动都会把当前上游源码和 <code>backend/custom/app/chamber</code> 同步到隔离运行副本。</p>
+    </section>
+    <section>
+      <h2>商会接口</h2>
+      <div class="table-wrap"><table>
+        <thead><tr><th>地址</th><th>用途</th><th>租户要求</th></tr></thead>
+        <tbody>
+          <tr><td><code>http://localhost:8011/chamber/health</code></td><td>运行探针与链路标识</td><td>无</td></tr>
+          <tr><td><code>http://localhost:8011/chamber/v1/bootstrap</code></td><td>返回可信的租户、渠道和解析来源</td><td>本地默认映射到 <code>local-primary/default</code></td></tr>
+        </tbody>
+      </table></div>
+    </section>
+    <section>
+      <h2>完整验收</h2>
+      <pre>./scripts/check-g0-baseline.sh</pre>
+      <p>门禁覆盖项目结构、Compose 配置、CRMEB 安装、迁移校验和、种子数据、PHP 测试、前端共享逻辑、OpenAPI 以及真实 HTTP 的 Host/HMAC 租户解析、重放拒绝和 CORS。</p>
+    </section>
+    <section>
+      <h2>覆盖本地参数</h2>
+      <pre>CRMEB_LOCAL_ADMIN_PASSWORD='你的本地密码' \
+CHAMBER_TENANT_SIGNING_SECRET='至少32字节的本地密钥' \
+CHAMBER_CORS_ALLOWED_ORIGINS='http://localhost:5173' \
+CRMEB_HTTP_PORT=8011 \
+./scripts/prepare-local-crmeb-runtime.sh install</pre>
+      <p>还可设置 <code>CRMEB_DB_USER</code>、<code>CRMEB_DB_PASSWORD</code>、<code>CRMEB_DB_NAME</code>、<code>CRMEB_REDIS_PASSWORD</code>、<code>CHAMBER_DEV_TENANT_SLUG</code> 和 <code>CHAMBER_DEV_CHANNEL_CODE</code>。CORS 只接受 <code>CHAMBER_CORS_ALLOWED_ORIGINS</code> 中以逗号分隔的精确 Origin，不支持通配符。同一套参数应贯穿首次安装和后续启动；签名密钥默认值只允许本机使用。</p>
+    </section>
+    <section>
+      <h2>停止命令</h2>
+      <pre>docker compose -f deployment/local/docker-compose.crmeb.yml down</pre>
+      <p>该命令保留数据库。需要清空本地环境时，应先停止容器，再人工删除 <code>deployment/local/.data</code> 与 <code>.build-workspace/crmeb-runtime</code>；这是破坏性操作，不由脚本自动执行。</p>
+    </section>
+    <section>
+      <h2>隔离边界</h2>
+      <ul class="checklist">
+        <li>上游源码固定在 <code>backend/crmeb</code> 子模块，容器不会直接挂载它。</li>
+        <li>可执行副本位于 <code>.build-workspace/crmeb-runtime</code>；重新同步时会保留 <code>.env</code>、<code>.constant</code> 和 <code>public/install.lock</code>。</li>
+        <li>数据库、Redis、日志、运行时和上传文件位于 <code>deployment/local/.data</code>。</li>
+        <li>数据库初始化只对空库执行，发现已有表时不会覆盖数据。</li>
+        <li>默认密码仅用于本地开发；生产环境必须使用独立密钥与部署配置。</li>
+      </ul>
+    </section>
+  </div></main>
+  <footer><div class="wrap">mingde-vp-chamber · Local Development</div></footer>
+</body>
+</html>

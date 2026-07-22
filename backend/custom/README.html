@@ -1,16 +1,80 @@
 <!DOCTYPE html>
-<html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>后端二开入口</title><link rel="stylesheet" href="../../docs/project-docs.css"></head>
-<body><header class="doc-head"><div class="wrap"><p class="eyebrow">BACKEND OVERLAY</p><h1>后端二开入口</h1><p>CRMEB v6.0.0 的 PHP 业务 overlay。本目录是商会领域后端代码的所有权边界，官方子模块保持干净。</p></div></header>
-<main class="doc-main"><div class="wrap"><nav class="doc-nav"><a href="../../index.html">项目首页</a><a href="../../docs/CRMEB-二次开发说明书-v1.0.html">二开说明书</a><a href="../../docs/CRMEB-API资料索引.html">API 索引</a></nav>
-<section><h2>目录</h2><pre>backend/custom/
-├── app/chamber/              # 领域 PHP overlay
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>后端二开入口</title>
+  <link rel="stylesheet" href="../../docs/project-docs.css">
+</head>
+<body>
+  <header class="doc-head"><div class="wrap">
+    <p class="eyebrow">BACKEND OVERLAY · G0 COMPLETE</p>
+    <h1>后端二开入口</h1>
+    <p>CRMEB v6.0.0 的 PHP 业务 overlay。本目录是商会领域后端代码的所有权边界，官方子模块保持干净。</p>
+  </div></header>
+  <main class="doc-main"><div class="wrap">
+    <nav class="doc-nav">
+      <a href="../../index.html">项目首页</a>
+      <a href="app/chamber/TenantContext-CRMEB注入说明.html">TenantContext</a>
+      <a href="database/README.html">数据库迁移</a>
+      <a href="openapi/README.html">OpenAPI 契约</a>
+      <a href="../../docs/CRMEB-二次开发说明书-v1.0.html">二开说明书</a>
+    </nav>
+    <section>
+      <h2>G0 已落地能力</h2>
+      <div class="table-wrap"><table>
+        <thead><tr><th>能力</th><th>实现</th><th>验证</th></tr></thead>
+        <tbody>
+          <tr><td>运行探针</td><td><code>GET /chamber/health</code></td><td>返回并透传 request/correlation ID</td></tr>
+          <tr><td>租户启动上下文</td><td><code>GET /chamber/v1/bootstrap</code></td><td>支持 Host 映射和 HMAC 签名入口</td></tr>
+          <tr><td>租户隔离</td><td>数据库租户/渠道目录 + TenantContext 中间件</td><td>拒绝客户端直接传入 tenant_id</td></tr>
+          <tr><td>签名防重放</td><td>Redis 原子 nonce 占用</td><td>同一签名第二次请求返回 401</td></tr>
+          <tr><td>接口基线</td><td>统一异常、链路标识、精确 Origin CORS、OpenAPI 3.1</td><td>正反向 HTTP 门禁和静态契约</td></tr>
+        </tbody>
+      </table></div>
+    </section>
+    <section>
+      <h2>目录</h2>
+      <pre>backend/custom/
+├── app/chamber/
+│   ├── config/               # 路由、租户与 Cookie 配置
+│   ├── contracts/            # 领域依赖契约
 │   ├── controller/           # 用户端/管理端薄控制器
-│   ├── services/             # 事务与领域规则
-│   ├── dao/                  # 数据查询
-│   ├── model/                # 字段、搜索器、关联
-│   ├── listener/             # CRMEB 事件扩展
-│   └── jobs/                 # 队列副作用
-└── database/migrations/      # 只追加的 ch_* 迁移</pre></section>
-<section><h2>不可破坏的规则</h2><ul class="checklist"><li>Controller 只处理参数、权限和响应，不直接查库。</li><li>跨表写入进入 Services 事务，关键资源同时加 Redis/数据库锁。</li><li>私域 Dao 必须显式带 TenantContext，禁止信任客户端传入的 tenant_id。</li><li>会籍不复用 <code>eb_user.level</code>，好友不复用推荐关系，活动不复用秒杀 <code>store_activity</code>。</li><li>迁移不修改 CRMEB 安装 SQL，表名统一 <code>ch_</code> 前缀。</li><li>金额用 decimal 字符串 + BCMath，积分、贡献值、分账和退款用追加账本。</li></ul></section>
-<section><h2>提交单个功能的最小产物</h2><p>路由、中间件/权限、Controller、Services、Dao/Model、迁移、事件/队列（如有）、单元与 API 测试、OpenAPI 和 HTML 文档必须同时可评审。</p></section>
-</div></main><footer><div class="wrap">mingde-vp-chamber · Backend Overlay</div></footer></body></html>
+│   ├── middleware/           # TenantContext 与链路追踪
+│   ├── services/             # 事务、目录查询与签名验证
+│   ├── tenancy/              # 不可变租户上下文值对象
+│   ├── dao/ model/           # 后续领域查询与模型
+│   ├── listener/ jobs/       # 后续事件扩展与队列副作用
+│   └── tests/                # 可在 CRMEB 容器内运行的 PHP 测试
+├── database/                 # 只追加的 ch_* 迁移与本地种子
+└── openapi/                  # Chamber API 机器契约与静态验证</pre>
+    </section>
+    <section>
+      <h2>本地验证</h2>
+      <pre>./scripts/check-g0-baseline.sh
+
+# 分项执行
+docker exec mingde_crmeb_php php /var/www/app/chamber/tests/run.php
+./scripts/manage-local-database.sh status
+ruby backend/custom/openapi/validate.rb</pre>
+      <p>完整门禁会安装或复用隔离运行副本、执行迁移与种子校验、运行 PHP/前端/OpenAPI 测试，并检查真实 HTTP 租户解析、重放拦截和 CORS。</p>
+    </section>
+    <section>
+      <h2>不可破坏的规则</h2>
+      <ul class="checklist">
+        <li>Controller 只处理参数、权限和响应，不直接查库。</li>
+        <li>跨表写入进入 Services 事务，关键资源同时加 Redis/数据库锁。</li>
+        <li>私域 Dao 必须显式带 TenantContext，禁止信任客户端传入的 tenant_id。</li>
+        <li>会籍不复用 <code>eb_user.level</code>，好友不复用推荐关系，活动不复用秒杀 <code>store_activity</code>。</li>
+        <li>迁移不修改 CRMEB 安装 SQL，表名统一 <code>ch_</code> 前缀。</li>
+        <li>金额用 decimal 字符串 + BCMath，积分、贡献值、分账和退款用追加账本。</li>
+      </ul>
+    </section>
+    <section>
+      <h2>提交单个功能的最小产物</h2>
+      <p>路由、中间件/权限、Controller、Services、Dao/Model、迁移、事件/队列（如有）、单元与 API 测试、OpenAPI 和 HTML 文档必须同时可评审。</p>
+    </section>
+  </div></main>
+  <footer><div class="wrap">mingde-vp-chamber · Backend Overlay</div></footer>
+</body>
+</html>

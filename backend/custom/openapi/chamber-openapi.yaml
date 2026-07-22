@@ -1,0 +1,771 @@
+openapi: 3.1.0
+jsonSchemaDialect: https://json-schema.org/draft/2020-12/schema
+info:
+  title: Mingde VP Chamber API
+  version: 0.1.0
+  summary: Chamber overlay G0 contract baseline
+  description: |
+    This document is the source-controlled contract for the independently developed
+    Chamber API overlay. Runtime behavior is defined by the locked CRMEB v6.0.0
+    source plus `backend/custom/app/chamber`.
+
+    Only routes implemented in the G0 baseline are listed under `paths`. Schemas for
+    member verification, events, and orders are reusable vocabulary for later work;
+    their presence does not imply that an endpoint exists.
+
+    All response envelopes contain `status`, `msg`, `data`, and `request_id`.
+    The G0 request tracing middleware returns independent request/correlation IDs
+    in response headers and preserves the request ID in the JSON envelope.
+  contact:
+    name: mingde-vp-chamber project
+  license:
+    name: Private project contract
+servers:
+  - url: http://localhost:8011
+    description: Local Docker baseline
+tags:
+  - name: System
+    description: Process-level probes that do not require tenant context.
+  - name: Bootstrap
+    description: Tenant-aware application bootstrap.
+x-contract-policy:
+  source-of-truth: backend/custom/openapi/chamber-openapi.yaml
+  upstream-baseline: CRMEB-KY v6.0.0 at 7dcddffff73ec542d689f159724296351f29ea9a
+  implemented-paths-only: true
+  response-envelope-required:
+    - status
+    - msg
+    - data
+    - request_id
+  timestamp-unit: unix_seconds
+  timestamp-timezone: UTC
+  money-transport: decimal_string
+  default-currency: CNY
+paths:
+  /chamber/health:
+    get:
+      tags:
+        - System
+      summary: Check Chamber application health
+      description: |
+        Public liveness probe. It proves that the Chamber ThinkPHP application can
+        route and return JSON; it does not prove MySQL, Redis, or tenant readiness.
+      operationId: getChamberHealth
+      security: []
+      x-requirement-id: G0-API-01
+      x-tenant-context: none
+      parameters:
+        - $ref: '#/components/parameters/RequestIdHeader'
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+      responses:
+        '200':
+          $ref: '#/components/responses/HealthSuccess'
+        '403':
+          $ref: '#/components/responses/TenantForbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /chamber/v1/bootstrap:
+    get:
+      tags:
+        - Bootstrap
+      summary: Resolve the trusted tenant and channel context
+      description: |
+        Returns the tenant/channel scope resolved by middleware. Resolution uses a
+        configured Host mapping or the complete signed header set. Raw `tenant_id`
+        and `channel_id` request values are never trusted.
+
+        When any `X-Chamber-*` signed header is present, all five signed headers are
+        mandatory. The HMAC-SHA256 input is the following newline-delimited string:
+        `METHOD`, normalized host, normalized path, tenant slug, channel code,
+        10-digit Unix timestamp, and nonce. The signature is lowercase hex.
+      operationId: getChamberBootstrap
+      security: []
+      x-requirement-id: G0-API-02
+      x-tenant-context: required
+      x-signed-headers-all-or-none: true
+      parameters:
+        - $ref: '#/components/parameters/RequestIdHeader'
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+        - $ref: '#/components/parameters/ChamberTenantHeader'
+        - $ref: '#/components/parameters/ChamberChannelHeader'
+        - $ref: '#/components/parameters/ChamberTimestampHeader'
+        - $ref: '#/components/parameters/ChamberNonceHeader'
+        - $ref: '#/components/parameters/ChamberSignatureHeader'
+      responses:
+        '200':
+          $ref: '#/components/responses/BootstrapSuccess'
+        '400':
+          $ref: '#/components/responses/TenantBadRequest'
+        '401':
+          $ref: '#/components/responses/TenantUnauthorized'
+        '403':
+          $ref: '#/components/responses/TenantForbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/TenantServiceUnavailable'
+components:
+  parameters:
+    RequestIdHeader:
+      name: X-Request-Id
+      in: header
+      required: false
+      description: |
+        Optional caller-generated request identifier. A valid value is preserved;
+        otherwise the service generates one. The response MUST return the final
+        value in both `X-Request-Id` and the body `request_id`.
+      schema:
+        $ref: '#/components/schemas/RequestId'
+    CorrelationIdHeader:
+      name: X-Correlation-Id
+      in: header
+      required: false
+      description: |
+        Optional identifier shared by a multi-service workflow. The response MUST
+        return the effective value in `X-Correlation-Id`. When omitted, the service
+        uses the effective request ID as the correlation ID.
+      schema:
+        $ref: '#/components/schemas/CorrelationId'
+    ChamberTenantHeader:
+      name: X-Chamber-Tenant
+      in: header
+      required: false
+      description: Signed tenant slug. Required as part of the all-or-none signed header set.
+      schema:
+        $ref: '#/components/schemas/TenantSlug'
+    ChamberChannelHeader:
+      name: X-Chamber-Channel
+      in: header
+      required: false
+      description: Signed channel code. Required as part of the all-or-none signed header set.
+      schema:
+        $ref: '#/components/schemas/ChannelCode'
+    ChamberTimestampHeader:
+      name: X-Chamber-Timestamp
+      in: header
+      required: false
+      description: |
+        Signed 10-digit Unix timestamp in seconds. It MUST be inside the configured
+        clock-skew window, which is 300 seconds by default.
+      schema:
+        type: string
+        pattern: '^[0-9]{10}$'
+        example: '1784625600'
+    ChamberNonceHeader:
+      name: X-Chamber-Nonce
+      in: header
+      required: false
+      description: One-time signed nonce. Reuse inside the signature window is rejected.
+      schema:
+        type: string
+        minLength: 16
+        maxLength: 128
+        pattern: '^[A-Za-z0-9._~-]{16,128}$'
+        example: nonce-bootstrap-0001
+    ChamberSignatureHeader:
+      name: X-Chamber-Signature
+      in: header
+      required: false
+      description: Lowercase hexadecimal HMAC-SHA256 signature of the canonical payload.
+      schema:
+        type: string
+        pattern: '^[a-f0-9]{64}$'
+        example: 9d9f13ca7b6c0cbf0f4f28a26fb1bda361f95c170c98dfd3fb156320a9012ee1
+    PageQuery:
+      name: page
+      in: query
+      required: false
+      description: One-based page number.
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+    LimitQuery:
+      name: limit
+      in: query
+      required: false
+      description: Maximum records per page. Values above 100 are rejected.
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+  headers:
+    RequestIdResponseHeader:
+      description: |
+        Effective request ID. It MUST equal the response body `request_id`.
+      schema:
+        $ref: '#/components/schemas/RequestId'
+    CorrelationIdResponseHeader:
+      description: |
+        Effective workflow correlation ID. It equals the accepted caller value or,
+        when none was supplied, the effective request ID.
+      schema:
+        $ref: '#/components/schemas/CorrelationId'
+  responses:
+    HealthSuccess:
+      description: Chamber application is routable.
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestIdResponseHeader'
+        X-Correlation-Id:
+          $ref: '#/components/headers/CorrelationIdResponseHeader'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/HealthEnvelope'
+          examples:
+            healthy:
+              value:
+                status: 200
+                msg: ok
+                data:
+                  service: chamber
+                  api_version: v1
+                  time: 1784625600
+                request_id: 01K0N7G0V3X1VQ44R3GY2X6D1A
+    BootstrapSuccess:
+      description: Trusted tenant context was resolved.
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestIdResponseHeader'
+        X-Correlation-Id:
+          $ref: '#/components/headers/CorrelationIdResponseHeader'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/BootstrapEnvelope'
+          examples:
+            hostResolved:
+              value:
+                status: 200
+                msg: ok
+                data:
+                  tenant:
+                    id: 1
+                    slug: local-primary
+                  channel:
+                    id: 1
+                    code: default
+                  context_source: host
+                  api_version: v1
+                request_id: 01K0N7G0V3X1VQ44R3GY2X6D1A
+    TenantBadRequest:
+      description: Tenant context is missing or structurally invalid.
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestIdResponseHeader'
+        X-Correlation-Id:
+          $ref: '#/components/headers/CorrelationIdResponseHeader'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/TenantErrorEnvelope'
+          examples:
+            missingContext:
+              value:
+                status: 400
+                msg: Tenant context is required
+                data:
+                  reason: missing_context
+                request_id: 01K0N7G0V3X1VQ44R3GY2X6D1A
+            invalidContext:
+              value:
+                status: 400
+                msg: Tenant request context is invalid
+                data:
+                  reason: invalid_input
+                request_id: 01K0N7G0V3X1VQ44R3GY2X6D1A
+    TenantUnauthorized:
+      description: Signed tenant context is incomplete, invalid, expired, or replayed.
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestIdResponseHeader'
+        X-Correlation-Id:
+          $ref: '#/components/headers/CorrelationIdResponseHeader'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/TenantErrorEnvelope'
+          examples:
+            badSignature:
+              value:
+                status: 401
+                msg: Signed tenant context is invalid
+                data:
+                  reason: bad_signature
+                request_id: 01K0N7G0V3X1VQ44R3GY2X6D1A
+            replayedRequest:
+              value:
+                status: 401
+                msg: Signed tenant context has already been used
+                data:
+                  reason: replayed_request
+                request_id: 01K0N7G0V3X1VQ44R3GY2X6D1A
+    TenantForbidden:
+      description: Tenant/channel is unknown, inactive, conflicting, out of scope, or the browser Origin is denied.
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestIdResponseHeader'
+        X-Correlation-Id:
+          $ref: '#/components/headers/CorrelationIdResponseHeader'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/TenantErrorEnvelope'
+          examples:
+            conflictingContext:
+              value:
+                status: 403
+                msg: Host and signed tenant contexts conflict
+                data:
+                  reason: conflicting_context
+                request_id: 01K0N7G0V3X1VQ44R3GY2X6D1A
+            inactiveTenant:
+              value:
+                status: 403
+                msg: Tenant channel is inactive
+                data:
+                  reason: inactive_tenant
+                request_id: 01K0N7G0V3X1VQ44R3GY2X6D1A
+            corsOriginDenied:
+              value:
+                status: 403
+                msg: CORS origin is not allowed
+                data:
+                  reason: cors_origin_denied
+                request_id: 01K0N7G0V3X1VQ44R3GY2X6D1A
+    TenantServiceUnavailable:
+      description: Signed tenant entry cannot safely validate the request.
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestIdResponseHeader'
+        X-Correlation-Id:
+          $ref: '#/components/headers/CorrelationIdResponseHeader'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/TenantErrorEnvelope'
+          examples:
+            signingUnavailable:
+              value:
+                status: 503
+                msg: Signed tenant entry is not configured
+                data:
+                  reason: signing_unavailable
+                request_id: 01K0N7G0V3X1VQ44R3GY2X6D1A
+            replayGuardUnavailable:
+              value:
+                status: 503
+                msg: Tenant replay guard is unavailable
+                data:
+                  reason: replay_guard_unavailable
+                request_id: 01K0N7G0V3X1VQ44R3GY2X6D1A
+    InternalServerError:
+      description: Unhandled server error. Debug details MUST NOT be enabled in production.
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestIdResponseHeader'
+        X-Correlation-Id:
+          $ref: '#/components/headers/CorrelationIdResponseHeader'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+          examples:
+            internalError:
+              value:
+                status: 500
+                msg: Internal server error
+                data: {}
+                request_id: 01K0N7G0V3X1VQ44R3GY2X6D1A
+  schemas:
+    RequestId:
+      type: string
+      minLength: 8
+      maxLength: 128
+      pattern: '^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$'
+      description: Opaque request identifier. ULID is the preferred generated form.
+      example: 01K0N7G0V3X1VQ44R3GY2X6D1A
+    CorrelationId:
+      type: string
+      minLength: 8
+      maxLength: 128
+      pattern: '^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$'
+      description: Opaque identifier shared across a workflow and its downstream calls.
+      example: 01K0N7G0V3X1VQ44R3GY2X6D1A
+    PositiveId:
+      type: integer
+      format: int64
+      minimum: 1
+      description: Positive database identifier. Consumers MUST treat it as opaque.
+    TenantSlug:
+      type: string
+      minLength: 1
+      maxLength: 63
+      pattern: '^[a-z0-9][a-z0-9-]{0,62}$'
+      example: local-primary
+    ChannelCode:
+      type: string
+      minLength: 1
+      maxLength: 64
+      pattern: '^[a-z0-9][a-z0-9_-]{0,63}$'
+      example: default
+    UnixTimestampSeconds:
+      type: integer
+      format: int64
+      minimum: 0
+      description: UTC Unix timestamp in seconds. Milliseconds and localized strings are forbidden.
+      example: 1784625600
+    MoneyAmount:
+      type: string
+      pattern: '^(0|[1-9][0-9]{0,13})\.[0-9]{2}$'
+      description: Non-negative decimal amount in major currency units. JSON numbers are forbidden.
+      example: '1000.00'
+    SignedMoneyAmount:
+      type: string
+      pattern: '^-?(0|[1-9][0-9]{0,13})\.[0-9]{2}$'
+      description: Signed decimal amount for ledgers and reversals. JSON numbers are forbidden.
+      example: '-1000.00'
+    CurrencyCode:
+      type: string
+      enum:
+        - CNY
+      description: ISO 4217 currency code. G0 supports CNY only.
+    PageMeta:
+      type: object
+      additionalProperties: false
+      required:
+        - page
+        - limit
+        - total
+        - total_pages
+        - has_more
+      properties:
+        page:
+          type: integer
+          minimum: 1
+          example: 1
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 100
+          example: 20
+        total:
+          type: integer
+          format: int64
+          minimum: 0
+          example: 42
+        total_pages:
+          type: integer
+          minimum: 0
+          example: 3
+        has_more:
+          type: boolean
+          example: true
+    ResponseEnvelopeBase:
+      type: object
+      additionalProperties: false
+      required:
+        - status
+        - msg
+        - data
+        - request_id
+      properties:
+        status:
+          type: integer
+          minimum: 100
+          maximum: 599
+          description: Must equal the HTTP response status for Chamber APIs.
+        msg:
+          type: string
+          minLength: 1
+          maxLength: 500
+          description: Human-readable text. Clients MUST NOT branch on this value.
+        data:
+          type: object
+        request_id:
+          $ref: '#/components/schemas/RequestId'
+    ErrorData:
+      type: object
+      additionalProperties: false
+      properties:
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 64
+          description: Stable machine-readable error code when one is available.
+    ErrorEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelopeBase'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/ErrorData'
+    TenantErrorReason:
+      type: string
+      enum:
+        - bad_signature
+        - conflicting_context
+        - cors_origin_denied
+        - cross_channel_access
+        - cross_tenant_access
+        - inactive_tenant
+        - incomplete_signature
+        - invalid_input
+        - missing_context
+        - replay_guard_unavailable
+        - replayed_request
+        - signing_unavailable
+        - stale_signature
+        - unknown_tenant
+      description: |
+        Stable tenant error vocabulary. `cross_tenant_access` and
+        `cross_channel_access` are reserved for TenantContext scope assertions and
+        MUST map to HTTP 403 before a scope-protected resource endpoint ships.
+    TenantErrorData:
+      type: object
+      additionalProperties: false
+      required:
+        - reason
+      properties:
+        reason:
+          $ref: '#/components/schemas/TenantErrorReason'
+    TenantErrorEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelopeBase'
+        - type: object
+          required:
+            - data
+          properties:
+            data:
+              $ref: '#/components/schemas/TenantErrorData'
+    HealthData:
+      type: object
+      additionalProperties: false
+      required:
+        - service
+        - api_version
+        - time
+      properties:
+        service:
+          type: string
+          const: chamber
+        api_version:
+          type: string
+          const: v1
+        time:
+          $ref: '#/components/schemas/UnixTimestampSeconds'
+    HealthEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelopeBase'
+        - type: object
+          required:
+            - data
+          properties:
+            status:
+              const: 200
+            msg:
+              const: ok
+            data:
+              $ref: '#/components/schemas/HealthData'
+    TenantReference:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - slug
+      properties:
+        id:
+          $ref: '#/components/schemas/PositiveId'
+        slug:
+          $ref: '#/components/schemas/TenantSlug'
+    ChannelReference:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - code
+      properties:
+        id:
+          $ref: '#/components/schemas/PositiveId'
+        code:
+          $ref: '#/components/schemas/ChannelCode'
+    TenantResolutionSource:
+      type: string
+      enum:
+        - host
+        - signed_channel
+    BootstrapData:
+      type: object
+      additionalProperties: false
+      required:
+        - tenant
+        - channel
+        - context_source
+        - api_version
+      properties:
+        tenant:
+          $ref: '#/components/schemas/TenantReference'
+        channel:
+          $ref: '#/components/schemas/ChannelReference'
+        context_source:
+          $ref: '#/components/schemas/TenantResolutionSource'
+        api_version:
+          type: string
+          const: v1
+    BootstrapEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelopeBase'
+        - type: object
+          required:
+            - data
+          properties:
+            status:
+              const: 200
+            msg:
+              const: ok
+            data:
+              $ref: '#/components/schemas/BootstrapData'
+    MembershipTier:
+      type: string
+      enum:
+        - L1
+        - L2
+        - L3
+        - L4
+      description: Visitor, verified graduate, annual member, and premium member respectively.
+    MemberStatus:
+      type: string
+      enum:
+        - disabled
+        - active
+        - withdrawn
+      description: API vocabulary corresponding to ch_tenant_member status 0, 1, and 2.
+    GraduateVerificationStatus:
+      type: string
+      enum:
+        - draft
+        - pending
+        - approved
+        - returned
+        - rejected
+        - revoked
+      description: Verification workflow vocabulary corresponding to ch_graduate_verification status 0-5.
+    MemberVerification:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - member_id
+        - status
+      properties:
+        id:
+          $ref: '#/components/schemas/PositiveId'
+        member_id:
+          $ref: '#/components/schemas/PositiveId'
+        status:
+          $ref: '#/components/schemas/GraduateVerificationStatus'
+        submitted_at:
+          $ref: '#/components/schemas/UnixTimestampSeconds'
+        reviewed_at:
+          $ref: '#/components/schemas/UnixTimestampSeconds'
+    EventType:
+      type: string
+      enum:
+        - growth
+        - industry
+        - public_welfare
+    EventStatus:
+      type: string
+      enum:
+        - draft
+        - published
+        - registration_closed
+        - ended
+        - cancelled
+      description: API vocabulary corresponding to ch_event status 0-4.
+    EventRegistrationStatus:
+      type: string
+      enum:
+        - pending_payment
+        - registered
+        - cancelled
+        - refunded
+        - waitlisted
+        - completed
+      description: API vocabulary corresponding to ch_event_registration status 0-5.
+    EventSummary:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - event_no
+        - type
+        - status
+        - title
+        - start_at
+        - end_at
+      properties:
+        id:
+          $ref: '#/components/schemas/PositiveId'
+        event_no:
+          type: string
+          minLength: 1
+          maxLength: 32
+        type:
+          $ref: '#/components/schemas/EventType'
+        status:
+          $ref: '#/components/schemas/EventStatus'
+        title:
+          type: string
+          minLength: 1
+          maxLength: 255
+        start_at:
+          $ref: '#/components/schemas/UnixTimestampSeconds'
+        end_at:
+          $ref: '#/components/schemas/UnixTimestampSeconds'
+    OrderLifecycleStatus:
+      type: string
+      enum:
+        - pending_payment
+        - paid
+        - fulfilling
+        - completed
+        - cancelled
+        - refund_pending
+        - partially_refunded
+        - refunded
+      description: |
+        Stable Chamber-facing lifecycle. The adapter derives this value from CRMEB
+        paid/status/refund_status fields; clients MUST NOT reproduce that mapping.
+    OrderSummary:
+      type: object
+      additionalProperties: false
+      required:
+        - order_no
+        - status
+        - total_amount
+        - paid_amount
+        - refund_amount
+        - currency
+        - created_at
+      properties:
+        order_no:
+          type: string
+          minLength: 1
+          maxLength: 64
+        status:
+          $ref: '#/components/schemas/OrderLifecycleStatus'
+        total_amount:
+          $ref: '#/components/schemas/MoneyAmount'
+        paid_amount:
+          $ref: '#/components/schemas/MoneyAmount'
+        refund_amount:
+          $ref: '#/components/schemas/MoneyAmount'
+        currency:
+          $ref: '#/components/schemas/CurrencyCode'
+        created_at:
+          $ref: '#/components/schemas/UnixTimestampSeconds'
+        paid_at:
+          $ref: '#/components/schemas/UnixTimestampSeconds'

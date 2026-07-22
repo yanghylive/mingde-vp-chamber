@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>TenantContext CRMEB v6.0.0 装配说明</title>
+  <style>
+    body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;max-width:1040px;margin:40px auto;padding:0 24px;color:#1f2933;line-height:1.7}h1,h2{line-height:1.25}code,pre{font-family:SFMono-Regular,Consolas,monospace;background:#f4f6f8}code{padding:2px 5px}pre{padding:16px;overflow:auto;border-left:4px solid #18794e}.warn{border-left:4px solid #b42318;padding:10px 16px;background:#fff5f4}table{border-collapse:collapse;width:100%}th,td{border:1px solid #d8dee4;padding:9px;text-align:left;vertical-align:top}th{background:#f4f6f8}.ok{color:#18794e;font-weight:700}
+  </style>
+</head>
+<body>
+  <h1>TenantContext CRMEB v6.0.0 装配说明</h1>
+  <p><span class="ok">已实现并通过真实 CRMEB HTTP 内核验证。</span>构建脚本将本目录复制到隔离运行副本的 <code>app/chamber</code>；CRMEB 子模块不接收业务修改。</p>
+
+  <h2>运行端点</h2>
+  <table>
+    <thead><tr><th>方法与路径</th><th>租户要求</th><th>用途</th></tr></thead>
+    <tbody>
+      <tr><td><code>GET /chamber/health</code></td><td>无</td><td>应用存活检查，不解析租户，不主动查询数据库或 Redis。</td></tr>
+      <tr><td><code>GET /chamber/v1/bootstrap</code></td><td>必须</td><td>返回可信的 tenant/channel 上下文；来源为服务端 Host 映射或签名渠道入口。</td></tr>
+    </tbody>
+  </table>
+
+  <h2>环境变量</h2>
+  <table>
+    <thead><tr><th>变量</th><th>要求</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td><code>CHAMBER_ENV</code></td><td>生产建议显式设置</td><td><code>production</code>、<code>local</code>、<code>development</code> 或 <code>test</code>；默认 production。</td></tr>
+      <tr><td><code>CHAMBER_HOST_MAP_JSON</code></td><td>使用域名识别时必填</td><td>Host 到 tenant slug/channel code 的服务端映射，示例见下方。</td></tr>
+      <tr><td><code>CHAMBER_TENANT_SIGNING_SECRET</code></td><td>使用签名入口时必填</td><td>至少 32 字节，只从环境或密钥服务读取，不进入 Git。未配置时签名请求返回 503，Host 映射仍可用。</td></tr>
+      <tr><td><code>CHAMBER_TENANT_SIGNATURE_TTL</code></td><td>可选</td><td>签名时钟窗口，30-900 秒，默认 300。</td></tr>
+      <tr><td><code>CHAMBER_TENANT_REPLAY_PREFIX</code></td><td>可选</td><td>Redis nonce 键前缀，默认 <code>chamber:tenant:nonce:</code>。</td></tr>
+      <tr><td><code>CHAMBER_CORS_ALLOWED_ORIGINS</code></td><td>跨域调用时必填</td><td>逗号分隔的精确 <code>http/https Origin</code>；不接受通配符、路径或任意 Origin 回显。</td></tr>
+      <tr><td><code>CHAMBER_CORS_ALLOW_CREDENTIALS</code></td><td>可选</td><td>是否发送凭据许可头，默认 true；即使开启也必须命中精确 Origin 白名单。</td></tr>
+      <tr><td><code>CHAMBER_DEV_LOCALHOST_ENABLED</code></td><td>仅本地</td><td>显式设为 true 才增加 localhost/127.0.0.1/::1 映射。</td></tr>
+      <tr><td><code>CHAMBER_DEV_TENANT_SLUG</code></td><td>启用本地映射时必填</td><td>必须对应 <code>ch_tenant.slug</code>。</td></tr>
+      <tr><td><code>CHAMBER_DEV_CHANNEL_CODE</code></td><td>启用本地映射时必填</td><td>必须对应同一租户的 <code>ch_channel.code</code>。</td></tr>
+      <tr><td><code>APP_DEBUG</code></td><td>本地映射要求 true</td><td>localhost 映射同时要求 CHAMBER_ENV 为开发/测试值；生产开启标志会被拒绝。</td></tr>
+    </tbody>
+  </table>
+
+  <pre>CHAMBER_HOST_MAP_JSON='{
+  "portal.example.com": {
+    "tenant_slug": "tenant-slug-from-database",
+    "channel_code": "default"
+  }
+}'</pre>
+  <p>CRMEB 原有 MySQL 与 Redis 环境变量继续由平台配置负责。目录查询使用无前缀的 <code>ch_tenant</code>、<code>ch_channel</code>，不会拼成 <code>eb_ch_*</code>。</p>
+
+  <h2>签名渠道入口</h2>
+  <p>请求需要以下 Header：<code>X-Chamber-Tenant</code>、<code>X-Chamber-Channel</code>、<code>X-Chamber-Timestamp</code>、<code>X-Chamber-Nonce</code>、<code>X-Chamber-Signature</code>。签名是下列规范串的 HMAC-SHA256 小写十六进制值：</p>
+  <pre>HTTP_METHOD
+normalized_host_without_port
+external_request_path
+tenant_slug
+channel_code
+unix_timestamp
+nonce</pre>
+  <p>例如 bootstrap 的外部路径是 <code>/chamber/v1/bootstrap</code>。nonce 为 16-128 位 URL 安全字符；Redis 通过 Lua 原子 SET NX EX 占用 nonce，相同签名不能重放。</p>
+
+  <h2>容器与路由</h2>
+  <ul>
+    <li>所有数组响应包含顶层 <code>request_id</code>。合法的 <code>X-Request-Id</code> 与 <code>X-Correlation-Id</code> 分别透传；Request ID 无效或缺失时生成 32 位随机值，Correlation ID 无效或缺失时回落到 Request ID。</li>
+    <li>Chamber 使用独立 CORS 中间件，只回显精确白名单 Origin；未知 Origin 返回 <code>403 cors_origin_denied</code>，不会继承 CRMEB 的通配 CORS。允许两个 trace Header 和五个 <code>X-Chamber-*</code> 签名 Header，并向浏览器暴露两个 trace 响应 Header。</li>
+    <li>Redis 防重放不可用时签名入口失败关闭，返回 <code>503 replay_guard_unavailable</code>，不降级为可重放请求。</li>
+    <li><code>provider.php</code> 懒加载数据库目录、签名校验器和 Redis 防重放实现，健康接口不依赖这些服务。</li>
+    <li><code>TenantContextMiddleware</code> 将上下文写入当前 Request 和 ThinkPHP Container；响应结束后在 finally 中清理，兼容常驻进程。</li>
+    <li>业务服务通过 <code>app()-&gt;make(\app\chamber\tenancy\TenantContext::class)</code> 读取上下文，资源查询后继续调用 <code>assertTenant</code> 或 <code>assertScope</code>。</li>
+    <li>客户端提交的 <code>tenant_id</code>、<code>channel_id</code> 不参与解析。</li>
+  </ul>
+
+  <p class="warn">反向代理必须覆盖并清洗 <code>Host</code> 和 <code>X-Forwarded-Host</code>，不能把任意客户端转发头原样交给 PHP。超级管理员跨租户操作仍需后续数据范围中间件与审计日志，不能靠修改 Header 实现。</p>
+</body>
+</html>

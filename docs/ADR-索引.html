@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ADR 架构决策索引 · mingde-vp-chamber</title>
+  <link rel="stylesheet" href="project-docs.css">
+</head>
+<body>
+  <header class="doc-head">
+    <div class="wrap">
+      <p class="eyebrow">ARCHITECTURE DECISION RECORDS · V1.0</p>
+      <h1>ADR 架构决策索引</h1>
+      <p>记录会长期约束代码和数据的决定。改变已接受决策时必须新增 ADR，不直接改写历史结论。</p>
+    </div>
+  </header>
+  <main class="doc-main">
+    <div class="wrap">
+      <nav class="doc-nav"><a href="../index.html">项目首页</a><a href="#accepted">已接受</a><a href="#pending">待验证</a><a href="#rules">维护规则</a></nav>
+
+      <section id="accepted">
+        <h2>1. 已接受决策</h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>ADR</th><th>决定</th><th>原因</th><th>实施约束</th></tr></thead>
+            <tbody>
+              <tr><td><code>ADR-001</code></td><td>CRMEB v6.0.0 固定为 Git 子模块，上游源码只读</td><td>保留清晰升级边界，避免二开与官方代码混杂</td><td>业务代码进入 <code>backend/custom</code>；构建时复制到隔离运行区</td></tr>
+              <tr><td><code>ADR-002</code></td><td>一个业务主库、共享表结构、后端强制租户上下文</td><td>双品牌共享交易和 AI 能力，避免复制系统后产生数据分叉</td><td>私域表必须有 <code>tenant_id</code>；客户端不能决定最终租户范围</td></tr>
+              <tr><td><code>ADR-003</code></td><td>CRMEB 继续承载账号、商品、订单、支付；商会语义使用 <code>ch_</code> 领域表</td><td>复用成熟交易链路，同时避免误用付费会员、秒杀活动、推荐关系和事业部</td><td>会籍、活动、好友、人物角色、贡献值均不得挤入含义不同的 <code>eb_</code> 字段</td></tr>
+              <tr><td><code>ADR-004</code></td><td>本地和发布构建使用可再生运行副本</td><td>安装器会写入 <code>.env</code>、锁文件和运行目录，直接挂载子模块会污染上游状态</td><td><code>.build-workspace</code> 与本地数据不入库；每次装配检查 Overlay 冲突</td></tr>
+              <tr><td><code>ADR-005</code></td><td>密钥、真实会员资料和生产备份不进入仓库</td><td>仓库私有不等于可以保存敏感数据</td><td>只提交示例配置；本地凭据写入被忽略目录；生产使用密钥管理服务</td></tr>
+              <tr><td><code>ADR-006</code></td><td>商会 API 使用独立 ThinkPHP <code>chamber</code> 应用</td><td>路由、异常、租户中间件和 CORS 可独立治理，同时仍可复用 CRMEB 容器、数据库和基础设施</td><td>业务路由位于 <code>app/chamber</code>；CRMEB 原 <code>api/adminapi</code> 不承载商会领域语义</td></tr>
+              <tr><td><code>ADR-008</code></td><td>Host 映射与 HMAC 签名渠道是租户上下文的可信入口</td><td>普通 tenant_id 可伪造；两个可信来源可以服务 H5、小程序和渠道入口</td><td>两者同时出现必须同域，否则拒绝；签名带时间窗和 Redis nonce；登录身份只能在此上下文内继续收窄权限</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="pending">
+        <h2>2. 待验证决策</h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>ADR</th><th>待验证内容</th><th>决策证据</th></tr></thead>
+            <tbody>
+              <tr><td><code>ADR-007</code></td><td>CRMEB 退款成功事件是否覆盖全部支付通道</td><td>微信支付、余额、线下、部分退款和重复通知测试</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="rules">
+        <h2>3. 维护规则</h2>
+        <ul class="checklist">
+          <li>状态只使用“提议、已接受、已替代、已拒绝”。</li>
+          <li>每项决策写清上下文、备选方案、取舍、迁移和回滚影响。</li>
+          <li>涉及支付、租户、安全和数据主权的决策必须有运行证据。</li>
+          <li>替代旧决策时保留原记录，并写明新的 ADR 编号。</li>
+        </ul>
+      </section>
+    </div>
+  </main>
+  <footer><div class="wrap">mingde-vp-chamber · ADR 架构决策索引</div></footer>
+</body>
+</html>

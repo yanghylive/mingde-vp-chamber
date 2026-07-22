@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>商会核心数据库迁移</title>
+  <link rel="stylesheet" href="../../../docs/project-docs.css">
+</head>
+<body>
+  <header class="doc-head"><div class="wrap">
+    <p class="eyebrow">DATABASE BASELINE · 202607210001</p>
+    <h1>商会核心数据库迁移</h1>
+    <p>首版只建立租户会员、认证审核、人物角色和活动报名四条开发主线，CRMEB 原表保持不变。</p>
+  </div></header>
+  <main class="doc-main"><div class="wrap">
+    <section>
+      <h2>迁移文件</h2>
+      <div class="table-wrap"><table>
+        <thead><tr><th>文件</th><th>用途</th><th>可重复执行</th></tr></thead>
+        <tbody>
+          <tr><td><code>migrations/202607210001_create_chamber_core.up.sql</code></td><td>创建 13 张 <code>ch_*</code> 核心表</td><td>是，使用 <code>CREATE TABLE IF NOT EXISTS</code></td></tr>
+          <tr><td><code>migrations/202607210001_create_chamber_core.verify.sql</code></td><td>验证 13 张表、必需列、关键字段类型和索引</td><td>是，只使用 <code>information_schema</code> 与临时表</td></tr>
+          <tr><td><code>migrations/202607210001_create_chamber_core.down.sql</code></td><td>按依赖逆序删除首版表</td><td>是，使用 <code>DROP TABLE IF EXISTS</code></td></tr>
+          <tr><td><code>seeds/202607210001_local_ci_baseline.sql</code></td><td>创建两个通用测试租户、默认渠道和人物角色</td><td>是，只补缺，不覆盖已有配置</td></tr>
+          <tr><td><code>seeds/202607210001_local_ci_baseline.verify.sql</code></td><td>核对租户、渠道和角色数量及明细</td><td>是，只读查询</td></tr>
+        </tbody>
+      </table></div>
+    </section>
+    <section>
+      <h2>执行方式</h2>
+      <pre># 首次准备 CRMEB 后，执行迁移、通用种子、校验和状态输出
+./scripts/manage-local-database.sh setup
+
+# 日常查看迁移版本、表数量和租户/渠道数量
+./scripts/manage-local-database.sh status
+
+# 可独立执行的阶段
+./scripts/manage-local-database.sh migrate
+./scripts/manage-local-database.sh seed
+./scripts/manage-local-database.sh verify</pre>
+      <p><code>setup</code> 先确认每个 <code>*.up.sql</code> 都有同版本 <code>*.verify.sql</code>，再按文件名顺序执行迁移。新迁移只有在结构验证通过后，才把版本、SHA-256 校验和与执行时间写入 <code>ch_schema_migration</code>；验证失败会保留未登记状态，修复结构后可安全重跑。</p>
+      <p>已登记迁移不会只做跳过：脚本先核对历史校验和，再重新运行对应结构验证，用于发现缺表、缺列、关键类型变化、索引缺失等常见漂移。独立执行 <code>verify</code> 会同时复验全部迁移结构和本地种子；若结构完整但版本未登记，会明确要求执行 <code>migrate</code> 完成登记。</p>
+      <p>当前本地基线为 CRMEB 157 张原表、13 张商会领域表和 1 张迁移登记表，共 171 张。MySQL DDL 会自动提交，发布时先执行迁移再切换应用版本；生产环境不得执行通用种子或 <code>down.sql</code>。后续变更必须新增迁移文件，不回写本文件，也不修改 CRMEB 的 <code>public/install/crmeb.sql</code>。</p>
+    </section>
+    <section>
+      <h2>本地与 CI 种子边界</h2>
+      <p>种子创建 <code>local-primary</code>、<code>local-secondary</code> 两个不绑定真实品牌的通用租户；每个租户只创建一个 <code>default</code> 渠道，以及普通会员、导师、教练、行业领袖四个角色。</p>
+      <ul class="checklist">
+        <li>不创建 CRMEB 用户、租户会员、活动、商品、订单或其他业务内容。</li>
+        <li>重复执行只插入缺少的唯一键，不更新、启用或恢复已有记录。</li>
+        <li>若基线记录已被停用或软删除，校验结果会显示 <code>FAIL</code>，由开发者明确处理，不由种子覆盖配置。</li>
+        <li>该种子不得在生产环境执行，生产租户必须通过受控初始化流程创建。</li>
+        <li>校验 SQL 第一份结果集应为三行 <code>PASS</code>，第二份结果集应为八条租户角色明细。</li>
+      </ul>
+    </section>
+    <section>
+      <h2>首版范围</h2>
+      <ul>
+        <li>租户与运营组织：<code>ch_tenant</code>、<code>ch_channel</code>。</li>
+        <li>会员与认证：<code>ch_tenant_member</code>、<code>ch_member_profile</code>、<code>ch_graduate_verification</code>、<code>ch_audit_record</code>。</li>
+        <li>人物角色：<code>ch_persona_role</code>、<code>ch_role_application</code>、<code>ch_member_role</code>。</li>
+        <li>活动报名：<code>ch_event</code>、<code>ch_event_ticket</code>、<code>ch_event_registration</code>、<code>ch_event_checkin</code>。</li>
+      </ul>
+      <p>会籍历史、好友关系、积分/贡献账本、商品审核、订单上下文、分账、大咖预约和 AI 账本不属于本迁移，待对应服务契约确认后分批追加。</p>
+    </section>
+    <section>
+      <h2>实现约束</h2>
+      <ul class="checklist">
+        <li><code>eb_user</code> 仍是全局登录账号，<code>ch_tenant_member</code> 是租户内身份；禁止同步覆盖两者的业务含义。</li>
+        <li>除租户根表外，每张私域表都带 <code>tenant_id</code>，Dao 查询仍必须由 TenantContext 强制注入范围。</li>
+        <li>不使用数据库外键，保持 CRMEB 现有迁移风格；跨表存在性、同租户约束和状态机由 Services 事务校验。</li>
+        <li><code>ch_audit_record</code> 和 <code>ch_event_checkin</code> 为追加型记录，不提供软删除字段。</li>
+        <li>所有带唯一索引的 slug、code 和业务编号都必须在写入前生成，数据库不提供空字符串默认值。</li>
+        <li>一个会员只能有一个有效主展示角色，由事务同步 <code>ch_member_role.is_primary</code> 与 <code>ch_tenant_member.primary_role_id</code>；MySQL 5.7 不使用条件唯一索引。</li>
+        <li>票种的 <code>reserved_count</code> 与 <code>paid_count</code> 是并发缓存，必须在锁内与报名状态一起更新，并可由报名表重算。</li>
+        <li>每个新增 <code>*.up.sql</code> 必须同步新增同版本 <code>*.verify.sql</code>；校验应描述该迁移长期成立的后置条件，并允许后续迁移追加新列或新索引。</li>
+      </ul>
+    </section>
+  </div></main>
+  <footer><div class="wrap">mingde-vp-chamber · Core Database Baseline</div></footer>
+</body>
+</html>

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>租户品牌前端 Bootstrap</title>
+  <link rel="stylesheet" href="../../../docs/project-docs.css">
+</head>
+<body>
+  <header class="doc-head"><div class="wrap"><p class="eyebrow">TENANT BRAND BOOTSTRAP</p><h1>租户品牌前端 Bootstrap</h1><p>同一份框架无关配置核心，供 CRMEB Vue2 管理端和 UniApp 用户端复用。</p></div></header>
+  <main class="doc-main"><div class="wrap">
+    <nav class="doc-nav"><a href="../README.html">前端二开入口</a><a href="../../../docs/PRD-v2.0.html">PRD</a></nav>
+    <section><h2>接口</h2><div class="table-wrap"><table><thead><tr><th>接口</th><th>用途</th></tr></thead><tbody>
+      <tr><td><code>normalizeTenantBrand(remote, defaults)</code></td><td>解包常见 CRMEB 响应，兼容 camelCase/snake_case 字段，过滤危险 URL，并统一颜色格式。</td></tr>
+      <tr><td><code>bootstrapTenantBrand(options)</code></td><td>调用注入的 <code>fetchRemote</code>；远端失败时返回默认品牌和可序列化错误，不阻断应用启动。</td></tr>
+      <tr><td><code>installTenantBrand(Vue, options)</code></td><td>创建 Vue2 可响应状态并挂到 <code>Vue.prototype.$tenantBrand</code>；UniApp 当前同样使用 Vue2，可直接复用。</td></tr>
+    </tbody></table></div></section>
+    <section><h2>接入约束</h2><ul class="checklist"><li>共享核心不读取 <code>window</code>、<code>uni</code>、Vuex 或环境变量，网络请求由调用端注入。</li><li>管理端从 <code>src/chamber/shared</code> 引入；UniApp 从 <code>chamber/shared</code> 引入。准备脚本会自动复制。</li><li>远端配置接口未完成前可以省略 <code>fetchRemote</code>，应用将使用默认品牌正常启动。</li></ul></section>
+    <section><h2>验证</h2><pre>./scripts/prepare-local-frontend.sh test</pre></section>
+  </div></main>
+</body>
+</html>
