@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CRMEB v6.0.0 支付退款源码兼容审计</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #17212b;
+      --muted: #5f6b76;
+      --line: #d6dde3;
+      --paper: #ffffff;
+      --soft: #f4f7f8;
+      --accent: #087f5b;
+      --warn: #9a6700;
+      --danger: #b42318;
+      --code: #202a33;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font: 15px/1.7 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    header {
+      border-bottom: 1px solid var(--line);
+      background: var(--soft);
+    }
+
+    header div,
+    main {
+      width: min(1120px, calc(100% - 40px));
+      margin: 0 auto;
+    }
+
+    header div { padding: 40px 0 32px; }
+    main { padding: 32px 0 56px; }
+
+    h1, h2 { line-height: 1.3; }
+    h1 { margin: 0 0 10px; font-size: 30px; }
+    h2 { margin: 36px 0 12px; font-size: 20px; }
+    p { margin: 8px 0; }
+
+    .lead {
+      max-width: 850px;
+      margin: 0;
+      color: var(--muted);
+      font-size: 16px;
+    }
+
+    .lock {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1px;
+      margin: 20px 0 0;
+      border: 1px solid var(--line);
+      background: var(--line);
+    }
+
+    .lock div { padding: 12px 16px; background: var(--paper); }
+    .lock strong { display: block; color: var(--muted); font-size: 12px; }
+
+    code, pre {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+
+    code { color: var(--danger); }
+
+    pre {
+      overflow-x: auto;
+      margin: 12px 0;
+      padding: 16px;
+      border-radius: 4px;
+      background: var(--code);
+      color: #f6f8fa;
+      line-height: 1.55;
+    }
+
+    .note {
+      margin: 18px 0;
+      padding: 13px 16px;
+      border-left: 4px solid var(--warn);
+      background: #fff8e6;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--line);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 820px;
+    }
+
+    th, td {
+      padding: 11px 12px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th { background: var(--soft); font-size: 13px; }
+    tr:last-child td { border-bottom: 0; }
+    .risk-critical { color: var(--danger); font-weight: 700; }
+    .risk-high { color: var(--warn); font-weight: 700; }
+    .risk-info { color: var(--accent); font-weight: 700; }
+
+    ul { padding-left: 22px; }
+    li + li { margin-top: 6px; }
+
+    footer {
+      margin-top: 40px;
+      padding-top: 20px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    @media (max-width: 640px) {
+      header div, main { width: min(100% - 24px, 1120px); }
+      header div { padding: 28px 0 24px; }
+      h1 { font-size: 25px; }
+      .lock { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>CRMEB v6.0.0 支付退款源码兼容审计</h1>
+      <p class="lead">用于固定上游源码假设，防止 CRMEB 子模块升级或人工改动后，商会二开仍按旧的支付、退款语义运行。</p>
+      <section class="lock" aria-label="源码锁定信息">
+        <div><strong>上游版本</strong><code>v6.0.0</code></div>
+        <div><strong>锁定提交</strong><code>7dcddffff73ec542d689f159724296351f29ea9a</code></div>
+      </section>
+    </div>
+  </header>
+
+  <main>
+    <section>
+      <h2>运行方式</h2>
+      <pre><code>ruby -c backend/custom/commerce/audit_crmeb_v6.rb
+ruby backend/custom/commerce/audit_crmeb_v6.rb</code></pre>
+      <p>脚本只读取本地源码和 Git 元数据，不访问网络，不修改 CRMEB 子模块，也不依赖第三方 Ruby Gem。</p>
+      <ul>
+        <li><code>0</code>：全部锁定观察与 CRMEB v6.0.0 一致。</li>
+        <li><code>1</code>：至少一项源码语义发生漂移。</li>
+        <li><code>2</code>：文件、源码结构、Git 提交或标签预检失败。</li>
+      </ul>
+      <div class="note"><strong>注意：</strong>输出中的 <code>MATCH</code> 表示“已知现状仍存在”，不代表该实现安全。风险项匹配成功，恰恰说明二开保护层仍然必要。</div>
+    </section>
+
+    <section>
+      <h2>锁定能力矩阵</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>检查内容</th>
+              <th>风险</th>
+              <th>CRMEB v6.0.0 结论</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>PAY-01</td><td>StoreOrder 统一事件</td><td class="risk-info">INFO</td><td><code>StoreOrderSuccessServices#paySuccess</code> 会触发 <code>OrderPaySuccessListener</code>。</td></tr>
+            <tr><td>PAY-02</td><td>支付回调幂等</td><td class="risk-high">HIGH</td><td><code>PayNotify</code> 先读 <code>paid</code>，随后按订单 ID 无条件更新，存在并发 check-then-act 竞态。</td></tr>
+            <tr><td>PAY-03</td><td>线下确认事件覆盖</td><td class="risk-high">HIGH</td><td><code>OrderOfflineServices#orderOffline</code> 不触发统一支付成功事件。</td></tr>
+            <tr><td>PAY-04</td><td>OtherOrder 事件覆盖</td><td class="risk-high">HIGH</td><td><code>OtherOrderServices#paySuccess</code> 不触发统一支付成功事件。</td></tr>
+            <tr><td>REF-01</td><td>退款最终态</td><td class="risk-critical">CRITICAL</td><td>渠道退款请求返回后立即写 <code>refund_status=2</code>，并发送 <code>admin_order_refund_success</code>，没有查询确认环节。</td></tr>
+            <tr><td>REF-02</td><td>退款查询消费</td><td class="risk-critical">CRITICAL</td><td><code>app/**/*.php</code> 业务层没有调用 <code>queryRefund</code>。</td></tr>
+            <tr><td>CAP-01</td><td>微信 V3 退款查询</td><td class="risk-info">INFO</td><td>存储驱动已委托 V3 客户端查询。</td></tr>
+            <tr><td>CAP-02</td><td>支付宝退款查询</td><td class="risk-info">INFO</td><td>存储驱动已委托 <code>AliPayService</code> 查询。</td></tr>
+            <tr><td>CAP-03</td><td>通联退款查询</td><td class="risk-high">HIGH</td><td><code>AllinPay#queryRefund</code> 仍是未实现 TODO。</td></tr>
+            <tr><td>CAP-04</td><td>微信 V2 退款查询</td><td class="risk-critical">CRITICAL</td><td>包装层调用 <code>WechatService::queryRefund</code>，但服务类不存在该方法。</td></tr>
+            <tr><td>PRIV-01</td><td>退款事件隐私数据</td><td class="risk-high">HIGH</td><td>退款成功自定义事件包含姓名、手机号和详细地址。</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section>
+      <h2>检查边界</h2>
+      <p>脚本按目标类的方法体提取并检查事件、状态写入顺序和渠道能力；业务层缺少退款查询消费则检查全部 <code>app/**/*.php</code> 调用点。执行前会验证目标文件存在、注释与字符串闭合、括号结构、子模块标签、提交号和已跟踪文件是否干净。</p>
+      <p>它是源码兼容哨兵，不替代支付沙箱、渠道回调、并发、故障注入和隐私合规测试。商会二开仍需通过原子状态迁移、支付事实表与 Outbox 解决上述风险。</p>
+    </section>
+
+    <footer>文件范围：<code>backend/custom/commerce</code>。未修改项目主文档和 CRMEB 上游源码。</footer>
+  </main>
+</body>
+</html>

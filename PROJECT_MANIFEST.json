@@ -26,19 +26,27 @@
     "agent_delivery_plan": "docs/Codex-Agent团队全量开发计划-v1.0.html",
     "delivery_board": "docs/开发任务板.html",
     "architecture_decisions": "docs/ADR-索引.html",
+    "commerce_event_audit": "docs/CRMEB-支付退款事件核验.html",
+    "commerce_source_audit": "backend/custom/commerce/README.html",
     "api_contract": "backend/custom/openapi/README.html",
     "database_baseline": "backend/custom/database/README.html"
   },
   "g0_baseline": {
     "completed_on": "2026-07-21",
     "crm_tables": 157,
-    "chamber_domain_tables": 13,
+    "chamber_core_tables": 13,
+    "commerce_reliability_tables": 3,
+    "chamber_domain_tables": 16,
     "migration_registry_tables": 1,
-    "migration_structural_checks": 104,
+    "database_tables_total": 174,
+    "migration_structural_checks": 165,
     "local_tenants": 2,
     "tenant_tests": 25,
     "frontend_tests": 6,
-    "openapi_schemas": 33,
+    "commerce_domain_tests": 18,
+    "commerce_database_assertions": 7,
+    "crmeb_commerce_source_checks": 11,
+    "openapi_schemas": 37,
     "gate": "scripts/check-g0-baseline.sh"
   }
 }

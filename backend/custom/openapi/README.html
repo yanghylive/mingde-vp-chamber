@@ -15,7 +15,7 @@
     <div class="eyebrow">API CONTRACT · G0 BASELINE · 2026-07-21</div>
     <h1>Chamber API 契约基线</h1>
     <p>把当前已实现路由和后续领域对象使用的公共格式固定下来。YAML 是机器可读的唯一契约源；本页负责解释决策、边界和联调规则。</p>
-    <div class="meta"><span>OpenAPI 3.1.0</span><span>契约版本 0.1.0</span><span>CRMEB-KY v6.0.0</span><span>路径数量 2</span></div>
+    <div class="meta"><span>OpenAPI 3.1.0</span><span>契约版本 0.2.0</span><span>CRMEB-KY v6.0.0</span><span>路径数量 2</span><span>Schema 37</span></div>
   </header>
   <div class="content">
     <nav class="toc" aria-label="页内目录">
@@ -24,7 +24,7 @@
 
     <section id="scope">
       <h2>1. 范围与结论</h2>
-      <p><a href="chamber-openapi.yaml">chamber-openapi.yaml</a> 是二开接口契约的版本库事实源。当前仅登记 <code>GET /chamber/health</code> 和 <code>GET /chamber/v1/bootstrap</code>；会员认证、活动和订单只登记可复用 Schema，不声明尚未实现的路径。</p>
+      <p><a href="chamber-openapi.yaml">chamber-openapi.yaml</a> 是二开接口契约的版本库事实源。当前仅登记 <code>GET /chamber/health</code> 和 <code>GET /chamber/v1/bootstrap</code>；会员认证、活动、订单和商业事件只登记可复用 Schema，不声明尚未实现的路径。</p>
       <div class="callout"><strong>冻结原则：</strong>新增或修改 API 时，路由、实现、错误码、OpenAPI、测试必须在同一个变更中完成。前端不得根据中文 <code>msg</code> 分支。</div>
       <div class="callout"><strong>运行时已对齐：</strong>G0 Controller、中间件和异常处理器均返回 <code>request_id</code>，并分别回传 <code>X-Request-Id</code> 与 <code>X-Correlation-Id</code>。Host、HMAC、Redis 重放、CORS 和异常响应已通过运行时门禁。</div>
     </section>
@@ -100,9 +100,11 @@ X-Chamber-Signature</pre>
           <tr><td>会员认证</td><td><code>MemberVerification</code>、<code>MembershipTier</code></td><td><code>draft</code> / <code>pending</code> / <code>approved</code> / <code>returned</code> / <code>rejected</code> / <code>revoked</code></td></tr>
           <tr><td>活动</td><td><code>EventSummary</code>、<code>EventType</code></td><td>活动：<code>draft</code> 至 <code>cancelled</code>；报名：<code>pending_payment</code> 至 <code>completed</code></td></tr>
           <tr><td>订单</td><td><code>OrderSummary</code></td><td><code>pending_payment</code>、<code>paid</code>、<code>fulfilling</code>、<code>completed</code>、<code>cancelled</code>、退款相关状态</td></tr>
+          <tr><td>商业事件</td><td><code>CommerceEvent</code>、<code>CommerceEventType</code>、<code>CommerceCompletionKind</code>、<code>RefundLifecycleState</code></td><td>1 类订单完成事件、5 类退款事实；退款生命周期含 <code>partially_completed</code></td></tr>
         </tbody>
       </table></div>
       <p>订单状态由服务端适配层根据 CRMEB 的 <code>paid</code>、<code>status</code>、<code>refund_status</code> 组合推导。前端不得复制 CRMEB 原始字段判断逻辑。</p>
+      <div class="callout risk"><strong>退款终态：</strong><code>admin_order_refund_success</code>、渠道同步受理和 CRMEB 的 <code>refund_status</code> 只能产生 <code>commerce.refund.processing.v1</code>。余额事务提交、渠道查询成功或人工财务确认才允许产生 <code>commerce.refund.completed.v1</code>；部分退款必须携带稳定且唯一的 <code>completion_id</code>。</div>
     </section>
 
     <section id="validation">
@@ -112,11 +114,11 @@ X-Chamber-Signature</pre>
 
 # 也可指定待验证文件
 ruby backend/custom/openapi/validate.rb path/to/chamber-openapi.yaml</pre>
-      <p>它会检查 YAML 重复键、本地 <code>$ref</code>、路径白名单、operationId、响应追踪头、统一 envelope、租户错误码、金额/时间/分页规则，以及领域枚举是否完整。它是项目治理校验，不代替完整 OpenAPI JSON Schema 校验器；CI 后续可再接入 Spectral 或 Redocly。</p>
+      <p>它会检查 YAML 重复键、本地 <code>$ref</code>、路径白名单、operationId、响应追踪头、统一 envelope、租户错误码、金额/时间/分页规则、商业事件哈希与无 PII 约束，以及领域枚举是否完整。它是项目治理校验，不代替完整 OpenAPI JSON Schema 校验器；CI 后续可再接入 Spectral 或 Redocly。</p>
       <div class="callout warn"><strong>变更规则：</strong>破坏性变更必须提升 API 主版本；非破坏性字段扩展提升契约次版本；仅文案/示例修订提升补丁版本。</div>
     </section>
   </div>
-  <footer class="footer">mingde-vp-chamber · Chamber API contract 0.1.0 · 2026-07-21</footer>
+  <footer class="footer">mingde-vp-chamber · Chamber API contract 0.2.0 · 2026-07-21</footer>
 </main>
 </body>
 </html>

@@ -57,7 +57,8 @@ preflight_migrations() {
     local file version verify_file count=0
     [ -d "${MIGRATIONS_DIR}" ] || fail "Migration directory not found: ${MIGRATIONS_DIR}"
 
-    while IFS= read -r file; do
+    for file in "${MIGRATIONS_DIR}"/*.up.sql; do
+        [ -f "${file}" ] || continue
         count=$((count + 1))
         version="$(basename "${file}" .up.sql)"
         [[ "${version}" =~ ^[0-9]{12,14}_[a-z0-9_]+$ ]] \
@@ -65,15 +66,16 @@ preflight_migrations() {
         verify_file="${file%.up.sql}.verify.sql"
         [ -s "${verify_file}" ] \
             || fail "Migration verifier is required: $(basename "${verify_file}")"
-    done < <(find "${MIGRATIONS_DIR}" -maxdepth 1 -type f -name '*.up.sql' | LC_ALL=C sort)
+    done
 
     [ "${count}" -gt 0 ] || fail "No migration files found in ${MIGRATIONS_DIR}"
 
-    while IFS= read -r verify_file; do
+    for verify_file in "${MIGRATIONS_DIR}"/*.verify.sql; do
+        [ -f "${verify_file}" ] || continue
         file="${verify_file%.verify.sql}.up.sql"
         [ -f "${file}" ] \
             || fail "Orphan migration verifier: $(basename "${verify_file}")"
-    done < <(find "${MIGRATIONS_DIR}" -maxdepth 1 -type f -name '*.verify.sql' | LC_ALL=C sort)
+    done
 }
 
 verify_migration_structure() {
@@ -97,7 +99,8 @@ apply_migrations() {
     preflight_migrations
     ensure_registry
 
-    while IFS= read -r file; do
+    for file in "${MIGRATIONS_DIR}"/*.up.sql; do
+        [ -f "${file}" ] || continue
         version="$(basename "${file}" .up.sql)"
         verify_file="${file%.up.sql}.verify.sql"
         checksum="$(file_checksum "${file}")"
@@ -119,7 +122,7 @@ INSERT INTO ch_schema_migration (version, checksum, applied_at)
 VALUES ('${version}', '${checksum}', UNIX_TIMESTAMP());
 SQL
         printf 'RECORDED %s\n' "${version}"
-    done < <(find "${MIGRATIONS_DIR}" -maxdepth 1 -type f -name '*.up.sql' | LC_ALL=C sort)
+    done
 }
 
 verify_migrations() {
@@ -127,7 +130,8 @@ verify_migrations() {
     preflight_migrations
     ensure_registry
 
-    while IFS= read -r file; do
+    for file in "${MIGRATIONS_DIR}"/*.up.sql; do
+        [ -f "${file}" ] || continue
         version="$(basename "${file}" .up.sql)"
         verify_file="${file%.up.sql}.verify.sql"
         checksum="$(file_checksum "${file}")"
@@ -138,30 +142,33 @@ verify_migrations() {
             || fail "Migration is structurally present but not registered: ${version}; run migrate"
         [ "${existing}" = "${checksum}" ] \
             || fail "Applied migration checksum changed: ${version}"
-    done < <(find "${MIGRATIONS_DIR}" -maxdepth 1 -type f -name '*.up.sql' | LC_ALL=C sort)
+    done
 }
 
 apply_seeds() {
     local file
     [ -d "${SEEDS_DIR}" ] || fail "Seed directory not found: ${SEEDS_DIR}"
 
-    while IFS= read -r file; do
+    for file in "${SEEDS_DIR}"/*.sql; do
+        [ -f "${file}" ] || continue
+        [[ "${file}" == *.verify.sql ]] && continue
         printf 'SEED %s\n' "$(basename "${file}")"
         mysql_exec < "${file}"
-    done < <(find "${SEEDS_DIR}" -maxdepth 1 -type f -name '*.sql' ! -name '*.verify.sql' | LC_ALL=C sort)
+    done
 }
 
 verify_seeds() {
     local file output
 
-    while IFS= read -r file; do
+    for file in "${SEEDS_DIR}"/*.verify.sql; do
+        [ -f "${file}" ] || continue
         printf 'VERIFY %s\n' "$(basename "${file}")"
         output="$(mysql_exec < "${file}")"
         printf '%s\n' "${output}"
         if printf '%s\n' "${output}" | grep -Eq '(^|[[:space:]])FAIL($|[[:space:]])'; then
             fail "Seed verification failed: $(basename "${file}")"
         fi
-    done < <(find "${SEEDS_DIR}" -maxdepth 1 -type f -name '*.verify.sql' | LC_ALL=C sort)
+    done
 }
 
 show_status() {

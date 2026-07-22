@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>CRMEB v6.0.0 支付退款事件核验</title>
+  <link rel="stylesheet" href="project-docs.css">
+</head>
+<body>
+  <header class="doc-head"><div class="wrap">
+    <p class="eyebrow">G0-06 · COMMERCE EVENT AUDIT · 2026-07-21</p>
+    <h1>CRMEB 支付退款事件核验</h1>
+    <p>基于锁定的 CRMEB-KY v6.0.0 源码，确认各支付/退款通道的真实事务、事件和幂等语义，并冻结 Chamber 统一交易事件契约。</p>
+  </div></header>
+  <main class="doc-main"><div class="wrap">
+    <nav class="doc-nav">
+      <a href="../index.html">项目首页</a>
+      <a href="开发任务板.html">开发任务板</a>
+      <a href="CRMEB-二次开发说明书-v1.0.html#api">二开说明书</a>
+      <a href="../backend/custom/commerce/README.html">源码审计脚本</a>
+      <a href="../backend/custom/database/README.html">数据库契约</a>
+    </nav>
+
+    <section>
+      <h2>1. 结论</h2>
+      <div class="callout warn"><strong>不能直接挂业务权益：</strong>CRMEB 的支付事件没有覆盖线下确认和 <code>other_order</code>，在线回调的“查 paid → 无条件更新 → 同步副作用”也不是原子幂等。它只能作为加速信号，最终以重读订单、事件收件箱唯一键和对账补偿为准。</div>
+      <div class="callout warn"><strong>退款成功名称不等于资金完成：</strong><code>admin_order_refund_success</code> 在渠道退款请求未抛异常后立即发出，同时把本地订单写成已退款；源码没有退款回调消费或业务层 <code>queryRefund</code> 对账。外部渠道只能先记 processing，查询或人工财务确认终态后才能冲正权益。</div>
+      <ul class="checklist">
+        <li>G0-06 建立事实事件、幂等记录、退款尝试和源码兼容审计，不实现会籍或活动副作用。</li>
+        <li>G1/G2 只消费统一的 <code>commerce.order.completed.v1</code>，不得各写一套支付回调。</li>
+        <li>退款申请只冻结；取消只恢复冻结；processing 不撤销权益；completed 才生成最终冲正。</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>2. 支付链路覆盖</h2>
+      <div class="table-wrap"><table>
+        <thead><tr><th>链路</th><th>真实入口</th><th>统一事件覆盖</th><th>Chamber 策略</th></tr></thead>
+        <tbody>
+          <tr><td>商品在线支付</td><td><code>PayNotifyServices → StoreOrderSuccessServices::paySuccess</code></td><td>有 <code>OrderPaySuccessListener</code>，但预查与写入分离，副作用非原子</td><td>重读订单核对 paid、金额、租户上下文；写唯一 inbox；定时补扫</td></tr>
+          <tr><td>商品余额/零元</td><td><code>YuePayServices</code> / <code>zeroYuanPayment</code></td><td>进入标准 paySuccess；零元被记作 yue</td><td>现金支付与零元完成用 <code>completion_kind</code> 区分</td></tr>
+          <tr><td>商品线下确认</td><td><code>OrderOfflineServices::orderOffline</code></td><td>绕过 <code>OrderPaySuccessListener</code>，副作用集合也不同</td><td>仅人工确认后由订单补扫产生统一完成事件</td></tr>
+          <tr><td>CRMEB 会员订单</td><td><code>OtherOrderServices::paySuccess</code></td><td>不发统一支付事件，且先延长会员再写 paid</td><td>商会 L3/L4 不复用原生会员卡语义；使用虚拟商品 + OrderContext</td></tr>
+        </tbody>
+      </table></div>
+      <p>主要源码证据：<code>app/services/pay/PayNotifyServices.php</code>、<code>app/services/order/StoreOrderSuccessServices.php</code>、<code>app/services/pay/OrderOfflineServices.php</code>、<code>app/services/order/OtherOrderServices.php</code>。</p>
+    </section>
+
+    <section>
+      <h2>3. 退款完成能力</h2>
+      <div class="table-wrap"><table>
+        <thead><tr><th>渠道</th><th>发起后本地行为</th><th>最终态能力</th><th>允许完成条件</th></tr></thead>
+        <tbody>
+          <tr><td>微信 V3</td><td>同步请求成功后立即写 refund_status=2</td><td>驱动有查询方法，业务层未调用；无退款通知入口</td><td>查询返回 SUCCESS</td></tr>
+          <tr><td>微信 V2</td><td>同上</td><td>包装器引用的查询方法在当前 WechatService 中不存在</td><td>补齐并验证查询适配后才可启用</td></tr>
+          <tr><td>支付宝</td><td>同步接口 success 后立即写已退款</td><td>SDK 有 queryRefund，业务层未调用</td><td>查询确认退款金额和终态</td></tr>
+          <tr><td>通联</td><td>同步接口 success 后立即写已退款</td><td><code>queryRefund</code> 是 TODO</td><td>首发禁用自动完成，转人工财务确认</td></tr>
+          <tr><td>余额</td><td>同一数据库事务加回余额并写流水</td><td>可同步确认，但原流水没有业务唯一键</td><td>Chamber 幂等键抢占成功且余额事务提交</td></tr>
+          <tr><td>线下</td><td>没有资金退款分支，却仍可能写已退款与负流水</td><td>系统无法确认真实到账</td><td>上传凭证并人工确认</td></tr>
+        </tbody>
+      </table></div>
+      <p>CRMEB 还会临时用“订单号 + 三位随机数”生成退款号但不持久化，网络超时后无法安全查询或重试；部分退款也会被立即标成全部退款。Chamber 必须先保存稳定退款尝试，再调用渠道。</p>
+    </section>
+
+    <section>
+      <h2>4. 统一事实事件</h2>
+      <div class="table-wrap"><table>
+        <thead><tr><th>事件</th><th>触发条件</th><th>允许副作用</th></tr></thead>
+        <tbody>
+          <tr><td><code>commerce.order.completed.v1</code></td><td>重读订单确认已支付，或零元业务完成</td><td>G1/G2 激活会籍、报名、预约等；<code>completion_kind=paid/zero_amount</code></td></tr>
+          <tr><td><code>commerce.refund.requested.v1</code></td><td>售后申请已提交</td><td>冻结履约、权益和待结算</td></tr>
+          <tr><td><code>commerce.refund.cancelled.v1</code></td><td>未完成的退款申请已取消</td><td>恢复被冻结状态；完成后的迟到取消必须拒绝，取消后的可信资金完成仍须接纳并重新冲正</td></tr>
+          <tr><td><code>commerce.refund.processing.v1</code></td><td>CRMEB 标记已退款或支付机构受理</td><td>记录与查询，不做最终冲正</td></tr>
+          <tr><td><code>commerce.refund.completed.v1</code></td><td>余额事务提交、渠道查询成功或人工财务确认</td><td>最终撤销/缩短权益并写负向账本</td></tr>
+          <tr><td><code>commerce.refund.failed.v1</code></td><td>渠道确认失败/关闭，或人工驳回</td><td>恢复冻结并告警</td></tr>
+        </tbody>
+      </table></div>
+      <p>公共字段包含 event/source/source_event、Unix 秒时间、correlation ID、tenant/channel、order、uid、business/context、金额/币种、退款完成版本和 payload hash。事件 payload 禁止姓名、手机号、地址、证件号和 openid。</p>
+    </section>
+
+    <section>
+      <h2>5. 持久化与幂等</h2>
+      <div class="table-wrap"><table>
+        <thead><tr><th>表</th><th>用途</th><th>关键约束</th></tr></thead>
+        <tbody>
+          <tr><td><code>ch_commerce_event_inbox</code></td><td>持久化事实事件及处理状态</td><td><code>(tenant_id,source,event_type,source_event_id)</code> 唯一；同 hash 去重，不同 hash 冲突</td></tr>
+          <tr><td><code>ch_idempotency_record</code></td><td>业务副作用租约、结果重放和失败记录</td><td><code>(tenant_id,idempotency_key)</code> 唯一；数据库约束承担并发仲裁</td></tr>
+          <tr><td><code>ch_refund_attempt</code></td><td>持久退款号、渠道状态、查询重试和最终确认</td><td>退款号唯一；每次部分退款独立 attempt/completion ID</td></tr>
+        </tbody>
+      </table></div>
+      <pre>支付权益：order_paid:{order_pk}:{business_type}
+退款效果：refund:{refund_pk}:{completion_id}:{ledger_type}
+事件身份：sha256(tenant_id + source + event_type + source_event_id + schema_version)</pre>
+      <p>事件处理器必须先落 inbox/幂等记录，再执行副作用；同一来源事件键不同 payload 不允许覆盖。退款效果按 <code>completion_id</code> 和金额、订单、业务上下文等金融事实指纹去重，因此同一资金完成的不同查询观测不会重复冲正，而相同 <code>completion_id</code> 对应不同金额时必须冲突。事件丢失由订单/退款对账补发。</p>
+    </section>
+
+    <section>
+      <h2>6. 自动化证据</h2>
+      <pre>ruby backend/custom/commerce/audit_crmeb_v6.rb
+docker exec mingde_crmeb_php php /var/www/app/chamber/tests/commerce_run.php
+docker exec -w /var/www mingde_crmeb_php php app/chamber/tests/commerce_db_run.php
+./scripts/manage-local-database.sh verify
+./scripts/check-g0-baseline.sh</pre>
+      <ul class="checklist">
+        <li>同一事件连续提交 10 次，只接受 1 次；相同租户来源键不同 payload 必须冲突，不同租户相互隔离。</li>
+        <li>真实 MySQL 验证写入、重复、冲突、跨租户、结构化上下文，以及默认 <code>REPEATABLE READ</code> 下双连接唯一键竞态；测试结束后回滚/清理，不遗留业务数据。</li>
+        <li>金额格式、累计退款上限、租户范围、零元完成、部分退款版本、取消/渠道完成竞态和 PII 禁止项均有测试。</li>
+        <li>CRMEB 源码审计固定支付事件缺口、退款过早完成、queryRefund 覆盖和事件 PII，升级后差异会让门禁失败。</li>
+        <li>真实微信商户小额支付/退款仍需 G1/G4 凭据联调，本地测试不伪装成资金渠道验收。</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>7. 后续边界</h2>
+      <ul>
+        <li><strong>G1：</strong>新增 OrderContext 与会籍快照，接入虚拟商品订单，完成 L3/L4 购买/续费和退款三阶段防误判。</li>
+        <li><strong>G2：</strong>活动报名消费同一完成事件，禁止新增活动专用支付回调。</li>
+        <li><strong>G4：</strong>部分退款分摊、积分/分账冲正、全渠道查询适配、死信处置和生产财务对账。</li>
+      </ul>
+    </section>
+  </div></main>
+  <footer><div class="wrap">mingde-vp-chamber · CRMEB Commerce Event Audit · G0-06</div></footer>
+</body>
+</html>

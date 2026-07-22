@@ -14,7 +14,7 @@
     <p class="lead">CRMEB 开源版 + AI 开发的独立项目仓库。本页是立项状态、技术基线、文档与代码入口的唯一首页。</p>
     <div class="status-line">
       <span><b>项目代号</b> mingde-vp-chamber</span>
-      <span><b>状态</b> G0 工程基线已验收 / G1 准备中</span>
+      <span><b>状态</b> G0 全部验收 / G1 下一批</span>
       <span><b>主分支</b> main</span>
       <span><b>CRMEB</b> v6.0.0</span>
     </div>
@@ -34,7 +34,7 @@
       <article><small>技术策略</small><strong>复用交易底座，重建商会领域</strong><p>CRMEB 承担账号、商品、订单、支付和后台权限；租户、会籍、好友、活动和预约由项目独立建模。</p></article>
       <article><small>交付原则</small><strong>一次立项，全量开发</strong><p>不拆成用后即弃的演示系统；发布会版先保证主链路可用，随后在同一代码基线上加固。</p></article>
     </div>
-    <div class="callout good"><strong>立项日：</strong>2026-07-17。<strong>G0 验收：</strong>2026-07-21，隔离运行、迁移、TenantContext、OpenAPI、前端基线和自动门禁均通过。<strong>下一门禁：</strong>完成注册、L2 认证、L3/L4 会籍支付和幂等权益的 G1 垂直切片。</div>
+    <div class="callout good"><strong>立项日：</strong>2026-07-17。<strong>G0 验收：</strong>2026-07-21，隔离运行、迁移、TenantContext、OpenAPI、前端基线、支付退款事件审计和自动门禁均通过。<strong>下一门禁：</strong>完成注册、L2 认证、L3/L4 会籍支付和幂等权益的 G1 垂直切片。</div>
   </div></section>
 
   <section id="baseline" class="band alt"><div class="wrap">
@@ -49,7 +49,7 @@
         <tr><td>二开方式</td><td><code>backend/custom</code> + <code>frontend/custom</code></td><td>业务修改在父仓库管理，不直接提交到子模块。</td></tr>
         <tr><td>AI 服务</td><td><code>ai-service</code></td><td>独立网关和使用量账本，不持有客户端长期模型密钥。</td></tr>
         <tr><td>本地运行</td><td><code>.build-workspace/crmeb-runtime</code></td><td>官方源码、业务 Overlay、配置和运行数据完全隔离。</td></tr>
-        <tr><td>G0 门禁</td><td><code>scripts/check-g0-baseline.sh</code></td><td>数据库、租户、签名重放、CORS、前端和 OpenAPI 一次验收。</td></tr>
+        <tr><td>G0 门禁</td><td><code>scripts/check-g0-baseline.sh</code></td><td>数据库、租户、签名重放、CORS、商业事件、CRMEB 源码审计、前端和 OpenAPI 一次验收。</td></tr>
       </tbody>
     </table></div>
   </div></section>
@@ -68,6 +68,7 @@
       <a href="docs/开发任务板.html"><span>08</span><div><b>开发任务板</b><small>G0 实际验收状态、后续切片、信息触发点和完成定义</small></div></a>
       <a href="docs/ADR-索引.html"><span>09</span><div><b>ADR 架构决策索引</b><small>上游、Overlay、主库、租户隔离和敏感数据的长期决策</small></div></a>
       <a href="backend/custom/openapi/README.html"><span>10</span><div><b>Chamber API 契约</b><small>已实现端点、追踪、租户错误、金额时间和状态枚举</small></div></a>
+      <a href="docs/CRMEB-支付退款事件核验.html"><span>11</span><div><b>CRMEB 支付退款事件核验</b><small>真实完成语义、六类统一事件、幂等表和源码兼容证据</small></div></a>
     </div>
     <p class="subtle">完整文档导航：<a href="docs/index.html">docs/index.html</a></p>
   </div></section>

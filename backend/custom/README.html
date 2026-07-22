@@ -17,6 +17,7 @@
       <a href="../../index.html">项目首页</a>
       <a href="app/chamber/TenantContext-CRMEB注入说明.html">TenantContext</a>
       <a href="database/README.html">数据库迁移</a>
+      <a href="commerce/README.html">交易源码审计</a>
       <a href="openapi/README.html">OpenAPI 契约</a>
       <a href="../../docs/CRMEB-二次开发说明书-v1.0.html">二开说明书</a>
     </nav>
@@ -30,6 +31,7 @@
           <tr><td>租户隔离</td><td>数据库租户/渠道目录 + TenantContext 中间件</td><td>拒绝客户端直接传入 tenant_id</td></tr>
           <tr><td>签名防重放</td><td>Redis 原子 nonce 占用</td><td>同一签名第二次请求返回 401</td></tr>
           <tr><td>接口基线</td><td>统一异常、链路标识、精确 Origin CORS、OpenAPI 3.1</td><td>正反向 HTTP 门禁和静态契约</td></tr>
+          <tr><td>商业事件可靠性</td><td>6 类事件、租户内幂等 inbox、退款状态机和 3 张可靠性表</td><td>18 项领域测试、7 项真实库断言、11 项 CRMEB 源码审计</td></tr>
         </tbody>
       </table></div>
     </section>
@@ -38,6 +40,7 @@
       <pre>backend/custom/
 ├── app/chamber/
 │   ├── config/               # 路由、租户与 Cookie 配置
+│   ├── commerce/             # 商业事件、金额和退款状态机
 │   ├── contracts/            # 领域依赖契约
 │   ├── controller/           # 用户端/管理端薄控制器
 │   ├── middleware/           # TenantContext 与链路追踪
@@ -47,6 +50,7 @@
 │   ├── listener/ jobs/       # 后续事件扩展与队列副作用
 │   └── tests/                # 可在 CRMEB 容器内运行的 PHP 测试
 ├── database/                 # 只追加的 ch_* 迁移与本地种子
+├── commerce/                 # CRMEB 支付退款源码兼容审计
 └── openapi/                  # Chamber API 机器契约与静态验证</pre>
     </section>
     <section>
@@ -55,7 +59,10 @@
 
 # 分项执行
 docker exec mingde_crmeb_php php /var/www/app/chamber/tests/run.php
+docker exec mingde_crmeb_php php /var/www/app/chamber/tests/commerce_run.php
+docker exec -w /var/www mingde_crmeb_php php app/chamber/tests/commerce_db_run.php
 ./scripts/manage-local-database.sh status
+ruby backend/custom/commerce/audit_crmeb_v6.rb
 ruby backend/custom/openapi/validate.rb</pre>
       <p>完整门禁会安装或复用隔离运行副本、执行迁移与种子校验、运行 PHP/前端/OpenAPI 测试，并检查真实 HTTP 租户解析、重放拦截和 CORS。</p>
     </section>
@@ -68,6 +75,7 @@ ruby backend/custom/openapi/validate.rb</pre>
         <li>会籍不复用 <code>eb_user.level</code>，好友不复用推荐关系，活动不复用秒杀 <code>store_activity</code>。</li>
         <li>迁移不修改 CRMEB 安装 SQL，表名统一 <code>ch_</code> 前缀。</li>
         <li>金额用 decimal 字符串 + BCMath，积分、贡献值、分账和退款用追加账本。</li>
+        <li>CRMEB 支付/退款事件只作加速信号；统一事件必须先落持久化 inbox，退款受理不得冒充资金完成。</li>
       </ul>
     </section>
     <section>

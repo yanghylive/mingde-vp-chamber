@@ -30,7 +30,9 @@
               <tr><td><code>ADR-004</code></td><td>本地和发布构建使用可再生运行副本</td><td>安装器会写入 <code>.env</code>、锁文件和运行目录，直接挂载子模块会污染上游状态</td><td><code>.build-workspace</code> 与本地数据不入库；每次装配检查 Overlay 冲突</td></tr>
               <tr><td><code>ADR-005</code></td><td>密钥、真实会员资料和生产备份不进入仓库</td><td>仓库私有不等于可以保存敏感数据</td><td>只提交示例配置；本地凭据写入被忽略目录；生产使用密钥管理服务</td></tr>
               <tr><td><code>ADR-006</code></td><td>商会 API 使用独立 ThinkPHP <code>chamber</code> 应用</td><td>路由、异常、租户中间件和 CORS 可独立治理，同时仍可复用 CRMEB 容器、数据库和基础设施</td><td>业务路由位于 <code>app/chamber</code>；CRMEB 原 <code>api/adminapi</code> 不承载商会领域语义</td></tr>
+              <tr><td><code>ADR-007</code></td><td>CRMEB 的 <code>admin_order_refund_success</code> 只作为 processing 信号</td><td>它在渠道请求未抛异常后立即发出；源码没有退款回调消费或业务层查询对账，不能证明外部资金完成</td><td>仅余额事务提交、渠道查询成功或人工财务确认可产生 <code>commerce.refund.completed.v1</code></td></tr>
               <tr><td><code>ADR-008</code></td><td>Host 映射与 HMAC 签名渠道是租户上下文的可信入口</td><td>普通 tenant_id 可伪造；两个可信来源可以服务 H5、小程序和渠道入口</td><td>两者同时出现必须同域，否则拒绝；签名带时间窗和 Redis nonce；登录身份只能在此上下文内继续收窄权限</td></tr>
+              <tr><td><code>ADR-009</code></td><td>交易事实先落持久化 inbox，再异步执行业务效果</td><td>支付事件覆盖不全且并发回调非原子；订单已写 paid 后事件仍可能丢失</td><td>数据库唯一键做幂等仲裁；CRMEB 事件只作加速，订单/退款扫描负责补发；同键不同 payload 冲突告警</td></tr>
             </tbody>
           </table>
         </div>
@@ -42,7 +44,7 @@
           <table>
             <thead><tr><th>ADR</th><th>待验证内容</th><th>决策证据</th></tr></thead>
             <tbody>
-              <tr><td><code>ADR-007</code></td><td>CRMEB 退款成功事件是否覆盖全部支付通道</td><td>微信支付、余额、线下、部分退款和重复通知测试</td></tr>
+              <tr><td><code>ADR-010</code></td><td>首发实际开放哪些支付与自动退款通道</td><td>商户号能力、微信 V2/V3 配置、财务线下退款流程和真实小额联调</td></tr>
             </tbody>
           </table>
         </div>

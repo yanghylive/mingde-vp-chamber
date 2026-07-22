@@ -76,7 +76,21 @@ bash -n \
 ./scripts/check-project.sh
 docker compose -f "${COMPOSE_FILE}" config >/dev/null
 ./scripts/prepare-local-crmeb-runtime.sh install
-./scripts/manage-local-database.sh setup
+database_setup_output="$(./scripts/manage-local-database.sh setup)"
+printf '%s\n' "${database_setup_output}"
+grep -Fq 'PASS 202607210001_create_chamber_core (104 structural checks)' <<<"${database_setup_output}" \
+    || fail "core migration structural check count changed"
+grep -Fq 'PASS 202607210002_create_commerce_event_baseline (61 structural checks)' <<<"${database_setup_output}" \
+    || fail "commerce migration structural check count changed"
+
+database_tables="$(docker compose -f "${COMPOSE_FILE}" exec -T mysql sh -lc \
+    'MYSQL_PWD="$MYSQL_PASSWORD" mysql -Nse "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema=DATABASE()" -u "$MYSQL_USER" "$MYSQL_DATABASE"' \
+    | tr -d '[:space:]')"
+[ "${database_tables}" -ge 174 ] || fail "expected at least 174 database tables, got ${database_tables}"
+chamber_tables="$(docker compose -f "${COMPOSE_FILE}" exec -T mysql sh -lc \
+    'MYSQL_PWD="$MYSQL_PASSWORD" mysql -Nse "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema=DATABASE() AND table_name LIKE \"ch\\\\_%\"" -u "$MYSQL_USER" "$MYSQL_DATABASE"' \
+    | tr -d '[:space:]')"
+[ "${chamber_tables}" -ge 17 ] || fail "expected at least 17 Chamber tables including the migration registry, got ${chamber_tables}"
 
 assert_loopback_binding mingde_crmeb_nginx 80
 assert_loopback_binding mingde_crmeb_mysql 3306
@@ -89,9 +103,35 @@ while IFS= read -r -d '' file; do
     docker exec mingde_crmeb_php php -l "/var/www/app/chamber/${relative}" >/dev/null
 done < <(find backend/custom/app/chamber -type f -name '*.php' -print0)
 
-docker exec mingde_crmeb_php php /var/www/app/chamber/tests/run.php
-./scripts/prepare-local-frontend.sh test
-ruby backend/custom/openapi/validate.rb
+tenant_test_output="$(docker exec mingde_crmeb_php php /var/www/app/chamber/tests/run.php)"
+printf '%s\n' "${tenant_test_output}"
+grep -Fq '25 tests, 0 failures' <<<"${tenant_test_output}" \
+    || fail "tenant test count changed"
+
+commerce_test_output="$(docker exec mingde_crmeb_php php /var/www/app/chamber/tests/commerce_run.php)"
+printf '%s\n' "${commerce_test_output}"
+grep -Fq '18 tests, 0 failures' <<<"${commerce_test_output}" \
+    || fail "commerce domain test count changed"
+
+commerce_db_output="$(docker exec -w /var/www mingde_crmeb_php php app/chamber/tests/commerce_db_run.php)"
+printf '%s\n' "${commerce_db_output}"
+grep -Fq 'PASS commerce database adapter (7 assertions; transaction rolled back)' <<<"${commerce_db_output}" \
+    || fail "commerce database assertion count changed"
+
+frontend_test_output="$(./scripts/prepare-local-frontend.sh test)"
+printf '%s\n' "${frontend_test_output}"
+grep -Fq 'PASS 6 tenant brand tests' <<<"${frontend_test_output}" \
+    || fail "frontend shared test count changed"
+
+commerce_audit_output="$(ruby backend/custom/commerce/audit_crmeb_v6.rb)"
+printf '%s\n' "${commerce_audit_output}"
+grep -Fq 'Result: 11/11 locked expectations matched.' <<<"${commerce_audit_output}" \
+    || fail "CRMEB commerce source audit count changed"
+
+openapi_output="$(ruby backend/custom/openapi/validate.rb)"
+printf '%s\n' "${openapi_output}"
+grep -Fq 'Component schemas: 37' <<<"${openapi_output}" \
+    || fail "OpenAPI schema count changed"
 
 request_id='client-request-id-0001'
 correlation_id='client-correlation-id-0001'
@@ -175,5 +215,6 @@ assert_json "${TMP_DIR}/cors-denied.json" data.reason cors_origin_denied
 
 printf 'G0 baseline OK\n'
 printf 'HTTP: health, host tenant, signed tenant, replay rejection, CORS allow/deny\n'
-printf 'Database: migration checksum, structural postconditions, seed verification\n'
-printf 'Frontend: shared bootstrap tests; OpenAPI: static contract validation\n'
+printf 'Database: 174+ tables, 165+ migration checks, seed verification, real commerce adapter\n'
+printf 'Commerce: 18 domain tests, 7 database assertions, 11 CRMEB source checks\n'
+printf 'Frontend: shared bootstrap tests; OpenAPI: 37-schema contract validation\n'

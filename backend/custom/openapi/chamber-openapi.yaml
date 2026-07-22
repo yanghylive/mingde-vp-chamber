@@ -2,8 +2,8 @@ openapi: 3.1.0
 jsonSchemaDialect: https://json-schema.org/draft/2020-12/schema
 info:
   title: Mingde VP Chamber API
-  version: 0.1.0
-  summary: Chamber overlay G0 contract baseline
+  version: 0.2.0
+  summary: Chamber overlay G0 contract and commerce-event baseline
   description: |
     This document is the source-controlled contract for the independently developed
     Chamber API overlay. Runtime behavior is defined by the locked CRMEB v6.0.0
@@ -769,3 +769,209 @@ components:
           $ref: '#/components/schemas/UnixTimestampSeconds'
         paid_at:
           $ref: '#/components/schemas/UnixTimestampSeconds'
+    CommerceEventType:
+      type: string
+      enum:
+        - commerce.order.completed.v1
+        - commerce.refund.requested.v1
+        - commerce.refund.cancelled.v1
+        - commerce.refund.processing.v1
+        - commerce.refund.completed.v1
+        - commerce.refund.failed.v1
+      description: Stable versioned facts consumed by Chamber domain services.
+    CommerceCompletionKind:
+      type: string
+      enum:
+        - paid
+        - zero_amount
+      description: Distinguishes a confirmed payment from an explicitly free completion.
+    RefundLifecycleState:
+      type: string
+      enum:
+        - none
+        - requested
+        - cancelled
+        - processing
+        - partially_completed
+        - completed
+        - failed
+      description: |
+        Chamber refund aggregate state. Provider acceptance and CRMEB refund_status
+        map to processing, never directly to completed. A trusted funds-completed
+        fact may supersede a prior local cancellation; a cancellation may not
+        supersede completed funds.
+    CommerceEvent:
+      type: object
+      additionalProperties: false
+      oneOf:
+        - title: Order completion event
+          required:
+            - completion_kind
+            - pay_type
+            - trade_no
+            - paid_at
+          properties:
+            event_type:
+              const: commerce.order.completed.v1
+          not:
+            anyOf:
+              - required: [refund_pk]
+              - required: [refund_no]
+              - required: [provider_refund_no]
+              - required: [refund_status]
+              - required: [refund_delta]
+              - required: [cumulative_refunded_amount]
+              - required: [completion_id]
+              - required: [completion_source]
+              - required: [provider_status]
+        - title: Refund fact event
+          required:
+            - refund_pk
+            - refund_no
+            - provider_refund_no
+            - refund_status
+            - refund_delta
+            - cumulative_refunded_amount
+            - completion_id
+            - completion_source
+            - provider_status
+          properties:
+            event_type:
+              enum:
+                - commerce.refund.requested.v1
+                - commerce.refund.cancelled.v1
+                - commerce.refund.processing.v1
+                - commerce.refund.completed.v1
+                - commerce.refund.failed.v1
+          not:
+            anyOf:
+              - required: [completion_kind]
+              - required: [pay_type]
+              - required: [trade_no]
+              - required: [paid_at]
+      required:
+        - event_id
+        - payload_hash
+        - source
+        - source_event_id
+        - event_type
+        - schema_version
+        - occurred_at
+        - tenant_id
+        - channel_id
+        - order_pk
+        - order_no
+        - uid
+        - business_type
+        - context_id
+        - currency
+        - paid_amount
+        - correlation_id
+      properties:
+        event_id:
+          type: string
+          pattern: '^[a-f0-9]{64}$'
+          description: SHA-256 of tenant, source, event type, source event ID, and schema version.
+        payload_hash:
+          type: string
+          pattern: '^[a-f0-9]{64}$'
+          description: SHA-256 of the canonical PII-free payload.
+        source:
+          type: string
+          minLength: 1
+          maxLength: 32
+          pattern: '^[A-Za-z0-9][A-Za-z0-9._:@-]*$'
+        source_event_id:
+          type: string
+          minLength: 1
+          maxLength: 128
+          pattern: '^[A-Za-z0-9][A-Za-z0-9._:@-]*$'
+        event_type:
+          $ref: '#/components/schemas/CommerceEventType'
+        schema_version:
+          type: integer
+          const: 1
+        occurred_at:
+          $ref: '#/components/schemas/UnixTimestampSeconds'
+        tenant_id:
+          $ref: '#/components/schemas/PositiveId'
+        channel_id:
+          $ref: '#/components/schemas/PositiveId'
+        order_pk:
+          $ref: '#/components/schemas/PositiveId'
+        order_no:
+          type: string
+          minLength: 1
+          maxLength: 64
+          pattern: '^[A-Za-z0-9][A-Za-z0-9._:@-]*$'
+        uid:
+          $ref: '#/components/schemas/PositiveId'
+        business_type:
+          type: string
+          minLength: 1
+          maxLength: 32
+          pattern: '^[A-Za-z0-9][A-Za-z0-9._:@-]*$'
+        context_id:
+          $ref: '#/components/schemas/PositiveId'
+        currency:
+          $ref: '#/components/schemas/CurrencyCode'
+        paid_amount:
+          $ref: '#/components/schemas/MoneyAmount'
+        correlation_id:
+          $ref: '#/components/schemas/CorrelationId'
+        completion_kind:
+          $ref: '#/components/schemas/CommerceCompletionKind'
+        pay_type:
+          type: string
+          minLength: 1
+          maxLength: 24
+          pattern: '^[A-Za-z0-9][A-Za-z0-9._:@-]*$'
+        trade_no:
+          type: string
+          maxLength: 96
+        paid_at:
+          $ref: '#/components/schemas/UnixTimestampSeconds'
+        refund_pk:
+          $ref: '#/components/schemas/PositiveId'
+        refund_no:
+          type: string
+          minLength: 1
+          maxLength: 64
+          pattern: '^[A-Za-z0-9][A-Za-z0-9._:@-]*$'
+        provider_refund_no:
+          type: string
+          maxLength: 96
+        refund_status:
+          type: string
+          enum:
+            - requested
+            - cancelled
+            - processing
+            - completed
+            - failed
+        refund_delta:
+          $ref: '#/components/schemas/MoneyAmount'
+        cumulative_refunded_amount:
+          $ref: '#/components/schemas/MoneyAmount'
+        completion_id:
+          type: string
+          maxLength: 128
+          description: Required and stable for each completed partial or full refund.
+        completion_source:
+          type: string
+          enum:
+            - ''
+            - provider_accepted
+            - crmeb_refund_status
+            - balance_transaction
+            - provider_query_success
+            - manual_finance_confirm
+        provider_status:
+          type: string
+          maxLength: 40
+      description: |
+        Minimal PII-free commerce fact. Order completion fields are used only by
+        commerce.order.completed.v1. Refund fields are used only by refund events.
+        A completed refund requires a unique completion_id and trusted completion
+        source; provider acceptance is processing only. The PHP domain validator
+        enforces these conditional rules before persistence.
