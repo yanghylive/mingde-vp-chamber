@@ -150,7 +150,7 @@ errors << "paths must contain only #{expected_paths.join(', ')}" unless actual_p
 expected_operations = [
   ['/chamber/health', 'get', 'getChamberHealth', 'implemented', '200', nil],
   ['/chamber/v1/bootstrap', 'get', 'getChamberBootstrap', 'implemented', '200', nil],
-  ['/chamber/v1/me/bootstrap', 'post', 'bootstrapChamberMember', 'planned', '200', 'CrmebBearerAuth'],
+  ['/chamber/v1/me/bootstrap', 'post', 'bootstrapChamberMember', 'implemented', '200', 'CrmebBearerAuth'],
   ['/chamber/v1/me/profile', 'get', 'getChamberMemberProfile', 'planned', '200', 'CrmebBearerAuth'],
   ['/chamber/v1/me/profile', 'patch', 'updateChamberMemberProfile', 'planned', '200', 'CrmebBearerAuth'],
   ['/chamber/v1/me/graduate-verifications', 'get', 'getGraduateVerification', 'planned', '200', 'CrmebBearerAuth'],
@@ -251,7 +251,8 @@ expected_operations.each do |path, method, operation_id, implementation_status, 
     errors << "#{method.upcase} #{path} is missing #{reference}" unless parameter_refs.include?(reference)
   end
 
-  next unless implementation_status == 'planned'
+  # Authenticated contract invariants apply equally before and after delivery.
+  next unless security_scheme
 
   errors << "#{method.upcase} #{path} must require tenant context" unless operation['x-tenant-context'] == 'required'
   errors << "#{method.upcase} #{path} must enforce all-or-none signed headers" unless operation['x-signed-headers-all-or-none'] == true
@@ -451,7 +452,7 @@ expected_enums = {
   'RefundLifecycleState' => %w[none requested cancelled processing partially_completed completed failed],
   'MemberTransactionErrorCode' => %w[
     authentication_required permission_denied idempotency_key_required idempotency_conflict request_validation_failed
-    member_not_found member_disabled member_attribution_locked profile_invalid consent_document_stale
+    member_not_found member_disabled member_attribution_locked invite_code_invalid profile_invalid consent_document_stale
     verification_already_pending verification_application_not_found verification_transition_invalid verification_supersedes_mismatch
     membership_verification_required membership_plan_unavailable membership_downgrade_not_allowed
   ]
@@ -460,6 +461,21 @@ expected_enums.each do |name, values|
   actual = Array(schemas.dig(name, 'enum'))
   errors << "#{name} enum differs from the frozen vocabulary" unless actual == values
 end
+
+consent_acceptance = schemas['ConsentAcceptanceRequest'] || {}
+errors << 'ConsentAcceptanceRequest must reject unknown fields' unless consent_acceptance['additionalProperties'] == false
+expected_consent_fields = %w[document_code document_version accepted]
+unless Array(consent_acceptance['required']) == expected_consent_fields
+  errors << 'ConsentAcceptanceRequest required fields differ from the frozen contract'
+end
+consent_properties = consent_acceptance['properties'].is_a?(Hash) ? consent_acceptance['properties'] : {}
+expected_document_pattern = '^[A-Za-z0-9][A-Za-z0-9._-]*$'
+%w[document_code document_version].each do |field|
+  unless consent_properties.dig(field, 'pattern') == expected_document_pattern
+    errors << "ConsentAcceptanceRequest #{field} pattern differs from the frozen contract"
+  end
+end
+errors << 'ConsentAcceptanceRequest accepted must be fixed at true' unless consent_properties.dig('accepted', 'const') == true
 
 forbidden_identity_keys = %w[tenantid channelid uid userid memberid accountid openid]
 actual_operation_pairs.each do |path, method|

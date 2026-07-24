@@ -9,9 +9,10 @@ info:
     Chamber API overlay. Runtime behavior is defined by the locked CRMEB v6.0.0
     source plus `backend/custom/app/chamber`.
 
-    Every operation declares `x-implementation-status`. G0 routes marked
-    `implemented` are live. G1 membership routes marked `planned` freeze the next
-    implementation contract and MUST NOT be represented as runtime-delivered yet.
+    Every operation declares `x-implementation-status`. G0 routes and the G1
+    authenticated member bootstrap marked `implemented` are live. Remaining G1
+    routes marked `planned` freeze the next implementation contract and MUST NOT
+    be represented as runtime-delivered yet.
 
     All response envelopes contain `status`, `msg`, `data`, and `request_id`.
     The G0 request tracing middleware returns independent request/correlation IDs
@@ -121,7 +122,7 @@ paths:
       operationId: bootstrapChamberMember
       security:
         - CrmebBearerAuth: []
-      x-implementation-status: planned
+      x-implementation-status: implemented
       x-requirement-id: MEM-001,MEM-009
       x-tenant-context: required
       x-signed-headers-all-or-none: true
@@ -1516,6 +1517,7 @@ components:
           type: string
           minLength: 1
           maxLength: 64
+          pattern: '^[A-Za-z0-9][A-Za-z0-9._-]*$'
         accepted:
           type: boolean
           const: true
@@ -2251,6 +2253,7 @@ components:
         - member_not_found
         - member_disabled
         - member_attribution_locked
+        - invite_code_invalid
         - profile_invalid
         - consent_document_stale
         - verification_already_pending

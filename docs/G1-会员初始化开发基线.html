@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>G1 会员初始化开发基线 · mingde-vp-chamber</title>
+  <link rel="stylesheet" href="project-docs.css">
+</head>
+<body>
+  <header class="doc-head"><div class="wrap">
+    <p class="eyebrow">G1-01B · IMPLEMENTED · 2026-07-23</p>
+    <h1>G1 会员初始化开发基线</h1>
+    <p>记录 CRMEB 身份接入、租户会员初始化、首次归因、协议证据和 HTTP 幂等的真实实现与验收边界。</p>
+  </div></header>
+  <main class="doc-main"><div class="wrap">
+    <nav class="doc-nav">
+      <a href="../index.html">项目首页</a>
+      <a href="开发任务板.html">开发任务板</a>
+      <a href="G1-会员交易开发基线.html">G1 会员交易</a>
+      <a href="../backend/custom/openapi/README.html">API 契约</a>
+    </nav>
+
+    <section>
+      <h2>1. 完成范围</h2>
+      <div class="table-wrap"><table>
+        <thead><tr><th>能力</th><th>实现事实</th><th>失败规则</th></tr></thead>
+        <tbody>
+          <tr><td>CRMEB 身份</td><td>严格读取 <code>Authorization: Bearer</code>，兼容 CRMEB 历史 <code>Authori-zation</code> 头；调用 <code>UserAuthServices::parseToken</code> 校验 Redis/JWT/用户状态和 <code>api</code> audience</td><td>缺失、格式错误、过期、错误 audience 或停用 CRMEB 用户均返回真实 HTTP 401 <code>authentication_required</code></td></tr>
+          <tr><td>身份上下文</td><td><code>AuthenticatedUserContext</code> 只保留 uid、是否绑手机和 token 类型；兼容 <code>uid/user/tokenData</code> 请求宏，请求结束后清理容器绑定</td><td>正文和查询中的 uid 不参与身份判断，避免跨请求身份泄漏</td></tr>
+          <tr><td>租户会员</td><td><code>MemberContext</code> 严格映射 member、tier、status、verification 和能力；事务内惰性创建 member/profile/invite code</td><td>disabled、withdrawn、软删除会员或资料不被 bootstrap 自动恢复</td></tr>
+          <tr><td>协议证据</td><td>tenant-scoped 服务端注册表解析当前 <code>document_code/version</code>，服务端受控正文计算 SHA-256；原始 IP/User-Agent 不落库</td><td>未知或旧版本返回 HTTP 409 <code>consent_document_stale</code>；客户端不能提交内容哈希</td></tr>
+          <tr><td>首次归因</td><td>首次可信渠道和租户内推荐人随 member 行锁写入并永久锁定</td><td>锁定后改变推荐关系返回 HTTP 409 <code>member_attribution_locked</code></td></tr>
+        </tbody>
+      </table></div>
+    </section>
+
+    <section>
+      <h2>2. 受保护请求顺序</h2>
+      <pre>POST /chamber/v1/me/bootstrap
+  -> RequestTraceMiddleware
+  -> ChamberCorsMiddleware
+  -> CrmebAuthTokenMiddleware       # Auth：真实 CRMEB api Token
+  -> TenantContextMiddleware        # Tenant：Host 映射或受信 HMAC
+  -> MemberBootstrapController
+  -> MemberBootstrapService         # 单数据库事务</pre>
+      <div class="callout warn"><strong>顺序约束：</strong>Auth 必须先于 Tenant。业务服务只接受认证上下文中的 uid 和 <code>TenantContext</code> 中的 tenant/channel；请求正文只能携带 <code>invite_code</code> 与协议接受项。</div>
+    </section>
+
+    <section>
+      <h2>3. 幂等身份与请求身份</h2>
+      <p>客户端 <code>Idempotency-Key</code> 先做长度和字符集校验，但不直接作为数据库唯一身份。服务按规范化 JSON 计算两个不同摘要：</p>
+      <pre>internal key = sha256-v1(
+  trusted tenant_id,
+  operation = bootstrapChamberMember,
+  principal type = crmeb_user,
+  authenticated uid,
+  caller Idempotency-Key
+)
+
+request hash = SHA-256(
+  trusted channel_id,
+  normalized invite_code + consents
+)</pre>
+      <ul class="checklist">
+        <li>同 tenant、同主体、同 Key、同请求返回已保存结果。</li>
+        <li>同内部 Key 但请求哈希不同，返回 HTTP 409 <code>idempotency_conflict</code>。</li>
+        <li>同一个客户端 Key 在不同租户会派生不同内部 Key，不共享会员或结果。</li>
+        <li>重放成功结果前重新读取当前会员状态；历史 200 不能绕过后续退出或停用。</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>4. 事务与唯一性</h2>
+      <pre>lock/create ch_idempotency_record
+  -> lock/create ch_tenant_member
+  -> lock/create ch_member_profile
+  -> resolve server consent documents
+  -> append missing ch_member_consent events
+  -> persist response snapshot + hash
+  -> commit</pre>
+      <div class="table-wrap"><table>
+        <thead><tr><th>事实</th><th>必须保持</th></tr></thead>
+        <tbody>
+          <tr><td>会员</td><td>同一 <code>tenant_id + uid</code> 只有一个 member；同一 CRMEB uid 可在另一个租户拥有独立 member</td></tr>
+          <tr><td>资料</td><td>同一 <code>tenant_id + member_id</code> 只有一个 profile；并发初始化不得创建孤儿或重复资料</td></tr>
+          <tr><td>协议</td><td>同 member、同协议当前版本和正文哈希只需一条接受证据；重复 bootstrap 不追加相同接受事件</td></tr>
+          <tr><td>归因</td><td>只有第一次初始化可写 first channel/referrer；当前渠道可随可信请求更新，首次归因不可变</td></tr>
+        </tbody>
+      </table></div>
+    </section>
+
+    <section>
+      <h2>5. 自动验收证据</h2>
+      <pre># 独立 HTTP/数据库门禁
+./scripts/check-g1-member-bootstrap.sh
+
+# G1 总门禁，已包含上面的独立门禁
+./scripts/check-g1-membership-baseline.sh</pre>
+      <div class="table-wrap"><table>
+        <thead><tr><th>测试层</th><th>固定证据</th></tr></thead>
+        <tbody>
+          <tr><td>认证与上下文</td><td><code>auth_context_run.php</code>：33 项测试</td></tr>
+          <tr><td>请求、幂等与协议</td><td><code>bootstrap_domain_run.php</code>：28 项测试</td></tr>
+          <tr><td>同 Key 并发</td><td>20 个并发 HTTP 请求全部 200，只产生 1 个幂等结果、1 个主租户 member、1 个 profile 和 1 次协议接受</td></tr>
+          <tr><td>不同 Key 并发</td><td>另 20 个并发 HTTP 请求全部 200；主租户仍只有 1 个 member/profile/协议接受，成功幂等记录总数增至 21</td></tr>
+          <tr><td>跨租户</td><td>同一真实 Token 和同一客户端 Key 经受信 HMAC 进入第二租户，得到独立 member/profile；两租户数据互不复用</td></tr>
+          <tr><td>退出态</td><td>主租户 member 设为 withdrawn 后，新 Key 请求和旧成功 Key 重放均返回 HTTP 403 <code>member_disabled</code>，状态仍为 withdrawn</td></tr>
+          <tr><td>API 契约</td><td>OpenAPI 0.3.0：9 条路径、11 个操作、3 implemented + 8 planned、至少 77 个 Schema</td></tr>
+        </tbody>
+      </table></div>
+    </section>
+
+    <section>
+      <h2>6. 本地夹具与生产边界</h2>
+      <p>本地环境在未显式配置协议时，仅注册 <code>local-primary / privacy_policy / local-2026-07-23</code> 测试文档，并使用本地专用隐私摘要盐。生产环境默认不注册任何协议；上线前必须从受控配置注入正式租户协议正文和非开发盐，不能把本地夹具当作正式法律文本。</p>
+    </section>
+
+    <section>
+      <h2>7. 下一步</h2>
+      <p><strong>G1-01C：</strong>实现个人资料读取与白名单更新接口，继续复用本批的 Auth → Tenant → MemberContext 信任链、内部幂等键和退出态失败关闭规则。</p>
+    </section>
+  </div></main>
+  <footer><div class="wrap">mingde-vp-chamber · G1-01B 会员初始化开发基线 · 2026-07-23</div></footer>
+</body>
+</html>

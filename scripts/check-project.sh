@@ -24,13 +24,30 @@ required_files=(
   "docs/ADR-索引.html"
   "docs/CRMEB-支付退款事件核验.html"
   "docs/G1-会员交易开发基线.html"
+  "docs/G1-会员初始化开发基线.html"
   "backend/custom/README.html"
+  "backend/custom/app/chamber/ChamberExceptionHandle.php"
   "backend/custom/app/chamber/provider.php"
   "backend/custom/app/chamber/route/route.php"
+  "backend/custom/app/chamber/config/consent.php"
+  "backend/custom/app/chamber/controller/MemberBootstrapController.php"
+  "backend/custom/app/chamber/exceptions/MemberTransactionException.php"
+  "backend/custom/app/chamber/identity/AuthenticatedUserContext.php"
+  "backend/custom/app/chamber/identity/BearerTokenExtractor.php"
+  "backend/custom/app/chamber/membership/BootstrapIdempotency.php"
+  "backend/custom/app/chamber/membership/ConsentDocument.php"
+  "backend/custom/app/chamber/membership/MemberBootstrapRequest.php"
+  "backend/custom/app/chamber/membership/MemberContext.php"
   "backend/custom/app/chamber/middleware/ChamberCorsMiddleware.php"
+  "backend/custom/app/chamber/middleware/CrmebAuthTokenMiddleware.php"
   "backend/custom/app/chamber/middleware/TenantContextMiddleware.php"
   "backend/custom/app/chamber/middleware/RequestTraceMiddleware.php"
+  "backend/custom/app/chamber/services/ConsentDocumentRegistry.php"
+  "backend/custom/app/chamber/services/MemberBootstrapService.php"
   "backend/custom/app/chamber/tests/run.php"
+  "backend/custom/app/chamber/tests/auth_context_run.php"
+  "backend/custom/app/chamber/tests/bootstrap_domain_run.php"
+  "backend/custom/app/chamber/tests/member_bootstrap_fixture.php"
   "backend/custom/app/chamber/tests/commerce_run.php"
   "backend/custom/app/chamber/tests/commerce_db_run.php"
   "backend/custom/app/chamber/commerce/CommerceEvent.php"
@@ -84,6 +101,7 @@ required_files=(
   "scripts/prepare-local-frontend.sh"
   "scripts/check-g0-baseline.sh"
   "scripts/check-g1-membership-baseline.sh"
+  "scripts/check-g1-member-bootstrap.sh"
 )
 
 required_executables=(
@@ -94,6 +112,7 @@ required_executables=(
   "scripts/prepare-local-frontend.sh"
   "scripts/check-g0-baseline.sh"
   "scripts/check-g1-membership-baseline.sh"
+  "scripts/check-g1-member-bootstrap.sh"
 )
 
 for file in "${required_files[@]}"; do

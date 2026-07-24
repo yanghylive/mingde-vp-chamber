@@ -9,7 +9,7 @@
 <body>
   <header class="doc-head">
     <div class="wrap">
-      <p class="eyebrow">DELIVERY BOARD · 2026-07-22</p>
+      <p class="eyebrow">DELIVERY BOARD · 2026-07-23</p>
       <h1>开发任务板</h1>
       <p>只按可运行代码、已执行迁移和测试证据计算进度。文档、空目录和 Mock 页面不单独算功能完成。</p>
     </div>
@@ -45,8 +45,8 @@
         <h2>2. G1 会员交易进行中</h2>
         <div class="table-wrap"><table><thead><tr><th>任务</th><th>范围</th><th>当前状态</th><th>验收/出口</th></tr></thead><tbody>
           <tr><td><code>G1-01A</code></td><td>会籍数据事实、会员投影加固、领域状态、OpenAPI 与 HTML 基线</td><td>已完成</td><td>5 张新表；229 项 G1 结构检查；37 项领域测试；OpenAPI 0.3.0</td></tr>
-          <tr><td><code>G1-01B</code></td><td>CRMEB Token、MemberContext、member/profile 并发初始化、协议与首次归因</td><td>下一任务</td><td>20 路并发只生成 1 组记录；跨租户隔离；退出会员不复活</td></tr>
-          <tr><td><code>G1-01C</code></td><td>毕业生认证提交、管理审核、审计与 L2 投影</td><td>待开始</td><td>认证全状态和审核竞争通过真实库测试</td></tr>
+          <tr><td><code>G1-01B</code></td><td>CRMEB Token、MemberContext、member/profile 并发初始化、协议与首次归因</td><td>已完成</td><td>33 + 28 项 PHP 测试；同 Key/不同 Key 各 20 路真实 HTTP 并发；跨租户隔离；退出态旧/新 Key 均 403</td></tr>
+          <tr><td><code>G1-01C</code></td><td>个人资料读取、白名单更新与隐私范围接口；随后接毕业生认证服务</td><td>下一任务</td><td>资料越权、字段白名单、隐私投影和幂等更新通过真实 HTTP/数据库测试</td></tr>
           <tr><td><code>G1-01D</code></td><td>L3/L4 计划、CRMEB 会籍订单、OrderContext 绑定与补扫</td><td>待开始</td><td>同幂等键重放原订单，异请求冲突；禁止混购和降级购买</td></tr>
           <tr><td><code>G1-01E</code></td><td>支付 inbox 消费、term/effect、tier 投影、到期任务与总门禁</td><td>待开始</td><td>重复支付 10 次仅 1 份权益；两笔并发续费不丢失</td></tr>
         </tbody></table></div>
@@ -86,7 +86,7 @@
       <section>
         <h2>6. 当前自动验收</h2>
         <pre>./scripts/check-g1-membership-baseline.sh</pre>
-        <p>该门禁先完整执行 G0，再验证 003/004 的 158 + 71 = 229 项结构检查、179+ 张总表、22+ 张 Chamber 表、37 项会员领域测试、OpenAPI 0.3.0 的 9 条路径/11 个操作/77 个 Schema、HTML 文档和子模块洁净状态。</p>
+        <p>该门禁先完整执行 G0，再验证 003/004 的 158 + 71 = 229 项结构检查、179+ 张总表、22+ 张 Chamber 表、37 项会员领域测试、33 项认证上下文测试、28 项请求/协议领域测试，以及 <code>check-g1-member-bootstrap.sh</code> 的真实 CRMEB api Token 与 HTTP 事务并发证据。OpenAPI 0.3.0 当前固定为 9 条路径、11 个操作（3 implemented + 8 planned）和至少 77 个 Schema。</p>
       </section>
     </div>
   </main>

@@ -2,7 +2,7 @@
   "project": {
     "code": "mingde-vp-chamber",
     "name": "VP 毕业生同学会数字平台",
-    "status": "g1-01a-membership-baseline-complete",
+    "status": "g1-01b-member-bootstrap-complete",
     "established_on": "2026-07-17",
     "default_branch": "main",
     "repository_visibility": "private"
@@ -28,6 +28,7 @@
     "architecture_decisions": "docs/ADR-索引.html",
     "commerce_event_audit": "docs/CRMEB-支付退款事件核验.html",
     "g1_membership_baseline": "docs/G1-会员交易开发基线.html",
+    "g1_member_bootstrap_baseline": "docs/G1-会员初始化开发基线.html",
     "commerce_source_audit": "backend/custom/commerce/README.html",
     "api_contract": "backend/custom/openapi/README.html",
     "database_baseline": "backend/custom/database/README.html"
@@ -64,13 +65,26 @@
     "migration_structural_checks_total": 394,
     "membership_domain_tests": 37,
     "membership_domain_tests_minimum": 37,
+    "member_auth_context_tests": 33,
+    "member_auth_context_tests_minimum": 33,
+    "member_bootstrap_domain_tests": 28,
+    "member_bootstrap_domain_tests_minimum": 28,
+    "member_bootstrap_same_key_concurrency": 20,
+    "member_bootstrap_distinct_key_concurrency": 20,
+    "member_bootstrap_members_per_tenant": 1,
+    "member_bootstrap_profiles_per_member": 1,
+    "member_bootstrap_consent_events_per_document": 1,
+    "member_bootstrap_cross_tenant_member_records": 2,
+    "member_bootstrap_withdrawn_http_status": 403,
+    "member_bootstrap_completed_on": "2026-07-23",
     "openapi_version": "0.3.0",
     "openapi_paths": 9,
     "openapi_operations_total": 11,
-    "openapi_operations_implemented": 2,
-    "openapi_operations_planned": 9,
+    "openapi_operations_implemented": 3,
+    "openapi_operations_planned": 8,
     "openapi_schemas": 77,
     "openapi_schemas_minimum": 77,
+    "member_bootstrap_gate": "scripts/check-g1-member-bootstrap.sh",
     "gate": "scripts/check-g1-membership-baseline.sh"
   }
 }

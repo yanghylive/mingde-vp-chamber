@@ -5,6 +5,7 @@ use app\chamber\contracts\ReplayGuardInterface;
 use app\chamber\contracts\SignedTenantRequestVerifierInterface;
 use app\chamber\contracts\TenantDirectoryInterface;
 use app\chamber\services\DisabledSignedTenantRequestVerifier;
+use app\chamber\services\ConsentDocumentRegistry;
 use app\chamber\services\HmacTenantRequestVerifier;
 use app\chamber\services\RedisReplayGuard;
 use app\chamber\services\TenantRuntimeConfig;
@@ -13,6 +14,9 @@ use think\facade\Config;
 
 return [
     'think\exception\Handle' => ChamberExceptionHandle::class,
+    ConsentDocumentRegistry::class => function () {
+        return new ConsentDocumentRegistry((array) Config::get('consent', []));
+    },
     TenantRuntimeConfig::class => function () {
         return new TenantRuntimeConfig((array) Config::get('tenant', []));
     },

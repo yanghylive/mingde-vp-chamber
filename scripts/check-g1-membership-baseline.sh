@@ -61,6 +61,7 @@ done
 cd "${PROJECT_ROOT}"
 
 bash -n scripts/check-g1-membership-baseline.sh
+bash -n scripts/check-g1-member-bootstrap.sh
 ./scripts/check-g0-baseline.sh
 
 database_output="$(./scripts/manage-local-database.sh verify)"
@@ -104,11 +105,41 @@ membership_test_minimum="$(manifest_g1_minimum \
 [ "${membership_tests}" -ge "${membership_test_minimum}" ] \
     || fail "membership domain tests were removed: ${membership_tests} < ${membership_test_minimum}"
 
+auth_context_output="$(docker compose -f "${COMPOSE_FILE}" exec -T phpfpm \
+    php /var/www/app/chamber/tests/auth_context_run.php)"
+printf '%s\n' "${auth_context_output}"
+auth_context_result="$(test_result <<<"${auth_context_output}")"
+read -r auth_context_tests auth_context_failures <<<"${auth_context_result}"
+[[ "${auth_context_tests:-}" =~ ^[0-9]+$ ]] && [[ "${auth_context_failures:-}" =~ ^[0-9]+$ ]] \
+    || fail "member authentication context test result is unavailable"
+[ "${auth_context_failures}" -eq 0 ] \
+    || fail "member authentication context tests reported ${auth_context_failures} failures"
+auth_context_test_minimum="$(manifest_g1_minimum \
+    'member_auth_context_tests_minimum' 'member_auth_context_tests' 33)"
+[ "${auth_context_tests}" -ge "${auth_context_test_minimum}" ] \
+    || fail "member authentication context tests were removed: ${auth_context_tests} < ${auth_context_test_minimum}"
+
+bootstrap_domain_output="$(docker compose -f "${COMPOSE_FILE}" exec -T phpfpm \
+    php /var/www/app/chamber/tests/bootstrap_domain_run.php)"
+printf '%s\n' "${bootstrap_domain_output}"
+bootstrap_domain_result="$(test_result <<<"${bootstrap_domain_output}")"
+read -r bootstrap_domain_tests bootstrap_domain_failures <<<"${bootstrap_domain_result}"
+[[ "${bootstrap_domain_tests:-}" =~ ^[0-9]+$ ]] && [[ "${bootstrap_domain_failures:-}" =~ ^[0-9]+$ ]] \
+    || fail "member bootstrap domain test result is unavailable"
+[ "${bootstrap_domain_failures}" -eq 0 ] \
+    || fail "member bootstrap domain tests reported ${bootstrap_domain_failures} failures"
+bootstrap_domain_test_minimum="$(manifest_g1_minimum \
+    'member_bootstrap_domain_tests_minimum' 'member_bootstrap_domain_tests' 28)"
+[ "${bootstrap_domain_tests}" -ge "${bootstrap_domain_test_minimum}" ] \
+    || fail "member bootstrap domain tests were removed: ${bootstrap_domain_tests} < ${bootstrap_domain_test_minimum}"
+
+./scripts/check-g1-member-bootstrap.sh
+
 openapi_output="$(ruby backend/custom/openapi/validate.rb)"
 printf '%s\n' "${openapi_output}"
 grep -Fxq '  Contract version: 0.3.0' <<<"${openapi_output}" \
     || fail "OpenAPI membership contract version changed"
-grep -Fxq '  Paths: 9 (2 implemented, 9 planned operations)' <<<"${openapi_output}" \
+grep -Fxq '  Paths: 9 (3 implemented, 8 planned operations)' <<<"${openapi_output}" \
     || fail "OpenAPI membership operation inventory changed"
 openapi_schema_count="$(awk '$1 == "Component" && $2 == "schemas:" && $3 ~ /^[0-9]+$/ && NF == 3 { print $3 }' <<<"${openapi_output}")"
 [[ "${openapi_schema_count}" =~ ^[0-9]+$ ]] || fail "OpenAPI membership schema count is unavailable"
@@ -122,18 +153,28 @@ ruby -rjson -e '
   expected = {
     "g1_migration_structural_checks" => Integer(ARGV[1]),
     "membership_domain_tests" => Integer(ARGV[2]),
+    "member_auth_context_tests" => Integer(ARGV[3]),
+    "member_bootstrap_domain_tests" => Integer(ARGV[4]),
+    "member_bootstrap_same_key_concurrency" => 20,
+    "member_bootstrap_distinct_key_concurrency" => 20,
+    "member_bootstrap_members_per_tenant" => 1,
+    "member_bootstrap_profiles_per_member" => 1,
+    "member_bootstrap_consent_events_per_document" => 1,
+    "member_bootstrap_cross_tenant_member_records" => 2,
+    "member_bootstrap_withdrawn_http_status" => 403,
     "openapi_version" => "0.3.0",
     "openapi_paths" => 9,
     "openapi_operations_total" => 11,
-    "openapi_operations_implemented" => 2,
-    "openapi_operations_planned" => 9,
-    "openapi_schemas" => Integer(ARGV[3])
+    "openapi_operations_implemented" => 3,
+    "openapi_operations_planned" => 8,
+    "openapi_schemas" => Integer(ARGV[5])
   }
   mismatches = expected.each_with_object([]) do |(key, value), found|
     found << "#{key}=#{baseline[key].inspect}, expected #{value.inspect}" unless baseline[key] == value
   end
   abort "PROJECT_MANIFEST G1 metrics differ: #{mismatches.join("; ")}" unless mismatches.empty?
-' PROJECT_MANIFEST.json "${g1_migration_checks}" "${membership_tests}" "${openapi_schema_count}" \
+' PROJECT_MANIFEST.json "${g1_migration_checks}" "${membership_tests}" \
+    "${auth_context_tests}" "${bootstrap_domain_tests}" "${openapi_schema_count}" \
     || fail "PROJECT_MANIFEST G1 metrics are stale"
 
 git diff --check
@@ -142,4 +183,6 @@ git diff --check
 printf 'G1 membership baseline OK\n'
 printf 'Database: 179+ tables, %s G1 structural checks\n' "${g1_migration_checks}"
 printf 'Domain: %s membership state and projection tests\n' "${membership_tests}"
-printf 'OpenAPI: 0.3.0, 2 implemented + 9 planned operations, %s schemas\n' "${openapi_schema_count}"
+printf 'Bootstrap: %s auth context + %s request/consent tests; same-key and distinct-key 20-way HTTP races\n' \
+    "${auth_context_tests}" "${bootstrap_domain_tests}"
+printf 'OpenAPI: 0.3.0, 3 implemented + 8 planned operations, %s schemas\n' "${openapi_schema_count}"

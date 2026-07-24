@@ -2,6 +2,7 @@
 
 namespace app\chamber;
 
+use app\chamber\exceptions\MemberTransactionException;
 use app\chamber\middleware\RequestTraceMiddleware;
 use think\exception\Handle;
 use think\exception\HttpException;
@@ -15,10 +16,25 @@ final class ChamberExceptionHandle extends Handle
     protected $ignoreReport = [
         HttpException::class,
         HttpResponseException::class,
+        MemberTransactionException::class,
     ];
 
     public function render($request, Throwable $exception): Response
     {
+        if ($exception instanceof MemberTransactionException) {
+            $requestId = RequestTraceMiddleware::ensureRequestId($request);
+
+            return $this->withTrace($request, Response::create([
+                'status' => $exception->httpStatus(),
+                'msg' => $exception->getMessage(),
+                'data' => [
+                    'reason' => $exception->reason(),
+                    'field_errors' => $exception->fieldErrors(),
+                ],
+                'request_id' => $requestId,
+            ], 'json', $exception->httpStatus()));
+        }
+
         if ($exception instanceof HttpResponseException) {
             return $this->withTrace($request, parent::render($request, $exception));
         }

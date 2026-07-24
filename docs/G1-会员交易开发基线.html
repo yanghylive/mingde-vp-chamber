@@ -1,25 +1,27 @@
 <!DOCTYPE html>
 <html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>G1 会员交易开发基线 · mingde-vp-chamber</title><link rel="stylesheet" href="project-docs.css"></head>
-<body><header class="doc-head"><div class="wrap"><p class="eyebrow">G1 MEMBERSHIP BASELINE · 2026-07-22</p><h1>G1 会员交易开发基线</h1><p>冻结会员身份、毕业生认证、L3/L4 会籍交易的数据事实、接口边界、幂等规则与实施顺序。</p></div></header>
-<main class="doc-main"><div class="wrap"><nav class="doc-nav"><a href="../index.html">项目首页</a><a href="开发任务板.html">开发任务板</a><a href="../backend/custom/openapi/README.html">API 契约</a><a href="CRMEB-支付退款事件核验.html">支付退款核验</a></nav>
+<body><header class="doc-head"><div class="wrap"><p class="eyebrow">G1 MEMBERSHIP BASELINE · 2026-07-23</p><h1>G1 会员交易开发基线</h1><p>冻结会员身份、毕业生认证、L3/L4 会籍交易的数据事实、接口边界、幂等规则与实施顺序。</p></div></header>
+<main class="doc-main"><div class="wrap"><nav class="doc-nav"><a href="../index.html">项目首页</a><a href="开发任务板.html">开发任务板</a><a href="G1-会员初始化开发基线.html">会员初始化</a><a href="../backend/custom/openapi/README.html">API 契约</a><a href="CRMEB-支付退款事件核验.html">支付退款核验</a></nav>
 
 <section><h2>1. 本批范围与状态</h2><div class="table-wrap"><table><thead><tr><th>需求</th><th>G1 覆盖</th><th>当前状态</th><th>下一实施点</th></tr></thead><tbody>
-<tr><td>MEM-001 登录与协议</td><td>复用 CRMEB Token；新增租户会员惰性初始化与追加式协议记录</td><td>数据/API 契约完成</td><td>认证中间件与 bootstrap 服务</td></tr>
+<tr><td>MEM-001 登录与协议</td><td>复用 CRMEB Token；新增租户会员惰性初始化与追加式协议记录</td><td>G1-01B 已完成</td><td>进入个人资料接口</td></tr>
 <tr><td>MEM-002 毕业生认证</td><td>不可变申请、单一当前申请、审核状态机、L2 投影</td><td>数据/API/状态机完成</td><td>用户提交与管理审核服务</td></tr>
 <tr><td>MEM-003 个人资料</td><td>补齐头像对象键、主营、资源、需求、兴趣和隐私范围</td><td>数据/API 契约完成</td><td>白名单读写服务</td></tr>
 <tr><td>MEM-006 会籍购买</td><td>计划、订单上下文、期限事实、追加式效果、等级投影</td><td>数据/状态/API 契约完成</td><td>下单编排与支付事件消费</td></tr>
-<tr><td>MEM-009 推荐归因</td><td>租户内推荐码、首次渠道和推荐人锁定</td><td>数据/API 契约完成</td><td>bootstrap 并发归因</td></tr>
-</tbody></table></div><p><strong>当前交付：</strong>G1-01A 建立 5 张新表、3 张现有表扩展、4 个 PHP 领域状态类和 OpenAPI 0.3.0；003/004 迁移分别通过 158/71 项结构复验，会员领域测试 37 项通过。契约共 9 条路径、11 个操作和 77 个 Schema，其中 G1 的 9 个操作标记为 <code>planned</code>，尚未伪装成可调用路由。</p></section>
+<tr><td>MEM-009 推荐归因</td><td>租户内推荐码、首次渠道和推荐人锁定</td><td>G1-01B 已完成</td><td>后续推荐展示与运营规则</td></tr>
+</tbody></table></div><p><strong>当前交付：</strong>G1-01A 建立 5 张新表、3 张现有表扩展和 4 个 PHP 领域状态类；G1-01B 已落地真实 CRMEB API Token 认证、<code>MemberContext</code>、租户会员初始化、首次归因、服务端协议注册表与事务幂等。003/004 迁移分别通过 158/71 项结构复验，会员领域测试 37 项、认证上下文测试 33 项、请求/协议领域测试 28 项通过。OpenAPI 0.3.0 共 9 条路径、11 个操作和 77 个 Schema，当前为 3 个 <code>implemented</code>、8 个 <code>planned</code>。</p></section>
 
 <section><h2>2. CRMEB 源码假设修正</h2><div class="table-wrap"><table><thead><tr><th>原假设</th><th>源码事实</th><th>确定方案</th></tr></thead><tbody>
 <tr><td>监听 <code>UserRegisterListener</code> 即可创建租户会员</td><td>事件没有 TenantContext，且既有用户绑定推广关系时也会触发；事件本身不耐久</td><td>在受保护 Chamber API 首次访问时，以可信 tenant + CRMEB uid 幂等惰性创建</td></tr>
 <tr><td><code>OrderCreateAfterListener</code> 可与订单原子写 OrderContext</td><td>CRMEB 订单事务提交后才触发该事件</td><td>会籍下单编排器先建 nullable-order Context，再建 CRMEB 订单并绑定；补扫任务修复提交间隙</td></tr>
 <tr><td>支付成功监听器可直接开权益</td><td>现有 G0 只把统一商业事实写入 inbox，尚无领域消费者</td><td>消费者在同库事务内锁 inbox/context/order/member/term，创建唯一期限并标记事件完成</td></tr>
-</tbody></table></div><div class="callout warn"><strong>安全边界：</strong>用户身份只取 CRMEB <code>AuthTokenMiddleware</code> 验证后的 <code>request-&gt;uid()</code>。正文、查询和路径中的 uid、member_id、tenant_id、channel_id 一律不可信。</div></section>
+</tbody></table></div><div class="callout warn"><strong>安全边界：</strong>Chamber <code>CrmebAuthTokenMiddleware</code> 严格解析 Bearer Token，并调用 CRMEB <code>UserAuthServices::parseToken</code> 验证真实 <code>api</code> Token。受保护路由固定先完成 Auth，再解析 Tenant；用户身份只取认证后的上下文，租户和渠道只取 <code>TenantContext</code>。正文、查询和路径中的 uid、member_id、tenant_id、channel_id 一律不可信。</div></section>
 
-<section><h2>3. 第一条纵向闭环</h2><pre>CRMEB Token
-  -> TenantContext
+<section><h2>3. 第一条纵向闭环</h2><pre>CRMEB api Token                           [G1-01B 完成]
+  -> AuthenticatedUserContext
+  -> TenantContext                       [Auth 先于 Tenant]
   -> 幂等创建 L1 member + profile + invite code
+  -> 服务端解析协议版本并追加接受证据       [G1-01B 完成]
   -> 提交毕业生认证
   -> 运营审批为 L2
   -> 查询当前渠道 L3/L4 plan
@@ -46,15 +48,15 @@
 <tr><td>退款</td><td>none → requested → processing → partially_completed / completed；失败或取消可重新申请</td><td>渠道受理和 CRMEB 同步“成功”仅是 processing；可信资金完成才改变期限</td></tr>
 </tbody></table></div></section>
 
-<section><h2>6. Planned API</h2><div class="table-wrap"><table><thead><tr><th>操作</th><th>用途</th><th>安全要求</th></tr></thead><tbody>
-<tr><td><code>POST /chamber/v1/me/bootstrap</code></td><td>会员初始化、首次归因、协议记录</td><td>Bearer + TenantContext + Idempotency-Key</td></tr>
+<section><h2>6. Implemented 与 Planned API</h2><div class="table-wrap"><table><thead><tr><th>操作</th><th>用途/状态</th><th>安全要求</th></tr></thead><tbody>
+<tr><td><code>POST /chamber/v1/me/bootstrap</code></td><td>会员初始化、首次归因、协议记录；<strong>implemented</strong></td><td>CRMEB api Bearer + Auth 后 TenantContext + Idempotency-Key</td></tr>
 <tr><td><code>GET/PATCH /chamber/v1/me/profile</code></td><td>资料读取与白名单更新</td><td>PATCH 要求 Idempotency-Key</td></tr>
 <tr><td><code>GET/POST /chamber/v1/me/graduate-verifications</code></td><td>认证查询与提交</td><td>POST 要求 Idempotency-Key</td></tr>
 <tr><td><code>POST /chamber/admin/v1/graduate-verifications/{application_id}/reviews</code></td><td>运营审批、退回、拒绝或撤销认证</td><td>Admin Bearer + TenantContext + <code>chamber.graduate_verification.review</code> + Idempotency-Key</td></tr>
 <tr><td><code>GET /chamber/v1/membership/plans</code></td><td>当前租户渠道可售计划</td><td>不向前端暴露 CRMEB 商品/SKU 内部映射</td></tr>
 <tr><td><code>POST /chamber/v1/membership/checkouts</code></td><td>创建或重放单会籍计划 CRMEB 订单及 OrderContext</td><td>Bearer + TenantContext + Idempotency-Key；校验计划版本、金额和币种</td></tr>
 <tr><td><code>GET /chamber/v1/me/membership</code></td><td>有效等级、期限和购买资格</td><td>只返回当前认证用户自己的租户域数据</td></tr>
-</tbody></table></div><p>完整请求、响应、错误码和 Schema 见 <a href="../backend/custom/openapi/chamber-openapi.yaml">OpenAPI 0.3.0</a>。本批新增的稳定错误码包括：无审核权限 <code>403 permission_denied</code>、认证申请不存在 <code>404 verification_application_not_found</code>、客户端协议版本已失效 <code>409 consent_document_stale</code>。</p></section>
+</tbody></table></div><p>除会员初始化外，其余 G1 操作仍为 <code>planned</code>。完整请求、响应、错误码和 Schema 见 <a href="../backend/custom/openapi/chamber-openapi.yaml">OpenAPI 0.3.0</a>。会员初始化稳定覆盖 <code>401 authentication_required</code>、<code>400 idempotency_key_required</code>、<code>409 idempotency_conflict</code>、<code>409 consent_document_stale</code>、<code>409 member_attribution_locked</code> 与 <code>403 member_disabled</code>。</p></section>
 
 <section><h2>7. 幂等、事务与锁序</h2><pre>inbox
   -> ch_order_context
@@ -64,7 +66,7 @@
 
 <section><h2>8. 验收矩阵</h2><div class="table-wrap"><table><thead><tr><th>层级</th><th>必须通过</th></tr></thead><tbody>
 <tr><td>迁移</td><td>MySQL 8 空库/升级库、重复执行、verify、可重跑 rollback；MySQL 5.7 语法保持兼容</td></tr>
-<tr><td>会员</td><td>bootstrap 重放与 20 路并发只创建一组 member/profile；跨租户隔离；退出会员不复活</td></tr>
+<tr><td>会员</td><td>同 Key 20 路并发与不同 Key 20 路并发均只创建一个租户会员、一个该会员资料、每份协议一次接受事件；跨租户分别创建；退出会员使用旧 Key 重放或新 Key 请求均返回 HTTP 403，且不复活</td></tr>
 <tr><td>认证</td><td>全部合法/非法迁移；approve/reject 并发仅一方成功；旧材料不可覆盖</td></tr>
 <tr><td>支付</td><td>事件 10 次重放、两笔续费并发、事务中断重试、订单/Context 任一字段不匹配</td></tr>
 <tr><td>等级</td><td>L3→L4、L4 到期回落 L3/L2、认证撤销到 L1、重新认证恢复有效 term</td></tr>
@@ -78,6 +80,6 @@
 <tr><td>生产验收</td><td>协议正文、隐私政策、运营审核账号、域名和部署信息</td></tr>
 </tbody></table></div><div class="callout warn"><strong>暂缓：</strong>真实微信支付、部分退款期限折算、按天补差价、自动续费、推荐奖励与退款冲正、用户端/管理端 UI。部分退款在财务规则确认前只进入人工处理，不能按金额比例自行换算期限。</div></section>
 
-<section><h2>10. 下一开发批次</h2><ol><li>G1-01B：CRMEB Token 接入、MemberContext、会员/profile 并发初始化与协议记录。</li><li>G1-01C：毕业生认证提交、审核、审计记录与 L2 投影。</li><li>G1-01D：计划查询、会籍下单、OrderContext 绑定与缺口补扫。</li><li>G1-01E：支付 inbox 消费、期限/效果、等级投影、到期任务和真实库并发测试。</li></ol></section>
+<section><h2>10. 下一开发批次</h2><ol><li>G1-01C：个人资料读取/白名单更新，并继续实现毕业生认证提交、审核、审计记录与 L2 投影。</li><li>G1-01D：计划查询、会籍下单、OrderContext 绑定与缺口补扫。</li><li>G1-01E：支付 inbox 消费、期限/效果、等级投影、到期任务和真实库并发测试。</li></ol><p>G1-01B 的实现、信任边界和真实 HTTP 证据见 <a href="G1-会员初始化开发基线.html">G1 会员初始化开发基线</a>。</p></section>
 
-</div></main><footer><div class="wrap">mingde-vp-chamber · G1 会员交易开发基线 · 2026-07-22</div></footer></body></html>
+</div></main><footer><div class="wrap">mingde-vp-chamber · G1 会员交易开发基线 · 2026-07-23</div></footer></body></html>
