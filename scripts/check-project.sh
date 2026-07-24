@@ -21,6 +21,7 @@ required_files=(
   "docs/本地开发环境基线.html"
   "docs/Codex-Agent团队全量开发计划-v1.0.html"
   "docs/开发任务板.html"
+  "docs/PRD-开发进度总结-2026-07-24.html"
   "docs/ADR-索引.html"
   "docs/CRMEB-支付退款事件核验.html"
   "docs/G1-会员交易开发基线.html"

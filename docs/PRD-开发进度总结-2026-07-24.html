@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>PRD 开发进度总结 · 2026-07-24</title>
+  <link rel="stylesheet" href="project-docs.css">
+</head>
+<body>
+  <header class="doc-head"><div class="wrap">
+    <p class="eyebrow">PRD PROGRESS REVIEW · 2026-07-24</p>
+    <h1>PRD 开发进度总结</h1>
+    <p>以 PRD v2.0 的 53 条编号需求和发布会验收门禁为准，对照当前代码、数据库、OpenAPI、前端制品和自动化门禁形成的实况报告。</p>
+  </div></header>
+
+  <main class="doc-main"><div class="wrap">
+    <nav class="doc-nav">
+      <a href="../index.html">项目首页</a>
+      <a href="PRD-v2.0.html">PRD v2.0</a>
+      <a href="开发任务板.html">开发任务板</a>
+      <a href="G1-会员初始化开发基线.html">G1-01B 基线</a>
+      <a href="../backend/custom/openapi/README.html">API 契约</a>
+    </nav>
+
+    <section id="summary">
+      <h2>1. 管理结论</h2>
+      <div class="decision-grid">
+        <article><small>当前工程阶段</small><strong>G1-01B 已验收</strong><p>项目底座 G0 已完成，真实 CRMEB Token、会员初始化、协议证据和首次归因已形成后端子闭环。</p></article>
+        <article><small>PRD 全量产品完成度</small><strong>约 12%–15%</strong><p>这是按可交付产品严格估算，不把数据库表、planned API 或上游能力直接算成业务功能完成。</p></article>
+        <article><small>2026-08-10 风险</small><strong>红色 / 高风险</strong><p>距离发布节点 17 天，业务前端尚未形成，活动、商城二开、大咖和 AI 均无可运行主链路。</p></article>
+      </div>
+      <div class="callout warn"><strong>一句话判断：</strong>工程地基质量高，产品功能仍在早期。现在已经证明“底座能承载二开”，还没有证明“五大模块能被用户使用”。</div>
+    </section>
+
+    <section id="method">
+      <h2>2. 统计口径</h2>
+      <div class="table-wrap"><table>
+        <thead><tr><th>口径</th><th>定义</th><th>当前结果</th></tr></thead>
+        <tbody>
+          <tr><td>PRD 编号</td><td>ACT 10 + MEM 11 + COM 9 + EXP 7 + AIE 9 + TEN 7</td><td><strong>53 条</strong>，其中 41 条 P0、5 条 P1、7 条 TEN 未标优先级</td></tr>
+          <tr><td>完整验收</td><td>后端运行时、用户/运营界面、真实数据流、权限、异常路径和验收测试全部通过</td><td><strong>0 / 53</strong></td></tr>
+          <tr><td>可运行子闭环</td><td>已有真实后端运行时和自动化证据，但尚未覆盖该需求的全部 PRD 验收项</td><td>集中在 MEM-001、MEM-009 及 TEN-001/004/006 的一部分</td></tr>
+          <tr><td>数据/契约基础</td><td>已有表、状态模型、planned OpenAPI 或上游可复用能力，但用户还不能完成该业务</td><td>会员、活动、交易可靠性和角色领域已有若干基础</td></tr>
+          <tr><td>工程底座</td><td>独立仓库、CRMEB 子模块、Overlay、租户上下文、本地环境、CI 门禁和技术文档</td><td><strong>G0 100%</strong></td></tr>
+        </tbody>
+      </table></div>
+      <p class="subtle">“0 / 53 完整验收”不等于没有开发成果；它表示现有成果尚未达到 PRD 对单条业务需求的完整验收边界。12%–15% 是结合后端子闭环、跨领域底座和前端缺口作出的工程估算，不是财务进度。</p>
+    </section>
+
+    <section id="dashboard">
+      <h2>3. 模块进度盘点</h2>
+      <div class="table-wrap"><table>
+        <thead><tr><th>范围</th><th>估算完成度</th><th>已经具备</th><th>主要缺口</th><th>判断</th></tr></thead>
+        <tbody>
+          <tr><td>工程底座 G0</td><td><strong>100%</strong></td><td>独立 Git 仓库、CRMEB v6.0.0 子模块、Overlay、本地 Docker、租户解析、签名/CORS/追踪、迁移和总门禁</td><td>生产部署、监控、备份和压测属于后续生产化工作</td><td>已验收</td></tr>
+          <tr><td>租户平台 TEN</td><td><strong>约 35%</strong></td><td>tenant/channel 核心表、TenantContext、可信 HMAC、双租户种子、跨租户负向测试、首次/当前渠道</td><td>全业务域覆盖、后台数据范围、完整品牌配置、共享资源、配置发布与回滚、业绩报表</td><td>底座部分完成</td></tr>
+          <tr><td>会员 MEM</td><td><strong>约 18%</strong></td><td>Token 鉴权、会员 bootstrap、profile 初始化、协议证据、推荐码/首次归因；认证、会籍相关数据和契约基础</td><td>微信端流程、资料 UI/API、认证提交与审核、会籍支付、目录、好友、积分、贡献榜、客服、注销</td><td>首个后端子闭环完成</td></tr>
+          <tr><td>活动 ACT</td><td><strong>约 5%</strong></td><td>event、ticket、registration、checkin 四张领域表及租户字段</td><td>运营端、用户端、资格、支付、地图、签到码、积分冲正、提醒候补和回顾均无运行时</td><td>仅数据基础</td></tr>
+          <tr><td>商城 COM</td><td><strong>约 5%–8%</strong></td><td>CRMEB 商品/订单/支付/退款底座已审计；商业事件 inbox、幂等和退款尝试表已验证</td><td>七类商品、L2+ 申请、审核、会员价、混合支付、虚拟履约、积分/分账冲正及项目 UI</td><td>上游可复用，二开未形成</td></tr>
+          <tr><td>大咖 EXP</td><td><strong>约 2%</strong></td><td>人物角色、角色申请、会员角色数据表</td><td>主页、案例、档期、预约、履约、AI 助手和咨询纪要全部缺少运行时/UI</td><td>仅角色基础</td></tr>
+          <tr><td>AI 生态 AIE</td><td><strong>0% 运行时</strong></td><td>已有服务目录、架构边界和开发说明</td><td>AI 网关、流式对话、工具目录/调用、配额、课程/陪跑入口、护栏、日志和 UI</td><td>尚未开工</td></tr>
+          <tr><td>业务前端/后台</td><td><strong>约 2%</strong></td><td>租户品牌解析脚本及 6 项测试</td><td>UniApp 与 Admin 业务页当前只有目录占位，没有任何 PRD 主旅程</td><td>关键阻塞项</td></tr>
+        </tbody>
+      </table></div>
+    </section>
+
+    <section id="requirements">
+      <h2>4. 逐需求对照</h2>
+      <h3>4.1 会员与租户平台</h3>
+      <div class="table-wrap"><table>
+        <thead><tr><th>ID</th><th>PRD 需求</th><th>当前状态</th><th>已完成与未完成边界</th></tr></thead>
+        <tbody>
+          <tr><td><code>MEM-001</code></td><td>微信登录与手机号</td><td>可运行子闭环</td><td>已完成真实 CRMEB API Token、绑手机状态和服务端协议留证；缺微信入口/绑定动作、注销流程和完整用户界面。</td></tr>
+          <tr><td><code>MEM-002</code></td><td>毕业生认证</td><td>数据/契约基础</td><td>已有申请表、状态约束和 planned API；缺材料提交服务、运营审核、L2 投影和两端界面。</td></tr>
+          <tr><td><code>MEM-003</code></td><td>个人资料</td><td>数据/契约基础</td><td>初始化会创建 profile，已有字段/隐私 Schema 和 planned GET/PATCH；读写服务及界面未实现。</td></tr>
+          <tr><td><code>MEM-004</code></td><td>会员目录</td><td>未开始</td><td>缺 L2+ 权限、搜索、筛选、贡献排序、隐私投影和页面。</td></tr>
+          <tr><td><code>MEM-005</code></td><td>好友申请</td><td>未开始</td><td>缺独立好友模型、申请/接受/拒绝/拉黑、隐私控制和页面。</td></tr>
+          <tr><td><code>MEM-006</code></td><td>会籍购买与续费</td><td>数据/契约基础</td><td>已有 plan、order context、term、effect 表和状态模型；缺计划查询、结算、支付消费、即时生效、到期任务和界面。</td></tr>
+          <tr><td><code>MEM-007</code></td><td>积分账户</td><td>未开始</td><td>CRMEB 有积分基础，但项目所需冻结、冲正、统一可追溯账本和页面未交付。</td></tr>
+          <tr><td><code>MEM-008</code></td><td>贡献值与排行</td><td>未开始</td><td>总/月/渠道/分类账本、异常审计和榜单未实现。</td></tr>
+          <tr><td><code>MEM-009</code></td><td>推荐码与渠道归因</td><td>可运行子闭环</td><td>唯一推荐码、首次/当前渠道、直接推荐人和不可变归因已完成；奖励发放、业绩报表及退款冲正未实现。</td></tr>
+          <tr><td><code>MEM-010</code></td><td>客服入口</td><td>未开始</td><td>按渠道/会籍匹配客服码和 L4 专属客服未实现。</td></tr>
+          <tr><td><code>MEM-011</code></td><td>微信通讯录开关</td><td>未开始</td><td>默认关闭策略有文档，远程开关、合规评估记录和免发版发布未实现。</td></tr>
+          <tr><td><code>TEN-001</code></td><td>渠道/租户</td><td>部分完成</td><td>Chamber 新表及当前接口带可信 tenant/channel；尚未覆盖全部活动、商品、CRMEB 订单和内容链路。</td></tr>
+          <tr><td><code>TEN-002</code></td><td>品牌配置</td><td>前端技术基础</td><td>已有 Host 映射/品牌解析脚本；缺完整配置模型、运营编辑、首页区块、客服码、小程序配置和真实双壳。</td></tr>
+          <tr><td><code>TEN-003</code></td><td>角色配置</td><td>数据基础</td><td>人物角色及申请表已建；缺按渠道材料配置、权限落地和运营流程。</td></tr>
+          <tr><td><code>TEN-004</code></td><td>数据隔离</td><td>部分完成</td><td>当前已实现接口通过双租户与 HMAC 隔离测试；未来各业务 API 和管理后台仍需逐项接入。</td></tr>
+          <tr><td><code>TEN-005</code></td><td>共享资源</td><td>未开始</td><td>跨渠道工具、课程、导师和商品的共享范围及授权未实现。</td></tr>
+          <tr><td><code>TEN-006</code></td><td>渠道归因</td><td>部分完成</td><td>会员首次/当前渠道和推荐人已落地；活动来源及渠道业绩报表未实现。</td></tr>
+          <tr><td><code>TEN-007</code></td><td>配置发布</td><td>未开始</td><td>草稿、预览、发布、版本和回滚均未实现。</td></tr>
+        </tbody>
+      </table></div>
+
+      <h3>4.2 活动</h3>
+      <div class="table-wrap"><table>
+        <thead><tr><th>ID</th><th>需求</th><th>当前状态</th><th>判断</th></tr></thead>
+        <tbody>
+          <tr><td><code>ACT-001</code></td><td>活动发布与编辑</td><td>数据基础</td><td>已有 event/ticket 表，无运营服务和界面。</td></tr>
+          <tr><td><code>ACT-002</code></td><td>三类活动</td><td>未开始</td><td>固定分类、子标签和筛选未形成运行时。</td></tr>
+          <tr><td><code>ACT-003</code></td><td>月历与列表</td><td>未开始</td><td>无查询 API 和用户页面。</td></tr>
+          <tr><td><code>ACT-004</code></td><td>报名资格引擎</td><td>数据基础</td><td>表结构可承载报名，资格规则和拒绝原因未实现。</td></tr>
+          <tr><td><code>ACT-005</code></td><td>多种支付方式</td><td>数据基础</td><td>票种/报名数据基础存在，免费、积分、现金、混合交易均未接通。</td></tr>
+          <tr><td><code>ACT-006</code></td><td>地图导航</td><td>未开始</td><td>无活动详情与微信地图调用。</td></tr>
+          <tr><td><code>ACT-007</code></td><td>扫码签到</td><td>数据基础</td><td>已有 checkin 表，无动态码、防重、防过期和人工补签服务。</td></tr>
+          <tr><td><code>ACT-008</code></td><td>签到积分</td><td>未开始</td><td>积分/贡献记账及撤销冲正未实现。</td></tr>
+          <tr><td><code>ACT-009</code></td><td>提醒与候补</td><td>未开始</td><td>通知与候补状态机未实现。</td></tr>
+          <tr><td><code>ACT-010</code></td><td>活动回顾</td><td>未开始</td><td>内容、参与者关联和 AI 摘要未实现。</td></tr>
+        </tbody>
+      </table></div>
+
+      <h3>4.3 商城、大咖与 AI</h3>
+      <div class="table-wrap"><table>
+        <thead><tr><th>ID</th><th>当前状态</th><th>已经具备</th><th>PRD 缺口</th></tr></thead>
+        <tbody>
+          <tr><td><code>COM-001</code></td><td>上游可复用基础</td><td>CRMEB 商品模型已做源码审计</td><td>实物、课程、AI 工具、咨询、陪跑和预约七种项目类型未落地</td></tr>
+          <tr><td><code>COM-002</code></td><td>上游可复用基础</td><td>CRMEB 分类与搜索可复用</td><td>类型、主题、交付、服务方和渠道等项目筛选未实现</td></tr>
+          <tr><td><code>COM-003</code></td><td>未开始</td><td>可复用用户和商品底座</td><td>L2+ 申请及履约、退款、资质、结算材料未实现</td></tr>
+          <tr><td><code>COM-004</code></td><td>未开始</td><td>可复用 CRMEB 后台权限</td><td>版本化提交、退回、通过、拒绝和下架审核流未实现</td></tr>
+          <tr><td><code>COM-005</code></td><td>未开始</td><td>可复用 CRMEB 订单和支付</td><td>积分比例/上限/会籍规则、混合扣款和订单组成未实现</td></tr>
+          <tr><td><code>COM-006</code></td><td>未开始</td><td>可复用商品价格基础</td><td>L2/L3/L4 价格、可见性和购买次数规则未实现</td></tr>
+          <tr><td><code>COM-007</code></td><td>未开始</td><td>可复用订单和核销思路</td><td>兑换码、链接、预约、核销和交付凭证未实现</td></tr>
+          <tr><td><code>COM-008</code></td><td>可靠性基础</td><td>支付/退款源码已核验，事件 inbox、幂等和退款尝试表已验证</td><td>现金、积分、分账和奖励联动冲正尚未实现</td></tr>
+          <tr><td><code>COM-009</code></td><td>未开始</td><td>无</td><td>统一积分规则、有效期、不可提现说明和明细入口未实现</td></tr>
+          <tr><td><code>EXP-001</code></td><td>角色数据基础</td><td>导师、教练、行业领袖等角色可被数据模型表达</td><td>角色化主页模板及普通会员主页未实现</td></tr>
+          <tr><td><code>EXP-002</code></td><td>未开始</td><td>无业务运行时</td><td>资料、资质、案例、课程活动、社媒和评价未实现</td></tr>
+          <tr><td><code>EXP-003</code></td><td>未开始</td><td>无业务运行时</td><td>线上/线下档期、地点、容量及预约取消规则未实现</td></tr>
+          <tr><td><code>EXP-004</code></td><td>未开始</td><td>可复用交易底座</td><td>定价、时长、付款锁档和履约订单未实现</td></tr>
+          <tr><td><code>EXP-005</code></td><td>未开始</td><td>无业务运行时</td><td>会议链接、线下导航、双方确认和售后未实现</td></tr>
+          <tr><td><code>EXP-006</code></td><td>未开始</td><td>仅有 AI 服务边界文档</td><td>知识库、欢迎语、范围、转人工和预约入口未实现</td></tr>
+          <tr><td><code>EXP-007</code></td><td>未开始</td><td>无业务运行时</td><td>双方授权、结构化纪要、编辑、下载和删除未实现</td></tr>
+          <tr><td><code>AIE-001</code></td><td>未开始</td><td>仅有架构文档</td><td>五类 AI 生态入口及首页未实现</td></tr>
+          <tr><td><code>AIE-002</code></td><td>未开始</td><td>仅有架构文档</td><td>流式对话、历史、停止、复制和反馈未实现</td></tr>
+          <tr><td><code>AIE-003</code></td><td>未开始</td><td>仅有架构文档</td><td>工具目录、介绍、体验、购买和跳转未实现</td></tr>
+          <tr><td><code>AIE-004</code></td><td>未开始</td><td>仅有工具白名单设计</td><td>活动、积分、订单和课程授权查询及调用日志未实现</td></tr>
+          <tr><td><code>AIE-005</code></td><td>未开始</td><td>仅有使用量账本设计</td><td>L1-L4 日/月配额、余量和超额套餐未实现</td></tr>
+          <tr><td><code>AIE-006</code></td><td>未开始</td><td>可复用未来商城交易</td><td>陪跑周期、教练、交付、时间、价格和购买入口未实现</td></tr>
+          <tr><td><code>AIE-007</code></td><td>未开始</td><td>可复用未来课程商品</td><td>公开课、低价课、线下课和转化归因未实现</td></tr>
+          <tr><td><code>AIE-008</code></td><td>未开始</td><td>无业务运行时</td><td>周期性 AI 个案活动和脱敏案例沉淀未实现</td></tr>
+          <tr><td><code>AIE-009</code></td><td>未开始</td><td>仅有安全边界设计</td><td>审核、免责声明、人工升级、限流和举报未实现</td></tr>
+        </tbody>
+      </table></div>
+    </section>
+
+    <section id="evidence">
+      <h2>5. 已完成工程证据</h2>
+      <div class="table-wrap"><table>
+        <thead><tr><th>证据类别</th><th>当前固定结果</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td>源码与仓库</td><td>CRMEB-KY v6.0.0 / <code>7dcddffff...</code></td><td>作为子模块锁定，业务修改位于父仓库 Overlay</td></tr>
+          <tr><td>数据库</td><td>179 张表</td><td>157 张 CRMEB 表 + 21 张 Chamber 领域表 + 1 张迁移登记表</td></tr>
+          <tr><td>数据库结构门禁</td><td>394 项</td><td>G0 165 项 + G1 229 项，含变异复核</td></tr>
+          <tr><td>领域与安全测试</td><td>25 + 18 + 7 + 11 + 6 + 37 + 33 + 28</td><td>租户、商业领域、数据库、源码审计、前端、会籍、认证上下文、bootstrap 测试全部通过</td></tr>
+          <tr><td>HTTP 并发</td><td>同 Key 20 路 + 不同 Key 20 路</td><td>会员/profile/协议证据保持单记录；跨租户独立；退出后新旧 Key 均 403</td></tr>
+          <tr><td>API 契约</td><td>OpenAPI 0.3.0</td><td>9 paths / 11 operations / 3 implemented / 8 planned / 77 schemas</td></tr>
+          <tr><td>已实现操作</td><td>3 个</td><td><code>GET /chamber/health</code>、<code>GET /chamber/v1/bootstrap</code>、<code>POST /chamber/v1/me/bootstrap</code></td></tr>
+        </tbody>
+      </table></div>
+      <div class="callout good"><strong>质量结论：</strong>当前窄切片未遗留已知 P0/P1，租户隔离、身份信任、幂等和并发门禁强于一般原型项目。这部分应保留，不应为了赶页面绕开。</div>
+    </section>
+
+    <section id="schedule">
+      <h2>6. 与 PRD 排期对照</h2>
+      <div class="table-wrap"><table>
+        <thead><tr><th>PRD 阶段</th><th>原计划</th><th>截至 2026-07-24</th><th>偏差</th></tr></thead>
+        <tbody>
+          <tr><td>需求与底座冻结</td><td>7/17–7/19</td><td>仓库、架构、CRMEB 版本、租户/交易基础、契约和本地环境均已落地</td><td>工程范围已完成，但部分业务规则和生产资料仍待后置确认</td></tr>
+          <tr><td>会员与交易主链路</td><td>7/20–7/26</td><td>完成会员初始化后端；资料、认证、会籍购买、积分/贡献值、项目商品类型尚未跑通</td><td><strong>落后于 PRD 产品计划</strong></td></tr>
+          <tr><td>五模块并行</td><td>7/27–8/2</td><td>活动仅有表；商城仅复用审计；大咖仅角色表；AI 仅文档；业务前端未开始</td><td><strong>进入阶段前准备不足</strong></td></tr>
+          <tr><td>集成与真机</td><td>8/3–8/7</td><td>尚无五条端到端旅程可供集成</td><td>前序交付若不压缩，将直接挤占测试期</td></tr>
+          <tr><td>发布会全量版</td><td>8/10</td><td>当前距离节点 17 天</td><td><strong>按“五模块真实可操作”口径为红色风险</strong></td></tr>
+        </tbody>
+      </table></div>
+      <div class="callout warn"><strong>PRD 内部口径冲突：</strong><code>COM-007</code> 被标为 P0，但排期又把虚拟履约放到 8/18–8/31；TEN-001–007 没有 P0/P1；“五模块全量首发”也不等同于 53 条编号全部在 8/10 验收。建议用“主链路可用、编号有覆盖、完整验收通过”三个层次管理发布范围。</div>
+    </section>
+
+    <section id="next">
+      <h2>7. 下一步开发顺序</h2>
+      <ol>
+        <li><strong>G1-01C：</strong>完成 MEM-003 资料 GET/PATCH、字段隐私和 MEM-002 认证提交/查询/运营审核，形成 L1 → L2 可验收旅程。</li>
+        <li><strong>G1-01D/E：</strong>完成 MEM-006 会籍计划、结算上下文、真实订单支付消费、term/tier 投影、续费和到期降级。</li>
+        <li><strong>会员前端与后台：</strong>同步补齐登录后初始化、资料、认证审核、会籍购买和状态页，建立首条真正端到端旅程。</li>
+        <li><strong>活动主链路：</strong>按 ACT-001 → ACT-004 → ACT-005 → ACT-007 → ACT-008 顺序做发布、资格、报名支付、签到和激励。</li>
+        <li><strong>并行模块：</strong>在会员身份和交易上下文稳定后，分别推进商城申请审核、大咖档期预约、AI 对话/配额/护栏与业务前端。</li>
+        <li><strong>发布门禁：</strong>至少预留 8/7–8/9 做真实支付、退款、弱网、扫码、跨租户、H5 兜底和现场演练，不把测试期继续让给功能开发。</li>
+      </ol>
+    </section>
+
+    <section id="inputs">
+      <h2>8. 需要业务方提供的信息</h2>
+      <p><strong>当前后端开发无需等待，可直接继续 G1-01C。</strong>以下信息按触发点提供，不必一次性准备完：</p>
+      <div class="table-wrap"><table>
+        <thead><tr><th>最晚触发点</th><th>需要的信息/资源</th><th>缺失影响</th></tr></thead>
+        <tbody>
+          <tr><td>会员前端定稿前</td><td>品牌名称、Logo、主题色、正式会员字段、隐私政策/用户协议正文</td><td>可先用开发配置，不能作为正式上线内容</td></tr>
+          <tr><td>微信登录与支付联调前</td><td>小程序 AppID/Secret、微信商户号、证书/密钥、回调域名和负责人</td><td>只能完成本地模拟，不能做真实微信支付验收</td></tr>
+          <tr><td>活动模块联调前</td><td>首发活动、票种、资格、积分、退款、签到和通知规则</td><td>采用 PRD 默认值开发，内容无法正式发布</td></tr>
+          <tr><td>商城/大咖联调前</td><td>商品类型规则、结算/分账比例、服务履约规则、大咖名单与档期</td><td>只能交付通用流程，无法完成首发业务验收</td></tr>
+          <tr><td>AI 模块联调前</td><td>首发模型/供应商、知识库材料、3 个工具、配额、免责声明和转人工规则</td><td>只能做技术通路，不能完成内容与合规验收</td></tr>
+          <tr><td>8/3 内容冻结前</td><td>至少 12 位大咖、3 场活动、5 项服务、5 个 AI 入口及客服/现场人员</td><td>代码即使完成，也不满足 PRD 发布会门禁</td></tr>
+        </tbody>
+      </table></div>
+    </section>
+
+    <section id="decision">
+      <h2>9. 最终判断</h2>
+      <ul class="checklist">
+        <li>架构选择合理：CRMEB v6.0.0 作为交易底座、Chamber 领域独立建模、AI 服务独立，当前没有推翻重做的理由。</li>
+        <li>开发质量合理：已有切片的租户、安全、幂等、并发和数据约束已经通过强门禁。</li>
+        <li>进度不满足 PRD 原排期：7/20–7/26 应形成会员与交易主链路，当前只完成会员初始化后端。</li>
+        <li>8/10 全量发布会版仍可作为冲刺目标，但必须四线并行、冻结新增范围，并按主链路而非 53 条全验收管理；否则应调整节点或明确降级方案。</li>
+        <li>下一开发动作明确：不等待额外资料，立即进入 G1-01C，随后打通会籍支付和首个端到端会员旅程。</li>
+      </ul>
+    </section>
+  </div></main>
+
+  <footer><div class="wrap">mingde-vp-chamber · PRD 开发进度总结 · 数据截止 2026-07-24</div></footer>
+</body>
+</html>
