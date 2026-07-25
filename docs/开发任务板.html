@@ -9,7 +9,7 @@
 <body>
   <header class="doc-head">
     <div class="wrap">
-      <p class="eyebrow">DELIVERY BOARD · 2026-07-23</p>
+      <p class="eyebrow">DELIVERY BOARD · 2026-07-25</p>
       <h1>开发任务板</h1>
       <p>只按可运行代码、已执行迁移和测试证据计算进度。文档、空目录和 Mock 页面不单独算功能完成。</p>
     </div>
@@ -46,8 +46,8 @@
         <div class="table-wrap"><table><thead><tr><th>任务</th><th>范围</th><th>当前状态</th><th>验收/出口</th></tr></thead><tbody>
           <tr><td><code>G1-01A</code></td><td>会籍数据事实、会员投影加固、领域状态、OpenAPI 与 HTML 基线</td><td>已完成</td><td>5 张新表；229 项 G1 结构检查；37 项领域测试；OpenAPI 0.3.0</td></tr>
           <tr><td><code>G1-01B</code></td><td>CRMEB Token、MemberContext、member/profile 并发初始化、协议与首次归因</td><td>已完成</td><td>33 + 28 项 PHP 测试；同 Key/不同 Key 各 20 路真实 HTTP 并发；跨租户隔离；退出态旧/新 Key 均 403</td></tr>
-          <tr><td><code>G1-01C</code></td><td>个人资料读取、白名单更新与隐私范围接口；随后接毕业生认证服务</td><td>下一任务</td><td>资料越权、字段白名单、隐私投影和幂等更新通过真实 HTTP/数据库测试</td></tr>
-          <tr><td><code>G1-01D</code></td><td>L3/L4 计划、CRMEB 会籍订单、OrderContext 绑定与补扫</td><td>待开始</td><td>同幂等键重放原订单，异请求冲突；禁止混购和降级购买</td></tr>
+          <tr><td><code>G1-01C</code></td><td>个人资料、隐私、私有附件、毕业认证提交/查询、运营审核及两端页面</td><td>已完成</td><td>资料 16、附件 10 + DB 44、认证 12 + DB 119、会员 UI 16；真实 HTTP 用户到管理员全链路通过</td></tr>
+          <tr><td><code>G1-01D</code></td><td>L3/L4 计划、CRMEB 会籍订单、OrderContext 绑定与补扫</td><td>下一任务</td><td>同幂等键重放原订单，异请求冲突；禁止混购和降级购买</td></tr>
           <tr><td><code>G1-01E</code></td><td>支付 inbox 消费、term/effect、tier 投影、到期任务与总门禁</td><td>待开始</td><td>重复支付 10 次仅 1 份权益；两笔并发续费不丢失</td></tr>
         </tbody></table></div>
       </section>
@@ -58,7 +58,7 @@
           <table>
             <thead><tr><th>批次</th><th>后端/数据</th><th>用户端/管理端</th><th>AI/交付</th><th>出口</th></tr></thead>
             <tbody>
-              <tr><td><code>G1</code> 会员交易</td><td>微信登录、L2 认证、L3/L4 会籍、订单上下文、幂等权益</td><td>品牌启动、登录、认证、会员中心、会籍购买</td><td>CI、密钥扫描、发布清单</td><td>注册到会费支付完整跑通</td></tr>
+              <tr><td><code>G1</code> 会员交易</td><td>L2 认证已完成；继续 L3/L4 会籍、订单上下文与幂等权益</td><td>资料/认证已完成；继续登录、会籍购买和状态页</td><td>恶意文件扫描、用户自读审计/审计运营、对象存储、CI 与发布清单</td><td>注册、认证到会费支付完整跑通</td></tr>
               <tr><td><code>G2</code> 活动</td><td>活动、票种、资格、报名、支付、签到</td><td>月历、详情、报名、订单和签到</td><td>活动查询工具、通知和压测骨架</td><td>免费和付费活动各一条真链路</td></tr>
               <tr><td><code>G3</code> 五模块</td><td>目录/好友、上架审核、大咖/预约、积分/贡献</td><td>同学、商城、大咖、创作者中心</td><td>AI 对话、配额、RAG 和只读工具</td><td>五大模块均有真实 API</td></tr>
               <tr><td><code>G4</code> 候选版</td><td>退款冲正、结算、审计、对账</td><td>双品牌、弱网、真机和异常状态</td><td>安全、恢复、告警和性能门禁</td><td>无 P0、无高危、五条 E2E 通过</td></tr>
@@ -69,7 +69,7 @@
 
       <section id="inputs">
         <h2>4. 只在阻塞节点要信息</h2>
-        <p>G0 已完成，进入 G1 后端领域开发仍不需要甲方补资料。到 G1 页面定稿时再要品牌素材和会员字段；进入微信真联调时再要 AppID、支付商户号和回调域名；活动规则、商品分成、大咖履约、AI 知识库和生产部署分别到对应批次确认。</p>
+        <p>G0 与 G1-01C 已完成，继续 G1-01D 会籍后端仍不需要甲方补资料。微信真联调前再要 AppID、支付商户号和回调域名；会员正式验收前需品牌素材、正式协议、头像/证明材料规则；活动规则、商品分成、大咖履约、AI 知识库和生产部署分别到对应批次确认。</p>
       </section>
 
       <section id="done">
@@ -86,7 +86,8 @@
       <section>
         <h2>6. 当前自动验收</h2>
         <pre>./scripts/check-g1-membership-baseline.sh</pre>
-        <p>该门禁先完整执行 G0，再验证 003/004 的 158 + 71 = 229 项结构检查、179+ 张总表、22+ 张 Chamber 表、37 项会员领域测试、33 项认证上下文测试、28 项请求/协议领域测试，以及 <code>check-g1-member-bootstrap.sh</code> 的真实 CRMEB api Token 与 HTTP 事务并发证据。OpenAPI 0.3.0 当前固定为 9 条路径、11 个操作（3 implemented + 8 planned）和至少 77 个 Schema。</p>
+        <p>当前数据库为 180 张表，其中 22 张 Chamber 领域表 + 1 张迁移登记表；全部迁移共 431 项结构检查（G0 165 + G1 266），本批新增迁移为 4 + 5 + 28 = 37 项。总门禁继续保留 G1-01B 的真实 Token、并发和退出态证据，并新增资料 16、附件 10 + DB 44、认证 12 + DB 119、会员 UI 16、租户品牌 6 项测试与 <code>check-g1-profile-verification.sh</code> 的真实 HTTP 全链路。OpenAPI 0.4.0 固定为 14 条路径、16 个操作（13 implemented + 3 planned）和 85 个 Schema。</p>
+        <div class="callout warn"><strong>上线边界：</strong>本批达到本地开发验收，不代表生产就绪。读取审计、配额和内容级限制已完成，但专业恶意软件扫描仍是生产硬门槛；生产对象存储、审计告警/检索、生命周期、监控备份和正式配置同样待办。</div>
       </section>
     </div>
   </main>

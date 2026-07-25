@@ -1,15 +1,15 @@
 <!DOCTYPE html>
 <html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>G1 会员交易开发基线 · mingde-vp-chamber</title><link rel="stylesheet" href="project-docs.css"></head>
-<body><header class="doc-head"><div class="wrap"><p class="eyebrow">G1 MEMBERSHIP BASELINE · 2026-07-23</p><h1>G1 会员交易开发基线</h1><p>冻结会员身份、毕业生认证、L3/L4 会籍交易的数据事实、接口边界、幂等规则与实施顺序。</p></div></header>
+<body><header class="doc-head"><div class="wrap"><p class="eyebrow">G1 MEMBERSHIP BASELINE · 2026-07-25</p><h1>G1 会员交易开发基线</h1><p>冻结会员身份、个人资料、毕业生认证、L3/L4 会籍交易的数据事实、接口边界、幂等规则与实施顺序。</p></div></header>
 <main class="doc-main"><div class="wrap"><nav class="doc-nav"><a href="../index.html">项目首页</a><a href="开发任务板.html">开发任务板</a><a href="G1-会员初始化开发基线.html">会员初始化</a><a href="../backend/custom/openapi/README.html">API 契约</a><a href="CRMEB-支付退款事件核验.html">支付退款核验</a></nav>
 
 <section><h2>1. 本批范围与状态</h2><div class="table-wrap"><table><thead><tr><th>需求</th><th>G1 覆盖</th><th>当前状态</th><th>下一实施点</th></tr></thead><tbody>
-<tr><td>MEM-001 登录与协议</td><td>复用 CRMEB Token；新增租户会员惰性初始化与追加式协议记录</td><td>G1-01B 已完成</td><td>进入个人资料接口</td></tr>
-<tr><td>MEM-002 毕业生认证</td><td>不可变申请、单一当前申请、审核状态机、L2 投影</td><td>数据/API/状态机完成</td><td>用户提交与管理审核服务</td></tr>
-<tr><td>MEM-003 个人资料</td><td>补齐头像对象键、主营、资源、需求、兴趣和隐私范围</td><td>数据/API 契约完成</td><td>白名单读写服务</td></tr>
+<tr><td>MEM-001 登录与协议</td><td>复用 CRMEB Token；新增租户会员惰性初始化与追加式协议记录</td><td>G1-01B 已完成</td><td>后续补微信入口、绑手机和注销</td></tr>
+<tr><td>MEM-002 毕业生认证</td><td>私有材料、不可变申请、单一当前申请、审核状态机、审计和 L2 投影</td><td>G1-01C 本地功能已验收</td><td>生产恶意软件扫描与对象存储加固</td></tr>
+<tr><td>MEM-003 个人资料</td><td>姓名、地区、行业、企业、职位、主营、资源、需求、兴趣、专长和隐私范围</td><td>G1-01C 大部完成</td><td>头像上传/裁剪编辑</td></tr>
 <tr><td>MEM-006 会籍购买</td><td>计划、订单上下文、期限事实、追加式效果、等级投影</td><td>数据/状态/API 契约完成</td><td>下单编排与支付事件消费</td></tr>
 <tr><td>MEM-009 推荐归因</td><td>租户内推荐码、首次渠道和推荐人锁定</td><td>G1-01B 已完成</td><td>后续推荐展示与运营规则</td></tr>
-</tbody></table></div><p><strong>当前交付：</strong>G1-01A 建立 5 张新表、3 张现有表扩展和 4 个 PHP 领域状态类；G1-01B 已落地真实 CRMEB API Token 认证、<code>MemberContext</code>、租户会员初始化、首次归因、服务端协议注册表与事务幂等。003/004 迁移分别通过 158/71 项结构复验，会员领域测试 37 项、认证上下文测试 33 项、请求/协议领域测试 28 项通过。OpenAPI 0.3.0 共 9 条路径、11 个操作和 77 个 Schema，当前为 3 个 <code>implemented</code>、8 个 <code>planned</code>。</p></section>
+</tbody></table></div><p><strong>当前交付：</strong>G1-01A/B 的会籍数据事实、真实 CRMEB Token、会员初始化、协议与归因保持不变；G1-01C 已落地资料、私有附件、毕业认证、用户端与运营审核。数据库现为 180 张表，全部迁移 431 项结构复验（G0 165 + G1 266）；本批资料 16、附件 10 + DB 44、认证 12 + DB 119、会员 UI 16 和租户品牌 6 项测试通过。OpenAPI 0.4.0 为 14 条路径、16 个操作、85 个 Schema，当前 13 个 <code>implemented</code>、3 个 <code>planned</code>。</p></section>
 
 <section><h2>2. CRMEB 源码假设修正</h2><div class="table-wrap"><table><thead><tr><th>原假设</th><th>源码事实</th><th>确定方案</th></tr></thead><tbody>
 <tr><td>监听 <code>UserRegisterListener</code> 即可创建租户会员</td><td>事件没有 TenantContext，且既有用户绑定推广关系时也会触发；事件本身不耐久</td><td>在受保护 Chamber API 首次访问时，以可信 tenant + CRMEB uid 幂等惰性创建</td></tr>
@@ -22,8 +22,8 @@
   -> TenantContext                       [Auth 先于 Tenant]
   -> 幂等创建 L1 member + profile + invite code
   -> 服务端解析协议版本并追加接受证据       [G1-01B 完成]
-  -> 提交毕业生认证
-  -> 运营审批为 L2
+  -> 提交毕业生认证                     [G1-01C 完成]
+  -> 运营审批为 L2                      [G1-01C 完成]
   -> 查询当前渠道 L3/L4 plan
   -> 创建 OrderContext（先 creating，后绑定 CRMEB order）
   -> CRMEB 支付/零元完成事实进入 commerce inbox
@@ -50,13 +50,15 @@
 
 <section><h2>6. Implemented 与 Planned API</h2><div class="table-wrap"><table><thead><tr><th>操作</th><th>用途/状态</th><th>安全要求</th></tr></thead><tbody>
 <tr><td><code>POST /chamber/v1/me/bootstrap</code></td><td>会员初始化、首次归因、协议记录；<strong>implemented</strong></td><td>CRMEB api Bearer + Auth 后 TenantContext + Idempotency-Key</td></tr>
-<tr><td><code>GET/PATCH /chamber/v1/me/profile</code></td><td>资料读取与白名单更新</td><td>PATCH 要求 Idempotency-Key</td></tr>
-<tr><td><code>GET/POST /chamber/v1/me/graduate-verifications</code></td><td>认证查询与提交</td><td>POST 要求 Idempotency-Key</td></tr>
-<tr><td><code>POST /chamber/admin/v1/graduate-verifications/{application_id}/reviews</code></td><td>运营审批、退回、拒绝或撤销认证</td><td>Admin Bearer + TenantContext + <code>chamber.graduate_verification.review</code> + Idempotency-Key</td></tr>
+<tr><td><code>GET/PATCH /chamber/v1/me/profile</code></td><td>资料读取与白名单更新；<strong>implemented</strong></td><td>PATCH 要求 Idempotency-Key；禁用会员旧结果也失败关闭</td></tr>
+<tr><td><code>POST /chamber/v1/me/assets</code> 与用户内容 GET</td><td>上传和本人读取私有证明；<strong>implemented</strong></td><td>配额、内容级校验、租户/渠道/会员/用途范围</td></tr>
+<tr><td><code>GET/POST /chamber/v1/me/graduate-verifications</code></td><td>认证查询与提交；<strong>implemented</strong></td><td>POST 要求 Idempotency-Key；只消费本人 ready 材料</td></tr>
+<tr><td><code>GET /chamber/admin/v1/graduate-verifications*</code> 与材料 GET</td><td>列表、详情和已提交材料读取；<strong>implemented</strong></td><td>Admin Bearer + TenantContext + 专用权限；材料 GET 必填 application_id，审计归属指定申请</td></tr>
+<tr><td><code>POST /chamber/admin/v1/graduate-verifications/{application_id}/reviews</code></td><td>审批、退回、拒绝或撤销；<strong>implemented</strong></td><td>专用权限 + Idempotency-Key；禁用会员不能被提级</td></tr>
 <tr><td><code>GET /chamber/v1/membership/plans</code></td><td>当前租户渠道可售计划</td><td>不向前端暴露 CRMEB 商品/SKU 内部映射</td></tr>
 <tr><td><code>POST /chamber/v1/membership/checkouts</code></td><td>创建或重放单会籍计划 CRMEB 订单及 OrderContext</td><td>Bearer + TenantContext + Idempotency-Key；校验计划版本、金额和币种</td></tr>
 <tr><td><code>GET /chamber/v1/me/membership</code></td><td>有效等级、期限和购买资格</td><td>只返回当前认证用户自己的租户域数据</td></tr>
-</tbody></table></div><p>除会员初始化外，其余 G1 操作仍为 <code>planned</code>。完整请求、响应、错误码和 Schema 见 <a href="../backend/custom/openapi/chamber-openapi.yaml">OpenAPI 0.3.0</a>。会员初始化稳定覆盖 <code>401 authentication_required</code>、<code>400 idempotency_key_required</code>、<code>409 idempotency_conflict</code>、<code>409 consent_document_stale</code>、<code>409 member_attribution_locked</code> 与 <code>403 member_disabled</code>。</p></section>
+</tbody></table></div><p>只剩 3 个会籍操作为 <code>planned</code>。完整请求、响应、错误码和 Schema 见 <a href="../backend/custom/openapi/chamber-openapi.yaml">OpenAPI 0.4.0</a>。资料、附件和认证已覆盖稳定的 authentication、permission、member disabled、validation、idempotency、asset quota/integrity 和 verification transition 错误。</p></section>
 
 <section><h2>7. 幂等、事务与锁序</h2><pre>inbox
   -> ch_order_context
@@ -67,7 +69,7 @@
 <section><h2>8. 验收矩阵</h2><div class="table-wrap"><table><thead><tr><th>层级</th><th>必须通过</th></tr></thead><tbody>
 <tr><td>迁移</td><td>MySQL 8 空库/升级库、重复执行、verify、可重跑 rollback；MySQL 5.7 语法保持兼容</td></tr>
 <tr><td>会员</td><td>同 Key 20 路并发与不同 Key 20 路并发均只创建一个租户会员、一个该会员资料、每份协议一次接受事件；跨租户分别创建；退出会员使用旧 Key 重放或新 Key 请求均返回 HTTP 403，且不复活</td></tr>
-<tr><td>认证</td><td>全部合法/非法迁移；approve/reject 并发仅一方成功；旧材料不可覆盖</td></tr>
+<tr><td>认证</td><td>全部合法/非法迁移；approve/reject 并发仅一方成功；禁用会员不能重放提级；ready 未提交材料 Admin 读取 404；approve 前复验对象存在性、大小和 SHA-256，损坏材料标记 unavailable 且不推进业务状态</td></tr>
 <tr><td>支付</td><td>事件 10 次重放、两笔续费并发、事务中断重试、订单/Context 任一字段不匹配</td></tr>
 <tr><td>等级</td><td>L3→L4、L4 到期回落 L3/L2、认证撤销到 L1、重新认证恢复有效 term</td></tr>
 <tr><td>HTTP</td><td>无 Token 401、租户伪造 403、幂等冲突 409、字段错误 422、追踪 ID 完整</td></tr>
@@ -76,10 +78,10 @@
 <section><h2>9. 信息与暂缓项</h2><p><strong>现在不需要用户提供：</strong>微信 AppID、支付商户号、品牌素材、真实毕业名单、正式协议正文、运营账号、生产域名和对象存储。当前可使用 PRD 默认价格和中性本地夹具继续开发。</p><div class="table-wrap"><table><thead><tr><th>到达节点</th><th>届时需要</th></tr></thead><tbody>
 <tr><td>微信真登录/真支付</td><td>AppID、AppSecret、商户号、证书/密钥、回调域名</td></tr>
 <tr><td>页面验收</td><td>Logo、品牌色、会员权益文案、客服二维码</td></tr>
-<tr><td>认证上传联调</td><td>正式字段口径、证明材料规则、对象存储配置</td></tr>
+<tr><td>认证生产验收</td><td>正式字段/证明规则、专业恶意软件扫描、私有对象存储、加密、生命周期与审计策略</td></tr>
 <tr><td>生产验收</td><td>协议正文、隐私政策、运营审核账号、域名和部署信息</td></tr>
-</tbody></table></div><div class="callout warn"><strong>暂缓：</strong>真实微信支付、部分退款期限折算、按天补差价、自动续费、推荐奖励与退款冲正、用户端/管理端 UI。部分退款在财务规则确认前只进入人工处理，不能按金额比例自行换算期限。</div></section>
+</tbody></table></div><div class="callout warn"><strong>暂缓：</strong>真实微信支付、部分退款期限折算、按天补差价、自动续费、推荐奖励与退款冲正，以及资料头像编辑。毕业认证虽已本地验收，专业恶意软件扫描仍是生产硬门槛；部分退款在财务规则确认前只进入人工处理。</div></section>
 
-<section><h2>10. 下一开发批次</h2><ol><li>G1-01C：个人资料读取/白名单更新，并继续实现毕业生认证提交、审核、审计记录与 L2 投影。</li><li>G1-01D：计划查询、会籍下单、OrderContext 绑定与缺口补扫。</li><li>G1-01E：支付 inbox 消费、期限/效果、等级投影、到期任务和真实库并发测试。</li></ol><p>G1-01B 的实现、信任边界和真实 HTTP 证据见 <a href="G1-会员初始化开发基线.html">G1 会员初始化开发基线</a>。</p></section>
+<section><h2>10. 下一开发批次</h2><ol><li>G1-01D：计划查询、会籍下单、OrderContext 绑定与缺口补扫。</li><li>G1-01E：支付 inbox 消费、期限/效果、等级投影、到期任务和真实库并发测试。</li><li>上线横向加固：专业恶意软件扫描、生产对象存储、审计告警/检索、头像媒体能力、监控与备份恢复。</li></ol><p>G1-01B 的信任链见 <a href="G1-会员初始化开发基线.html">会员初始化基线</a>；资料、附件、认证和审核的真实 HTTP 证据见 <a href="G1-个人资料与毕业认证开发基线.html">G1-01C 基线</a>。</p></section>
 
-</div></main><footer><div class="wrap">mingde-vp-chamber · G1 会员交易开发基线 · 2026-07-23</div></footer></body></html>
+</div></main><footer><div class="wrap">mingde-vp-chamber · G1 会员交易开发基线 · 2026-07-25</div></footer></body></html>

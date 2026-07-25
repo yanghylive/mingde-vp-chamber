@@ -14,7 +14,7 @@
     <p class="lead">CRMEB 开源版 + AI 开发的独立项目仓库。本页是立项状态、技术基线、文档与代码入口的唯一首页。</p>
     <div class="status-line">
       <span><b>项目代号</b> mingde-vp-chamber</span>
-      <span><b>状态</b> G1-01B 已验收 / G1-01C 下一批</span>
+      <span><b>状态</b> G1-01C 已验收 / G1-01D 下一批</span>
       <span><b>主分支</b> main</span>
       <span><b>CRMEB</b> v6.0.0</span>
     </div>
@@ -34,7 +34,7 @@
       <article><small>技术策略</small><strong>复用交易底座，重建商会领域</strong><p>CRMEB 承担账号、商品、订单、支付和后台权限；租户、会籍、好友、活动和预约由项目独立建模。</p></article>
       <article><small>交付原则</small><strong>一次立项，全量开发</strong><p>不拆成用后即弃的演示系统；发布会版先保证主链路可用，随后在同一代码基线上加固。</p></article>
     </div>
-    <div class="callout good"><strong>立项日：</strong>2026-07-17。<strong>G0 验收：</strong>2026-07-21。<strong>G1-01A 验收：</strong>2026-07-22。<strong>G1-01B 验收：</strong>2026-07-23，真实 CRMEB Token、会员初始化、协议证据、首次归因和 HTTP 幂等已完成。<strong>下一门禁：</strong>G1-01C 个人资料与毕业生认证。</div>
+    <div class="callout good"><strong>立项日：</strong>2026-07-17。<strong>G0 验收：</strong>2026-07-21。<strong>G1-01A 验收：</strong>2026-07-22。<strong>G1-01B 验收：</strong>2026-07-23。<strong>G1-01C 验收：</strong>2026-07-25，个人资料、私有材料、毕业认证、用户端和运营审核真实 HTTP 全链路已完成。<strong>下一门禁：</strong>G1-01D 会籍计划与下单。</div>
   </div></section>
 
   <section id="baseline" class="band alt"><div class="wrap">
@@ -50,6 +50,7 @@
         <tr><td>AI 服务</td><td><code>ai-service</code></td><td>独立网关和使用量账本，不持有客户端长期模型密钥。</td></tr>
         <tr><td>本地运行</td><td><code>.build-workspace/crmeb-runtime</code></td><td>官方源码、业务 Overlay、配置和运行数据完全隔离。</td></tr>
         <tr><td>G0 门禁</td><td><code>scripts/check-g0-baseline.sh</code></td><td>数据库、租户、签名重放、CORS、商业事件、CRMEB 源码审计、前端和 OpenAPI 一次验收。</td></tr>
+        <tr><td>当前 G1 门禁</td><td><code>scripts/check-g1-membership-baseline.sh</code></td><td>在完整 G0 上验证会员初始化、资料、私有附件、毕业认证、管理审核、前端和真实 HTTP 链路。</td></tr>
       </tbody>
     </table></div>
   </div></section>
@@ -71,7 +72,8 @@
       <a href="docs/CRMEB-支付退款事件核验.html"><span>11</span><div><b>CRMEB 支付退款事件核验</b><small>真实完成语义、六类统一事件、幂等表和源码兼容证据</small></div></a>
       <a href="docs/G1-会员交易开发基线.html"><span>12</span><div><b>G1 会员交易开发基线</b><small>会员、认证、会籍数据事实、planned API、锁序与后续切片</small></div></a>
       <a href="docs/G1-会员初始化开发基线.html"><span>13</span><div><b>G1 会员初始化开发基线</b><small>真实 CRMEB 身份、协议证据、归因、幂等和并发验收</small></div></a>
-      <a href="docs/PRD-开发进度总结-2026-07-24.html"><span>14</span><div><b>PRD 开发进度总结</b><small>53 条需求逐项对照、模块完成度、排期风险和下一开发顺序</small></div></a>
+      <a href="docs/G1-个人资料与毕业认证开发基线.html"><span>14</span><div><b>G1 个人资料与毕业认证开发基线</b><small>资料、私有材料、用户认证、运营审核、两端界面和生产边界</small></div></a>
+      <a href="docs/PRD-开发进度总结-2026-07-25.html"><span>15</span><div><b>PRD 开发进度总结</b><small>53 条需求对照、G1-01C 增量、固定工程证据、排期风险和下一开发顺序</small></div></a>
     </div>
     <p class="subtle">完整文档导航：<a href="docs/index.html">docs/index.html</a></p>
   </div></section>
@@ -135,6 +137,6 @@
   </div></section>
 </main>
 
-<footer><div class="wrap">mingde-vp-chamber · 项目立项与开发入口 · 2026-07-24</div></footer>
+<footer><div class="wrap">mingde-vp-chamber · 项目立项与开发入口 · 2026-07-25</div></footer>
 </body>
 </html>
