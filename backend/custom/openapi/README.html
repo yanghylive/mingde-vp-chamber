@@ -12,10 +12,10 @@
 <body>
 <main class="doc">
   <header>
-    <div class="eyebrow">API CONTRACT · G0 RUNTIME + G1 DELIVERY · 2026-07-23</div>
+    <div class="eyebrow">API CONTRACT · G0 RUNTIME + G1 DELIVERY · 2026-07-25</div>
     <h1>Chamber API 契约基线</h1>
-    <p>同时固定 G0 运行契约、G1 已实现会员初始化和后续会员交易契约。YAML 是机器可读的唯一事实源；每个操作显式标记 implemented 或 planned，避免把设计稿误当成已交付接口。</p>
-    <div class="meta"><span>OpenAPI 3.1.0</span><span>契约版本 0.3.0</span><span>CRMEB-KY v6.0.0</span><span>9 路径 / 11 操作</span><span>Schema 77</span></div>
+    <p>固定 G0 运行契约、G1 已实现会员初始化/资料/私有附件/毕业认证/运营审核，以及后续会籍交易契约。YAML 是机器可读的唯一事实源；每个操作显式标记 implemented 或 planned。</p>
+    <div class="meta"><span>OpenAPI 3.1.0</span><span>契约版本 0.4.0</span><span>CRMEB-KY v6.0.0</span><span>14 路径 / 16 操作</span><span>13 implemented / 3 planned</span><span>Schema 85</span></div>
   </header>
   <div class="content">
     <nav class="toc" aria-label="页内目录">
@@ -24,10 +24,10 @@
 
     <section id="scope">
       <h2>1. 范围与结论</h2>
-      <p><a href="chamber-openapi.yaml">chamber-openapi.yaml</a> 是二开接口契约的版本库事实源。G0 两个操作和 G1 会员初始化标记为 <code>implemented</code>；其余八个 G1 会员及管理操作标记为 <code>planned</code>，用于先冻结请求、响应、安全边界和错误码。</p>
+      <p><a href="chamber-openapi.yaml">chamber-openapi.yaml</a> 是二开接口契约的版本库事实源。G0 两个操作、会员初始化，以及 G1-01C 的资料、附件、认证和管理审核共 13 个操作标记为 <code>implemented</code>；会籍计划、结算和我的会籍 3 个操作仍为 <code>planned</code>。</p>
       <div class="callout"><strong>交付边界：</strong><code>planned</code> 只表示契约已确定，不表示路由已上线。实现完成时必须在同一变更中加入路由、服务、测试，并把状态改为 <code>implemented</code>。前端不得根据中文 <code>msg</code> 分支。</div>
-      <div class="callout"><strong>运行时已对齐：</strong>G0 Controller、中间件和异常处理器均返回 <code>request_id</code>，并分别回传 <code>X-Request-Id</code> 与 <code>X-Correlation-Id</code>。G1 会员初始化已接入 CRMEB Token 校验、可信租户上下文和主体域幂等。Host、HMAC、Redis 重放、CORS 和异常响应均纳入运行时门禁。</div>
-      <p>详细的 G1 实施边界、数据结构和锁序见 <a href="../../../docs/G1-会员交易开发基线.html">G1 会员交易开发基线</a>。</p>
+      <div class="callout"><strong>运行时已对齐：</strong>用户端使用 CRMEB api Token，管理端使用 CRMEB Admin Token + 专用权限；身份后解析 TenantContext。资料、附件上传、认证提交和审核写操作进入主体域幂等，私有内容读取重新鉴权并禁止公共缓存。完整真实 HTTP 链路已通过。</div>
+      <p>实施、数据与生产边界见 <a href="../../../docs/G1-个人资料与毕业认证开发基线.html">G1 个人资料与毕业认证开发基线</a>；后续会籍锁序见 <a href="../../../docs/G1-会员交易开发基线.html">G1 会员交易开发基线</a>。</p>
     </section>
 
     <section id="routes">
@@ -38,19 +38,23 @@
         <tbody>
           <tr><td><code>GET /chamber/health</code></td><td>无，公开存活探针</td><td><code>service</code>、<code>api_version</code>、Unix 秒时间</td><td><code>403</code>（跨域白名单）、<code>500</code></td></tr>
           <tr><td><code>GET /chamber/v1/bootstrap</code></td><td>域名映射或完整签名头</td><td>可信 tenant/channel、解析来源、API 版本</td><td><code>400</code>、<code>401</code>、<code>403</code>、<code>503</code></td></tr>
-          <tr><td><code>POST /chamber/v1/me/bootstrap</code></td><td>可信租户上下文、CRMEB Bearer、<code>Idempotency-Key</code></td><td>幂等创建 L1 会员、资料、首次归因和协议证据</td><td><code>400</code>、<code>401</code>、<code>403</code>、<code>409</code>、<code>422</code>、<code>503</code></td></tr>
+          <tr><td><code>POST /chamber/v1/me/bootstrap</code></td><td>用户 Bearer + TenantContext + Idempotency-Key</td><td>幂等创建 L1 会员、资料、首次归因和协议证据</td><td><code>400</code>、<code>401</code>、<code>403</code>、<code>409</code>、<code>422</code>、<code>503</code></td></tr>
+          <tr><td><code>GET /chamber/v1/me/profile</code></td><td>用户 Bearer + TenantContext</td><td>当前会员资料、隐私和完整度</td><td><code>401</code>、<code>403</code>、<code>404</code>、<code>409</code>、<code>503</code></td></tr>
+          <tr><td><code>PATCH /chamber/v1/me/profile</code></td><td>用户 Bearer + TenantContext + Idempotency-Key</td><td>字段白名单更新与逐字段隐私</td><td><code>400</code>、<code>401</code>、<code>403</code>、<code>404</code>、<code>409</code>、<code>422</code>、<code>503</code></td></tr>
+          <tr><td><code>POST /chamber/v1/me/assets</code></td><td>用户 Bearer + TenantContext + Idempotency-Key</td><td>上传私有认证材料元数据</td><td><code>400</code>、<code>401</code>、<code>403</code>、<code>409</code>、<code>413</code>、<code>422</code>、<code>503</code></td></tr>
+          <tr><td><code>GET /chamber/v1/me/assets/{asset_id}/content</code></td><td>用户 Bearer + TenantContext</td><td>本人鉴权读取材料二进制</td><td><code>400</code>、<code>401</code>、<code>403</code>、<code>404</code>、<code>409</code>、<code>503</code></td></tr>
+          <tr><td><code>GET/POST /chamber/v1/me/graduate-verifications</code></td><td>用户 Bearer + TenantContext；POST 加 Idempotency-Key</td><td>查询最近申请或提交不可变申请</td><td><code>400</code>、<code>401</code>、<code>403</code>、<code>404</code>、<code>409</code>、<code>422</code>、<code>503</code></td></tr>
+          <tr><td><code>GET /chamber/admin/v1/graduate-verifications</code></td><td>Admin Bearer + TenantContext + 专用权限</td><td>按状态/关键字分页查询申请</td><td><code>400</code>、<code>401</code>、<code>403</code>、<code>503</code></td></tr>
+          <tr><td><code>GET /chamber/admin/v1/graduate-verifications/{application_id}</code></td><td>Admin Bearer + TenantContext + 专用权限</td><td>租户域内申请详情</td><td><code>400</code>、<code>401</code>、<code>403</code>、<code>404</code>、<code>503</code></td></tr>
+          <tr><td><code>GET /chamber/admin/v1/member-assets/{asset_id}/content?application_id=...</code></td><td>Admin Bearer + TenantContext + 专用权限；application_id 必填</td><td>验证材料属于指定申请快照并将读取审计写入该申请</td><td><code>400</code>、<code>401</code>、<code>403</code>、<code>404</code>、<code>409</code>、<code>422</code>、<code>503</code></td></tr>
+          <tr><td><code>POST /chamber/admin/v1/graduate-verifications/{application_id}/reviews</code></td><td>Admin Bearer + TenantContext + 专用权限 + Idempotency-Key</td><td>追加审核决定并更新会员投影</td><td><code>400</code>、<code>401</code>、<code>403</code>、<code>404</code>、<code>409</code>、<code>422</code>、<code>503</code></td></tr>
         </tbody>
       </table></div>
-      <p><code>health</code> 仅证明 Chamber 应用可路由并返回 JSON，不代表 MySQL、Redis、支付或租户数据全部就绪。</p>
+      <p><code>health</code> 仅证明 Chamber 应用可路由并返回 JSON，不代表 MySQL、Redis、支付或租户数据全部就绪。管理端材料读取拒绝未提交的 ready 附件，并要求明确申请上下文；非法 query 在文件访问与审计前返回 422。材料 unavailable 时列表/详情仍返回可审核元数据，不让单个损坏对象拖垮队列。</p>
       <h3>2.2 G1 后续待实现契约</h3>
       <div class="table-wrap"><table>
         <thead><tr><th>方法与路径</th><th>需求</th><th>用途</th><th>状态</th></tr></thead>
         <tbody>
-          <tr><td><code>GET /chamber/v1/me/profile</code></td><td>MEM-003</td><td>读取当前租户资料</td><td><span class="pill">planned</span></td></tr>
-          <tr><td><code>PATCH /chamber/v1/me/profile</code></td><td>MEM-003</td><td>白名单更新资料及隐私范围</td><td><span class="pill">planned</span></td></tr>
-          <tr><td><code>GET /chamber/v1/me/graduate-verifications</code></td><td>MEM-002</td><td>读取当前认证状态和最近申请</td><td><span class="pill">planned</span></td></tr>
-          <tr><td><code>POST /chamber/v1/me/graduate-verifications</code></td><td>MEM-002</td><td>提交不可变毕业生认证申请</td><td><span class="pill">planned</span></td></tr>
-          <tr><td><code>POST /chamber/admin/v1/graduate-verifications/{application_id}/reviews</code></td><td>MEM-002</td><td>按租户追加运营审核决定并同步认证投影</td><td><span class="pill">planned</span></td></tr>
           <tr><td><code>GET /chamber/v1/membership/plans</code></td><td>MEM-006</td><td>列出当前租户渠道可购买的 L3/L4 计划</td><td><span class="pill">planned</span></td></tr>
           <tr><td><code>POST /chamber/v1/membership/checkouts</code></td><td>MEM-006</td><td>创建或重放单会籍计划 CRMEB 订单及不可变 OrderContext</td><td><span class="pill">planned</span></td></tr>
           <tr><td><code>GET /chamber/v1/me/membership</code></td><td>MEM-006</td><td>读取有效等级、期限和购买能力</td><td><span class="pill">planned</span></td></tr>
@@ -102,9 +106,9 @@ X-Chamber-Signature</pre>
           <tr><td>400</td><td><code>idempotency_key_required</code>、<code>request_validation_failed</code></td><td>请求结构或必需幂等头错误</td></tr>
           <tr><td>401</td><td><code>authentication_required</code></td><td>CRMEB Token 缺失、过期、退出或用户失效</td></tr>
           <tr><td>403</td><td><code>permission_denied</code>、<code>member_disabled</code>、<code>membership_verification_required</code></td><td>缺少管理审核权限、会员被禁用/退出，或购买前未通过 L2</td></tr>
-          <tr><td>404</td><td><code>member_not_found</code>、<code>verification_application_not_found</code></td><td>会员或租户域内认证申请不存在</td></tr>
-          <tr><td>409</td><td><code>idempotency_conflict</code>、<code>member_attribution_locked</code>、<code>consent_document_stale</code>、<code>verification_already_pending</code>、<code>verification_transition_invalid</code>、<code>verification_supersedes_mismatch</code>、<code>membership_downgrade_not_allowed</code></td><td>请求与当前不可变事实、协议版本或状态冲突</td></tr>
-          <tr><td>422</td><td><code>invite_code_invalid</code>、<code>profile_invalid</code>、<code>membership_plan_unavailable</code></td><td>邀请码、字段业务校验或当前渠道计划不可用</td></tr>
+          <tr><td>404</td><td><code>member_not_found</code>、<code>asset_not_found</code>、<code>verification_application_not_found</code></td><td>会员、私有材料或租户域内认证申请不存在</td></tr>
+          <tr><td>409</td><td><code>idempotency_conflict</code>、<code>member_attribution_locked</code>、<code>consent_document_stale</code>、<code>asset_quota_exceeded</code>、<code>asset_already_consumed</code>、<code>asset_integrity_failed</code>、<code>verification_already_pending</code>、<code>verification_transition_invalid</code>、<code>verification_supersedes_mismatch</code>、<code>membership_downgrade_not_allowed</code></td><td>请求与当前不可变事实、配额、存储完整性、协议版本或状态冲突</td></tr>
+          <tr><td>422</td><td><code>invite_code_invalid</code>、<code>profile_invalid</code>、<code>asset_upload_invalid</code>、<code>proof_asset_invalid</code>、<code>membership_plan_unavailable</code></td><td>邀请码、资料、上传内容、证明用途或当前渠道计划不可用</td></tr>
         </tbody>
       </table></div>
     </section>
@@ -130,6 +134,7 @@ X-Chamber-Signature</pre>
         <tbody>
           <tr><td>会员认证</td><td><code>MemberVerification</code>、<code>MembershipTier</code></td><td><code>draft</code> / <code>pending</code> / <code>approved</code> / <code>returned</code> / <code>rejected</code> / <code>revoked</code></td></tr>
           <tr><td>会员资料</td><td><code>MemberProfile</code>、<code>MemberProfilePatch</code>、<code>VisibilityScope</code></td><td>资料请求不接受 tenant、channel、uid 或 member_id</td></tr>
+          <tr><td>私有材料</td><td><code>MemberAsset</code>、<code>MemberAssetPurpose</code></td><td><code>available</code> 明确内容当前能否打开；失效材料不提供读取动作</td></tr>
           <tr><td>协议证据</td><td><code>ConsentAcceptanceRequest</code></td><td>客户端只引用服务端登记版本，不提交正文哈希</td></tr>
           <tr><td>会籍</td><td><code>MembershipPlanSummary</code>、<code>MembershipTermSummary</code>、<code>MembershipSummaryData</code></td><td><code>scheduled</code> / <code>active</code> / <code>expired</code> / <code>revoked</code> / <code>refunded</code></td></tr>
           <tr><td>活动</td><td><code>EventSummary</code>、<code>EventType</code></td><td>活动：<code>draft</code> 至 <code>cancelled</code>；报名：<code>pending_payment</code> 至 <code>completed</code></td></tr>
@@ -148,11 +153,11 @@ X-Chamber-Signature</pre>
 
 # 也可指定待验证文件
 ruby backend/custom/openapi/validate.rb path/to/chamber-openapi.yaml</pre>
-      <p>它会检查 YAML 重复键、本地 <code>$ref</code>、9 条路径与 11 个 operationId、77 个 Schema、implemented/planned 状态、用户/管理 Bearer 认证、租户头、幂等头、响应追踪头、统一 envelope、金额/时间/分页规则、商业事件哈希与无 PII 约束，以及会员请求不得接收可信身份字段。它是项目治理校验，不代替完整 OpenAPI JSON Schema 校验器。</p>
+      <p>它会检查 YAML 重复键、本地 <code>$ref</code>、14 条路径与 16 个 operationId、85 个 Schema、13 implemented / 3 planned 状态、用户/管理 Bearer、租户头、幂等头、私有内容查询/响应头、统一 envelope、金额/时间/分页、商业事件和无 PII 约束，以及会员请求不得接收可信身份字段。它是项目治理校验，不代替完整 OpenAPI JSON Schema 校验器。</p>
       <div class="callout warn"><strong>变更规则：</strong>破坏性变更必须提升 API 主版本；非破坏性字段扩展提升契约次版本；仅文案/示例修订提升补丁版本。</div>
     </section>
   </div>
-  <footer class="footer">mingde-vp-chamber · Chamber API contract 0.3.0 · 2026-07-23</footer>
+  <footer class="footer">mingde-vp-chamber · Chamber API contract 0.4.0 · 2026-07-25</footer>
 </main>
 </body>
 </html>

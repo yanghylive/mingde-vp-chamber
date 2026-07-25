@@ -8,9 +8,9 @@
 </head>
 <body>
   <header class="doc-head"><div class="wrap">
-    <p class="eyebrow">DATABASE BASELINE · 202607210001—202607210004</p>
+    <p class="eyebrow">DATABASE BASELINE · 202607210001—202607250003</p>
     <h1>商会数据库迁移基线</h1>
-    <p>在租户会员、认证审核、人物角色、活动报名和商业事件可靠性基础上，增加 G1 会籍计划、订单上下文、期限事实、效果流水、协议证据和会员投影约束；CRMEB 原表保持不变。</p>
+    <p>在租户会员、认证审核、人物角色、活动报名、商业事件可靠性和 G1 会籍事实基础上，增加管理菜单注册、资料 JSON 规范化和私有会员附件元数据；CRMEB 原安装 SQL 与业务表保持不变。</p>
   </div></header>
   <main class="doc-main"><div class="wrap">
     <section>
@@ -30,6 +30,12 @@
           <tr><td><code>migrations/202607210004_harden_member_verification_projection.up.sql</code></td><td>加固会员归因/投影、资料、认证单一当前申请并创建协议事件表</td><td>是，所有 ALTER 使用条件 DDL</td></tr>
           <tr><td><code>migrations/202607210004_harden_member_verification_projection.verify.sql</code></td><td>71 项复验：新增列/默认值、完整索引、current_slot 与会员投影一致性、协议及资料隐私约束</td><td>是，只读验证</td></tr>
           <tr><td><code>migrations/202607210004_harden_member_verification_projection.down.sql</code></td><td>条件删除 G1 加固列、索引和协议表</td><td>是，中断后可重跑</td></tr>
+          <tr><td><code>migrations/202607250001_register_chamber_admin_menu.up.sql</code></td><td>幂等注册“商会 / 毕业认证审核”菜单、路由与权限标识</td><td>是，只补缺并规范化目标菜单</td></tr>
+          <tr><td><code>migrations/202607250001_register_chamber_admin_menu.verify.sql</code></td><td>4 项复验：父菜单、审核菜单、路由和权限标识</td><td>是，只读验证</td></tr>
+          <tr><td><code>migrations/202607250002_normalize_member_profile_json.up.sql</code></td><td>规范化历史资料数组 JSON、隐私 JSON 和必需隐私键</td><td>是，只修复不符合长期不变量的数据</td></tr>
+          <tr><td><code>migrations/202607250002_normalize_member_profile_json.verify.sql</code></td><td>5 项复验：数组对象类型、元素形状与隐私结构</td><td>是，只读验证</td></tr>
+          <tr><td><code>migrations/202607250003_create_member_asset.up.sql</code></td><td>创建私有会员材料元数据、用途、完整性和消费状态表</td><td>是，使用 <code>CREATE TABLE IF NOT EXISTS</code></td></tr>
+          <tr><td><code>migrations/202607250003_create_member_asset.verify.sql</code></td><td>28 项复验：表、列、类型、索引、作用域、格式和状态不变量</td><td>是，只读验证</td></tr>
           <tr><td><code>seeds/202607210001_local_ci_baseline.sql</code></td><td>创建两个通用测试租户、默认渠道和人物角色</td><td>是，只补缺，不覆盖已有配置</td></tr>
           <tr><td><code>seeds/202607210001_local_ci_baseline.verify.sql</code></td><td>核对租户、渠道和角色数量及明细</td><td>是，只读查询</td></tr>
         </tbody>
@@ -49,7 +55,7 @@
 ./scripts/manage-local-database.sh verify</pre>
       <p><code>setup</code> 先确认每个 <code>*.up.sql</code> 都有同版本 <code>*.verify.sql</code>，再按文件名顺序执行迁移。新迁移只有在结构验证通过后，才把版本、SHA-256 校验和与执行时间写入 <code>ch_schema_migration</code>；验证失败会保留未登记状态，修复结构后可安全重跑。</p>
       <p>已登记迁移不会只做跳过：脚本先核对历史校验和，再重新运行对应结构验证，用于发现缺表、缺列、关键类型变化、索引缺失等常见漂移。独立执行 <code>verify</code> 会同时复验全部迁移结构和本地种子；若结构完整但版本未登记，会明确要求执行 <code>migrate</code> 完成登记。</p>
-      <p>当前本地基线为 CRMEB 157 张原表、21 张商会领域/可靠性表和 1 张迁移登记表，共 179 张。四个迁移验证器合计 394 项结构复验，其中 G0 为 165 项，G1 的 003/004 为 158 + 71 = 229 项。MySQL DDL 会自动提交，发布时先执行迁移再切换应用版本；生产环境不得执行通用种子或 <code>down.sql</code>。后续变更必须新增迁移文件，不回写已登记的迁移，也不修改 CRMEB 的 <code>public/install/crmeb.sql</code>。</p>
+      <p>当前本地基线为 CRMEB 157 张原表、22 张 Chamber 领域/可靠性表和 1 张迁移登记表，共 180 张；<code>ch_*</code> 共 23 张。全部迁移验证器合计 431 项结构复验，其中 G0 为 165 项、G1 为 266 项；本批 202607250001—003 为 4 + 5 + 28 = 37 项。MySQL DDL 会自动提交，发布时先执行迁移再切换应用版本；生产环境不得执行通用种子或 <code>down.sql</code>。后续变更必须新增迁移文件，不回写已登记迁移，也不修改 CRMEB 的 <code>public/install/crmeb.sql</code>。</p>
     </section>
     <section>
       <h2>本地与 CI 种子边界</h2>
@@ -66,7 +72,7 @@
       <h2>首版范围</h2>
       <ul>
         <li>租户与运营组织：<code>ch_tenant</code>、<code>ch_channel</code>。</li>
-        <li>会员与认证：<code>ch_tenant_member</code>、<code>ch_member_profile</code>、<code>ch_graduate_verification</code>、<code>ch_audit_record</code>。</li>
+        <li>会员与认证：<code>ch_tenant_member</code>、<code>ch_member_profile</code>、<code>ch_member_asset</code>、<code>ch_graduate_verification</code>、<code>ch_audit_record</code>。</li>
         <li>人物角色：<code>ch_persona_role</code>、<code>ch_role_application</code>、<code>ch_member_role</code>。</li>
         <li>活动报名：<code>ch_event</code>、<code>ch_event_ticket</code>、<code>ch_event_registration</code>、<code>ch_event_checkin</code>。</li>
         <li>商业事件可靠性：<code>ch_commerce_event_inbox</code>、<code>ch_idempotency_record</code>、<code>ch_refund_attempt</code>。</li>
@@ -108,6 +114,18 @@
         <li><code>ch_tenant_member.tier</code>、<code>tier_expire_time</code> 和 current term 是可重算投影，不得代替期限与效果流水。</li>
         <li><code>ch_graduate_verification.current_slot</code> 对当前申请写 1，历史申请写 NULL；利用 MySQL 多 NULL 唯一键阻止同会员并发产生两条当前申请。</li>
         <li><code>ch_member_consent</code> 和 <code>ch_membership_term_effect</code> 只追加，不软删除；前者禁止保存原始 IP/User-Agent，后者以 effect key/hash 检测重放冲突，同一 term 的 <code>completion_id</code> 跨 partial/full effect 类型只能入账一次。</li>
+      </ul>
+    </section>
+    <section>
+      <h2>G1-01C 资料与私有材料约束</h2>
+      <ul class="checklist">
+        <li><code>ch_member_profile</code> 的 resources/needs/interests/expertise 必须是 JSON 数组，隐私必须是 JSON 对象且只含受支持字段和 <code>private / members / friends / public</code> 范围。</li>
+        <li><code>ch_member_asset</code> 的 tenant/channel/member/uid 必须与可信上下文一致；purpose 当前只允许 <code>graduate_verification_proof</code>，对象键由服务端生成。</li>
+        <li>材料从 ready 到 consumed 必须与认证申请写入同一事务；ready 未提交材料对 Admin 不可见；退回/拒绝后的纠正申请可引用同一 consumed 材料，但保留首次消费绑定。</li>
+        <li>Admin 读取必须指定申请并验证材料存在于该不可变快照，<code>read_asset</code> 归属指定申请；非法查询不得更新访问时间或写审计。</li>
+        <li>读取或批准前发现对象缺失、大小或 SHA-256 不符时标记 unavailable；元数据不阻断列表、退回或拒绝，但 pending 申请不得 approve，也不得写入通过审计或幂等结果。</li>
+        <li>数据库只保存对象键、原文件名、MIME、字节数和 SHA-256，不保存二进制或公共 URL；实际内容读取每次重新执行用户/Admin 鉴权。</li>
+        <li>当前本地驱动只用于开发验收。生产私有对象存储、KMS/服务端加密、恶意文件扫描、访问审计、生命周期和孤儿回收尚未完成。</li>
       </ul>
     </section>
   </div></main>

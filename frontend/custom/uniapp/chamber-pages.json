@@ -1,0 +1,15 @@
+[
+  {
+    "path": "pages/chamber/profile/index",
+    "style": {
+      "navigationBarTitleText": "会员资料"
+    }
+  },
+  {
+    "path": "pages/chamber/graduate_verification/index",
+    "style": {
+      "navigationBarTitleText": "毕业认证",
+      "enablePullDownRefresh": true
+    }
+  }
+]

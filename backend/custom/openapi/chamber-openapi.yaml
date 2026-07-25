@@ -2,17 +2,17 @@ openapi: 3.1.0
 jsonSchemaDialect: https://json-schema.org/draft/2020-12/schema
 info:
   title: Mingde VP Chamber API
-  version: 0.3.0
-  summary: Chamber overlay G0 runtime and G1 membership contract baseline
+  version: 0.4.0
+  summary: Chamber overlay G0 runtime and G1 profile and graduate-verification vertical
   description: |
     This document is the source-controlled contract for the independently developed
     Chamber API overlay. Runtime behavior is defined by the locked CRMEB v6.0.0
     source plus `backend/custom/app/chamber`.
 
-    Every operation declares `x-implementation-status`. G0 routes and the G1
-    authenticated member bootstrap marked `implemented` are live. Remaining G1
-    routes marked `planned` freeze the next implementation contract and MUST NOT
-    be represented as runtime-delivered yet.
+    Every operation declares `x-implementation-status`. G0 routes, authenticated
+    member bootstrap, profile, and graduate-verification operations marked
+    `implemented` are live. Remaining G1 routes marked `planned` freeze the next
+    implementation contract and MUST NOT be represented as runtime-delivered yet.
 
     All response envelopes contain `status`, `msg`, `data`, and `request_id`.
     The G0 request tracing middleware returns independent request/correlation IDs
@@ -166,7 +166,7 @@ paths:
       operationId: getChamberMemberProfile
       security:
         - CrmebBearerAuth: []
-      x-implementation-status: planned
+      x-implementation-status: implemented
       x-requirement-id: MEM-003
       x-tenant-context: required
       x-signed-headers-all-or-none: true
@@ -189,6 +189,8 @@ paths:
           $ref: '#/components/responses/ChamberRequestError'
         '404':
           $ref: '#/components/responses/MemberTransactionError'
+        '409':
+          $ref: '#/components/responses/MemberTransactionError'
         '500':
           $ref: '#/components/responses/InternalServerError'
         '503':
@@ -200,7 +202,7 @@ paths:
       operationId: updateChamberMemberProfile
       security:
         - CrmebBearerAuth: []
-      x-implementation-status: planned
+      x-implementation-status: implemented
       x-requirement-id: MEM-003
       x-tenant-context: required
       x-signed-headers-all-or-none: true
@@ -238,6 +240,102 @@ paths:
           $ref: '#/components/responses/InternalServerError'
         '503':
           $ref: '#/components/responses/TenantServiceUnavailable'
+  /chamber/v1/me/assets:
+    post:
+      tags:
+        - Member
+      summary: Upload one private member asset for a declared Chamber purpose
+      operationId: uploadChamberMemberAsset
+      security:
+        - CrmebBearerAuth: []
+      x-implementation-status: implemented
+      x-requirement-id: MEM-002
+      x-tenant-context: required
+      x-signed-headers-all-or-none: true
+      parameters:
+        - $ref: '#/components/parameters/RequestIdHeader'
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+        - $ref: '#/components/parameters/ChamberTenantHeader'
+        - $ref: '#/components/parameters/ChamberChannelHeader'
+        - $ref: '#/components/parameters/ChamberTimestampHeader'
+        - $ref: '#/components/parameters/ChamberNonceHeader'
+        - $ref: '#/components/parameters/ChamberSignatureHeader'
+        - $ref: '#/components/parameters/IdempotencyKeyHeader'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/MemberAssetUploadRequest'
+      responses:
+        '201':
+          $ref: '#/components/responses/MemberAssetCreated'
+        '400':
+          $ref: '#/components/responses/ChamberRequestError'
+        '401':
+          $ref: '#/components/responses/ChamberRequestError'
+        '403':
+          $ref: '#/components/responses/ChamberRequestError'
+        '404':
+          $ref: '#/components/responses/MemberTransactionError'
+        '409':
+          $ref: '#/components/responses/MemberTransactionError'
+        '413':
+          $ref: '#/components/responses/MemberTransactionError'
+        '415':
+          $ref: '#/components/responses/MemberTransactionError'
+        '422':
+          $ref: '#/components/responses/MemberTransactionError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/TenantServiceUnavailable'
+  /chamber/v1/me/assets/{asset_id}/content:
+    get:
+      tags:
+        - Member
+      summary: Read private asset content owned by the authenticated member
+      operationId: getChamberMemberAssetContent
+      security:
+        - CrmebBearerAuth: []
+      x-implementation-status: implemented
+      x-requirement-id: MEM-002
+      x-tenant-context: required
+      x-signed-headers-all-or-none: true
+      x-binary-response: true
+      parameters:
+        - name: asset_id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/PositiveId'
+        - $ref: '#/components/parameters/DownloadQuery'
+        - $ref: '#/components/parameters/RequestIdHeader'
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+        - $ref: '#/components/parameters/ChamberTenantHeader'
+        - $ref: '#/components/parameters/ChamberChannelHeader'
+        - $ref: '#/components/parameters/ChamberTimestampHeader'
+        - $ref: '#/components/parameters/ChamberNonceHeader'
+        - $ref: '#/components/parameters/ChamberSignatureHeader'
+      responses:
+        '200':
+          $ref: '#/components/responses/MemberAssetContent'
+        '400':
+          $ref: '#/components/responses/ChamberRequestError'
+        '401':
+          $ref: '#/components/responses/ChamberRequestError'
+        '403':
+          $ref: '#/components/responses/ChamberRequestError'
+        '404':
+          $ref: '#/components/responses/MemberTransactionError'
+        '409':
+          $ref: '#/components/responses/MemberTransactionError'
+        '422':
+          $ref: '#/components/responses/MemberTransactionError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/TenantServiceUnavailable'
   /chamber/v1/me/graduate-verifications:
     get:
       tags:
@@ -246,7 +344,7 @@ paths:
       operationId: getGraduateVerification
       security:
         - CrmebBearerAuth: []
-      x-implementation-status: planned
+      x-implementation-status: implemented
       x-requirement-id: MEM-002
       x-tenant-context: required
       x-signed-headers-all-or-none: true
@@ -280,7 +378,7 @@ paths:
       operationId: submitGraduateVerification
       security:
         - CrmebBearerAuth: []
-      x-implementation-status: planned
+      x-implementation-status: implemented
       x-requirement-id: MEM-002
       x-tenant-context: required
       x-signed-headers-all-or-none: true
@@ -308,7 +406,152 @@ paths:
           $ref: '#/components/responses/ChamberRequestError'
         '403':
           $ref: '#/components/responses/ChamberRequestError'
+        '404':
+          $ref: '#/components/responses/MemberTransactionError'
         '409':
+          $ref: '#/components/responses/MemberTransactionError'
+        '422':
+          $ref: '#/components/responses/MemberTransactionError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/TenantServiceUnavailable'
+  /chamber/admin/v1/graduate-verifications:
+    get:
+      tags:
+        - Administration
+      summary: List graduate-verification applications in the trusted tenant and channel
+      operationId: listGraduateVerificationsForAdmin
+      security:
+        - CrmebAdminBearerAuth: []
+      x-implementation-status: implemented
+      x-requirement-id: MEM-002
+      x-tenant-context: required
+      x-signed-headers-all-or-none: true
+      x-admin-permission: chamber.graduate_verification.review
+      x-admin-scope: level-0-super-administrator-only
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/GraduateVerificationStatus'
+        - name: keyword
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 80
+        - $ref: '#/components/parameters/PageQuery'
+        - $ref: '#/components/parameters/PerPageQuery'
+        - $ref: '#/components/parameters/RequestIdHeader'
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+        - $ref: '#/components/parameters/ChamberTenantHeader'
+        - $ref: '#/components/parameters/ChamberChannelHeader'
+        - $ref: '#/components/parameters/ChamberTimestampHeader'
+        - $ref: '#/components/parameters/ChamberNonceHeader'
+        - $ref: '#/components/parameters/ChamberSignatureHeader'
+      responses:
+        '200':
+          $ref: '#/components/responses/GraduateVerificationAdminListSuccess'
+        '400':
+          $ref: '#/components/responses/ChamberRequestError'
+        '401':
+          $ref: '#/components/responses/ChamberRequestError'
+        '403':
+          $ref: '#/components/responses/ChamberRequestError'
+        '422':
+          $ref: '#/components/responses/MemberTransactionError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/TenantServiceUnavailable'
+  /chamber/admin/v1/member-assets/{asset_id}/content:
+    get:
+      tags:
+        - Administration
+      summary: Read one private member asset in the trusted tenant and channel
+      operationId: getChamberMemberAssetContentForAdmin
+      security:
+        - CrmebAdminBearerAuth: []
+      x-implementation-status: implemented
+      x-requirement-id: MEM-002
+      x-tenant-context: required
+      x-signed-headers-all-or-none: true
+      x-admin-permission: chamber.graduate_verification.review
+      x-admin-scope: level-0-super-administrator-only
+      x-binary-response: true
+      parameters:
+        - name: asset_id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/PositiveId'
+        - $ref: '#/components/parameters/AdminAssetApplicationIdQuery'
+        - $ref: '#/components/parameters/DownloadQuery'
+        - $ref: '#/components/parameters/RequestIdHeader'
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+        - $ref: '#/components/parameters/ChamberTenantHeader'
+        - $ref: '#/components/parameters/ChamberChannelHeader'
+        - $ref: '#/components/parameters/ChamberTimestampHeader'
+        - $ref: '#/components/parameters/ChamberNonceHeader'
+        - $ref: '#/components/parameters/ChamberSignatureHeader'
+      responses:
+        '200':
+          $ref: '#/components/responses/MemberAssetContent'
+        '400':
+          $ref: '#/components/responses/ChamberRequestError'
+        '401':
+          $ref: '#/components/responses/ChamberRequestError'
+        '403':
+          $ref: '#/components/responses/ChamberRequestError'
+        '404':
+          $ref: '#/components/responses/MemberTransactionError'
+        '409':
+          $ref: '#/components/responses/MemberTransactionError'
+        '422':
+          $ref: '#/components/responses/MemberTransactionError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/TenantServiceUnavailable'
+  /chamber/admin/v1/graduate-verifications/{application_id}:
+    get:
+      tags:
+        - Administration
+      summary: Get one graduate-verification application in the trusted tenant and channel
+      operationId: getGraduateVerificationForAdmin
+      security:
+        - CrmebAdminBearerAuth: []
+      x-implementation-status: implemented
+      x-requirement-id: MEM-002
+      x-tenant-context: required
+      x-signed-headers-all-or-none: true
+      x-admin-permission: chamber.graduate_verification.review
+      x-admin-scope: level-0-super-administrator-only
+      parameters:
+        - name: application_id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/PositiveId'
+        - $ref: '#/components/parameters/RequestIdHeader'
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+        - $ref: '#/components/parameters/ChamberTenantHeader'
+        - $ref: '#/components/parameters/ChamberChannelHeader'
+        - $ref: '#/components/parameters/ChamberTimestampHeader'
+        - $ref: '#/components/parameters/ChamberNonceHeader'
+        - $ref: '#/components/parameters/ChamberSignatureHeader'
+      responses:
+        '200':
+          $ref: '#/components/responses/GraduateVerificationAdminDetailSuccess'
+        '400':
+          $ref: '#/components/responses/ChamberRequestError'
+        '401':
+          $ref: '#/components/responses/ChamberRequestError'
+        '403':
+          $ref: '#/components/responses/ChamberRequestError'
+        '404':
           $ref: '#/components/responses/MemberTransactionError'
         '422':
           $ref: '#/components/responses/MemberTransactionError'
@@ -324,11 +567,12 @@ paths:
       operationId: reviewGraduateVerification
       security:
         - CrmebAdminBearerAuth: []
-      x-implementation-status: planned
+      x-implementation-status: implemented
       x-requirement-id: MEM-002
       x-tenant-context: required
       x-signed-headers-all-or-none: true
       x-admin-permission: chamber.graduate_verification.review
+      x-admin-scope: level-0-super-administrator-only
       parameters:
         - name: application_id
           in: path
@@ -584,6 +828,34 @@ components:
         minimum: 1
         maximum: 100
         default: 20
+    PerPageQuery:
+      name: per_page
+      in: query
+      required: false
+      description: Maximum graduate-verification applications per page.
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+    DownloadQuery:
+      name: download
+      in: query
+      required: false
+      description: Set to 1 to request attachment disposition; 0 keeps inline disposition.
+      schema:
+        type: integer
+        enum:
+          - 0
+          - 1
+        default: 0
+    AdminAssetApplicationIdQuery:
+      name: application_id
+      in: query
+      required: true
+      description: Graduate-verification application that owns this proof access and receives the read audit.
+      schema:
+        $ref: '#/components/schemas/PositiveId'
   headers:
     RequestIdResponseHeader:
       description: |
@@ -795,6 +1067,41 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/MemberProfileEnvelope'
+    MemberAssetCreated:
+      description: A private member asset was validated, persisted, and registered.
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestIdResponseHeader'
+        X-Correlation-Id:
+          $ref: '#/components/headers/CorrelationIdResponseHeader'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/MemberAssetEnvelope'
+    MemberAssetContent:
+      description: Authorized private asset bytes. Physical storage paths and public URLs are never returned.
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestIdResponseHeader'
+        X-Correlation-Id:
+          $ref: '#/components/headers/CorrelationIdResponseHeader'
+        Content-Disposition:
+          description: Safe inline filename derived from registered metadata.
+          schema:
+            type: string
+      content:
+        image/jpeg:
+          schema:
+            type: string
+            format: binary
+        image/png:
+          schema:
+            type: string
+            format: binary
+        application/pdf:
+          schema:
+            type: string
+            format: binary
     GraduateVerificationSuccess:
       description: Current graduate-verification summary returned.
       headers:
@@ -828,6 +1135,28 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/GraduateVerificationReviewEnvelope'
+    GraduateVerificationAdminListSuccess:
+      description: Tenant/channel-scoped graduate-verification applications returned.
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestIdResponseHeader'
+        X-Correlation-Id:
+          $ref: '#/components/headers/CorrelationIdResponseHeader'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GraduateVerificationAdminListEnvelope'
+    GraduateVerificationAdminDetailSuccess:
+      description: One tenant/channel-scoped graduate-verification application returned.
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestIdResponseHeader'
+        X-Correlation-Id:
+          $ref: '#/components/headers/CorrelationIdResponseHeader'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GraduateVerificationAdminDetailEnvelope'
     MembershipPlansSuccess:
       description: Enabled tenant/channel membership plans returned.
       headers:
@@ -1850,6 +2179,68 @@ components:
               const: ok
             data:
               $ref: '#/components/schemas/MemberProfile'
+    MemberAssetPurpose:
+      type: string
+      enum:
+        - graduate_verification_proof
+    MemberAssetUploadRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - purpose
+        - file
+      properties:
+        purpose:
+          $ref: '#/components/schemas/MemberAssetPurpose'
+        file:
+          type: string
+          format: binary
+    MemberAsset:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - object_key
+        - original_name
+        - mime_type
+        - size
+        - available
+      properties:
+        id:
+          $ref: '#/components/schemas/PositiveId'
+        object_key:
+          $ref: '#/components/schemas/ObjectStorageKey'
+        original_name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        mime_type:
+          type: string
+          enum:
+            - image/jpeg
+            - image/png
+            - application/pdf
+        size:
+          type: integer
+          format: int64
+          minimum: 1
+          maximum: 10485760
+        available:
+          type: boolean
+          description: False when immutable application metadata remains visible but the private object cannot be opened or approved.
+    MemberAssetEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelopeBase'
+        - type: object
+          required:
+            - data
+          properties:
+            status:
+              const: 201
+            msg:
+              const: created
+            data:
+              $ref: '#/components/schemas/MemberAsset'
     GraduateVerificationSubmission:
       type: object
       additionalProperties: false
@@ -1887,6 +2278,7 @@ components:
         - class_name
         - graduation_year
         - proof_object_keys
+        - proof_assets
         - submitted_at
         - reviewed_at
         - review_note
@@ -1914,6 +2306,11 @@ components:
           maxItems: 10
           items:
             $ref: '#/components/schemas/ObjectStorageKey'
+        proof_assets:
+          type: array
+          maxItems: 10
+          items:
+            $ref: '#/components/schemas/MemberAsset'
         submitted_at:
           $ref: '#/components/schemas/UnixTimestampSeconds'
         reviewed_at:
@@ -1923,6 +2320,84 @@ components:
           maxLength: 500
         can_resubmit:
           type: boolean
+    GraduateVerificationAdminApplication:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - application_no
+        - status
+        - class_name
+        - graduation_year
+        - proof_object_keys
+        - proof_assets
+        - submitted_at
+        - reviewed_at
+        - review_note
+        - can_resubmit
+        - member_id
+        - uid
+        - channel_id
+        - previous_application_id
+        - reviewer_admin_id
+        - is_current
+        - member_name
+      properties:
+        id:
+          $ref: '#/components/schemas/PositiveId'
+        application_no:
+          type: string
+          minLength: 1
+          maxLength: 32
+        status:
+          $ref: '#/components/schemas/GraduateVerificationStatus'
+        class_name:
+          type: string
+          maxLength: 80
+        graduation_year:
+          type: integer
+          minimum: 1900
+          maximum: 2106
+        graduation_at:
+          $ref: '#/components/schemas/UnixTimestampSeconds'
+        proof_object_keys:
+          type: array
+          maxItems: 10
+          items:
+            $ref: '#/components/schemas/ObjectStorageKey'
+        proof_assets:
+          type: array
+          maxItems: 10
+          items:
+            $ref: '#/components/schemas/MemberAsset'
+        submitted_at:
+          $ref: '#/components/schemas/UnixTimestampSeconds'
+        reviewed_at:
+          $ref: '#/components/schemas/UnixTimestampSeconds'
+        review_note:
+          type: string
+          maxLength: 500
+        can_resubmit:
+          type: boolean
+        member_id:
+          $ref: '#/components/schemas/PositiveId'
+        uid:
+          $ref: '#/components/schemas/PositiveId'
+        channel_id:
+          $ref: '#/components/schemas/PositiveId'
+        previous_application_id:
+          oneOf:
+            - $ref: '#/components/schemas/PositiveId'
+            - type: 'null'
+        reviewer_admin_id:
+          oneOf:
+            - $ref: '#/components/schemas/PositiveId'
+            - type: 'null'
+        is_current:
+          type: boolean
+        member_name:
+          type: string
+          maxLength: 40
     GraduateVerificationQueryData:
       type: object
       additionalProperties: false
@@ -1939,6 +2414,56 @@ components:
             - type: 'null'
         can_submit:
           type: boolean
+    GraduateVerificationAdminListData:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+        - total
+        - page
+        - per_page
+      properties:
+        items:
+          type: array
+          maxItems: 100
+          items:
+            $ref: '#/components/schemas/GraduateVerificationAdminApplication'
+        total:
+          type: integer
+          minimum: 0
+        page:
+          type: integer
+          minimum: 1
+        per_page:
+          type: integer
+          minimum: 1
+          maximum: 100
+    GraduateVerificationAdminListEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelopeBase'
+        - type: object
+          required:
+            - data
+          properties:
+            status:
+              const: 200
+            msg:
+              const: ok
+            data:
+              $ref: '#/components/schemas/GraduateVerificationAdminListData'
+    GraduateVerificationAdminDetailEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelopeBase'
+        - type: object
+          required:
+            - data
+          properties:
+            status:
+              const: 200
+            msg:
+              const: ok
+            data:
+              $ref: '#/components/schemas/GraduateVerificationAdminApplication'
     GraduateVerificationQueryEnvelope:
       allOf:
         - $ref: '#/components/schemas/ResponseEnvelopeBase'
@@ -2006,7 +2531,7 @@ components:
             msg:
               const: ok
             data:
-              $ref: '#/components/schemas/GraduateVerificationApplication'
+              $ref: '#/components/schemas/GraduateVerificationAdminApplication'
     MembershipPlanTier:
       type: string
       enum:
@@ -2255,6 +2780,14 @@ components:
         - member_attribution_locked
         - invite_code_invalid
         - profile_invalid
+        - unsupported_media_type
+        - asset_upload_invalid
+        - asset_quota_exceeded
+        - proof_asset_invalid
+        - asset_already_consumed
+        - asset_not_found
+        - asset_integrity_failed
+        - tenant_scope_denied
         - consent_document_stale
         - verification_already_pending
         - verification_application_not_found

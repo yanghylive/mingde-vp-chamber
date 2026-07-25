@@ -54,7 +54,15 @@ test_result() {
     '
 }
 
-for command in docker ruby awk grep; do
+assertion_result() {
+    sed -nE 's/^PASS .*\(([0-9]+) assertions.*$/\1/p'
+}
+
+case_result() {
+    sed -nE 's/^.*passed \(([0-9]+) cases\)\.?$/\1/p'
+}
+
+for command in docker node ruby awk grep sed; do
     command -v "${command}" >/dev/null 2>&1 || fail "Required command not found: ${command}"
 done
 
@@ -62,36 +70,52 @@ cd "${PROJECT_ROOT}"
 
 bash -n scripts/check-g1-membership-baseline.sh
 bash -n scripts/check-g1-member-bootstrap.sh
+bash -n scripts/check-g1-profile-verification.sh
 ./scripts/check-g0-baseline.sh
 
 database_output="$(./scripts/manage-local-database.sh verify)"
 printf '%s\n' "${database_output}"
 membership_commerce_checks="$(migration_check_count '202607210003_create_membership_commerce' <<<"${database_output}")"
 member_hardening_checks="$(migration_check_count '202607210004_harden_member_verification_projection' <<<"${database_output}")"
+admin_menu_checks="$(migration_check_count '202607250001_register_chamber_admin_menu' <<<"${database_output}")"
+profile_json_checks="$(migration_check_count '202607250002_normalize_member_profile_json' <<<"${database_output}")"
+member_asset_checks="$(migration_check_count '202607250003_create_member_asset' <<<"${database_output}")"
 [[ "${membership_commerce_checks}" =~ ^[0-9]+$ ]] \
     || fail "membership commerce migration verification result is unavailable"
 [[ "${member_hardening_checks}" =~ ^[0-9]+$ ]] \
     || fail "member hardening migration verification result is unavailable"
+[[ "${admin_menu_checks}" =~ ^[0-9]+$ ]] \
+    || fail "administrator menu migration verification result is unavailable"
+[[ "${profile_json_checks}" =~ ^[0-9]+$ ]] \
+    || fail "member profile JSON migration verification result is unavailable"
+[[ "${member_asset_checks}" =~ ^[0-9]+$ ]] \
+    || fail "member asset migration verification result is unavailable"
 [ "${membership_commerce_checks}" -ge 158 ] \
     || fail "membership commerce migration verification lost checks: ${membership_commerce_checks} < 158"
 [ "${member_hardening_checks}" -ge 71 ] \
     || fail "member hardening migration verification lost checks: ${member_hardening_checks} < 71"
+[ "${admin_menu_checks}" -ge 4 ] \
+    || fail "administrator menu migration verification lost checks: ${admin_menu_checks} < 4"
+[ "${profile_json_checks}" -ge 5 ] \
+    || fail "member profile JSON migration verification lost checks: ${profile_json_checks} < 5"
+[ "${member_asset_checks}" -ge 28 ] \
+    || fail "member asset migration verification lost checks: ${member_asset_checks} < 28"
 
 g1_migration_minimum="$(manifest_g1_minimum \
-    'g1_migration_structural_checks_minimum' 'g1_migration_structural_checks' 229)"
-g1_migration_checks="$((membership_commerce_checks + member_hardening_checks))"
+    'g1_migration_structural_checks_minimum' 'g1_migration_structural_checks' 266)"
+g1_migration_checks="$((${membership_commerce_checks} + ${member_hardening_checks} + ${admin_menu_checks} + ${profile_json_checks} + ${member_asset_checks}))"
 [ "${g1_migration_checks}" -ge "${g1_migration_minimum}" ] \
     || fail "G1 migration verification lost checks: ${g1_migration_checks} < ${g1_migration_minimum}"
 
 database_tables="$(docker compose -f "${COMPOSE_FILE}" exec -T mysql sh -lc \
     'MYSQL_PWD="$MYSQL_PASSWORD" mysql -Nse "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema=DATABASE()" -u "$MYSQL_USER" "$MYSQL_DATABASE"' \
     | tr -d '[:space:]')"
-[ "${database_tables}" -ge 179 ] || fail "expected at least 179 database tables, got ${database_tables}"
+[ "${database_tables}" -ge 180 ] || fail "expected at least 180 database tables, got ${database_tables}"
 
 chamber_tables="$(docker compose -f "${COMPOSE_FILE}" exec -T mysql sh -lc \
     'MYSQL_PWD="$MYSQL_PASSWORD" mysql -Nse "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema=DATABASE() AND table_name LIKE \"ch\\\\_%\"" -u "$MYSQL_USER" "$MYSQL_DATABASE"' \
     | tr -d '[:space:]')"
-[ "${chamber_tables}" -ge 22 ] || fail "expected at least 22 Chamber tables including migration registry, got ${chamber_tables}"
+[ "${chamber_tables}" -ge 23 ] || fail "expected at least 23 Chamber tables including migration registry, got ${chamber_tables}"
 
 membership_output="$(docker compose -f "${COMPOSE_FILE}" exec -T phpfpm php /var/www/app/chamber/tests/membership_run.php)"
 printf '%s\n' "${membership_output}"
@@ -133,28 +157,135 @@ bootstrap_domain_test_minimum="$(manifest_g1_minimum \
 [ "${bootstrap_domain_tests}" -ge "${bootstrap_domain_test_minimum}" ] \
     || fail "member bootstrap domain tests were removed: ${bootstrap_domain_tests} < ${bootstrap_domain_test_minimum}"
 
+profile_output="$(docker compose -f "${COMPOSE_FILE}" exec -T phpfpm \
+    php /var/www/app/chamber/tests/member_profile_run.php)"
+printf '%s\n' "${profile_output}"
+profile_result="$(test_result <<<"${profile_output}")"
+read -r profile_tests profile_failures <<<"${profile_result}"
+[[ "${profile_tests:-}" =~ ^[0-9]+$ ]] && [[ "${profile_failures:-}" =~ ^[0-9]+$ ]] \
+    || fail "member profile domain test result is unavailable"
+[ "${profile_failures}" -eq 0 ] || fail "member profile domain tests reported ${profile_failures} failures"
+profile_test_minimum="$(manifest_g1_minimum \
+    'member_profile_domain_tests_minimum' 'member_profile_domain_tests' 16)"
+[ "${profile_tests}" -ge "${profile_test_minimum}" ] \
+    || fail "member profile domain tests were removed: ${profile_tests} < ${profile_test_minimum}"
+
+asset_output="$(docker compose -f "${COMPOSE_FILE}" exec -T phpfpm \
+    php /var/www/app/chamber/tests/member_asset_run.php)"
+printf '%s\n' "${asset_output}"
+asset_result="$(test_result <<<"${asset_output}")"
+read -r asset_tests asset_failures <<<"${asset_result}"
+[[ "${asset_tests:-}" =~ ^[0-9]+$ ]] && [[ "${asset_failures:-}" =~ ^[0-9]+$ ]] \
+    || fail "member asset domain test result is unavailable"
+[ "${asset_failures}" -eq 0 ] || fail "member asset domain tests reported ${asset_failures} failures"
+asset_test_minimum="$(manifest_g1_minimum \
+    'member_asset_domain_tests_minimum' 'member_asset_domain_tests' 10)"
+[ "${asset_tests}" -ge "${asset_test_minimum}" ] \
+    || fail "member asset domain tests were removed: ${asset_tests} < ${asset_test_minimum}"
+
+asset_db_output="$(docker compose -f "${COMPOSE_FILE}" exec -T phpfpm \
+    php /var/www/app/chamber/tests/member_asset_db_run.php)"
+printf '%s\n' "${asset_db_output}"
+asset_db_assertions="$(assertion_result <<<"${asset_db_output}")"
+[[ "${asset_db_assertions}" =~ ^[0-9]+$ ]] \
+    || fail "member asset database assertion result is unavailable"
+asset_db_minimum="$(manifest_g1_minimum \
+    'member_asset_database_assertions_minimum' 'member_asset_database_assertions' 44)"
+[ "${asset_db_assertions}" -ge "${asset_db_minimum}" ] \
+    || fail "member asset database assertions were removed: ${asset_db_assertions} < ${asset_db_minimum}"
+
+verification_output="$(docker compose -f "${COMPOSE_FILE}" exec -T phpfpm \
+    php /var/www/app/chamber/tests/graduate_verification_run.php)"
+printf '%s\n' "${verification_output}"
+verification_tests="$(case_result <<<"${verification_output}")"
+[[ "${verification_tests:-}" =~ ^[0-9]+$ ]] \
+    || fail "graduate verification domain test result is unavailable"
+verification_test_minimum="$(manifest_g1_minimum \
+    'graduate_verification_domain_tests_minimum' 'graduate_verification_domain_tests' 12)"
+[ "${verification_tests}" -ge "${verification_test_minimum}" ] \
+    || fail "graduate verification domain tests were removed: ${verification_tests} < ${verification_test_minimum}"
+
+verification_db_output="$(docker compose -f "${COMPOSE_FILE}" exec -T phpfpm \
+    php /var/www/app/chamber/tests/graduate_verification_db_run.php)"
+printf '%s\n' "${verification_db_output}"
+verification_db_assertions="$(assertion_result <<<"${verification_db_output}")"
+[[ "${verification_db_assertions}" =~ ^[0-9]+$ ]] \
+    || fail "graduate verification database assertion result is unavailable"
+verification_db_minimum="$(manifest_g1_minimum \
+    'graduate_verification_database_assertions_minimum' 'graduate_verification_database_assertions' 119)"
+[ "${verification_db_assertions}" -ge "${verification_db_minimum}" ] \
+    || fail "graduate verification database assertions were removed: ${verification_db_assertions} < ${verification_db_minimum}"
+
+frontend_output="$(./scripts/prepare-local-frontend.sh test)"
+printf '%s\n' "${frontend_output}"
+tenant_brand_tests="$(sed -nE 's/^PASS ([0-9]+) tenant brand tests$/\1/p' <<<"${frontend_output}")"
+member_ui_output="$(node frontend/custom/shared/tests/member-ui.test.js)"
+member_ui_tests="$(grep -c '^PASS ' <<<"${member_ui_output}" | tr -d '[:space:]')"
+[[ "${tenant_brand_tests}" =~ ^[0-9]+$ ]] || fail "tenant brand frontend test result is unavailable"
+[[ "${member_ui_tests}" =~ ^[0-9]+$ ]] || fail "member UI frontend test result is unavailable"
+tenant_brand_test_minimum="$(manifest_g1_minimum \
+    'tenant_brand_tests_minimum' 'tenant_brand_tests' 6)"
+member_ui_test_minimum="$(manifest_g1_minimum \
+    'member_ui_tests_minimum' 'member_ui_tests' 16)"
+[ "${tenant_brand_tests}" -ge "${tenant_brand_test_minimum}" ] \
+    || fail "tenant brand frontend tests were removed: ${tenant_brand_tests} < ${tenant_brand_test_minimum}"
+[ "${member_ui_tests}" -ge "${member_ui_test_minimum}" ] \
+    || fail "member UI frontend tests were removed: ${member_ui_tests} < ${member_ui_test_minimum}"
+
 ./scripts/check-g1-member-bootstrap.sh
+./scripts/check-g1-profile-verification.sh
 
 openapi_output="$(ruby backend/custom/openapi/validate.rb)"
 printf '%s\n' "${openapi_output}"
-grep -Fxq '  Contract version: 0.3.0' <<<"${openapi_output}" \
+grep -Fxq '  Contract version: 0.4.0' <<<"${openapi_output}" \
     || fail "OpenAPI membership contract version changed"
-grep -Fxq '  Paths: 9 (3 implemented, 8 planned operations)' <<<"${openapi_output}" \
+grep -Fxq '  Paths: 14 (13 implemented, 3 planned operations)' <<<"${openapi_output}" \
     || fail "OpenAPI membership operation inventory changed"
 openapi_schema_count="$(awk '$1 == "Component" && $2 == "schemas:" && $3 ~ /^[0-9]+$/ && NF == 3 { print $3 }' <<<"${openapi_output}")"
 [[ "${openapi_schema_count}" =~ ^[0-9]+$ ]] || fail "OpenAPI membership schema count is unavailable"
 openapi_schema_minimum="$(manifest_g1_minimum \
-    'openapi_schemas_minimum' 'openapi_schemas' 77)"
+    'openapi_schemas_minimum' 'openapi_schemas' 85)"
 [ "${openapi_schema_count}" -ge "${openapi_schema_minimum}" ] \
     || fail "OpenAPI membership schemas were removed: ${openapi_schema_count} < ${openapi_schema_minimum}"
 
 ruby -rjson -e '
-  baseline = JSON.parse(File.read(ARGV[0])).fetch("g1_membership_baseline")
+  manifest = JSON.parse(File.read(ARGV[0]))
+  project = manifest.fetch("project")
+  documents = manifest.fetch("documents")
+  baseline = manifest.fetch("g1_membership_baseline")
+  abort "PROJECT_MANIFEST project status is stale" unless project["status"] == "g1-01c-profile-verification-complete"
+  expected_documents = {
+    "prd_progress" => "docs/PRD-开发进度总结-2026-07-25.html",
+    "g1_profile_verification_baseline" => "docs/G1-个人资料与毕业认证开发基线.html"
+  }
+  document_mismatches = expected_documents.each_with_object([]) do |(key, value), found|
+    found << "#{key}=#{documents[key].inspect}, expected #{value.inspect}" unless documents[key] == value
+  end
+  abort "PROJECT_MANIFEST document pointers differ: #{document_mismatches.join("; ")}" unless document_mismatches.empty?
+
+  membership_checks = Integer(ARGV[1])
+  hardening_checks = Integer(ARGV[2])
+  admin_menu_checks = Integer(ARGV[3])
+  profile_json_checks = Integer(ARGV[4])
+  asset_migration_checks = Integer(ARGV[5])
+  g1_checks = Integer(ARGV[6])
   expected = {
-    "g1_migration_structural_checks" => Integer(ARGV[1]),
-    "membership_domain_tests" => Integer(ARGV[2]),
-    "member_auth_context_tests" => Integer(ARGV[3]),
-    "member_bootstrap_domain_tests" => Integer(ARGV[4]),
+    "completed_on" => "2026-07-25",
+    "chamber_domain_tables" => 22,
+    "migration_registry_tables" => 1,
+    "chamber_tables_including_registry" => 23,
+    "database_tables_total" => 180,
+    "membership_commerce_structural_checks" => membership_checks,
+    "member_verification_structural_checks" => hardening_checks,
+    "admin_menu_structural_checks" => admin_menu_checks,
+    "profile_json_structural_checks" => profile_json_checks,
+    "member_asset_structural_checks" => asset_migration_checks,
+    "profile_verification_structural_checks" => admin_menu_checks + profile_json_checks + asset_migration_checks,
+    "g1_migration_structural_checks" => g1_checks,
+    "migration_structural_checks_total" => 165 + g1_checks,
+    "membership_domain_tests" => Integer(ARGV[7]),
+    "member_auth_context_tests" => Integer(ARGV[8]),
+    "member_bootstrap_domain_tests" => Integer(ARGV[9]),
     "member_bootstrap_same_key_concurrency" => 20,
     "member_bootstrap_distinct_key_concurrency" => 20,
     "member_bootstrap_members_per_tenant" => 1,
@@ -162,27 +293,48 @@ ruby -rjson -e '
     "member_bootstrap_consent_events_per_document" => 1,
     "member_bootstrap_cross_tenant_member_records" => 2,
     "member_bootstrap_withdrawn_http_status" => 403,
-    "openapi_version" => "0.3.0",
-    "openapi_paths" => 9,
-    "openapi_operations_total" => 11,
-    "openapi_operations_implemented" => 3,
-    "openapi_operations_planned" => 8,
-    "openapi_schemas" => Integer(ARGV[5])
+    "member_profile_domain_tests" => Integer(ARGV[10]),
+    "member_asset_domain_tests" => Integer(ARGV[11]),
+    "member_asset_database_assertions" => Integer(ARGV[12]),
+    "graduate_verification_domain_tests" => Integer(ARGV[13]),
+    "graduate_verification_database_assertions" => Integer(ARGV[14]),
+    "tenant_brand_tests" => Integer(ARGV[15]),
+    "member_ui_tests" => Integer(ARGV[16]),
+    "profile_verification_completed_on" => "2026-07-25",
+    "openapi_version" => "0.4.0",
+    "openapi_paths" => 14,
+    "openapi_operations_total" => 16,
+    "openapi_operations_implemented" => 13,
+    "openapi_operations_planned" => 3,
+    "openapi_schemas" => Integer(ARGV[17]),
+    "member_bootstrap_gate" => "scripts/check-g1-member-bootstrap.sh",
+    "profile_verification_gate" => "scripts/check-g1-profile-verification.sh",
+    "gate" => "scripts/check-g1-membership-baseline.sh"
   }
   mismatches = expected.each_with_object([]) do |(key, value), found|
     found << "#{key}=#{baseline[key].inspect}, expected #{value.inspect}" unless baseline[key] == value
   end
   abort "PROJECT_MANIFEST G1 metrics differ: #{mismatches.join("; ")}" unless mismatches.empty?
-' PROJECT_MANIFEST.json "${g1_migration_checks}" "${membership_tests}" \
-    "${auth_context_tests}" "${bootstrap_domain_tests}" "${openapi_schema_count}" \
+' PROJECT_MANIFEST.json "${membership_commerce_checks}" "${member_hardening_checks}" \
+    "${admin_menu_checks}" "${profile_json_checks}" "${member_asset_checks}" \
+    "${g1_migration_checks}" "${membership_tests}" "${auth_context_tests}" \
+    "${bootstrap_domain_tests}" "${profile_tests}" "${asset_tests}" \
+    "${asset_db_assertions}" "${verification_tests}" "${verification_db_assertions}" \
+    "${tenant_brand_tests}" "${member_ui_tests}" "${openapi_schema_count}" \
     || fail "PROJECT_MANIFEST G1 metrics are stale"
 
 git diff --check
 [ -z "$(git -C backend/crmeb status --porcelain)" ] || fail "CRMEB submodule is dirty"
 
 printf 'G1 membership baseline OK\n'
-printf 'Database: 179+ tables, %s G1 structural checks\n' "${g1_migration_checks}"
+printf 'Database: 180+ tables, 23+ Chamber tables, %s G1 / %s total structural checks\n' \
+    "${g1_migration_checks}" "$((165 + g1_migration_checks))"
 printf 'Domain: %s membership state and projection tests\n' "${membership_tests}"
 printf 'Bootstrap: %s auth context + %s request/consent tests; same-key and distinct-key 20-way HTTP races\n' \
     "${auth_context_tests}" "${bootstrap_domain_tests}"
-printf 'OpenAPI: 0.3.0, 3 implemented + 8 planned operations, %s schemas\n' "${openapi_schema_count}"
+printf 'Profile/assets: %s + %s domain tests, %s database assertions\n' \
+    "${profile_tests}" "${asset_tests}" "${asset_db_assertions}"
+printf 'Graduate verification: %s domain tests, %s database assertions, real member/admin HTTP flow\n' \
+    "${verification_tests}" "${verification_db_assertions}"
+printf 'Frontend: %s tenant brand + %s member UI tests\n' "${tenant_brand_tests}" "${member_ui_tests}"
+printf 'OpenAPI: 0.4.0, 13 implemented + 3 planned operations, %s schemas\n' "${openapi_schema_count}"

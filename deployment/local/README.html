@@ -8,7 +8,7 @@
 </head>
 <body>
   <header class="doc-head"><div class="wrap">
-    <p class="eyebrow">LOCAL DEVELOPMENT · G0 VERIFIED</p>
+    <p class="eyebrow">LOCAL DEVELOPMENT · G1-01C VERIFIED · 2026-07-25</p>
     <h1>本地 CRMEB Docker 环境</h1>
     <p>用于在 Mac 上运行 CRMEB 后端、Nginx、MySQL 和 Redis。源码与商会 overlay 同步到隔离运行副本，安装配置和运行数据都不进入 Git。</p>
   </div></header>
@@ -23,7 +23,7 @@
       <h2>首次准备</h2>
       <pre>./scripts/prepare-local-crmeb-runtime.sh install
 ./scripts/manage-local-database.sh setup</pre>
-      <p>第一条命令准备运行副本、启动容器、等待 MySQL/Redis、安装 CRMEB、同步商会 overlay 并锁定安装器；第二条命令执行商会迁移、本地通用种子和数据校验。默认后台账号为 <code>admin</code>，密码为 <code>Admin@123456</code>，仅供本机开发。</p>
+      <p>第一条命令准备运行副本、启动容器、等待 MySQL/Redis、完整导入 CRMEB 157 张基线表、同步商会 overlay 并锁定安装器；第二条命令执行商会迁移、本地通用种子和数据校验。当前结果为 180 张表、431 项迁移复验。默认后台账号为 <code>admin</code>，密码为 <code>Admin@123456</code>，仅供本机开发。</p>
     </section>
     <section>
       <h2>日常启动</h2>
@@ -39,22 +39,33 @@
         <tbody>
           <tr><td><code>http://localhost:8011/chamber/health</code></td><td>运行探针与链路标识</td><td>无</td></tr>
           <tr><td><code>http://localhost:8011/chamber/v1/bootstrap</code></td><td>返回可信的租户、渠道和解析来源</td><td>本地默认映射到 <code>local-primary/default</code></td></tr>
+          <tr><td><code>http://localhost:8011/chamber/v1/me/*</code></td><td>会员初始化、资料、附件和毕业认证</td><td>CRMEB 用户 Token + TenantContext；写操作另需 Idempotency-Key</td></tr>
+          <tr><td><code>http://localhost:8011/chamber/admin/v1/*</code></td><td>毕业认证列表、详情、材料读取与审核</td><td>CRMEB Admin Token + TenantContext + <code>chamber.graduate_verification.review</code></td></tr>
         </tbody>
       </table></div>
     </section>
     <section>
       <h2>完整验收</h2>
-      <pre>./scripts/check-g0-baseline.sh</pre>
-      <p>门禁覆盖项目结构、Compose 配置、CRMEB 安装、迁移校验和、种子数据、PHP 测试、前端共享逻辑、OpenAPI 以及真实 HTTP 的 Host/HMAC 租户解析、重放拒绝和 CORS。</p>
+      <pre># 当前 G1 总门禁
+./scripts/check-g1-membership-baseline.sh
+
+# G1-01C 真实用户/Admin HTTP 链路
+./scripts/check-g1-profile-verification.sh
+
+# 前端隔离测试与 Admin 生产构建
+./scripts/prepare-local-frontend.sh test
+./scripts/prepare-local-frontend.sh build-admin</pre>
+      <p>门禁覆盖项目结构、Compose、完整 CRMEB 安装、180 张表、431 项迁移复验、PHP/数据库测试、前端共享/会员 UI、OpenAPI 0.4.0，以及真实 Token 下的会员初始化、资料、私有附件、认证提交和管理员审核；超过 Chamber 上传限制时 Nginx 返回统一 413 JSON envelope。Admin 构建通过，上游 CSS/体积告警仍保留。</p>
     </section>
     <section>
       <h2>覆盖本地参数</h2>
       <pre>CRMEB_LOCAL_ADMIN_PASSWORD='你的本地密码' \
 CHAMBER_TENANT_SIGNING_SECRET='至少32字节的本地密钥' \
+CHAMBER_IDEMPOTENCY_ENCRYPTION_KEY='至少32字节的本地密封密钥' \
 CHAMBER_CORS_ALLOWED_ORIGINS='http://localhost:5173' \
 CRMEB_HTTP_PORT=8011 \
 ./scripts/prepare-local-crmeb-runtime.sh install</pre>
-      <p>还可设置 <code>CRMEB_DB_USER</code>、<code>CRMEB_DB_PASSWORD</code>、<code>CRMEB_DB_NAME</code>、<code>CRMEB_REDIS_PASSWORD</code>、<code>CHAMBER_DEV_TENANT_SLUG</code> 和 <code>CHAMBER_DEV_CHANNEL_CODE</code>。CORS 只接受 <code>CHAMBER_CORS_ALLOWED_ORIGINS</code> 中以逗号分隔的精确 Origin，不支持通配符。同一套参数应贯穿首次安装和后续启动；签名密钥默认值只允许本机使用。</p>
+      <p>还可设置 <code>CRMEB_DB_USER</code>、<code>CRMEB_DB_PASSWORD</code>、<code>CRMEB_DB_NAME</code>、<code>CRMEB_REDIS_PASSWORD</code>、<code>CHAMBER_DEV_TENANT_SLUG</code> 和 <code>CHAMBER_DEV_CHANNEL_CODE</code>。CORS 只接受精确 Origin，不支持通配符。同一套参数应贯穿首次安装和后续启动；签名与幂等密封默认值只允许本机使用。</p>
     </section>
     <section>
       <h2>停止命令</h2>
@@ -66,10 +77,11 @@ CRMEB_HTTP_PORT=8011 \
       <ul class="checklist">
         <li>上游源码固定在 <code>backend/crmeb</code> 子模块，容器不会直接挂载它。</li>
         <li>可执行副本位于 <code>.build-workspace/crmeb-runtime</code>；重新同步时会保留 <code>.env</code>、<code>.constant</code> 和 <code>public/install.lock</code>。</li>
-        <li>数据库、Redis、日志、运行时和上传文件位于 <code>deployment/local/.data</code>。</li>
+        <li>数据库、Redis、日志、运行时和上传文件位于 <code>deployment/local/.data</code>；私有材料权限受限，不提供 Nginx 静态公开目录。</li>
         <li>数据库初始化只对空库执行，发现已有表时不会覆盖数据。</li>
         <li>默认密码仅用于本地开发；生产环境必须使用独立密钥与部署配置。</li>
       </ul>
+      <div class="callout warn"><strong>生产边界：</strong>本地驱动已有配额、图片/PDF 内容级限制、完整性校验和读取审计，但专业恶意软件扫描仍是生产硬门槛。生产必须切换私有对象存储并完成 KMS/加密、生命周期、审计告警/检索、容量监控、备份恢复和密钥轮换。</div>
     </section>
   </div></main>
   <footer><div class="wrap">mingde-vp-chamber · Local Development</div></footer>
