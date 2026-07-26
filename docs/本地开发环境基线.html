@@ -16,13 +16,13 @@
 # 日常启动
 ./scripts/prepare-local-crmeb-runtime.sh start</pre><p>访问地址：<code>http://localhost:8011</code>。运行源码位于 <code>.build-workspace/crmeb-runtime</code>，本地数据位于 <code>deployment/local/.data</code>。</p></section>
 <section><h2>3. 已验证结果</h2><div class="table-wrap"><table><thead><tr><th>检查项</th><th>结果</th></tr></thead><tbody>
-<tr><td>容器</td><td><code>mingde_crmeb_nginx</code>、<code>mingde_crmeb_php</code>、<code>mingde_crmeb_mysql</code>、<code>mingde_crmeb_redis</code> 均已启动</td></tr>
-<tr><td>CRMEB 数据库</td><td>157 张官方表 + 22 张 Chamber 领域/可靠性表 + 1 张迁移登记表，共 180 张；全部迁移 431 项结构复验通过</td></tr>
-<tr><td>HTTP 入口</td><td>公开探针、可信租户、会员初始化、资料、附件、毕业认证及管理员列表/详情/材料/审核共 13 个 implemented 操作已进入自动门禁</td></tr>
+<tr><td>容器</td><td><code>mingde_crmeb_nginx</code>、<code>mingde_crmeb_php</code>、<code>mingde_crmeb_timer</code>、<code>mingde_crmeb_mysql</code>、<code>mingde_crmeb_redis</code> 均已启动</td></tr>
+<tr><td>CRMEB 数据库</td><td>157 张官方表 + 22 张 Chamber 领域/可靠性表 + 1 张迁移登记表，共 180 张；全部迁移 437 项结构复验通过</td></tr>
+<tr><td>HTTP 入口</td><td>公开探针、可信租户、会员初始化、资料、附件、毕业认证、管理员审核、会籍计划和结算共 15 个 implemented 操作已进入自动门禁</td></tr>
 <tr><td>PHP 容器</td><td>PHP 7.4.33</td></tr>
 <tr><td>Admin 前端</td><td>隔离 <code>npm ci</code> 和生产构建成功，毕业认证审核页已装配；上游 CSS/体积告警仍保留</td></tr>
-<tr><td>UniApp 前端</td><td>会员入口、资料页和毕业认证页已装配；会员 UI 16 项与租户品牌 6 项测试通过</td></tr>
-<tr><td>私有材料</td><td>本地运行目录可保存 JPEG/PNG/PDF，用户和管理员鉴权读取已逐字节通过；文件不进入 Git</td></tr>
+<tr><td>UniApp 前端</td><td>会员入口、资料页和毕业认证页已装配；会员 UI 18 项与租户品牌 6 项测试通过</td></tr>
+<tr><td>私有材料</td><td>新上传只接受 JPEG/PNG；历史 PDF 仅允许受控读取，用户和管理员鉴权读取已逐字节通过；文件不进入 Git</td></tr>
 <tr><td>CRMEB 子模块</td><td>保持干净，无业务改动</td></tr>
 </tbody></table></div></section>
 <section><h2>4. 当前验证与下一步</h2><pre># G1 总门禁
@@ -32,5 +32,5 @@
 ./scripts/check-g1-member-bootstrap.sh
 
 # 仅验证 G1-01C 资料/附件/认证/审核真实 HTTP 链路
-./scripts/check-g1-profile-verification.sh</pre><ul class="checklist"><li>总门禁固定数据库 180 张表、431 项迁移复验与 OpenAPI 0.4.0（14 paths / 16 operations / 13 implemented / 3 planned / 85 schemas）。</li><li>G1-01C 分层测试为资料 16、附件 10 + DB 44、认证 12 + DB 119、会员 UI 16、租户品牌 6，均已通过。</li><li>HTTP 门禁使用真实 CRMEB 用户/Admin Token；受保护路由按 Auth → Tenant 顺序执行，不接受请求正文伪造身份或租户。</li><li>G1-01C 门禁覆盖资料幂等、私有附件逐字节读取、管理员申请级读取审计、非法查询零副作用、批准前完整性复验、认证提交/查询/审核、Nginx 413 JSON、审核重放与非法状态迁移。</li><li>G1-01C 已完成，下一步是 G1-01D 会籍计划与下单；本机 PHP/Composer/Redis 仍不必单独安装，继续使用隔离容器环境。</li></ul><div class="callout warn"><strong>仅限本地：</strong>当前私有材料使用本地文件系统。内容级限制、配额和读取审计已完成，但专业恶意软件扫描仍是生产硬门槛；私有对象存储、加密/密钥轮换、生命周期、审计告警、监控与备份恢复仍待完成。</div></section>
+./scripts/check-g1-profile-verification.sh</pre><ul class="checklist"><li>总门禁固定数据库 180 张表、437 项迁移复验与 OpenAPI 0.5.0（14 paths / 16 operations / 15 implemented / 1 planned / 85 schemas）。</li><li>G1-01C 分层测试为资料 16、附件 10 + DB 44、认证 12 + DB 119、会员 UI 18、租户品牌 6，均已通过。</li><li>G1-01D 另覆盖会籍计划/结算 15、网关 11、数据库 85 条断言、原生 CRMEB 入口拦截和 timer 自动补绑。</li><li>HTTP 门禁使用真实 CRMEB 用户/Admin Token；受保护路由按 Auth → Tenant 顺序执行，不接受请求正文伪造身份或租户。</li><li>本机 PHP/Composer/Redis 仍不必单独安装，继续使用隔离容器环境；真实支付、权益生效和生产对象存储仍属后续切片。</li></ul><div class="callout warn"><strong>仅限本地：</strong>当前私有材料使用本地文件系统。内容级限制、配额和读取审计已完成，但专业恶意软件扫描仍是生产硬门槛；私有对象存储、加密/密钥轮换、生命周期、审计告警、监控与备份恢复仍待完成。</div></section>
 </div></main><footer><div class="wrap">mingde-vp-chamber · 本地开发环境基线</div></footer></body></html>

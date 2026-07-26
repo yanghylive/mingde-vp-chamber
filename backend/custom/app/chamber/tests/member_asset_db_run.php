@@ -39,10 +39,10 @@ try {
     $service = new MemberAssetService(new MemberAssetIdempotency(), $storage);
 
     ensureDirectory($fixtureRoot);
-    $firstPath = $fixtureRoot . '/first.pdf';
-    $changedPath = $fixtureRoot . '/changed.pdf';
-    file_put_contents($firstPath, "%PDF-1.4\nmember asset database fixture\n%%EOF\n");
-    file_put_contents($changedPath, "%PDF-1.4\nchanged member asset fixture\n%%EOF\n");
+    $firstPath = $fixtureRoot . '/first.png';
+    $changedPath = $fixtureRoot . '/changed.png';
+    file_put_contents($firstPath, pngFixture(1));
+    file_put_contents($changedPath, pngFixture(2));
 
     $callerKey = 'asset-db-' . $runId . '-upload';
     $internalKey = BootstrapIdempotency::deriveInternalKey(
@@ -56,15 +56,15 @@ try {
     $first = $service->upload(
         $tenant,
         $auth,
-        uploadedFile($firstPath, 'graduation-proof.pdf'),
+        uploadedFile($firstPath, 'graduation-proof.png'),
         MemberAssetPurpose::GRADUATE_VERIFICATION_PROOF,
         $callerKey
     );
     $assetKeys[] = $first['object_key'];
     assertSame(['id', 'object_key', 'original_name', 'mime_type', 'size', 'available'], array_keys($first));
     assertSame(true, $first['available']);
-    assertSame('application/pdf', $first['mime_type']);
-    assertSame('graduation-proof.pdf', $first['original_name']);
+    assertSame('image/png', $first['mime_type']);
+    assertSame('graduation-proof.png', $first['original_name']);
     assertSame(1, assetCount($tenant, $memberId));
     assertSame(1, storedFileCount($storageRoot));
     $assertions += 7;
@@ -72,7 +72,7 @@ try {
     $replay = $service->upload(
         $tenant,
         $auth,
-        uploadedFile($firstPath, 'graduation-proof.pdf'),
+        uploadedFile($firstPath, 'graduation-proof.png'),
         MemberAssetPurpose::GRADUATE_VERIFICATION_PROOF,
         $callerKey
     );
@@ -110,7 +110,7 @@ try {
         $service->upload(
             $tenant,
             $auth,
-            uploadedFile($changedPath, 'graduation-proof.pdf'),
+            uploadedFile($changedPath, 'graduation-proof.png'),
             MemberAssetPurpose::GRADUATE_VERIFICATION_PROOF,
             $callerKey
         );
@@ -148,8 +148,8 @@ try {
     $assertions += 11;
 
     $ownerContent = $service->contentForOwner($tenant, $auth, $first['id']);
-    assertSame('graduation-proof.pdf', $ownerContent->originalName());
-    assertSame('application/pdf', $ownerContent->mimeType());
+    assertSame('graduation-proof.png', $ownerContent->originalName());
+    assertSame('image/png', $ownerContent->mimeType());
     assertSame(file_get_contents($firstPath), file_get_contents($ownerContent->path()));
     assertSame(
         $ownerContent->path(),
@@ -157,7 +157,7 @@ try {
     );
     assertSame(1, accessAuditCount($tenant, $applicationId, $first['id'], $admin->adminId()));
     $otherProofKey = sprintf(
-        'member-assets/v1/t%d/%s.pdf',
+        'member-assets/v1/t%d/%s.png',
         $tenant->tenantId(),
         substr(hash('sha256', 'other-application:' . $runId), 0, 32)
     );
@@ -232,7 +232,7 @@ try {
         $service->upload(
             $tenant,
             $auth,
-            uploadedFile($changedPath, 'quota-proof.pdf'),
+            uploadedFile($changedPath, 'quota-proof.png'),
             MemberAssetPurpose::GRADUATE_VERIFICATION_PROOF,
             $quotaKey
         );
@@ -354,6 +354,23 @@ function uploadedFile(string $path, string $name): UploadedFile
     return new UploadedFile($path, $name, 'application/octet-stream', UPLOAD_ERR_OK, true);
 }
 
+function pngFixture(int $variant): string
+{
+    $fixtures = [
+        1 => 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+        2 => 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8zwAAAgEBAScY42YAAAAASUVORK5CYII=',
+    ];
+    if (!isset($fixtures[$variant])) {
+        throw new InvalidArgumentException('Unknown PNG fixture variant');
+    }
+    $bytes = base64_decode($fixtures[$variant], true);
+    if (!is_string($bytes)) {
+        throw new RuntimeException('Could not decode PNG fixture');
+    }
+
+    return $bytes;
+}
+
 function createVerificationApplication(
     TenantContext $tenant,
     int $uid,
@@ -403,10 +420,10 @@ function createReadyQuotaFixtures(
             'member_id' => $memberId,
             'uid' => $uid,
             'purpose' => MemberAssetPurpose::GRADUATE_VERIFICATION_PROOF,
-            'object_key' => sprintf('member-assets/v1/t%d/%s.pdf', $tenant->tenantId(), substr($seed, 0, 32)),
+            'object_key' => sprintf('member-assets/v1/t%d/%s.png', $tenant->tenantId(), substr($seed, 0, 32)),
             'storage_driver' => 'local',
-            'original_name' => sprintf('quota-%02d.pdf', $index),
-            'mime_type' => 'application/pdf',
+            'original_name' => sprintf('quota-%02d.png', $index),
+            'mime_type' => 'image/png',
             'byte_size' => 1,
             'sha256' => $seed,
             'status' => 1,

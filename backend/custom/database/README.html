@@ -8,9 +8,9 @@
 </head>
 <body>
   <header class="doc-head"><div class="wrap">
-    <p class="eyebrow">DATABASE BASELINE · 202607210001—202607250003</p>
+    <p class="eyebrow">DATABASE BASELINE · 202607210001—202607250005</p>
     <h1>商会数据库迁移基线</h1>
-    <p>在租户会员、认证审核、人物角色、活动报名、商业事件可靠性和 G1 会籍事实基础上，增加管理菜单注册、资料 JSON 规范化和私有会员附件元数据；CRMEB 原安装 SQL 与业务表保持不变。</p>
+    <p>在租户会员、认证审核、人物角色、活动报名、商业事件可靠性和 G1 会籍事实基础上，增加管理菜单注册、资料 JSON 规范化、私有会员附件、订单上下文幂等关联和会籍订单缺口补扫定时器；CRMEB 原安装 SQL 与业务表保持不变。</p>
   </div></header>
   <main class="doc-main"><div class="wrap">
     <section>
@@ -36,6 +36,10 @@
           <tr><td><code>migrations/202607250002_normalize_member_profile_json.verify.sql</code></td><td>5 项复验：数组对象类型、元素形状与隐私结构</td><td>是，只读验证</td></tr>
           <tr><td><code>migrations/202607250003_create_member_asset.up.sql</code></td><td>创建私有会员材料元数据、用途、完整性和消费状态表</td><td>是，使用 <code>CREATE TABLE IF NOT EXISTS</code></td></tr>
           <tr><td><code>migrations/202607250003_create_member_asset.verify.sql</code></td><td>28 项复验：表、列、类型、索引、作用域、格式和状态不变量</td><td>是，只读验证</td></tr>
+          <tr><td><code>migrations/202607250004_link_order_context_idempotency.up.sql</code></td><td>为订单上下文补充幂等记录关联和唯一约束</td><td>是，使用条件 DDL</td></tr>
+          <tr><td><code>migrations/202607250004_link_order_context_idempotency.verify.sql</code></td><td>3 项复验：关联列、索引和唯一约束</td><td>是，只读验证</td></tr>
+          <tr><td><code>migrations/202607250005_register_membership_repair_timer.up.sql</code></td><td>注册会籍订单上下文缺口补扫定时任务，使用 CRMEB 原生 timer 调度</td><td>是，精确替换商会自有任务行</td></tr>
+          <tr><td><code>migrations/202607250005_register_membership_repair_timer.verify.sql</code></td><td>3 项复验：任务唯一性、每分钟计划和 custom code</td><td>是，只读验证</td></tr>
           <tr><td><code>seeds/202607210001_local_ci_baseline.sql</code></td><td>创建两个通用测试租户、默认渠道和人物角色</td><td>是，只补缺，不覆盖已有配置</td></tr>
           <tr><td><code>seeds/202607210001_local_ci_baseline.verify.sql</code></td><td>核对租户、渠道和角色数量及明细</td><td>是，只读查询</td></tr>
         </tbody>
@@ -55,13 +59,13 @@
 ./scripts/manage-local-database.sh verify</pre>
       <p><code>setup</code> 先确认每个 <code>*.up.sql</code> 都有同版本 <code>*.verify.sql</code>，再按文件名顺序执行迁移。新迁移只有在结构验证通过后，才把版本、SHA-256 校验和与执行时间写入 <code>ch_schema_migration</code>；验证失败会保留未登记状态，修复结构后可安全重跑。</p>
       <p>已登记迁移不会只做跳过：脚本先核对历史校验和，再重新运行对应结构验证，用于发现缺表、缺列、关键类型变化、索引缺失等常见漂移。独立执行 <code>verify</code> 会同时复验全部迁移结构和本地种子；若结构完整但版本未登记，会明确要求执行 <code>migrate</code> 完成登记。</p>
-      <p>当前本地基线为 CRMEB 157 张原表、22 张 Chamber 领域/可靠性表和 1 张迁移登记表，共 180 张；<code>ch_*</code> 共 23 张。全部迁移验证器合计 431 项结构复验，其中 G0 为 165 项、G1 为 266 项；本批 202607250001—003 为 4 + 5 + 28 = 37 项。MySQL DDL 会自动提交，发布时先执行迁移再切换应用版本；生产环境不得执行通用种子或 <code>down.sql</code>。后续变更必须新增迁移文件，不回写已登记迁移，也不修改 CRMEB 的 <code>public/install/crmeb.sql</code>。</p>
+      <p>当前本地基线为 CRMEB 157 张原表、22 张 Chamber 领域/可靠性表和 1 张迁移登记表，共 180 张；<code>ch_*</code> 共 23 张。全部迁移验证器合计 437 项结构复验，其中 G0 为 165 项、G1 为 272 项；本批 202607250001—005 为 4 + 5 + 28 + 3 + 3 = 43 项。MySQL DDL 会自动提交，发布时先执行迁移再切换应用版本；生产环境不得执行通用种子或 <code>down.sql</code>。后续变更必须新增迁移文件，不回写已登记迁移，也不修改 CRMEB 的 <code>public/install/crmeb.sql</code>。</p>
     </section>
     <section>
       <h2>本地与 CI 种子边界</h2>
-      <p>种子创建 <code>local-primary</code>、<code>local-secondary</code> 两个不绑定真实品牌的通用租户；每个租户只创建一个 <code>default</code> 渠道，以及普通会员、导师、教练、行业领袖四个角色。</p>
+      <p>通用基线种子创建 <code>local-primary</code>、<code>local-secondary</code> 两个不绑定真实品牌的租户；每个租户只创建一个 <code>default</code> 渠道，以及普通会员、导师、教练、行业领袖四个角色。会籍验收种子另行创建两条本地虚拟商品和四个会籍计划映射，用于真实订单链路。</p>
       <ul class="checklist">
-        <li>不创建 CRMEB 用户、租户会员、活动、商品、订单或其他业务内容。</li>
+        <li>通用基线种子不创建 CRMEB 用户、租户会员、活动、商品或订单；会籍验收种子只创建带 <code>is_sub=1</code>、零积分/零佣金字段的本地虚拟会籍商品及计划映射。</li>
         <li>重复执行只插入缺少的唯一键，不更新、启用或恢复已有记录。</li>
         <li>若基线记录已被停用或软删除，校验结果会显示 <code>FAIL</code>，由开发者明确处理，不由种子覆盖配置。</li>
         <li>该种子不得在生产环境执行，生产租户必须通过受控初始化流程创建。</li>
@@ -114,6 +118,7 @@
         <li><code>ch_tenant_member.tier</code>、<code>tier_expire_time</code> 和 current term 是可重算投影，不得代替期限与效果流水。</li>
         <li><code>ch_graduate_verification.current_slot</code> 对当前申请写 1，历史申请写 NULL；利用 MySQL 多 NULL 唯一键阻止同会员并发产生两条当前申请。</li>
         <li><code>ch_member_consent</code> 和 <code>ch_membership_term_effect</code> 只追加，不软删除；前者禁止保存原始 IP/User-Agent，后者以 effect key/hash 检测重放冲突，同一 term 的 <code>completion_id</code> 跨 partial/full effect 类型只能入账一次。</li>
+        <li>会籍商品必须通过 Chamber 会籍中心下单；原生 CRMEB cart/confirm/create/again 入口拒绝映射会籍商品，原生取货流程跳过积分与佣金副作用。订单上下文缺口由每分钟 timer 批量补绑，补扫按更新时间和重试次数公平排序。</li>
       </ul>
     </section>
     <section>

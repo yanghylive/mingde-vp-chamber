@@ -7,9 +7,9 @@
 <tr><td>MEM-001 登录与协议</td><td>复用 CRMEB Token；新增租户会员惰性初始化与追加式协议记录</td><td>G1-01B 已完成</td><td>后续补微信入口、绑手机和注销</td></tr>
 <tr><td>MEM-002 毕业生认证</td><td>私有材料、不可变申请、单一当前申请、审核状态机、审计和 L2 投影</td><td>G1-01C 本地功能已验收</td><td>生产恶意软件扫描与对象存储加固</td></tr>
 <tr><td>MEM-003 个人资料</td><td>姓名、地区、行业、企业、职位、主营、资源、需求、兴趣、专长和隐私范围</td><td>G1-01C 大部完成</td><td>头像上传/裁剪编辑</td></tr>
-<tr><td>MEM-006 会籍购买</td><td>计划、订单上下文、期限事实、追加式效果、等级投影</td><td>数据/状态/API 契约完成</td><td>下单编排与支付事件消费</td></tr>
+<tr><td>MEM-006 会籍购买</td><td>计划、CRMEB 订单、订单上下文、期限事实、追加式效果、等级投影</td><td>G1-01D 计划查询、下单与上下文已完成</td><td>G1-01E 支付事件消费、期限和等级投影</td></tr>
 <tr><td>MEM-009 推荐归因</td><td>租户内推荐码、首次渠道和推荐人锁定</td><td>G1-01B 已完成</td><td>后续推荐展示与运营规则</td></tr>
-</tbody></table></div><p><strong>当前交付：</strong>G1-01A/B 的会籍数据事实、真实 CRMEB Token、会员初始化、协议与归因保持不变；G1-01C 已落地资料、私有附件、毕业认证、用户端与运营审核。数据库现为 180 张表，全部迁移 431 项结构复验（G0 165 + G1 266）；本批资料 16、附件 10 + DB 44、认证 12 + DB 119、会员 UI 16 和租户品牌 6 项测试通过。OpenAPI 0.4.0 为 14 条路径、16 个操作、85 个 Schema，当前 13 个 <code>implemented</code>、3 个 <code>planned</code>。</p></section>
+</tbody></table></div><p><strong>当前交付：</strong>G1-01A/B/C 的数据事实、真实 CRMEB Token、会员初始化、协议、资料、私有附件和毕业认证保持不变；G1-01D 已落地计划查询、真实 CRMEB 待支付订单、OrderContext 绑定、原生入口拦截与缺口补扫。数据库仍为 180 张表，全部迁移 437 项结构复验（G0 165 + G1 272）；新增下单领域 15、CRMEB 网关 11、数据库 85 项测试，会员 UI 更新为 18 项。OpenAPI 0.5.0 为 14 条路径、16 个操作、85 个 Schema，当前 15 个 <code>implemented</code>、1 个 <code>planned</code>。</p></section>
 
 <section><h2>2. CRMEB 源码假设修正</h2><div class="table-wrap"><table><thead><tr><th>原假设</th><th>源码事实</th><th>确定方案</th></tr></thead><tbody>
 <tr><td>监听 <code>UserRegisterListener</code> 即可创建租户会员</td><td>事件没有 TenantContext，且既有用户绑定推广关系时也会触发；事件本身不耐久</td><td>在受保护 Chamber API 首次访问时，以可信 tenant + CRMEB uid 幂等惰性创建</td></tr>
@@ -24,8 +24,8 @@
   -> 服务端解析协议版本并追加接受证据       [G1-01B 完成]
   -> 提交毕业生认证                     [G1-01C 完成]
   -> 运营审批为 L2                      [G1-01C 完成]
-  -> 查询当前渠道 L3/L4 plan
-  -> 创建 OrderContext（先 creating，后绑定 CRMEB order）
+  -> 查询当前渠道 L3/L4 plan             [G1-01D 完成]
+  -> 创建 CRMEB 订单并绑定 OrderContext   [G1-01D 完成]
   -> CRMEB 支付/零元完成事实进入 commerce inbox
   -> 同库事务创建唯一 membership term + grant effect
   -> 从有效期限重算 member tier
@@ -55,10 +55,10 @@
 <tr><td><code>GET/POST /chamber/v1/me/graduate-verifications</code></td><td>认证查询与提交；<strong>implemented</strong></td><td>POST 要求 Idempotency-Key；只消费本人 ready 材料</td></tr>
 <tr><td><code>GET /chamber/admin/v1/graduate-verifications*</code> 与材料 GET</td><td>列表、详情和已提交材料读取；<strong>implemented</strong></td><td>Admin Bearer + TenantContext + 专用权限；材料 GET 必填 application_id，审计归属指定申请</td></tr>
 <tr><td><code>POST /chamber/admin/v1/graduate-verifications/{application_id}/reviews</code></td><td>审批、退回、拒绝或撤销；<strong>implemented</strong></td><td>专用权限 + Idempotency-Key；禁用会员不能被提级</td></tr>
-<tr><td><code>GET /chamber/v1/membership/plans</code></td><td>当前租户渠道可售计划</td><td>不向前端暴露 CRMEB 商品/SKU 内部映射</td></tr>
-<tr><td><code>POST /chamber/v1/membership/checkouts</code></td><td>创建或重放单会籍计划 CRMEB 订单及 OrderContext</td><td>Bearer + TenantContext + Idempotency-Key；校验计划版本、金额和币种</td></tr>
-<tr><td><code>GET /chamber/v1/me/membership</code></td><td>有效等级、期限和购买资格</td><td>只返回当前认证用户自己的租户域数据</td></tr>
-</tbody></table></div><p>只剩 3 个会籍操作为 <code>planned</code>。完整请求、响应、错误码和 Schema 见 <a href="../backend/custom/openapi/chamber-openapi.yaml">OpenAPI 0.4.0</a>。资料、附件和认证已覆盖稳定的 authentication、permission、member disabled、validation、idempotency、asset quota/integrity 和 verification transition 错误。</p></section>
+<tr><td><code>GET /chamber/v1/membership/plans</code></td><td>当前租户渠道可售计划；<strong>implemented</strong></td><td>不向前端暴露 CRMEB 商品/SKU 内部映射</td></tr>
+<tr><td><code>POST /chamber/v1/membership/checkouts</code></td><td>创建或重放单会籍计划 CRMEB 订单及 OrderContext；<strong>implemented</strong></td><td>Bearer + TenantContext + Idempotency-Key；校验计划版本、金额和币种</td></tr>
+<tr><td><code>GET /chamber/v1/me/membership</code></td><td>有效等级、期限和购买资格；<strong>planned</strong></td><td>只返回当前认证用户自己的租户域数据</td></tr>
+</tbody></table></div><p>只剩 <code>GET /chamber/v1/me/membership</code> 为 <code>planned</code>。完整请求、响应、错误码和 Schema 见 <a href="../backend/custom/openapi/chamber-openapi.yaml">OpenAPI 0.5.0</a>。会籍下单新增 plan unavailable、verification required、purchase not allowed、idempotency conflict、order state unknown 和 order mismatch 等稳定失败语义。</p></section>
 
 <section><h2>7. 幂等、事务与锁序</h2><pre>inbox
   -> ch_order_context
@@ -70,7 +70,8 @@
 <tr><td>迁移</td><td>MySQL 8 空库/升级库、重复执行、verify、可重跑 rollback；MySQL 5.7 语法保持兼容</td></tr>
 <tr><td>会员</td><td>同 Key 20 路并发与不同 Key 20 路并发均只创建一个租户会员、一个该会员资料、每份协议一次接受事件；跨租户分别创建；退出会员使用旧 Key 重放或新 Key 请求均返回 HTTP 403，且不复活</td></tr>
 <tr><td>认证</td><td>全部合法/非法迁移；approve/reject 并发仅一方成功；禁用会员不能重放提级；ready 未提交材料 Admin 读取 404；approve 前复验对象存在性、大小和 SHA-256，损坏材料标记 unavailable 且不推进业务状态</td></tr>
-<tr><td>支付</td><td>事件 10 次重放、两笔续费并发、事务中断重试、订单/Context 任一字段不匹配</td></tr>
+<tr><td>会籍下单</td><td>领域 15、CRMEB 网关 11、数据库 85 assertions 与真实 HTTP 门禁通过；原生 CRMEB 会籍入口被拒绝，积分/佣金副作用为零，同 Key 重放同订单，异请求冲突，timer 只补绑既有订单</td></tr>
+<tr><td>支付生效</td><td>事件 10 次重放、两笔续费并发、事务中断重试、订单/Context 任一字段不匹配，列入 G1-01E</td></tr>
 <tr><td>等级</td><td>L3→L4、L4 到期回落 L3/L2、认证撤销到 L1、重新认证恢复有效 term</td></tr>
 <tr><td>HTTP</td><td>无 Token 401、租户伪造 403、幂等冲突 409、字段错误 422、追踪 ID 完整</td></tr>
 </tbody></table></div></section>
@@ -82,6 +83,6 @@
 <tr><td>生产验收</td><td>协议正文、隐私政策、运营审核账号、域名和部署信息</td></tr>
 </tbody></table></div><div class="callout warn"><strong>暂缓：</strong>真实微信支付、部分退款期限折算、按天补差价、自动续费、推荐奖励与退款冲正，以及资料头像编辑。毕业认证虽已本地验收，专业恶意软件扫描仍是生产硬门槛；部分退款在财务规则确认前只进入人工处理。</div></section>
 
-<section><h2>10. 下一开发批次</h2><ol><li>G1-01D：计划查询、会籍下单、OrderContext 绑定与缺口补扫。</li><li>G1-01E：支付 inbox 消费、期限/效果、等级投影、到期任务和真实库并发测试。</li><li>上线横向加固：专业恶意软件扫描、生产对象存储、审计告警/检索、头像媒体能力、监控与备份恢复。</li></ol><p>G1-01B 的信任链见 <a href="G1-会员初始化开发基线.html">会员初始化基线</a>；资料、附件、认证和审核的真实 HTTP 证据见 <a href="G1-个人资料与毕业认证开发基线.html">G1-01C 基线</a>。</p></section>
+<section><h2>10. 下一开发批次</h2><ol><li>G1-01E：支付 inbox 消费、期限/效果、等级投影、到期任务、我的会籍查询和真实库并发测试。</li><li>微信真联调：接入正式商户参数、回调域名和签名证书，验证支付与退款事实。</li><li>上线横向加固：专业恶意软件扫描、生产对象存储、审计告警/检索、头像媒体能力、监控与备份恢复。</li></ol><p>G1-01D 的实现和真实 HTTP 证据见 <a href="G1-会籍计划与下单开发基线.html">会籍计划与下单基线</a>。当前只完成待支付订单，支付后会籍权益生效仍属于 G1-01E；生产前还需确保会籍商品不参与 CRMEB 用户等级折扣。</p></section>
 
 </div></main><footer><div class="wrap">mingde-vp-chamber · G1 会员交易开发基线 · 2026-07-25</div></footer></body></html>

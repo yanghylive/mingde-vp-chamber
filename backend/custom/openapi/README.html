@@ -15,7 +15,7 @@
     <div class="eyebrow">API CONTRACT · G0 RUNTIME + G1 DELIVERY · 2026-07-25</div>
     <h1>Chamber API 契约基线</h1>
     <p>固定 G0 运行契约、G1 已实现会员初始化/资料/私有附件/毕业认证/运营审核，以及后续会籍交易契约。YAML 是机器可读的唯一事实源；每个操作显式标记 implemented 或 planned。</p>
-    <div class="meta"><span>OpenAPI 3.1.0</span><span>契约版本 0.4.0</span><span>CRMEB-KY v6.0.0</span><span>14 路径 / 16 操作</span><span>13 implemented / 3 planned</span><span>Schema 85</span></div>
+    <div class="meta"><span>OpenAPI 3.1.0</span><span>契约版本 0.5.0</span><span>CRMEB-KY v6.0.0</span><span>14 路径 / 16 操作</span><span>15 implemented / 1 planned</span><span>Schema 85</span></div>
   </header>
   <div class="content">
     <nav class="toc" aria-label="页内目录">
@@ -24,7 +24,7 @@
 
     <section id="scope">
       <h2>1. 范围与结论</h2>
-      <p><a href="chamber-openapi.yaml">chamber-openapi.yaml</a> 是二开接口契约的版本库事实源。G0 两个操作、会员初始化，以及 G1-01C 的资料、附件、认证和管理审核共 13 个操作标记为 <code>implemented</code>；会籍计划、结算和我的会籍 3 个操作仍为 <code>planned</code>。</p>
+      <p><a href="chamber-openapi.yaml">chamber-openapi.yaml</a> 是二开接口契约的版本库事实源。G0 两个操作、会员初始化、资料、附件、认证和管理审核，以及 G1-01D 会籍计划和结算共 15 个操作标记为 <code>implemented</code>；我的会籍查询仍为 1 个 <code>planned</code> 操作。</p>
       <div class="callout"><strong>交付边界：</strong><code>planned</code> 只表示契约已确定，不表示路由已上线。实现完成时必须在同一变更中加入路由、服务、测试，并把状态改为 <code>implemented</code>。前端不得根据中文 <code>msg</code> 分支。</div>
       <div class="callout"><strong>运行时已对齐：</strong>用户端使用 CRMEB api Token，管理端使用 CRMEB Admin Token + 专用权限；身份后解析 TenantContext。资料、附件上传、认证提交和审核写操作进入主体域幂等，私有内容读取重新鉴权并禁止公共缓存。完整真实 HTTP 链路已通过。</div>
       <p>实施、数据与生产边界见 <a href="../../../docs/G1-个人资料与毕业认证开发基线.html">G1 个人资料与毕业认证开发基线</a>；后续会籍锁序见 <a href="../../../docs/G1-会员交易开发基线.html">G1 会员交易开发基线</a>。</p>
@@ -51,12 +51,12 @@
         </tbody>
       </table></div>
       <p><code>health</code> 仅证明 Chamber 应用可路由并返回 JSON，不代表 MySQL、Redis、支付或租户数据全部就绪。管理端材料读取拒绝未提交的 ready 附件，并要求明确申请上下文；非法 query 在文件访问与审计前返回 422。材料 unavailable 时列表/详情仍返回可审核元数据，不让单个损坏对象拖垮队列。</p>
-      <h3>2.2 G1 后续待实现契约</h3>
+      <h3>2.2 G1 会籍操作</h3>
       <div class="table-wrap"><table>
         <thead><tr><th>方法与路径</th><th>需求</th><th>用途</th><th>状态</th></tr></thead>
         <tbody>
-          <tr><td><code>GET /chamber/v1/membership/plans</code></td><td>MEM-006</td><td>列出当前租户渠道可购买的 L3/L4 计划</td><td><span class="pill">planned</span></td></tr>
-          <tr><td><code>POST /chamber/v1/membership/checkouts</code></td><td>MEM-006</td><td>创建或重放单会籍计划 CRMEB 订单及不可变 OrderContext</td><td><span class="pill">planned</span></td></tr>
+          <tr><td><code>GET /chamber/v1/membership/plans</code></td><td>MEM-006</td><td>列出当前租户渠道可购买的 L3/L4 计划</td><td><span class="pill">implemented</span></td></tr>
+          <tr><td><code>POST /chamber/v1/membership/checkouts</code></td><td>MEM-006</td><td>创建或重放单会籍计划 CRMEB 订单及不可变 OrderContext</td><td><span class="pill">implemented</span></td></tr>
           <tr><td><code>GET /chamber/v1/me/membership</code></td><td>MEM-006</td><td>读取有效等级、期限和购买能力</td><td><span class="pill">planned</span></td></tr>
         </tbody>
       </table></div>
@@ -153,11 +153,11 @@ X-Chamber-Signature</pre>
 
 # 也可指定待验证文件
 ruby backend/custom/openapi/validate.rb path/to/chamber-openapi.yaml</pre>
-      <p>它会检查 YAML 重复键、本地 <code>$ref</code>、14 条路径与 16 个 operationId、85 个 Schema、13 implemented / 3 planned 状态、用户/管理 Bearer、租户头、幂等头、私有内容查询/响应头、统一 envelope、金额/时间/分页、商业事件和无 PII 约束，以及会员请求不得接收可信身份字段。它是项目治理校验，不代替完整 OpenAPI JSON Schema 校验器。</p>
+      <p>它会检查 YAML 重复键、本地 <code>$ref</code>、14 条路径与 16 个 operationId、85 个 Schema、15 implemented / 1 planned 状态、用户/管理 Bearer、租户头、幂等头、私有内容查询/响应头、统一 envelope、金额/时间/分页、商业事件和无 PII 约束，以及会员请求不得接收可信身份字段。它是项目治理校验，不代替完整 OpenAPI JSON Schema 校验器。</p>
       <div class="callout warn"><strong>变更规则：</strong>破坏性变更必须提升 API 主版本；非破坏性字段扩展提升契约次版本；仅文案/示例修订提升补丁版本。</div>
     </section>
   </div>
-  <footer class="footer">mingde-vp-chamber · Chamber API contract 0.4.0 · 2026-07-25</footer>
+  <footer class="footer">mingde-vp-chamber · Chamber API contract 0.5.0 · 2026-07-25</footer>
 </main>
 </body>
 </html>

@@ -17,18 +17,18 @@
       <a href="../index.html">项目首页</a>
       <a href="PRD-v2.0.html">PRD v2.0</a>
       <a href="开发任务板.html">开发任务板</a>
-      <a href="G1-个人资料与毕业认证开发基线.html">G1-01C 基线</a>
+      <a href="G1-会籍计划与下单开发基线.html">G1-01D 基线</a>
       <a href="../backend/custom/openapi/README.html">API 契约</a>
     </nav>
 
     <section id="summary">
       <h2>1. 管理结论</h2>
       <div class="decision-grid">
-        <article><small>当前工程阶段</small><strong>G1-01C 已验收</strong><p>资料、私有材料、毕业认证、用户页面与运营审核形成首条跨两端业务闭环。</p></article>
-        <article><small>PRD 全量产品完成度</small><strong>约 17%–20%</strong><p>MEM-002 达到本地功能验收，MEM-003 大部完成；其余四大业务模块仍主要是基础或未开始。</p></article>
-        <article><small>2026-08-10 风险</small><strong>红色 / 高风险</strong><p>距离发布节点 16 天，会籍支付、活动、商城二开、大咖预约和 AI 对话尚无完整用户旅程。</p></article>
+        <article><small>当前工程阶段</small><strong>G1-01D 已验收</strong><p>毕业认证之后已能查询计划并创建真实 CRMEB 待支付会籍订单，支付生效仍待 G1-01E。</p></article>
+        <article><small>PRD 全量产品完成度</small><strong>约 19%–22%</strong><p>MEM-002 达到本地功能验收，MEM-003 大部完成，MEM-006 已完成计划与下单子链路；其余四大模块仍主要是基础或未开始。</p></article>
+        <article><small>2026-08-10 风险</small><strong>红色 / 高风险</strong><p>距离发布节点 16 天，会籍权益生效、活动、商城二开、大咖预约和 AI 对话尚无完整用户旅程。</p></article>
       </div>
-      <div class="callout warn"><strong>一句话判断：</strong>项目已经从“只有工程底座”进入“有一条可操作业务闭环”，但离 PRD 要求的五模块发布会版本仍有明显距离。应立即推进会籍支付，并保持活动、商城、大咖和 AI 并行，不能把本地 G1-01C 验收解释为生产可发布。</div>
+      <div class="callout warn"><strong>一句话判断：</strong>项目已打通“认证后查询计划并创建会籍订单”，但订单尚未通过可信支付事件生成会籍权益，离 PRD 要求的五模块发布会版本仍有明显距离。应立即完成 G1-01E，并保持活动、商城、大咖和 AI 并行，不能把本地下单验收解释为生产可发布。</div>
     </section>
 
     <section id="delta">
@@ -37,10 +37,11 @@
         <thead><tr><th>增量</th><th>已完成事实</th><th>证据</th></tr></thead>
         <tbody>
           <tr><td>MEM-003 资料</td><td>资料 GET/PATCH、字段白名单、数组规范化、逐字段隐私、幂等重放/冲突和 UniApp 页面</td><td>资料领域 16 项 + 真实 HTTP 查询/更新/重放/冲突</td></tr>
-          <tr><td>MEM-002 材料</td><td>私有 JPEG/PNG/PDF、会员配额、图片/PDF 内容限制、<code>available</code> 状态、用途绑定、申请级鉴权读取和审计</td><td>附件领域 10 项 + 数据库 44 项 + 二进制逐字节及非法查询零副作用 HTTP 校验</td></tr>
+          <tr><td>MEM-002 材料</td><td>新上传仅接受私有 JPEG/PNG，历史 PDF 保留鉴权只读兼容；会员配额、<code>available</code> 状态、用途绑定、申请级鉴权读取和审计已完成</td><td>附件领域 10 项 + 数据库 44 项 + 二进制逐字节及非法查询零副作用 HTTP 校验</td></tr>
           <tr><td>MEM-002 认证</td><td>提交/查询、单一当前申请、重新提交、运营列表/详情/审核、批准前文件完整性复验、审计、L2 投影、禁用会员拦截和两端页面</td><td>认证领域 12 项 + 数据库 119 项 + 用户到管理员真实 HTTP 全链路</td></tr>
           <tr><td>Admin 集成</td><td>CRMEB 菜单/权限迁移、审核工作台、超级管理员路由守卫、后端专用权限</td><td>菜单迁移 4 项；Admin 生产构建通过，保留上游 CSS/体积告警</td></tr>
-          <tr><td>契约与数据库</td><td>OpenAPI 升至 0.4.0；新增 3 个迁移；本地 CRMEB 空库安装脚本兼容严格模式</td><td>14 paths / 16 operations / 13 implemented / 3 planned / 85 schemas；180 张表</td></tr>
+          <tr><td>MEM-006 下单</td><td>L3/L4 计划查询、真实 CRMEB 虚拟商品待支付订单、确定性 unique、OrderContext 绑定、幂等重放/冲突与提交缺口补扫</td><td>领域 15 + 网关 11 + DB 85；真实 HTTP 首次下单/购物车全路径拒绝/订单与退款读取隔离/零副作用/重放/冲突/timer 补绑通过</td></tr>
+          <tr><td>契约与数据库</td><td>OpenAPI 升至 0.5.0；新增 OrderContext 幂等关联迁移和本地会籍商品/计划种子</td><td>14 paths / 16 operations / 15 implemented / 1 planned / 85 schemas；180 张表</td></tr>
         </tbody>
       </table></div>
     </section>
@@ -53,11 +54,11 @@
           <tr><td>PRD 编号</td><td>ACT 10 + MEM 11 + COM 9 + EXP 7 + AIE 9 + TEN 7</td><td><strong>53 条</strong></td></tr>
           <tr><td>本地完整功能验收</td><td>后端、用户端、运营端、权限、异常路径和真实 HTTP 主链路均通过</td><td><strong>1 / 53</strong>：MEM-002；MEM-003 因头像编辑能力未闭合仍计部分完成</td></tr>
           <tr><td>生产完整验收</td><td>在本地功能验收上再满足恶意文件防护、审计、对象存储、监控、备份与正式配置</td><td><strong>0 / 53</strong></td></tr>
-          <tr><td>可运行子闭环</td><td>已有真实运行时与自动化证据，但没有覆盖该需求全部验收项</td><td>MEM-001、MEM-003、MEM-009，及 TEN-001/002/004/006 的部分</td></tr>
+          <tr><td>可运行子闭环</td><td>已有真实运行时与自动化证据，但没有覆盖该需求全部验收项</td><td>MEM-001、MEM-003、MEM-006、MEM-009，及 TEN-001/002/004/006 的部分</td></tr>
           <tr><td>工程底座</td><td>独立仓库、CRMEB 子模块、Overlay、租户上下文、本地环境、门禁与文档</td><td><strong>G0 100%</strong></td></tr>
         </tbody>
       </table></div>
-      <p class="subtle">17%–20% 是产品工程估算，不是财务进度。数据库表、上游 CRMEB 能力和 planned 契约只计为基础；没有可操作界面和真实业务流时，不计为完整需求。</p>
+      <p class="subtle">19%–22% 是产品工程估算，不是财务进度。数据库表、上游 CRMEB 能力和 planned 契约只计为基础；只有待支付订单而没有支付生效与状态页时，MEM-006 仍只计部分完成。</p>
     </section>
 
     <section id="dashboard">
@@ -67,7 +68,7 @@
         <tbody>
           <tr><td>工程底座 G0</td><td><strong>100%</strong></td><td>独立 Git 仓库、CRMEB v6.0.0、Overlay、本地 Docker、租户/签名/CORS/追踪、迁移与总门禁</td><td>生产部署、监控、备份、压测与安全加固</td></tr>
           <tr><td>租户平台 TEN</td><td><strong>约 38%</strong></td><td>tenant/channel、TenantContext、双租户隔离、品牌共享核心、当前业务 API/页面的租户入口</td><td>全领域数据范围、完整品牌后台、共享资源、配置发布/回滚和业绩报表</td></tr>
-          <tr><td>会员 MEM</td><td><strong>约 35%</strong></td><td>Token、初始化、协议、归因、资料、私有材料、毕业认证和运营审核；会籍数据/契约基础</td><td>微信登录/绑手机/注销、头像编辑、目录、好友、会籍支付、积分、贡献、客服和通讯录开关</td></tr>
+          <tr><td>会员 MEM</td><td><strong>约 42%</strong></td><td>Token、初始化、协议、归因、资料、私有材料、毕业认证、运营审核、会籍计划和真实 CRMEB 待支付订单</td><td>微信登录/绑手机/注销、头像编辑、目录、好友、支付生效/会籍状态、积分、贡献、客服和通讯录开关</td></tr>
           <tr><td>活动 ACT</td><td><strong>约 5%</strong></td><td>event、ticket、registration、checkin 四张领域表</td><td>发布、资格、支付、地图、签到、激励、通知、候补和回顾运行时/界面</td></tr>
           <tr><td>商城 COM</td><td><strong>约 5%–8%</strong></td><td>CRMEB 商品/订单/支付/退款底座审计；事件 inbox、幂等和退款尝试</td><td>项目商品类型、会员申请审核、会员价、混合支付、虚拟履约、积分/分账冲正和 UI</td></tr>
           <tr><td>大咖 EXP</td><td><strong>约 2%</strong></td><td>人物角色、角色申请和会员角色表</td><td>主页、案例、档期、预约、履约、AI 助手和咨询纪要</td></tr>
@@ -88,7 +89,7 @@
           <tr><td><code>MEM-003</code></td><td>大部完成</td><td>姓名、地区、行业、企业、职位、主营、资源、需求、兴趣、专长和隐私已支持读写；头像字段可保存但用户头像上传/裁剪未闭合。</td></tr>
           <tr><td><code>MEM-004</code></td><td>未开始</td><td>缺 L2+ 目录、隐私投影、搜索、筛选和贡献排序。</td></tr>
           <tr><td><code>MEM-005</code></td><td>未开始</td><td>缺独立好友模型、申请/接受/拒绝/拉黑及页面。</td></tr>
-          <tr><td><code>MEM-006</code></td><td>数据/契约基础</td><td>plan、order context、term、effect 和状态模型已就绪；计划查询、下单、支付消费、续费、到期降级和页面未实现。</td></tr>
+          <tr><td><code>MEM-006</code></td><td>可运行子闭环</td><td>plan 查询、真实 CRMEB 待支付订单、OrderContext、幂等与补扫已完成；支付 inbox 消费、term/effect、等级投影、续费、到期降级和会籍页面未实现。</td></tr>
           <tr><td><code>MEM-007</code></td><td>未开始</td><td>缺冻结、冲正、可追溯积分账本与页面。</td></tr>
           <tr><td><code>MEM-008</code></td><td>未开始</td><td>缺贡献账本、总/月/渠道/分类榜和异常审计。</td></tr>
           <tr><td><code>MEM-009</code></td><td>可运行子闭环</td><td>推荐码、首次/当前渠道和直接推荐人已落地；奖励、报表与退款冲正未实现。</td></tr>
@@ -144,14 +145,14 @@
         <thead><tr><th>证据类别</th><th>截至 2026-07-25 的结果</th></tr></thead>
         <tbody>
           <tr><td>数据库</td><td>180 张表：157 CRMEB + 22 Chamber 领域 + 1 迁移登记；<code>ch_*</code> 共 23 张</td></tr>
-          <tr><td>迁移结构</td><td>431 项：G0 165 + G1 266；本批新增 4 + 5 + 28 = 37 项</td></tr>
-          <tr><td>OpenAPI</td><td>0.4.0 / 14 paths / 16 operations / 13 implemented / 3 planned / 85 schemas</td></tr>
-          <tr><td>本批领域测试</td><td>profile 16；asset 10；asset DB 44；verification 12；verification DB 119</td></tr>
-          <tr><td>前端测试</td><td>member UI 16；tenant brand 6；Admin 生产构建通过并保留上游 CSS/体积告警</td></tr>
-          <tr><td>真实 HTTP</td><td>用户资料/附件/认证及管理员列表、详情、材料读取、审核、重放、非法迁移与 Nginx 413 JSON 全链路通过</td></tr>
+          <tr><td>迁移结构</td><td>437 项：G0 165 + G1 272；G1-01D 新增 OrderContext 幂等关联和 timer 注册共 6 项</td></tr>
+          <tr><td>OpenAPI</td><td>0.5.0 / 14 paths / 16 operations / 15 implemented / 1 planned / 85 schemas</td></tr>
+          <tr><td>本批下单测试</td><td>checkout 领域 15；CRMEB gateway 11；checkout DB 85 assertions</td></tr>
+          <tr><td>前端测试</td><td>member UI 18；tenant brand 6；Admin 生产构建通过并保留上游 CSS/体积告警</td></tr>
+          <tr><td>真实 HTTP</td><td>既有资料/认证链路保持通过；新增计划查询、原生 CRMEB 会籍入口拒绝、下单、零积分/佣金校验、OrderContext 绑定、同键重放、异参冲突与 timer 补绑全链路通过</td></tr>
         </tbody>
       </table></div>
-      <div class="callout good"><strong>质量判断：</strong>G1-01C 的主要业务状态、租户范围、认证、幂等和数据库不变量已有分层自动化证据；开发没有偏离 PRD 的会员主链路。</div>
+      <div class="callout good"><strong>质量判断：</strong>G1-01D 的计划快照、购买规则、租户/渠道范围、CRMEB 订单一致性、幂等和数据库不变量已有分层自动化证据；开发继续沿 PRD 的“认证后购买会籍”主链路推进，没有漂移。</div>
     </section>
 
     <section id="schedule">
@@ -160,14 +161,14 @@
         <thead><tr><th>PRD 阶段</th><th>原计划</th><th>当前实况</th><th>判断</th></tr></thead>
         <tbody>
           <tr><td>需求与底座冻结</td><td>7/17–7/19</td><td>仓库、架构、CRMEB、租户/交易基础、契约和本地环境已落地</td><td>工程底座完成</td></tr>
-          <tr><td>会员与交易主链路</td><td>7/20–7/26</td><td>初始化、资料和毕业认证完成；会籍支付、积分/贡献和项目商品类型未跑通</td><td><strong>会员身份线推进，交易线落后</strong></td></tr>
+          <tr><td>会员与交易主链路</td><td>7/20–7/26</td><td>初始化、资料、毕业认证和会籍待支付订单完成；支付生效、积分/贡献和项目商品类型未跑通</td><td><strong>下单已补齐，权益生效仍落后</strong></td></tr>
           <tr><td>五模块并行</td><td>7/27–8/2</td><td>活动仅有表，商城仅基础审计，大咖仅角色表，AI 仅文档</td><td><strong>进入阶段前准备不足</strong></td></tr>
           <tr><td>集成与真机</td><td>8/3–8/7</td><td>目前只有认证一条跨两端旅程</td><td>必须保住独立测试窗口</td></tr>
           <tr><td>发布会全量版</td><td>8/10</td><td>剩余 16 天</td><td><strong>按五模块真实可操作口径仍为红色风险</strong></td></tr>
         </tbody>
       </table></div>
       <ol>
-        <li><strong>立即进入 G1-01D/E：</strong>完成会籍计划、下单、OrderContext、支付事件消费、期限投影、续费和到期降级，形成“认证 → 会籍支付”主旅程。</li>
+        <li><strong>立即进入 G1-01E：</strong>完成支付事件消费、期限/effect、等级投影、我的会籍查询、续费和到期降级，形成“认证 → 下单 → 支付生效”主旅程。</li>
         <li><strong>并行启动 G2：</strong>按 ACT-001 → 004 → 005 → 007 → 008 做发布、资格、报名支付、签到和激励。</li>
         <li><strong>同步四模块最小真链路：</strong>商城申请审核/下单、大咖主页/预约、AI 对话/配额/护栏都必须尽快出现真实 API 与页面。</li>
         <li><strong>生产加固不后移：</strong>恶意文件扫描、用户自读审计/审计运营、对象存储、密钥、监控、备份恢复和安全测试必须有明确负责人和门禁。</li>
@@ -176,7 +177,7 @@
 
     <section id="inputs">
       <h2>8. 业务信息触发点</h2>
-      <p><strong>继续开发 G1-01D 不需要等待新增资料。</strong>以下内容按联调节点提供即可：</p>
+      <p><strong>继续开发 G1-01E 不需要等待新增资料。</strong>以下内容按联调节点提供即可：</p>
       <div class="table-wrap"><table>
         <thead><tr><th>最晚触发点</th><th>需要的信息/资源</th><th>缺失影响</th></tr></thead>
         <tbody>
@@ -198,7 +199,7 @@
         <li>正式微信、支付、域名、协议、品牌和运营账号资料尚未联调。</li>
         <li>全系统监控、恢复演练、压测、安全测试和五条 E2E 尚未通过。</li>
       </ul>
-      <div class="callout warn"><strong>最终结论：</strong>当前开发方向没有漂移，G1-01C 已按 PRD 补上会员资料与毕业认证主链路；进度仍落后于“五模块 8 月 10 日可操作”的目标。下一动作不是继续扩展认证，而是收口其生产风险并立刻转入会籍交易与其他模块并行开发。</div>
+      <div class="callout warn"><strong>最终结论：</strong>当前开发方向没有漂移，G1-01D 已按 PRD 补上计划查询和会籍下单；进度仍落后于“五模块 8 月 10 日可操作”的目标。下一动作是完成支付事实到会籍权益的 G1-01E，同时启动其他模块并行开发。</div>
     </section>
   </div></main>
   <footer><div class="wrap">mingde-vp-chamber · PRD 开发进度总结 · 数据截止 2026-07-25</div></footer>

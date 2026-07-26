@@ -2,17 +2,18 @@ openapi: 3.1.0
 jsonSchemaDialect: https://json-schema.org/draft/2020-12/schema
 info:
   title: Mingde VP Chamber API
-  version: 0.4.0
-  summary: Chamber overlay G0 runtime and G1 profile and graduate-verification vertical
+  version: 0.5.0
+  summary: Chamber overlay G0 runtime and G1 member, verification, and membership-checkout verticals
   description: |
     This document is the source-controlled contract for the independently developed
     Chamber API overlay. Runtime behavior is defined by the locked CRMEB v6.0.0
     source plus `backend/custom/app/chamber`.
 
     Every operation declares `x-implementation-status`. G0 routes, authenticated
-    member bootstrap, profile, and graduate-verification operations marked
-    `implemented` are live. Remaining G1 routes marked `planned` freeze the next
-    implementation contract and MUST NOT be represented as runtime-delivered yet.
+    member bootstrap, profile, graduate-verification, membership-plan, and
+    membership-checkout operations marked `implemented` are live. The remaining
+    G1 membership-summary route marked `planned` freezes the G1-01E contract and
+    MUST NOT be represented as runtime-delivered yet.
 
     All response envelopes contain `status`, `msg`, `data`, and `request_id`.
     The G0 request tracing middleware returns independent request/correlation IDs
@@ -244,7 +245,7 @@ paths:
     post:
       tags:
         - Member
-      summary: Upload one private member asset for a declared Chamber purpose
+      summary: Upload one new JPEG or PNG private member asset for a declared Chamber purpose
       operationId: uploadChamberMemberAsset
       security:
         - CrmebBearerAuth: []
@@ -267,6 +268,9 @@ paths:
           multipart/form-data:
             schema:
               $ref: '#/components/schemas/MemberAssetUploadRequest'
+            encoding:
+              file:
+                contentType: image/jpeg, image/png
       responses:
         '201':
           $ref: '#/components/responses/MemberAssetCreated'
@@ -617,10 +621,11 @@ paths:
       tags:
         - Membership
       summary: List purchasable membership plans for the trusted tenant and channel
+      description: Returns only effective tenant/channel plans and member-specific eligibility; CRMEB product and SKU mappings are never exposed.
       operationId: listMembershipPlans
       security:
         - CrmebBearerAuth: []
-      x-implementation-status: planned
+      x-implementation-status: implemented
       x-requirement-id: MEM-006
       x-tenant-context: required
       x-signed-headers-all-or-none: true
@@ -650,10 +655,11 @@ paths:
       tags:
         - Membership
       summary: Create or replay a single-plan CRMEB membership order and OrderContext
+      description: Strictly validates one plan/version/amount/currency request, derives identity from the authenticated CRMEB user, and replays the original order for the same idempotency key and request.
       operationId: createMembershipCheckout
       security:
         - CrmebBearerAuth: []
-      x-implementation-status: planned
+      x-implementation-status: implemented
       x-requirement-id: MEM-006
       x-tenant-context: required
       x-signed-headers-all-or-none: true
@@ -688,7 +694,7 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
         '503':
-          $ref: '#/components/responses/TenantServiceUnavailable'
+          $ref: '#/components/responses/MemberTransactionError'
   /chamber/v1/me/membership:
     get:
       tags:
@@ -1191,7 +1197,7 @@ components:
           schema:
             $ref: '#/components/schemas/MembershipCheckoutEnvelope'
     MemberTransactionError:
-      description: Stable authentication, validation, state, or idempotency error.
+      description: Stable authentication, validation, state, idempotency, or downstream dependency error.
       headers:
         X-Request-Id:
           $ref: '#/components/headers/RequestIdResponseHeader'
@@ -2195,6 +2201,7 @@ components:
         file:
           type: string
           format: binary
+          description: New uploads accept JPEG and PNG images only; authorized reads of previously stored PDF assets remain supported.
     MemberAsset:
       type: object
       additionalProperties: false
@@ -2796,6 +2803,8 @@ components:
         - membership_verification_required
         - membership_plan_unavailable
         - membership_downgrade_not_allowed
+        - membership_order_inconsistent
+        - membership_order_unavailable
     FieldError:
       type: object
       additionalProperties: false

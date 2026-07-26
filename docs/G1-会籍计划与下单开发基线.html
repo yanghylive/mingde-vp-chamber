@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>G1 会籍计划与下单开发基线 · mingde-vp-chamber</title>
+  <link rel="stylesheet" href="project-docs.css">
+</head>
+<body>
+  <header class="doc-head"><div class="wrap">
+    <p class="eyebrow">G1-01D · IMPLEMENTED · 2026-07-25</p>
+    <h1>G1 会籍计划与下单开发基线</h1>
+    <p>记录 L3/L4 会籍计划查询、CRMEB 单品订单、OrderContext 绑定、幂等重放和提交缺口补扫的实现事实、验收证据与生产边界。</p>
+  </div></header>
+  <main class="doc-main"><div class="wrap">
+    <nav class="doc-nav">
+      <a href="../index.html">项目首页</a>
+      <a href="开发任务板.html">开发任务板</a>
+      <a href="G1-会员交易开发基线.html">G1 会员交易</a>
+      <a href="../backend/custom/openapi/README.html">API 契约</a>
+      <a href="../backend/custom/database/README.html">数据库基线</a>
+    </nav>
+
+    <section>
+      <h2>1. 完成范围</h2>
+      <div class="table-wrap"><table>
+        <thead><tr><th>能力</th><th>实现事实</th><th>关键约束</th></tr></thead>
+        <tbody>
+          <tr><td>计划查询</td><td><code>GET /chamber/v1/membership/plans</code> 返回当前租户和渠道可售的 L3/L4 年度计划</td><td>只暴露业务计划、版本、价格和购买资格，不暴露 CRMEB 商品/SKU 内部映射</td></tr>
+          <tr><td>会籍下单</td><td><code>POST /chamber/v1/membership/checkouts</code> 创建真实 CRMEB 虚拟商品待支付订单并返回稳定订单投影</td><td>固定单计划、数量 1、CNY、微信支付；禁止混购、优惠券、积分、赠品、活动和邮费</td></tr>
+          <tr><td>购买策略</td><td>L2/L3 可买 L3 或 L4，L4 可续 L4；有效 L4 不可降购 L3</td><td>必须有已批准毕业认证；计划代码、版本、金额和币种必须与服务端快照逐项一致</td></tr>
+          <tr><td>幂等与并发</td><td>客户端 Key 经 tenant、operation、认证用户和可信 channel 规范化；请求结果加密保存</td><td>同 Key 同请求重放同一订单；同 Key 异请求返回 409；确定性 32 位 CRMEB unique 和数据库唯一索引兜底并发</td></tr>
+          <tr><td>上下文绑定</td><td>先预留幂等记录，再创建 CRMEB 订单，随后在本地事务中绑定唯一 OrderContext</td><td>订单号、用户、商品、SKU、数量、金额、币种、租户和渠道任一漂移均失败关闭</td></tr>
+          <tr><td>缺口补扫</td><td><code>MembershipOrderContextRepairJob</code> 处理创建订单成功但本地绑定未完成的提交间隙</td><td>补扫只能查找已存在的确定性订单并绑定，绝不代替用户创建新订单</td></tr>
+        </tbody>
+      </table></div>
+    </section>
+
+    <section>
+      <h2>2. 端到端链路</h2>
+      <pre>CRMEB api Bearer Token
+  -> CrmebAuthTokenMiddleware
+  -> TenantContextMiddleware
+  -> 当前渠道会员与认证状态
+  -> 当前渠道 MembershipPlan 快照
+  -> 预留 checkout 幂等记录
+  -> CRMEB StoreOrderCreateServices 创建虚拟商品订单
+  -> 校验 CRMEB 订单与购物车事实
+  -> ch_order_context 绑定 order_pk + idempotency_record_id
+  -> 返回待支付订单投影</pre>
+      <div class="callout good"><strong>本地真实 HTTP 证据：</strong>计划查询、首次下单、同 Key 重放、异参数冲突、CRMEB 订单与购物车行、OrderContext 一对一绑定均已通过；门禁结束后测试用户、订单、上下文和幂等夹具均清理为零。</div>
+    </section>
+
+    <section>
+      <h2>3. 数据与不变量</h2>
+      <div class="table-wrap"><table>
+        <thead><tr><th>事实</th><th>约束</th><th>用途</th></tr></thead>
+        <tbody>
+          <tr><td><code>ch_membership_plan</code></td><td>tenant + channel + plan code/tier 唯一；业务价格、期限和 CRMEB 商品映射由服务端维护</td><td>形成不可变下单快照</td></tr>
+          <tr><td><code>eb_store_order.unique</code></td><td>等于服务端生成的确定性 checkout key，数据库全局唯一</td><td>抵抗锁租约过期和并发重复建单</td></tr>
+          <tr><td><code>ch_order_context.context_no</code></td><td>与 CRMEB unique 一致；<code>order_pk</code>、<code>idempotency_record_id</code> 均唯一</td><td>把 CRMEB 订单绑定到唯一会籍业务上下文</td></tr>
+          <tr><td><code>ch_idempotency_record</code></td><td>同可信主体和 Key 的请求哈希不可改变；结果用 AES-256-GCM 密封</td><td>稳定重放响应且不泄露原始客户端 Key</td></tr>
+        </tbody>
+      </table></div>
+      <p>迁移 <code>202607250004_link_order_context_idempotency</code> 为 OrderContext 增加 nullable 幂等记录外键和唯一索引，<code>202607250005_register_membership_repair_timer</code> 注册每分钟缺口补扫任务，共新增 6 项结构复验。数据库仍为 180 张表，其中 CRMEB 157 张、Chamber 领域表 22 张、迁移登记表 1 张；全部迁移共 437 项复验，G0 165 项、G1 272 项。</p>
+    </section>
+
+    <section>
+      <h2>4. 订单安全边界</h2>
+      <ul class="checklist">
+        <li>会籍商品必须是可售、未删除的虚拟商品和有效 SKU；购买数量固定为 1。</li>
+        <li>订单 <code>pay_type</code> 必须为 <code>weixin</code>，支付金额必须等于计划金额，优惠、积分抵扣、邮费、赠送积分和五类佣金字段必须为 0；会籍商品标记 <code>is_sub=1</code>，不进入 CRMEB 推广分佣。</li>
+        <li>购物车行、下单确认数据、最终订单和 OrderContext 必须共同匹配同一计划快照。</li>
+        <li>原生 CRMEB cart/confirm/create/again 入口拒绝会籍商品；订单列表/详情/收银、订单商品、退款商品、购物车统计与删除等读取/操作入口均拒绝会籍单；原生订单取货流程对会籍订单跳过积分、经验、佣金和后置事件副作用。</li>
+        <li>公开 API 由 <code>app/api/provider.php</code> 装饰，根 HTTP/queue/timer/CLI 由 <code>app/provider.php</code> 绑定订单、订单商品、退款和收货守卫；可信网关的私有缓存/持久化校验走 DAO，不把守卫降级成客户端约定。</li>
+        <li>订单状态通过网关映射为稳定的 pending、paid、cancelled、refunding、partially_refunded 或 refunded，不把 CRMEB 内部状态直接泄露到 Chamber 契约。</li>
+        <li>重放前重新校验当前用户、会员状态、租户、渠道和真实订单；旧成功响应不能绕过停用或跨渠道限制。</li>
+        <li>补扫只处理已存在的确定性订单，按记录更新时间、重试次数和上下文 ID 公平排序；每次最多处理 50 条并记录日志。</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>5. 自动化证据</h2>
+      <div class="table-wrap"><table>
+        <thead><tr><th>层级</th><th>固定证据</th><th>覆盖重点</th></tr></thead>
+        <tbody>
+          <tr><td>领域</td><td>15 项，0 失败</td><td>请求契约、计划快照、可售区间、认证门槛、升级/续费/降级和幂等范围</td></tr>
+          <tr><td>CRMEB 网关</td><td>11 项，0 失败</td><td>签名、订单状态、unique、禁止优惠、购物车一致性、价格漂移、支付/退款组合和失败关闭</td></tr>
+          <tr><td>数据库服务</td><td>85 assertions</td><td>租户/渠道隔离、同键重放、异参冲突、异常恢复、只绑定既有订单、陈旧计划拒绝、公平补扫和夹具清理</td></tr>
+          <tr><td>真实 HTTP</td><td><code>scripts/check-g1-membership-checkout.sh</code></td><td>Nginx、Bearer、TenantContext、DI、CRMEB 服务、MySQL 和 OpenAPI 全链路</td></tr>
+          <tr><td>总门禁</td><td><code>scripts/check-g1-membership-baseline.sh</code></td><td>继承 G0、会员初始化、资料/认证、前端和全部回归证据</td></tr>
+        </tbody>
+      </table></div>
+      <p>OpenAPI 0.5.0 固定为 14 条路径、16 个操作、15 个 <code>implemented</code>、1 个 <code>planned</code> 和 85 个 Schema。唯一 planned 操作为 <code>GET /chamber/v1/me/membership</code>。</p>
+    </section>
+
+    <section>
+      <h2>6. 本地计划夹具</h2>
+      <div class="table-wrap"><table>
+        <thead><tr><th>计划</th><th>价格</th><th>期限</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td>L3 年度会员</td><td>1000.00 CNY</td><td>1 年</td><td>本地双租户/渠道映射到独立 CRMEB 虚拟商品与 SKU</td></tr>
+          <tr><td>L4 年度理事</td><td>5000.00 CNY</td><td>1 年</td><td>本地双租户/渠道映射到独立 CRMEB 虚拟商品与 SKU</td></tr>
+        </tbody>
+      </table></div>
+      <p>种子 <code>202607250002_local_membership_checkout</code> 仅供本地开发和 CI，不得直接用于生产；它创建 <code>is_sub=1</code>、零积分/零佣金的虚拟商品映射。正式计划、商品、权益和价格应由上线配置确认。</p>
+    </section>
+
+    <section>
+      <h2>7. 尚未完成与下一步</h2>
+      <div class="callout warn"><strong>不得误判：</strong>本批只完成“计划查询和创建待支付 CRMEB 订单”。尚未完成真实微信支付联调、支付 inbox 领域消费、会籍期限/效果创建、等级投影、续费排期、退款权益回收和到期降级，因此不能宣称购买后权益已经生效。</div>
+      <ol>
+        <li>G1-01E：消费可信支付完成事实，原子创建 membership term/effect，并从有效期限重算会员等级。</li>
+        <li>补齐 <code>GET /chamber/v1/me/membership</code>，返回当前等级、期限、订单状态和购买资格。</li>
+        <li>覆盖支付事件 10 次重放、两笔续费并发、事务中断重试、退款和到期回落。</li>
+      </ol>
+      <p><strong>现在仍可继续开发，不需要用户补资料。</strong>到真实微信联调前再提供 AppID、AppSecret、支付商户号、证书/密钥和回调域名。生产启用前还必须确保会籍商品不参与 CRMEB 用户等级折扣，否则网关会因价格漂移失败关闭。</p>
+    </section>
+  </div></main>
+  <footer><div class="wrap">mingde-vp-chamber · G1-01D 会籍计划与下单开发基线 · 2026-07-25</div></footer>
+</body>
+</html>

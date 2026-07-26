@@ -32,9 +32,12 @@ required_files=(
   "docs/G1-会员交易开发基线.html"
   "docs/G1-会员初始化开发基线.html"
   "docs/G1-个人资料与毕业认证开发基线.html"
+  "docs/G1-会籍计划与下单开发基线.html"
   "backend/custom/README.html"
   "backend/custom/app/chamber/ChamberExceptionHandle.php"
   "backend/custom/app/chamber/provider.php"
+  "backend/custom/app/api/provider.php"
+  "backend/custom/app/provider.php"
   "backend/custom/app/chamber/route/route.php"
   "backend/custom/app/chamber/config/consent.php"
   "backend/custom/app/chamber/controller/MemberBootstrapController.php"
@@ -44,6 +47,8 @@ required_files=(
   "backend/custom/app/chamber/controller/GraduateVerificationController.php"
   "backend/custom/app/chamber/controller/GraduateVerificationAdminController.php"
   "backend/custom/app/chamber/controller/GraduateVerificationReviewController.php"
+  "backend/custom/app/chamber/controller/MembershipPlanController.php"
+  "backend/custom/app/chamber/controller/MembershipCheckoutController.php"
   "backend/custom/app/chamber/exceptions/MemberTransactionException.php"
   "backend/custom/app/chamber/identity/AuthenticatedUserContext.php"
   "backend/custom/app/chamber/identity/AuthenticatedAdminContext.php"
@@ -56,6 +61,10 @@ required_files=(
   "backend/custom/app/chamber/membership/ConsentDocument.php"
   "backend/custom/app/chamber/membership/MemberBootstrapRequest.php"
   "backend/custom/app/chamber/membership/MemberContext.php"
+  "backend/custom/app/chamber/membership/MembershipCheckoutIdempotency.php"
+  "backend/custom/app/chamber/membership/MembershipCheckoutRequest.php"
+  "backend/custom/app/chamber/membership/MembershipPlanSnapshot.php"
+  "backend/custom/app/chamber/membership/MembershipPurchasePolicy.php"
   "backend/custom/app/chamber/middleware/ChamberCorsMiddleware.php"
   "backend/custom/app/chamber/middleware/CrmebAuthTokenMiddleware.php"
   "backend/custom/app/chamber/middleware/CrmebAdminAuthTokenMiddleware.php"
@@ -68,6 +77,16 @@ required_files=(
   "backend/custom/app/chamber/services/MemberAssetService.php"
   "backend/custom/app/chamber/services/GraduateVerificationIdempotency.php"
   "backend/custom/app/chamber/services/GraduateVerificationService.php"
+  "backend/custom/app/chamber/services/CrmebMembershipOrderGateway.php"
+  "backend/custom/app/chamber/services/MembershipCheckoutService.php"
+  "backend/custom/app/chamber/services/MembershipNativeOrderGuard.php"
+  "backend/custom/app/chamber/services/GuardedStoreCartServices.php"
+  "backend/custom/app/chamber/services/GuardedStoreOrderCartInfoServices.php"
+  "backend/custom/app/chamber/services/GuardedStoreOrderCreateServices.php"
+  "backend/custom/app/chamber/services/GuardedStoreOrderRefundServices.php"
+  "backend/custom/app/chamber/services/GuardedStoreOrderServices.php"
+  "backend/custom/app/chamber/services/GuardedStoreOrderTakeServices.php"
+  "backend/custom/app/chamber/jobs/MembershipOrderContextRepairJob.php"
   "backend/custom/app/chamber/assets/LocalPrivateAssetStorage.php"
   "backend/custom/app/chamber/assets/MemberAssetContent.php"
   "backend/custom/app/chamber/assets/MemberAssetContentResponder.php"
@@ -90,6 +109,10 @@ required_files=(
   "backend/custom/app/chamber/tests/member_asset_db_run.php"
   "backend/custom/app/chamber/tests/graduate_verification_run.php"
   "backend/custom/app/chamber/tests/graduate_verification_db_run.php"
+  "backend/custom/app/chamber/tests/membership_checkout_run.php"
+  "backend/custom/app/chamber/tests/membership_order_gateway_run.php"
+  "backend/custom/app/chamber/tests/membership_checkout_db_run.php"
+  "backend/custom/app/chamber/tests/membership_checkout_fixture.php"
   "backend/custom/app/chamber/tests/commerce_run.php"
   "backend/custom/app/chamber/tests/commerce_db_run.php"
   "backend/custom/app/chamber/commerce/CommerceEvent.php"
@@ -103,6 +126,7 @@ required_files=(
   "backend/custom/app/chamber/membership/OrderContextState.php"
   "backend/custom/app/chamber/tests/membership_run.php"
   "backend/custom/app/chamber/contracts/CommerceEventStoreInterface.php"
+  "backend/custom/app/chamber/contracts/MembershipOrderGatewayInterface.php"
   "backend/custom/app/chamber/exceptions/CommerceEventConflictException.php"
   "backend/custom/app/chamber/services/CommerceEventRecorder.php"
   "backend/custom/app/chamber/services/InMemoryCommerceEventStore.php"
@@ -131,8 +155,16 @@ required_files=(
   "backend/custom/database/migrations/202607250003_create_member_asset.up.sql"
   "backend/custom/database/migrations/202607250003_create_member_asset.verify.sql"
   "backend/custom/database/migrations/202607250003_create_member_asset.down.sql"
+  "backend/custom/database/migrations/202607250004_link_order_context_idempotency.up.sql"
+  "backend/custom/database/migrations/202607250004_link_order_context_idempotency.verify.sql"
+  "backend/custom/database/migrations/202607250004_link_order_context_idempotency.down.sql"
+  "backend/custom/database/migrations/202607250005_register_membership_repair_timer.up.sql"
+  "backend/custom/database/migrations/202607250005_register_membership_repair_timer.verify.sql"
+  "backend/custom/database/migrations/202607250005_register_membership_repair_timer.down.sql"
   "backend/custom/database/seeds/202607210001_local_ci_baseline.sql"
   "backend/custom/database/seeds/202607210001_local_ci_baseline.verify.sql"
+  "backend/custom/database/seeds/202607250002_local_membership_checkout.sql"
+  "backend/custom/database/seeds/202607250002_local_membership_checkout.verify.sql"
   "backend/custom/openapi/README.html"
   "backend/custom/openapi/chamber-openapi.yaml"
   "backend/custom/openapi/validate.rb"
@@ -165,6 +197,7 @@ required_files=(
   "scripts/check-g1-membership-baseline.sh"
   "scripts/check-g1-member-bootstrap.sh"
   "scripts/check-g1-profile-verification.sh"
+  "scripts/check-g1-membership-checkout.sh"
 )
 
 required_executables=(
@@ -177,6 +210,7 @@ required_executables=(
   "scripts/check-g1-membership-baseline.sh"
   "scripts/check-g1-member-bootstrap.sh"
   "scripts/check-g1-profile-verification.sh"
+  "scripts/check-g1-membership-checkout.sh"
 )
 
 for file in "${required_files[@]}"; do
@@ -195,7 +229,8 @@ baseline = manifest.fetch('g1_membership_baseline')
 
 expected_documents = {
   'prd_progress' => 'docs/PRD-开发进度总结-2026-07-25.html',
-  'g1_profile_verification_baseline' => 'docs/G1-个人资料与毕业认证开发基线.html'
+  'g1_profile_verification_baseline' => 'docs/G1-个人资料与毕业认证开发基线.html',
+  'g1_membership_checkout_baseline' => 'docs/G1-会籍计划与下单开发基线.html'
 }
 expected_baseline = {
   'database_tables_total' => 180,
@@ -205,27 +240,33 @@ expected_baseline = {
   'admin_menu_structural_checks' => 4,
   'profile_json_structural_checks' => 5,
   'member_asset_structural_checks' => 28,
+  'order_context_idempotency_structural_checks' => 3,
+  'repair_timer_structural_checks' => 3,
   'profile_verification_structural_checks' => 37,
-  'g1_migration_structural_checks' => 266,
-  'migration_structural_checks_total' => 431,
+  'g1_migration_structural_checks' => 272,
+  'migration_structural_checks_total' => 437,
+  'membership_checkout_domain_tests' => 15,
+  'membership_order_gateway_tests' => 11,
+  'membership_checkout_database_assertions' => 85,
   'member_profile_domain_tests' => 16,
   'member_asset_domain_tests' => 10,
   'member_asset_database_assertions' => 44,
   'graduate_verification_domain_tests' => 12,
   'graduate_verification_database_assertions' => 119,
-  'member_ui_tests' => 16,
+  'member_ui_tests' => 18,
   'tenant_brand_tests' => 6,
-  'openapi_version' => '0.4.0',
+  'openapi_version' => '0.5.0',
   'openapi_paths' => 14,
   'openapi_operations_total' => 16,
-  'openapi_operations_implemented' => 13,
-  'openapi_operations_planned' => 3,
+  'openapi_operations_implemented' => 15,
+  'openapi_operations_planned' => 1,
   'openapi_schemas' => 85,
-  'profile_verification_gate' => 'scripts/check-g1-profile-verification.sh'
+  'profile_verification_gate' => 'scripts/check-g1-profile-verification.sh',
+  'membership_checkout_gate' => 'scripts/check-g1-membership-checkout.sh'
 }
 
 errors = []
-errors << "project.status=#{project['status'].inspect}" unless project['status'] == 'g1-01c-profile-verification-complete'
+errors << "project.status=#{project['status'].inspect}" unless project['status'] == 'g1-01d-membership-checkout-complete'
 expected_documents.each do |key, value|
   errors << "documents.#{key}=#{documents[key].inspect}" unless documents[key] == value
 end
@@ -235,7 +276,7 @@ end
 errors << 'Chamber table arithmetic differs' unless baseline['chamber_domain_tables'] + baseline['migration_registry_tables'] == baseline['chamber_tables_including_registry']
 errors << 'migration check arithmetic differs' unless 165 + baseline['g1_migration_structural_checks'] == baseline['migration_structural_checks_total']
 errors << 'OpenAPI operation arithmetic differs' unless baseline['openapi_operations_implemented'] + baseline['openapi_operations_planned'] == baseline['openapi_operations_total']
-abort "PROJECT_MANIFEST G1-01C drift: #{errors.join('; ')}" unless errors.empty?
+abort "PROJECT_MANIFEST G1-01D drift: #{errors.join('; ')}" unless errors.empty?
 RUBY
 
 [[ -f "$ROOT/.gitmodules" ]] || fail "missing .gitmodules"

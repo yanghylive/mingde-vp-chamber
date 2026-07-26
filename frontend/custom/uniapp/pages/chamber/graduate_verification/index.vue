@@ -124,7 +124,7 @@
                 :disabled="proofFiles.length >= 10"
                 @click="chooseProofFiles"
               >
-                文件
+                聊天图片
               </button>
             </view>
           </view>
@@ -312,19 +312,27 @@ export default {
       uni.chooseMessageFile({
         count: remaining,
         type: 'file',
+        extension: ['jpg', 'jpeg', 'png'],
         success: (response) => this.appendProofCandidates(response.tempFiles || []),
       });
     },
     appendProofCandidates(files) {
       const remaining = 10 - this.proofFiles.length;
-      (files || []).slice(0, remaining).forEach((file, index) => {
-        const filePath = file.path || file.tempFilePath || '';
-        if (!filePath) return;
+      let accepted = 0;
+      let rejectionMessage = '';
+      (files || []).forEach((file, index) => {
+        if (accepted >= remaining) return;
+        const candidate = memberUi.validateProofUploadCandidate(file);
+        if (!candidate.valid) {
+          rejectionMessage = rejectionMessage || candidate.error;
+          return;
+        }
+        const filePath = candidate.value.file_path;
         const item = {
           id: 0,
           object_key: '',
-          original_name: file.name || this.fileNameFromPath(filePath),
-          mime_type: file.type || '',
+          original_name: candidate.value.original_name,
+          mime_type: candidate.value.mime_type,
           size: Number(file.size || 0),
           local_id: 'upload-' + Date.now() + '-' + index + '-' + Math.floor(Math.random() * 100000),
           idempotency_key: memberUi.createIdempotencyKey('asset-upload'),
@@ -333,8 +341,10 @@ export default {
           upload_error: '',
         };
         this.proofFiles.push(item);
+        accepted += 1;
         this.uploadProofCandidate(item);
       });
+      if (rejectionMessage) uni.showToast({ title: rejectionMessage, icon: 'none' });
     },
     uploadProofCandidate(item) {
       if (!item || !item.file_path || item.status === 'uploading') return;
@@ -455,11 +465,6 @@ export default {
     },
     humanFileSize(size) {
       return memberUi.humanFileSize(size);
-    },
-    fileNameFromPath(filePath) {
-      const cleanPath = String(filePath || '').split('?')[0];
-      const parts = cleanPath.split('/');
-      return parts[parts.length - 1] || '证明材料';
     },
   },
 };

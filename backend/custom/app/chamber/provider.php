@@ -2,8 +2,10 @@
 
 use app\chamber\ChamberExceptionHandle;
 use app\chamber\contracts\ReplayGuardInterface;
+use app\chamber\contracts\MembershipOrderGatewayInterface;
 use app\chamber\contracts\SignedTenantRequestVerifierInterface;
 use app\chamber\contracts\TenantDirectoryInterface;
+use app\chamber\services\CrmebMembershipOrderGateway;
 use app\chamber\services\DisabledSignedTenantRequestVerifier;
 use app\chamber\services\ConsentDocumentRegistry;
 use app\chamber\services\HmacTenantRequestVerifier;
@@ -25,6 +27,9 @@ return [
     },
     ReplayGuardInterface::class => function (TenantRuntimeConfig $runtimeConfig) {
         return new RedisReplayGuard($runtimeConfig->replayPrefix());
+    },
+    MembershipOrderGatewayInterface::class => function () {
+        return app()->make(CrmebMembershipOrderGateway::class);
     },
     SignedTenantRequestVerifierInterface::class => function (
         TenantRuntimeConfig $runtimeConfig,
