@@ -150,6 +150,13 @@ final class MemberProfileService
         if ($member->uid() !== $auth->uid()) {
             throw new RuntimeException('Stored member identity is inconsistent');
         }
+        if ($member->currentChannelId() !== $tenant->channelId()) {
+            throw new MemberTransactionException(
+                403,
+                'tenant_scope_denied',
+                'Member does not belong to this tenant channel'
+            );
+        }
         if (!$member->isActive()) {
             throw new MemberTransactionException(403, 'member_disabled', 'Member account is not active');
         }

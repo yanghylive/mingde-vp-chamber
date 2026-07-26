@@ -93,6 +93,8 @@
 
     var OBJECT_KEY_PATTERN =
       /^(?!https?:\/\/)(?!\/)(?!.*\/\/)(?!.*(?:^|\/)\.{1,2}(?:\/|$))(?!.*\/$)[A-Za-z0-9][A-Za-z0-9._/-]*$/;
+    var PROOF_UPLOAD_MIME_TYPES = ['image/jpeg', 'image/png'];
+    var PROOF_UPLOAD_EXTENSIONS = ['jpg', 'jpeg', 'png'];
 
     function isObject(value) {
       return value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -175,6 +177,37 @@
       if (!normalized) return '';
       var parts = normalized.split('/');
       return parts[parts.length - 1] || normalized;
+    }
+
+    function validateProofUploadCandidate(input) {
+      var file = isObject(input) ? input : {};
+      var filePath = cleanText(file.path || file.tempFilePath);
+      var pathForExtension = filePath.split(/[?#]/, 1)[0];
+      var originalName = cleanText(file.name) || fileNameFromObjectKey(pathForExtension);
+      var suppliedType = cleanText(file.type || file.mime_type).toLowerCase().split(';', 1)[0];
+      var mimeType = suppliedType.indexOf('/') >= 0 ? suppliedType : '';
+      var extensionMatch = /\.([A-Za-z0-9]+)$/.exec(originalName) || /\.([A-Za-z0-9]+)$/.exec(pathForExtension);
+      var extension = extensionMatch ? extensionMatch[1].toLowerCase() : '';
+      var formatError = '证明材料仅支持 JPEG 或 PNG 图片';
+
+      if (!filePath) return { valid: false, error: '无法读取所选图片' };
+      if (mimeType && PROOF_UPLOAD_MIME_TYPES.indexOf(mimeType) < 0) {
+        return { valid: false, error: formatError };
+      }
+      if (extension && PROOF_UPLOAD_EXTENSIONS.indexOf(extension) < 0) {
+        return { valid: false, error: formatError };
+      }
+      if (!mimeType && !extension) return { valid: false, error: formatError };
+
+      return {
+        valid: true,
+        error: '',
+        value: {
+          file_path: filePath,
+          original_name: originalName || '证明材料.' + extension,
+          mime_type: mimeType || (extension === 'png' ? 'image/png' : 'image/jpeg'),
+        },
+      };
     }
 
     function normalizeMemberAsset(input) {
@@ -489,6 +522,7 @@
       normalizeList: normalizeList,
       isValidObjectKey: isValidObjectKey,
       fieldErrorsToMap: fieldErrorsToMap,
+      validateProofUploadCandidate: validateProofUploadCandidate,
       normalizeMemberAsset: normalizeMemberAsset,
       proofAssetsFromApplication: proofAssetsFromApplication,
       humanFileSize: humanFileSize,

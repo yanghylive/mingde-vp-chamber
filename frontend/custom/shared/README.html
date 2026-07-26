@@ -24,7 +24,7 @@
       <tr><td><code>resolveServiceOrigin</code></td><td>把 API 基址解析为私有内容读取的同服务 Origin，不使用公开演示地址。</td></tr>
     </tbody></table></div></section>
     <section><h2>接入约束</h2><ul class="checklist"><li>共享核心不读取 <code>window</code>、<code>uni</code>、Vuex 或环境变量，网络请求和文件打开由调用端注入。</li><li>管理端从 <code>src/chamber/shared</code> 引入；UniApp 从 <code>chamber/shared</code> 引入。准备脚本会自动复制。</li><li>共享校验用于前端即时反馈，后端仍是权限、状态机、幂等、配额和文件安全的唯一裁决者。</li><li>远端品牌配置失败时使用中性默认值并保留可序列化错误，不阻断应用启动。</li></ul></section>
-    <section><h2>验证</h2><pre>./scripts/prepare-local-frontend.sh test</pre><p>当前固定通过租户品牌 6 项和会员 UI 16 项测试，并检查准备后两端导入、页面注册与 API Origin。</p></section>
+    <section><h2>验证</h2><pre>./scripts/prepare-local-frontend.sh test</pre><p>当前固定通过租户品牌 6 项和会员 UI 18 项测试，并检查准备后两端导入、页面注册与 API Origin。</p></section>
   </div></main><footer><div class="wrap">mingde-vp-chamber · Shared Frontend Core · 2026-07-25</div></footer>
 </body>
 </html>

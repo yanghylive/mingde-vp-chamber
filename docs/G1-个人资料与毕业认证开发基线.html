@@ -28,7 +28,7 @@
         <tbody>
           <tr><td>个人资料</td><td>当前会员资料 GET、字段白名单 PATCH、资源/需求/兴趣/专长数组规范化和逐字段隐私范围已落地</td><td>身份与租户只取 Auth/TenantContext；未知字段、非法 JSON、越界长度和非法隐私值失败关闭</td></tr>
           <tr><td>资料幂等</td><td>PATCH 使用主体域内部幂等键，请求与响应快照均按规范化内容处理，敏感响应使用 AES-256-GCM 密封</td><td>同 Key 同请求重放原结果；同 Key 异请求返回 409；停用或退出会员不能借旧结果绕过校验</td></tr>
-          <tr><td>私有材料</td><td>会员可上传 JPEG、PNG、PDF，每个文件最大 10 MiB；校验 MIME、签名、大小、SHA-256、图片尺寸/像素并拒绝带活动内容的 PDF</td><td>对象键由服务端生成并带租户域；用户和运营读取都必须重新鉴权，响应带私有缓存控制</td></tr>
+          <tr><td>私有材料</td><td>新上传只接受 JPEG、PNG，每个文件最大 10 MiB；校验 MIME、签名、大小、SHA-256、图片尺寸/像素；历史 PDF 只读</td><td>对象键由服务端生成并带租户域；用户和运营读取都必须重新鉴权，响应带私有缓存控制</td></tr>
           <tr><td>认证申请</td><td>会员查询最近申请、提交 1–10 份证明材料、退回/拒绝后通过 <code>supersedes_id</code> 新建不可变申请</td><td>材料必须属于当前租户、渠道、会员和用途；申请提交后材料从 ready 原子转为 consumed</td></tr>
           <tr><td>运营审核</td><td>管理端列表、详情、材料读取和 approve/return/reject/revoke 审核已接入 CRMEB Admin Token 与专用权限</td><td>材料读取必须携带当前 <code>application_id</code> 并校验不可变申请快照，<code>read_asset</code> 审计归属本次申请；approve 前逐文件复验存在性、大小和 SHA-256</td></tr>
           <tr><td>会员投影</td><td>认证通过同步 member verification 与 L2 投影，撤销时按当前会籍事实重新计算可用等级</td><td>申请事实不被覆盖；并发审核只允许合法的一方提交，非法迁移返回稳定 409</td></tr>
@@ -69,7 +69,7 @@
           <tr><td><code>POST /chamber/admin/v1/graduate-verifications/{application_id}/reviews</code></td><td>追加审核决定并更新会员投影</td><td>Admin Bearer + TenantContext + 专用权限 + Idempotency-Key</td></tr>
         </tbody>
       </table></div>
-      <p>项目契约现为 OpenAPI <strong>0.4.0</strong>：14 条路径、16 个操作、13 个 <code>implemented</code>、3 个 <code>planned</code>、85 个 Schema。剩余 planned 操作为会籍计划、会籍结算和我的会籍查询，不属于本批已交付范围。</p>
+      <p>项目契约现为 OpenAPI <strong>0.5.0</strong>：14 条路径、16 个操作、15 个 <code>implemented</code>、1 个 <code>planned</code>、85 个 Schema。资料/认证基线保持不变；会籍计划与结算已在 G1-01D 交付，剩余 planned 仅为我的会籍查询。</p>
     </section>
 
     <section id="data">
@@ -85,7 +85,7 @@
       <ul class="checklist">
         <li>当前数据库共 180 张表：157 张 CRMEB 原表、22 张 Chamber 领域表、1 张 <code>ch_schema_migration</code>。</li>
         <li><code>ch_*</code> 共 23 张，其中 22 张为领域/可靠性表，1 张为迁移登记表。</li>
-        <li>全部迁移验证器共 431 项：G0 165 项 + G1 266 项；本批新增迁移为 4 + 5 + 28 = 37 项。</li>
+        <li>全部迁移验证器共 437 项：G0 165 项 + G1 272 项；本批新增迁移为 4 + 5 + 28 + 3 + 3 = 43 项。</li>
         <li>上传文件位于被 Git 忽略的本地私有运行目录，数据库只保存受控对象键和校验元数据，不保存二进制。</li>
         <li>会员事务内限制 ready 材料 20 件/100 MiB、全部材料 200 件/512 MiB；达到上限即拒绝新上传。</li>
         <li>ready 未提交材料对 Admin 返回 404；只有 consumed 且出现在指定申请不可变快照中的材料可读，<code>read_asset</code> 审计写入指定申请。</li>
@@ -99,12 +99,12 @@
         <thead><tr><th>界面</th><th>已完成交互</th><th>边界</th></tr></thead>
         <tbody>
           <tr><td>UniApp 个人资料</td><td>加载/失败/保存状态、基础信息、资源与方向、逐字段展示范围、客户端校验和幂等保存</td><td>头像对象键不暴露为手工输入；头像上传编辑留到后续统一媒体能力</td></tr>
-          <tr><td>UniApp 毕业认证</td><td>状态与最近申请、图片/PDF 选择上传、失败重试、私有材料打开、提交与重新提交</td><td>最多 10 份材料；失效材料根据 <code>available</code> 禁止打开；审核中和已通过禁止重复提交</td></tr>
+          <tr><td>UniApp 毕业认证</td><td>状态与最近申请、JPEG/PNG 选择上传、失败重试、私有材料打开、提交与重新提交</td><td>最多 10 份材料；新上传拒绝 PDF，历史 PDF 仅受控读取；失效材料根据 <code>available</code> 禁止打开</td></tr>
           <tr><td>会员中心入口</td><td>在 CRMEB 会员中心叠加资料与认证入口，入口和深链均先确保租户会员已初始化</td><td>需要有效 CRMEB 用户 Token</td></tr>
           <tr><td>Admin 审核工作台</td><td>状态/关键字筛选、分页、详情抽屉、私有材料打开、审批/退回/拒绝/撤销对话框</td><td>失效材料禁止打开且隐藏 approve；后端专用权限和状态机仍是最终边界</td></tr>
         </tbody>
       </table></div>
-      <p>前端隔离准备、6 项租户品牌测试和 16 项会员 UI 契约测试已通过；CRMEB Admin 生产构建通过，上游既有 CSS/体积告警仍存在，不视为本批功能失败。</p>
+      <p>前端隔离准备、6 项租户品牌测试和 18 项会员 UI 契约测试已通过；CRMEB Admin 生产构建通过，上游既有 CSS/体积告警仍存在，不视为本批功能失败。</p>
     </section>
 
     <section id="evidence">
@@ -124,8 +124,8 @@
           <tr><td>资料领域</td><td><code>member_profile_run.php</code>：16 项</td></tr>
           <tr><td>附件领域 / 数据库</td><td><code>member_asset_run.php</code>：10 项；<code>member_asset_db_run.php</code>：44 项</td></tr>
           <tr><td>毕业认证领域 / 数据库</td><td><code>graduate_verification_run.php</code>：12 项；<code>graduate_verification_db_run.php</code>：119 项</td></tr>
-          <tr><td>前端</td><td>会员 UI 16 项；租户品牌 6 项；Admin 生产构建通过</td></tr>
-          <tr><td>静态质量</td><td>Chamber PHP 文件语法检查通过；OpenAPI 0.4.0 静态治理校验通过</td></tr>
+          <tr><td>前端</td><td>会员 UI 18 项；租户品牌 6 项；Admin 生产构建通过</td></tr>
+          <tr><td>静态质量</td><td>Chamber PHP 文件语法检查通过；OpenAPI 0.5.0 静态治理校验通过</td></tr>
           <tr><td>运行时</td><td>用户资料、附件、认证及管理员审核全链路通过；超出上传体积由 Nginx 返回统一 413 JSON envelope</td></tr>
         </tbody>
       </table></div>
@@ -135,7 +135,7 @@
       <h2>7. 生产上线前必须完成</h2>
       <div class="callout warn"><strong>结论边界：</strong>G1-01C 已达到本地开发验收，不等于生产上线就绪。以下事项未完成，不能在发布材料中写成已具备。</div>
       <ul class="checklist">
-        <li><strong>恶意文件防护：</strong>当前已有 MIME/签名/大小/哈希、图片尺寸/像素限制和 PDF 活动内容拒绝，但仍不能替代专业恶意软件扫描；病毒扫描、隔离区和放行流程是生产硬门槛。</li>
+        <li><strong>恶意文件防护：</strong>当前已有 MIME/签名/大小/哈希和图片尺寸/像素限制；新上传仅 JPEG/PNG，历史 PDF 只读，但仍不能替代专业恶意软件扫描；病毒扫描、隔离区和放行流程是生产硬门槛。</li>
         <li><strong>敏感访问审计：</strong>运营读取材料和审核决定已有追加审计；用户自读审计、异常告警、审计检索/导出和留存策略尚未完成。</li>
         <li><strong>生产对象存储：</strong>当前为本地私有文件系统；生产私有 Bucket、KMS/服务端加密、短时授权、备份、跨节点一致性和密钥轮换尚未实现。</li>
         <li><strong>生命周期治理：</strong>会员事务配额已执行；材料保留期限、撤回/注销后的删除、孤儿回收、系统级容量和监控告警仍需合规与运维确认。</li>

@@ -17,7 +17,6 @@ final class MemberAssetUpload
     private const MIME_EXTENSIONS = [
         'image/jpeg' => 'jpg',
         'image/png' => 'png',
-        'application/pdf' => 'pdf',
     ];
 
     /** @var string */
@@ -72,8 +71,13 @@ final class MemberAssetUpload
         } finally {
             finfo_close($finfo);
         }
+        if ($mimeType === 'application/pdf') {
+            throw self::invalid(
+                'PDF uploads are disabled until parser and malware-scanner validation is available'
+            );
+        }
         if (!is_string($mimeType) || !isset(self::MIME_EXTENSIONS[$mimeType])) {
-            throw self::invalid('file must be a JPEG, PNG, or PDF detected by its content');
+            throw self::invalid('file must be a JPEG or PNG detected by its content');
         }
         self::assertContentSignature($path, $mimeType);
 
@@ -178,21 +182,6 @@ final class MemberAssetUpload
 
     private static function assertContentSignature(string $path, string $mimeType): void
     {
-        if ($mimeType === 'application/pdf') {
-            $contents = file_get_contents($path);
-            if (!is_string($contents)) {
-                throw self::invalid('uploaded PDF could not be read');
-            }
-            if (substr($contents, 0, 5) !== '%PDF-' || strpos(substr($contents, -2048), '%%EOF') === false) {
-                throw self::invalid('uploaded PDF signature is invalid');
-            }
-            if (preg_match('/\/(?:JavaScript|JS|Launch|EmbeddedFile|RichMedia|OpenAction|AA)\b/i', $contents) === 1) {
-                throw self::invalid('uploaded PDF contains active or embedded content');
-            }
-
-            return;
-        }
-
         $image = @getimagesize($path);
         $expectedType = $mimeType === 'image/jpeg' ? IMAGETYPE_JPEG : IMAGETYPE_PNG;
         if (!is_array($image) || !isset($image[0], $image[1], $image[2])

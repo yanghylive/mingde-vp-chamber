@@ -131,7 +131,7 @@ unless spec.is_a?(Hash)
 end
 
 errors << 'openapi must equal 3.1.0' unless spec['openapi'] == '3.1.0'
-errors << 'info.version must equal 0.4.0' unless dig_hash(spec, 'info', 'version') == '0.4.0'
+errors << 'info.version must equal 0.5.0' unless dig_hash(spec, 'info', 'version') == '0.5.0'
 
 expected_paths = [
   '/chamber/health',
@@ -166,8 +166,8 @@ expected_operations = [
   ['/chamber/admin/v1/member-assets/{asset_id}/content', 'get', 'getChamberMemberAssetContentForAdmin', 'implemented', '200', 'CrmebAdminBearerAuth'],
   ['/chamber/admin/v1/graduate-verifications/{application_id}', 'get', 'getGraduateVerificationForAdmin', 'implemented', '200', 'CrmebAdminBearerAuth'],
   ['/chamber/admin/v1/graduate-verifications/{application_id}/reviews', 'post', 'reviewGraduateVerification', 'implemented', '200', 'CrmebAdminBearerAuth'],
-  ['/chamber/v1/membership/plans', 'get', 'listMembershipPlans', 'planned', '200', 'CrmebBearerAuth'],
-  ['/chamber/v1/membership/checkouts', 'post', 'createMembershipCheckout', 'planned', '201', 'CrmebBearerAuth'],
+  ['/chamber/v1/membership/plans', 'get', 'listMembershipPlans', 'implemented', '200', 'CrmebBearerAuth'],
+  ['/chamber/v1/membership/checkouts', 'post', 'createMembershipCheckout', 'implemented', '201', 'CrmebBearerAuth'],
   ['/chamber/v1/me/membership', 'get', 'getMembershipSummary', 'planned', '200', 'CrmebBearerAuth']
 ]
 expected_operation_contracts = {
@@ -309,6 +309,9 @@ expected_operations.each do |path, method, operation_id, implementation_status, 
     '500' => '#/components/responses/InternalServerError',
     '503' => '#/components/responses/TenantServiceUnavailable'
   }
+  if path == '/chamber/v1/membership/checkouts' && method == 'post'
+    expected_error_responses['503'] = '#/components/responses/MemberTransactionError'
+  end
   expected_error_responses.each do |status, reference|
     unless responses[status] == { '$ref' => reference }
       errors << "#{method.upcase} #{path} #{status} response must be #{reference}"
@@ -492,6 +495,7 @@ expected_enums = {
     asset_integrity_failed tenant_scope_denied consent_document_stale
     verification_already_pending verification_application_not_found verification_transition_invalid verification_supersedes_mismatch
     membership_verification_required membership_plan_unavailable membership_downgrade_not_allowed
+    membership_order_inconsistent membership_order_unavailable
   ]
 }
 expected_enums.each do |name, values|
@@ -602,6 +606,19 @@ asset_upload_schema = dig_hash(
 unless asset_upload_schema == { '$ref' => '#/components/schemas/MemberAssetUploadRequest' }
   errors << 'member asset upload must use the frozen multipart request schema'
 end
+asset_upload_encoding = dig_hash(
+  spec,
+  'paths',
+  '/chamber/v1/me/assets',
+  'post',
+  'requestBody',
+  'content',
+  'multipart/form-data',
+  'encoding'
+)
+unless asset_upload_encoding == { 'file' => { 'contentType' => 'image/jpeg, image/png' } }
+  errors << 'new member asset uploads must accept only JPEG and PNG multipart file content'
+end
 
 %w[
   /chamber/admin/v1/graduate-verifications
@@ -685,8 +702,13 @@ errors << 'MemberAssetUploadRequest must reject unknown fields' unless asset_upl
 unless Array(asset_upload['required']) == %w[purpose file]
   errors << 'MemberAssetUploadRequest required fields differ from the frozen contract'
 end
-unless asset_upload.dig('properties', 'file') == { 'type' => 'string', 'format' => 'binary' }
-  errors << 'MemberAssetUploadRequest file must be binary'
+expected_asset_upload_file = {
+  'type' => 'string',
+  'format' => 'binary',
+  'description' => 'New uploads accept JPEG and PNG images only; authorized reads of previously stored PDF assets remain supported.'
+}
+unless asset_upload.dig('properties', 'file') == expected_asset_upload_file
+  errors << 'MemberAssetUploadRequest file must be binary and document the JPEG/PNG-only upload policy'
 end
 member_asset = schemas['MemberAsset'] || {}
 expected_member_asset_fields = %w[id object_key original_name mime_type size available]
@@ -701,6 +723,16 @@ unless Array(member_asset.dig('properties', 'mime_type', 'enum')) == %w[image/jp
   errors << 'MemberAsset MIME allowlist differs from the frozen contract'
 end
 errors << 'MemberAsset availability must be boolean' unless member_asset.dig('properties', 'available', 'type') == 'boolean'
+member_asset_content_types = (dig_hash(
+  spec,
+  'components',
+  'responses',
+  'MemberAssetContent',
+  'content'
+) || {}).keys.sort
+unless member_asset_content_types == %w[application/pdf image/jpeg image/png]
+  errors << 'MemberAssetContent must retain authenticated JPEG, PNG, and historical PDF reads'
+end
 
 upload_responses = dig_hash(spec, 'paths', '/chamber/v1/me/assets', 'post', 'responses') || {}
 unless upload_responses['413'] == { '$ref' => '#/components/responses/MemberTransactionError' }

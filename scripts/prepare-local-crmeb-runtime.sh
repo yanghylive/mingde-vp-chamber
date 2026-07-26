@@ -5,6 +5,8 @@ set -Eeuo pipefail
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SOURCE_DIR="${PROJECT_ROOT}/backend/crmeb/crmeb"
 CUSTOM_APP_DIR="${PROJECT_ROOT}/backend/custom/app/chamber"
+CUSTOM_API_PROVIDER="${PROJECT_ROOT}/backend/custom/app/api/provider.php"
+CUSTOM_ROOT_PROVIDER="${PROJECT_ROOT}/backend/custom/app/provider.php"
 RUNTIME_DIR="${PROJECT_ROOT}/.build-workspace/crmeb-runtime"
 COMPOSE_FILE="${PROJECT_ROOT}/deployment/local/docker-compose.crmeb.yml"
 
@@ -52,6 +54,8 @@ prepare_runtime() {
     [ -d "${SOURCE_DIR}" ] || fail "CRMEB source directory not found: ${SOURCE_DIR}"
     [ -f "${SOURCE_DIR}/public/install/crmeb.sql" ] || fail "CRMEB install SQL not found"
     [ -d "${CUSTOM_APP_DIR}" ] || fail "Chamber overlay not found: ${CUSTOM_APP_DIR}"
+    [ -s "${CUSTOM_API_PROVIDER}" ] || fail "CRMEB API provider overlay not found: ${CUSTOM_API_PROVIDER}"
+    [ -s "${CUSTOM_ROOT_PROVIDER}" ] || fail "CRMEB root provider overlay not found: ${CUSTOM_ROOT_PROVIDER}"
     if [ -e "${SOURCE_DIR}/app/chamber" ]; then
         [ -d "${SOURCE_DIR}/app/chamber" ] \
             || fail "CRMEB upstream app/chamber is not a directory; review the overlay conflict"
@@ -72,6 +76,8 @@ prepare_runtime() {
 
     mkdir -p "${RUNTIME_DIR}/app/chamber"
     rsync -a --delete "${CUSTOM_APP_DIR}/" "${RUNTIME_DIR}/app/chamber/"
+    install -m 0644 "${CUSTOM_API_PROVIDER}" "${RUNTIME_DIR}/app/api/provider.php"
+    install -m 0644 "${CUSTOM_ROOT_PROVIDER}" "${RUNTIME_DIR}/app/provider.php"
 
     mkdir -p \
         "${RUNTIME_DIR}/runtime" \

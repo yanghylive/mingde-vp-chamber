@@ -69,53 +69,59 @@ $tests['upload accepts content-detected PNG and ignores client MIME'] = function
     assertSame(hash('sha256', $png), $upload->sha256());
 };
 
-$tests['upload accepts a PDF signature and normalizes its extension'] = function () use ($temporaryRoot): void {
-    $path = $temporaryRoot . '/source-pdf';
-    $pdf = "%PDF-1.4\n1 0 obj\n<<>>\nendobj\ntrailer\n<<>>\n%%EOF\n";
-    file_put_contents($path, $pdf);
-    $file = new UploadedFile($path, 'Proof.Final.exe', 'application/octet-stream', UPLOAD_ERR_OK, true);
-    $upload = MemberAssetUpload::fromUploadedFile(
-        $file,
-        MemberAssetPurpose::GRADUATE_VERIFICATION_PROOF
-    );
-
-    assertSame('application/pdf', $upload->mimeType());
-    assertSame('Proof.Final.pdf', $upload->originalName());
-
-    $activePath = $temporaryRoot . '/active-pdf';
-    file_put_contents($activePath, "%PDF-1.4\n/OpenAction 1 0 R\n%%EOF\n");
-    expectMemberError('asset_upload_invalid', 422, function () use ($activePath): void {
-        MemberAssetUpload::fromUploadedFile(
-            new UploadedFile($activePath, 'active.pdf', 'application/pdf', UPLOAD_ERR_OK, true),
-            MemberAssetPurpose::GRADUATE_VERIFICATION_PROOF
-        );
-    });
+$tests['upload rejects every PDF until parser and scanner validation exists'] = function () use ($temporaryRoot): void {
+    $fixtures = [
+        'benign' => "%PDF-1.4\n1 0 obj\n<<>>\nendobj\ntrailer\n<<>>\n%%EOF\n",
+        'escaped-active' => "%PDF-1.4\n1 0 obj\n<< /Open#41ction 2 0 R >>\nendobj\n"
+            . "2 0 obj\n<< /S /J#61vaScript /J#53 (app.alert(1)) >>\nendobj\n%%EOF\n",
+    ];
+    foreach ($fixtures as $name => $bytes) {
+        $path = $temporaryRoot . '/' . $name . '.pdf';
+        file_put_contents($path, $bytes);
+        expectMemberError('asset_upload_invalid', 422, function () use ($path): void {
+            MemberAssetUpload::fromUploadedFile(
+                new UploadedFile($path, 'proof.pdf', 'application/octet-stream', UPLOAD_ERR_OK, true),
+                MemberAssetPurpose::GRADUATE_VERIFICATION_PROOF
+            );
+        });
+    }
 };
 
 $tests['upload idempotency projection is stable and content sensitive'] = function () use ($temporaryRoot): void {
-    $firstPath = $temporaryRoot . '/idempotency-first.pdf';
-    $secondPath = $temporaryRoot . '/idempotency-second.pdf';
-    file_put_contents($firstPath, "%PDF-1.4\nsame bytes\n%%EOF\n");
-    file_put_contents($secondPath, "%PDF-1.4\ndifferent bytes\n%%EOF\n");
+    $firstPath = $temporaryRoot . '/idempotency-first.png';
+    $secondPath = $temporaryRoot . '/idempotency-second.png';
+    $firstBytes = base64_decode(
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+        true
+    );
+    $secondBytes = base64_decode(
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8zwAAAgEBAScY42YAAAAASUVORK5CYII=',
+        true
+    );
+    if (!is_string($firstBytes) || !is_string($secondBytes)) {
+        throw new RuntimeException('Could not decode PNG idempotency fixtures');
+    }
+    file_put_contents($firstPath, $firstBytes);
+    file_put_contents($secondPath, $secondBytes);
     $first = MemberAssetUpload::fromUploadedFile(
-        new UploadedFile($firstPath, 'proof.pdf', 'application/pdf', UPLOAD_ERR_OK, true),
+        new UploadedFile($firstPath, 'proof.png', 'application/octet-stream', UPLOAD_ERR_OK, true),
         MemberAssetPurpose::GRADUATE_VERIFICATION_PROOF
     );
     $same = MemberAssetUpload::fromUploadedFile(
-        new UploadedFile($firstPath, 'proof.pdf', 'text/plain', UPLOAD_ERR_OK, true),
+        new UploadedFile($firstPath, 'proof.png', 'text/plain', UPLOAD_ERR_OK, true),
         MemberAssetPurpose::GRADUATE_VERIFICATION_PROOF
     );
     $different = MemberAssetUpload::fromUploadedFile(
-        new UploadedFile($secondPath, 'proof.pdf', 'application/pdf', UPLOAD_ERR_OK, true),
+        new UploadedFile($secondPath, 'proof.png', 'application/octet-stream', UPLOAD_ERR_OK, true),
         MemberAssetPurpose::GRADUATE_VERIFICATION_PROOF
     );
 
     assertSame([
         'purpose' => 'graduate_verification_proof',
         'sha256' => hash_file('sha256', $firstPath),
-        'mime_type' => 'application/pdf',
+        'mime_type' => 'image/png',
         'size' => filesize($firstPath),
-        'original_name' => 'proof.pdf',
+        'original_name' => 'proof.png',
     ], $first->toIdempotencyArray());
     assertSame(
         BootstrapIdempotency::requestHash(11, $first->toIdempotencyArray()),
@@ -127,6 +133,14 @@ $tests['upload idempotency projection is stable and content sensitive'] = functi
     );
 };
 
+/*
+ * Keep storage-layer PDF coverage below for previously persisted objects. The upload
+ * boundary above intentionally refuses every new PDF until structured validation exists.
+ */
+
+/*
+ * Unsupported and oversized payloads must still fail before storage or idempotency state.
+ */
 $tests['upload rejects unsupported content and oversized files'] = function () use ($temporaryRoot): void {
     $text = $temporaryRoot . '/plain.txt';
     file_put_contents($text, 'not a private proof format');
@@ -145,7 +159,7 @@ $tests['upload rejects unsupported content and oversized files'] = function () u
     fclose($handle);
     expectMemberError('asset_upload_invalid', 422, function () use ($large): void {
         MemberAssetUpload::fromUploadedFile(
-            new UploadedFile($large, 'proof.pdf', 'application/pdf', UPLOAD_ERR_OK, true),
+            new UploadedFile($large, 'proof.png', 'image/png', UPLOAD_ERR_OK, true),
             MemberAssetPurpose::GRADUATE_VERIFICATION_PROOF
         );
     });

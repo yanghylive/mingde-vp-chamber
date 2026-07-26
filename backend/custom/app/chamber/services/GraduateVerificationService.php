@@ -46,9 +46,11 @@ final class GraduateVerificationService
     {
         return Db::transaction(function () use ($tenant, $auth): array {
             $member = $this->memberByUser($tenant->tenantId(), $auth->uid(), false);
+            $this->assertMemberCurrentChannel($tenant, $member);
             $this->assertActiveMember($member);
             $latest = $this->latestApplication(
                 $tenant->tenantId(),
+                $tenant->channelId(),
                 (int) $member['id'],
                 $auth->uid(),
                 false
@@ -77,7 +79,9 @@ final class GraduateVerificationService
         string $callerIdempotencyKey,
         array $requestMetadata = []
     ): array {
-        $this->assertActiveMember($this->memberByUser($tenant->tenantId(), $auth->uid(), false));
+        $member = $this->memberByUser($tenant->tenantId(), $auth->uid(), false);
+        $this->assertMemberCurrentChannel($tenant, $member);
+        $this->assertActiveMember($member);
 
         return $this->idempotency->execute(
             $tenant,
@@ -89,9 +93,11 @@ final class GraduateVerificationService
             201,
             function (int $now) use ($tenant, $auth, $submission, $requestMetadata): array {
                 $member = $this->memberByUser($tenant->tenantId(), $auth->uid(), true);
+                $this->assertMemberCurrentChannel($tenant, $member);
                 $this->assertActiveMember($member);
                 $latest = $this->latestApplication(
                     $tenant->tenantId(),
+                    $tenant->channelId(),
                     (int) $member['id'],
                     $auth->uid(),
                     true
@@ -188,6 +194,7 @@ final class GraduateVerificationService
             },
             function () use ($tenant, $auth): void {
                 $member = $this->memberByUser($tenant->tenantId(), $auth->uid(), true);
+                $this->assertMemberCurrentChannel($tenant, $member);
                 $this->assertActiveMember($member);
             }
         );
@@ -555,6 +562,18 @@ final class GraduateVerificationService
         }
     }
 
+    private function assertMemberCurrentChannel(TenantContext $tenant, array $member): void
+    {
+        if ((int) ($member['tenant_id'] ?? 0) !== $tenant->tenantId()
+            || (int) ($member['current_channel_id'] ?? 0) !== $tenant->channelId()) {
+            throw new MemberTransactionException(
+                403,
+                'tenant_scope_denied',
+                'Member does not belong to this tenant channel'
+            );
+        }
+    }
+
     private function assertReviewTargetActive(
         TenantContext $tenant,
         int $applicationId,
@@ -588,10 +607,16 @@ final class GraduateVerificationService
         return $candidate;
     }
 
-    private function latestApplication(int $tenantId, int $memberId, int $uid, bool $lock): ?array
-    {
+    private function latestApplication(
+        int $tenantId,
+        int $channelId,
+        int $memberId,
+        int $uid,
+        bool $lock
+    ): ?array {
         $query = Db::table('ch_graduate_verification')
             ->where('tenant_id', $tenantId)
+            ->where('channel_id', $channelId)
             ->where('member_id', $memberId)
             ->where('uid', $uid)
             ->order('id', 'desc');

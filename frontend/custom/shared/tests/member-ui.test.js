@@ -28,6 +28,44 @@ test('accepts private relative object keys only', function () {
   assert.strictEqual(memberUi.isValidObjectKey('verification//proof.png'), false);
 });
 
+test('accepts only JPEG and PNG candidates for new proof uploads', function () {
+  assert.strictEqual(
+    memberUi.validateProofUploadCandidate({ path: 'wxfile://tmp/proof.JPG', type: 'image/jpeg' }).valid,
+    true,
+  );
+  assert.strictEqual(
+    memberUi.validateProofUploadCandidate({ tempFilePath: '/tmp/proof.png', name: 'proof.png' }).value.mime_type,
+    'image/png',
+  );
+  assert.strictEqual(
+    memberUi.validateProofUploadCandidate({ path: '/tmp/proof.pdf', type: 'application/pdf' }).valid,
+    false,
+  );
+  assert.strictEqual(
+    memberUi.validateProofUploadCandidate({ path: '/tmp/proof.gif', type: 'image/gif' }).valid,
+    false,
+  );
+  assert.strictEqual(memberUi.validateProofUploadCandidate({ path: '/tmp/proof' }).valid, false);
+  var genericImage = memberUi.validateProofUploadCandidate({
+    path: 'wxfile://tmp/proof.jpg?token=opaque',
+    name: 'proof',
+    type: 'image',
+  });
+  assert.strictEqual(genericImage.valid, true);
+  assert.strictEqual(genericImage.value.file_path, 'wxfile://tmp/proof.jpg?token=opaque');
+});
+
+test('graduate verification picker filters message files to JPEG and PNG', function () {
+  var source = fs.readFileSync(
+    path.join(__dirname, '../../uniapp/pages/chamber/graduate_verification/index.vue'),
+    'utf8',
+  );
+  assert.match(source, /extension:\s*\['jpg', 'jpeg', 'png'\]/);
+  assert.match(source, /memberUi\.validateProofUploadCandidate\(file\)/);
+  assert.match(source, /uni\.openDocument\(/);
+  assert.doesNotMatch(source, /pdf/i);
+});
+
 test('builds the profile whitelist and omits an empty avatar key', function () {
   var result = memberUi.buildProfilePatch({
     real_name: ' 林明 ',

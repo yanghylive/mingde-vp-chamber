@@ -94,6 +94,27 @@ verify_migration_structure() {
     printf 'PASS %s (%s structural checks)\n' "${version}" "${passed_checks}"
 }
 
+refresh_timer_cache() {
+    if compose ps --status running timer 2>/dev/null | grep -q 'mingde_crmeb_timer'; then
+        # CRMEB's Workerman timer snapshots the crontab rows at process start.
+        # Restart it after migrations so newly registered Chamber jobs are
+        # actually scheduled in the local deployment.
+        compose restart timer >/dev/null
+        return 0
+    fi
+
+    if ! compose ps --status running phpfpm 2>/dev/null | grep -q 'mingde_crmeb_php'; then
+        printf 'SKIP timer cache refresh: no PHP or timer container is running\n' >&2
+        return 0
+    fi
+
+    compose exec -T phpfpm php -r '
+require "/var/www/vendor/autoload.php";
+(new \think\App())->initialize();
+\think\facade\Cache::delete("crontabCache");
+' >/dev/null
+}
+
 apply_migrations() {
     local file version verify_file checksum existing
     preflight_migrations
@@ -123,6 +144,8 @@ VALUES ('${version}', '${checksum}', UNIX_TIMESTAMP());
 SQL
         printf 'RECORDED %s\n' "${version}"
     done
+
+    refresh_timer_cache
 }
 
 verify_migrations() {
