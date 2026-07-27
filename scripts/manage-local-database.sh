@@ -99,8 +99,18 @@ refresh_timer_cache() {
         # CRMEB's Workerman timer snapshots the crontab rows at process start.
         # Restart it after migrations so newly registered Chamber jobs are
         # actually scheduled in the local deployment.
+        local started heartbeat attempt
+        started="$(date +%s)"
         compose restart timer >/dev/null
-        return 0
+        for attempt in $(seq 1 30); do
+            heartbeat="$(compose exec -T timer sh -lc 'cat /var/www/runtime/.timer 2>/dev/null || true' \
+                2>/dev/null | tr -d '[:space:]')"
+            if [[ "${heartbeat}" =~ ^[0-9]+$ ]] && [ "${heartbeat}" -ge "${started}" ]; then
+                return 0
+            fi
+            sleep 1
+        done
+        fail "CRMEB timer did not become ready after cache refresh"
     fi
 
     if ! compose ps --status running phpfpm 2>/dev/null | grep -q 'mingde_crmeb_php'; then

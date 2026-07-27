@@ -29,6 +29,7 @@ foreach ([
     'v1/me/assets',
     'v1/me/assets/:asset_id/content',
     'v1/me/graduate-verifications',
+    'v1/me/membership',
     'v1/membership/plans',
     'v1/membership/checkouts',
     'admin/v1/member-assets/:asset_id/content',
@@ -65,6 +66,7 @@ Route::group('v1/me', function () {
         ->pattern(['asset_id' => '\\d+']);
     Route::get('graduate-verifications', 'GraduateVerificationController/show');
     Route::post('graduate-verifications', 'GraduateVerificationController/store');
+    Route::get('membership', 'MembershipSummaryController/show');
 })->middleware(RequestTraceMiddleware::class)
     ->middleware(ChamberCorsMiddleware::class)
     ->middleware(CrmebAuthTokenMiddleware::class)

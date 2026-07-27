@@ -164,6 +164,9 @@ foreach ([
     \app\services\order\StoreOrderServices::class,
     \app\services\order\StoreOrderRefundServices::class,
     \app\services\order\StoreOrderCreateServices::class,
+    \app\services\order\StoreOrderDeliveryServices::class,
+    \app\services\order\StoreOrderSuccessServices::class,
+    \app\services\order\OutStoreOrderServices::class,
     \app\services\order\StoreOrderTakeServices::class,
 ] as $service) {
     echo get_class($app->make($service)), "\n";
@@ -178,6 +181,12 @@ grep -Fxq 'app\chamber\services\GuardedStoreOrderRefundServices' <<<"${runtime_c
     || fail 'CRMEB root provider did not bind guarded refund services'
 grep -Fxq 'app\chamber\services\GuardedStoreOrderCartInfoServices' <<<"${runtime_classes}" \
     || fail 'CRMEB root provider did not bind guarded order-cart services'
+grep -Fxq 'app\chamber\services\GuardedStoreOrderDeliveryServices' <<<"${runtime_classes}" \
+    || fail 'CRMEB root provider did not bind guarded delivery services'
+grep -Fxq 'app\chamber\services\GuardedStoreOrderSuccessServices' <<<"${runtime_classes}" \
+    || fail 'CRMEB root provider did not bind trusted payment services'
+grep -Fxq 'app\chamber\services\GuardedOutStoreOrderServices' <<<"${runtime_classes}" \
+    || fail 'CRMEB root provider did not bind guarded OutAPI order services'
 
 checkout_body='{"plan_code":"L3_ANNUAL","plan_version":1,"expected_amount":"1000.00","currency":"CNY"}'
 status="$(request checkout-missing-key -X POST -H "Authorization: Bearer ${TOKEN}" \
@@ -266,25 +275,38 @@ assert_native_read_denied native-order-data \
 docker compose -f "${COMPOSE_FILE}" exec -T phpfpm \
     php /var/www/app/chamber/tests/membership_checkout_fixture.php make-repairable "${UID_VALUE}" \
     > "${TMP_DIR}/make-repairable.json"
-repaired='false'
-for attempt in $(seq 1 70); do
-    docker compose -f "${COMPOSE_FILE}" exec -T phpfpm \
-        php /var/www/app/chamber/tests/membership_checkout_fixture.php inspect "${UID_VALUE}" \
-        > "${TMP_DIR}/timer-inspect.json"
-    if node - "${TMP_DIR}/timer-inspect.json" <<'NODE'
+docker compose -f "${COMPOSE_FILE}" exec -T phpfpm php -r '
+require "/var/www/vendor/autoload.php";
+$app = new \think\App();
+$app->initialize();
+$row = \think\facade\Db::table("eb_system_timer")
+    ->where("name", "Chamber membership order context repair")
+    ->where("is_open", 1)
+    ->where("is_del", 0)
+    ->find();
+if (!is_array($row)) {
+    fwrite(STDERR, "Membership repair timer is not registered\n");
+    exit(1);
+}
+$code = json_decode((string) $row["customCode"]);
+if (!is_string($code) || $code === "") {
+    fwrite(STDERR, "Membership repair timer code is invalid\n");
+    exit(1);
+}
+$runner = $app->make(\app\services\system\crontab\CrontabRunServices::class);
+$runner->customTimer($code);
+' || fail 'Native CRMEB timer executor did not run the registered membership repair job'
+
+docker compose -f "${COMPOSE_FILE}" exec -T phpfpm \
+    php /var/www/app/chamber/tests/membership_checkout_fixture.php inspect "${UID_VALUE}" \
+    > "${TMP_DIR}/timer-inspect.json"
+node - "${TMP_DIR}/timer-inspect.json" <<'NODE' || fail 'Native CRMEB timer did not repair the pending membership context'
 const fs = require('fs');
 const data = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
 const context = data.contexts && data.contexts[0];
 const record = data.records && data.records[0];
 process.exit(context && Number(context.order_pk) > 0 && record && record.status === 'succeeded' ? 0 : 1);
 NODE
-    then
-        repaired='true'
-        break
-    fi
-    sleep 1
-done
-[ "${repaired}" = 'true' ] || fail 'Native CRMEB timer did not repair a pending membership context within 70 seconds'
 cp "${TMP_DIR}/timer-inspect.json" "${TMP_DIR}/inspect.json"
 assert_json "${TMP_DIR}/inspect.json" context_count 1
 assert_json "${TMP_DIR}/inspect.json" order_count 1

@@ -168,7 +168,7 @@ expected_operations = [
   ['/chamber/admin/v1/graduate-verifications/{application_id}/reviews', 'post', 'reviewGraduateVerification', 'implemented', '200', 'CrmebAdminBearerAuth'],
   ['/chamber/v1/membership/plans', 'get', 'listMembershipPlans', 'implemented', '200', 'CrmebBearerAuth'],
   ['/chamber/v1/membership/checkouts', 'post', 'createMembershipCheckout', 'implemented', '201', 'CrmebBearerAuth'],
-  ['/chamber/v1/me/membership', 'get', 'getMembershipSummary', 'planned', '200', 'CrmebBearerAuth']
+  ['/chamber/v1/me/membership', 'get', 'getMembershipSummary', 'implemented', '200', 'CrmebBearerAuth']
 ]
 expected_operation_contracts = {
   ['/chamber/health', 'get'] => {

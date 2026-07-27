@@ -3,6 +3,10 @@
 declare(strict_types=1);
 
 use app\chamber\membership\MembershipCheckoutIdempotency;
+use app\chamber\commerce\CommerceEvent;
+use app\chamber\commerce\CommerceEventType;
+use app\chamber\contracts\CommerceEventStoreInterface;
+use app\chamber\services\MembershipEntitlementService;
 use crmeb\services\CacheService;
 use crmeb\utils\JwtAuth;
 use think\App;
@@ -22,10 +26,33 @@ try {
         makeRepairable(positiveArgument($argv, 2, 'uid'));
     } elseif ($action === 'seed-cart') {
         seedCart(positiveArgument($argv, 2, 'uid'));
+    } elseif ($action === 'complete') {
+        completePayment(positiveArgument($argv, 2, 'uid'), (string) ($argv[3] ?? 'weixin'));
+    } elseif ($action === 'complete-context') {
+        completePayment(
+            positiveArgument($argv, 2, 'uid'),
+            'weixin',
+            positiveArgument($argv, 3, 'context_id')
+        );
+    } elseif ($action === 'complete-mismatch') {
+        rejectMismatchedPayment(positiveArgument($argv, 2, 'uid'));
+    } elseif ($action === 'complete-interrupted') {
+        rollbackInterruptedPayment(positiveArgument($argv, 2, 'uid'));
+    } elseif ($action === 'native-mutation-guards') {
+        nativeMutationGuards(positiveArgument($argv, 2, 'uid'));
+    } elseif ($action === 'summary') {
+        membershipSummary(positiveArgument($argv, 2, 'uid'));
+    } elseif ($action === 'refund-full') {
+        completeRefund(positiveArgument($argv, 2, 'uid'));
+    } elseif ($action === 'expire') {
+        expireTerm(positiveArgument($argv, 2, 'uid'));
     } elseif ($action === 'cleanup') {
         cleanupFixture(array_slice($argv, 2));
     } else {
-        throw new InvalidArgumentException('Expected setup, inspect, make-repairable, seed-cart, or cleanup action');
+        throw new InvalidArgumentException(
+            'Expected setup, inspect, make-repairable, seed-cart, complete, complete-context, complete-mismatch, '
+                . 'complete-interrupted, native-mutation-guards, summary, refund-full, expire, or cleanup action'
+        );
     }
 } catch (Throwable $exception) {
     fwrite(STDERR, sprintf("membership checkout fixture failure: %s\n", $exception->getMessage()));
@@ -155,7 +182,280 @@ function inspectFixture(int $uid): void
             ->toArray(),
         'contexts' => $contexts,
         'orders' => $orders,
+        'member' => Db::table('ch_tenant_member')
+            ->where('uid', $uid)
+            ->where('is_del', 0)
+            ->field('id,tenant_id,current_channel_id,uid,tier,verification_status,tier_expire_time,current_membership_term_id,membership_version')
+            ->find() ?: [],
+        'terms' => Db::table('ch_membership_term')
+            ->where('uid', $uid)
+            ->order('id', 'asc')
+            ->select()
+            ->toArray(),
+        'effects' => Db::table('ch_membership_term_effect')
+            ->whereIn('term_id', array_map('intval', Db::table('ch_membership_term')->where('uid', $uid)->column('id')) ?: [0])
+            ->order('id', 'asc')
+            ->select()
+            ->toArray(),
+        'events' => Db::table('ch_commerce_event_inbox')
+            ->whereIn('context_id', array_map('intval', Db::table('ch_order_context')->where('uid', $uid)->column('id')) ?: [0])
+            ->field('id,event_id,event_type,source_event_id,status,attempt_count,context_id')
+            ->order('id', 'asc')
+            ->select()
+            ->toArray(),
     ]);
+}
+
+function completePayment(int $uid, string $payType, int $contextId = 0): void
+{
+    if (!in_array($payType, ['weixin', 'alipay', 'allinpay', 'yue', 'offline'], true)) {
+        throw new InvalidArgumentException('Unsupported fixture pay type');
+    }
+    try {
+        $context = fixtureContext($uid, true, $contextId);
+    } catch (RuntimeException $exception) {
+        // Only an unqualified replay may fall back to an already completed
+        // context; a requested context must fail closed if it is unavailable.
+        if ($contextId > 0) {
+            throw $exception;
+        }
+        $context = fixtureContext($uid, false);
+    }
+    $order = Db::table('eb_store_order')->where('id', (int) $context['order_pk'])->find();
+    if (!is_array($order)) {
+        throw new RuntimeException('Fixture membership order is unavailable');
+    }
+    $result = app()->make('app\\services\\order\\StoreOrderSuccessServices')->paySuccess(
+        $order,
+        $payType,
+        ['trade_no' => trim((string) ($order['trade_no'] ?? '')) ?: 'fixture-payment-' . (int) $order['id']]
+    );
+    $member = Db::table('ch_tenant_member')->where('id', (int) $context['member_id'])->find();
+    outputJson([
+        'result' => (bool) $result,
+        'context_id' => (int) $context['id'],
+        'order_id' => (int) $order['id'],
+        'pay_status' => (int) Db::table('ch_order_context')->where('id', (int) $context['id'])->value('pay_status'),
+        'completion_kind' => (string) Db::table('ch_order_context')->where('id', (int) $context['id'])->value('completion_kind'),
+        'term_count' => (int) Db::table('ch_membership_term')->where('order_context_id', (int) $context['id'])->count(),
+        'effect_count' => (int) Db::table('ch_membership_term_effect')->where('order_context_id', (int) $context['id'])->count(),
+        'event_count' => (int) Db::table('ch_commerce_event_inbox')->where('context_id', (int) $context['id'])->count(),
+        'event_processed' => (string) Db::table('ch_commerce_event_inbox')
+            ->where('context_id', (int) $context['id'])
+            ->where('event_type', CommerceEventType::ORDER_COMPLETED)
+            ->value('status'),
+        'member_tier' => (int) ($member['tier'] ?? 0),
+        'membership_version' => (int) ($member['membership_version'] ?? 0),
+    ]);
+}
+
+function rejectMismatchedPayment(int $uid): void
+{
+    $context = fixtureContext($uid, true);
+    $orderId = (int) $context['order_pk'];
+    $order = Db::table('eb_store_order')->where('id', $orderId)->find();
+    if (!is_array($order)) {
+        throw new RuntimeException('Fixture mismatch order is unavailable');
+    }
+    $original = (string) $order['unique'];
+    Db::table('eb_store_order')->where('id', $orderId)->update(['unique' => str_repeat('f', 32)]);
+    $rejected = false;
+    try {
+        $changed = Db::table('eb_store_order')->where('id', $orderId)->find();
+        app()->make('app\\services\\order\\StoreOrderSuccessServices')->paySuccess(
+            $changed,
+            'weixin',
+            ['trade_no' => 'fixture-mismatch-' . $orderId]
+        );
+    } catch (Throwable $exception) {
+        $rejected = true;
+    } finally {
+        Db::table('eb_store_order')->where('id', $orderId)->update(['unique' => $original]);
+    }
+    outputJson([
+        'rejected' => $rejected,
+        'order_paid' => (int) Db::table('eb_store_order')->where('id', $orderId)->value('paid'),
+        'context_pay_status' => (int) Db::table('ch_order_context')->where('id', (int) $context['id'])->value('pay_status'),
+        'event_count' => (int) Db::table('ch_commerce_event_inbox')->where('context_id', (int) $context['id'])->count(),
+        'term_count' => (int) Db::table('ch_membership_term')->where('order_context_id', (int) $context['id'])->count(),
+    ]);
+}
+
+function rollbackInterruptedPayment(int $uid): void
+{
+    $context = fixtureContext($uid, true);
+    $contextId = (int) $context['id'];
+    $orderId = (int) $context['order_pk'];
+    $original = (string) $context['entitlement_snapshot_json'];
+    Db::table('ch_order_context')->where('id', $contextId)->update([
+        'entitlement_snapshot_json' => '{"invalid":true}',
+    ]);
+    $rolledBack = false;
+    try {
+        $order = Db::table('eb_store_order')->where('id', $orderId)->find();
+        app()->make('app\\services\\order\\StoreOrderSuccessServices')->paySuccess(
+            $order,
+            'weixin',
+            ['trade_no' => 'fixture-interrupted-' . $orderId]
+        );
+    } catch (Throwable $exception) {
+        $rolledBack = true;
+    } finally {
+        Db::table('ch_order_context')->where('id', $contextId)->update([
+            'entitlement_snapshot_json' => $original,
+        ]);
+    }
+    outputJson([
+        'rolled_back' => $rolledBack,
+        'order_paid' => (int) Db::table('eb_store_order')->where('id', $orderId)->value('paid'),
+        'context_pay_status' => (int) Db::table('ch_order_context')->where('id', $contextId)->value('pay_status'),
+        'event_count' => (int) Db::table('ch_commerce_event_inbox')->where('context_id', $contextId)->count(),
+        'term_count' => (int) Db::table('ch_membership_term')->where('order_context_id', $contextId)->count(),
+    ]);
+}
+
+function nativeMutationGuards(int $uid): void
+{
+    $context = fixtureContext($uid, true);
+    $orderId = (int) $context['order_pk'];
+    $orderNo = (string) $context['order_no'];
+    $delivery = app()->make('app\\services\\order\\StoreOrderDeliveryServices');
+    $out = app()->make('app\\services\\order\\OutStoreOrderServices');
+    $deliveryRejected = false;
+    $outReceiveRejected = false;
+    try {
+        $delivery->delivery($orderId, []);
+    } catch (Throwable $exception) {
+        $deliveryRejected = strpos($exception->getMessage(), '会籍') !== false;
+    }
+    try {
+        $out->receive($orderNo);
+    } catch (Throwable $exception) {
+        $outReceiveRejected = strpos($exception->getMessage(), '会籍') !== false;
+    }
+    $order = Db::table('eb_store_order')->where('id', $orderId)->find();
+    outputJson([
+        'delivery_service' => get_class($delivery),
+        'out_service' => get_class($out),
+        'delivery_rejected' => $deliveryRejected,
+        'out_receive_rejected' => $outReceiveRejected,
+        'paid' => (int) ($order['paid'] ?? -1),
+        'status' => (int) ($order['status'] ?? -1),
+    ]);
+}
+
+function membershipSummary(int $uid): void
+{
+    $member = Db::table('ch_tenant_member')->where('uid', $uid)->where('is_del', 0)->find();
+    if (!is_array($member)) {
+        throw new RuntimeException('Fixture member is unavailable');
+    }
+    outputJson(app()->make(MembershipEntitlementService::class)->summary(
+        (int) $member['tenant_id'],
+        (int) $member['current_channel_id'],
+        $uid
+    ));
+}
+
+function completeRefund(int $uid): void
+{
+    $context = fixtureContext($uid, false);
+    if ((int) $context['pay_status'] !== 1) {
+        throw new RuntimeException('Fixture order must be paid before refund');
+    }
+    $order = Db::table('eb_store_order')->where('id', (int) $context['order_pk'])->find();
+    if (!is_array($order)) {
+        throw new RuntimeException('Fixture refund order is unavailable');
+    }
+    $completionId = 'fixture-refund-' . (int) $order['id'];
+    $event = CommerceEvent::fromArray([
+        'source' => 'crmeb',
+        'source_event_id' => 'refund:' . (int) $order['id'] . ':completed',
+        'event_type' => CommerceEventType::REFUND_COMPLETED,
+        'schema_version' => CommerceEvent::SCHEMA_VERSION,
+        'occurred_at' => max(1, (int) $context['paid_time'] + 1),
+        'tenant_id' => (int) $context['tenant_id'],
+        'channel_id' => (int) $context['channel_id'],
+        'order_pk' => (int) $context['order_pk'],
+        'order_no' => (string) $context['order_no'],
+        'uid' => (int) $context['uid'],
+        'business_type' => 'membership',
+        'context_id' => (int) $context['id'],
+        'currency' => (string) $context['currency'],
+        'paid_amount' => (string) $context['paid_amount'],
+        'correlation_id' => 'fixture:refund:' . (int) $order['id'],
+        'refund_pk' => (int) $order['id'],
+        'refund_no' => 'fixture-refund-no-' . (int) $order['id'],
+        'refund_delta' => (string) $context['paid_amount'],
+        'cumulative_refunded_amount' => (string) $context['paid_amount'],
+        'completion_id' => $completionId,
+        'completion_source' => 'manual_finance_confirm',
+    ]);
+    Db::transaction(function () use ($event): void {
+        app()->make(CommerceEventStoreInterface::class)->record($event);
+        app()->make(MembershipEntitlementService::class)->consumeEvent($event);
+    });
+    $member = Db::table('ch_tenant_member')->where('id', (int) $context['member_id'])->find();
+    outputJson([
+        'event_id' => $event->eventId(),
+        'context_refund_status' => (int) Db::table('ch_order_context')->where('id', (int) $context['id'])->value('refund_status'),
+        'term_state' => (int) Db::table('ch_membership_term')->where('order_context_id', (int) $context['id'])->value('state'),
+        'refund_effect_count' => (int) Db::table('ch_membership_term_effect')
+            ->where('order_context_id', (int) $context['id'])
+            ->where('effect_type', 'full_refund')
+            ->count(),
+        'member_tier' => (int) ($member['tier'] ?? 0),
+    ]);
+}
+
+function expireTerm(int $uid): void
+{
+    $terms = Db::table('ch_membership_term')
+        ->where('uid', $uid)
+        ->where('state', 1)
+        ->column('id');
+    if ($terms === []) {
+        throw new RuntimeException('Fixture granted term is unavailable');
+    }
+    $now = time();
+    Db::table('ch_membership_term')->whereIn('id', array_map('intval', $terms))->update([
+        'effective_end_time' => $now - 1,
+        'original_end_time' => $now - 1,
+        'update_time' => $now,
+    ]);
+    $result = app()->make(MembershipEntitlementService::class)->reconcileDue(50);
+    $member = Db::table('ch_tenant_member')->where('uid', $uid)->where('is_del', 0)->find();
+    outputJson([
+        'reconcile' => $result,
+        'expired_count' => count($terms),
+        'member_tier' => (int) ($member['tier'] ?? 0),
+        'tier_expire_time' => (int) ($member['tier_expire_time'] ?? 0),
+        'current_term_id' => (int) ($member['current_membership_term_id'] ?? 0),
+    ]);
+}
+
+function fixtureContext(int $uid, bool $pending, int $contextId = 0): array
+{
+    $query = Db::table('ch_order_context')
+        ->where('uid', $uid)
+        ->where('business_type', 'membership')
+        ->whereNotNull('order_pk')
+        ->order('id', 'asc');
+    if ($contextId > 0) {
+        $query->where('id', $contextId);
+    }
+    if ($pending) {
+        $query->where('pay_status', 0);
+    } else {
+        $query->where('pay_status', 1);
+    }
+    $context = $query->find();
+    if (!is_array($context)) {
+        throw new RuntimeException($pending
+            ? 'No pending fixture membership context is available'
+            : 'No paid fixture membership context is available');
+    }
+    return $context;
 }
 
 function makeRepairable(int $uid): void
@@ -246,19 +546,22 @@ function cleanupFixture(array $tokens): void
     $fixtureOrderIds = $fixtureProductIds === [] ? [] : array_map('intval', Db::table('eb_store_order_cart_info')
         ->whereIn('product_id', $fixtureProductIds)
         ->column('oid'));
-    $contexts = Db::table('ch_order_context')
-        ->where('business_type', 'membership')
-        ->where(function ($query) use ($uids, $fixtureOrderIds): void {
-            if ($uids !== []) {
-                $query->whereIn('uid', $uids);
-            }
-            if ($fixtureOrderIds !== []) {
-                $query->whereOr('order_pk', 'in', $fixtureOrderIds);
-            }
-        })
-        ->field('id,uid,idempotency_record_id,order_pk')
-        ->select()
-        ->toArray();
+    $contexts = [];
+    if ($uids !== [] || $fixtureOrderIds !== []) {
+        $contexts = Db::table('ch_order_context')
+            ->where('business_type', 'membership')
+            ->where(function ($query) use ($uids, $fixtureOrderIds): void {
+                if ($uids !== []) {
+                    $query->whereIn('uid', $uids);
+                }
+                if ($fixtureOrderIds !== []) {
+                    $query->whereOr('order_pk', 'in', $fixtureOrderIds);
+                }
+            })
+            ->field('id,uid,idempotency_record_id,order_pk')
+            ->select()
+            ->toArray();
+    }
     $uids = array_values(array_unique(array_merge(
         $uids,
         array_map('intval', array_column($contexts, 'uid'))
@@ -292,6 +595,16 @@ function cleanupFixture(array $tokens): void
         'intval',
         array_column($contexts, 'idempotency_record_id')
     )));
+    $contextIds = array_values(array_filter(array_map('intval', array_column($contexts, 'id'))));
+    if ($contextIds !== []) {
+        $termIds = array_map('intval', Db::table('ch_membership_term')->whereIn('order_context_id', $contextIds)->column('id'));
+        Db::table('ch_commerce_event_inbox')->whereIn('context_id', $contextIds)->delete();
+        Db::table('ch_membership_term_effect')->whereIn('order_context_id', $contextIds)->delete();
+        if ($termIds !== []) {
+            Db::table('ch_membership_term_effect')->whereIn('term_id', $termIds)->delete();
+            Db::table('ch_membership_term')->whereIn('id', $termIds)->delete();
+        }
+    }
     Db::table('ch_order_context')->whereIn('uid', $uids)->where('business_type', 'membership')->delete();
     if ($recordIds !== []) {
         Db::table('ch_idempotency_record')->whereIn('id', $recordIds)->delete();

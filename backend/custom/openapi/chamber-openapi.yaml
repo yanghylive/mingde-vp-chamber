@@ -703,7 +703,7 @@ paths:
       operationId: getMembershipSummary
       security:
         - CrmebBearerAuth: []
-      x-implementation-status: planned
+      x-implementation-status: implemented
       x-requirement-id: MEM-006
       x-tenant-context: required
       x-signed-headers-all-or-none: true
