@@ -72,6 +72,7 @@ bash -n scripts/check-g1-membership-baseline.sh
 bash -n scripts/check-g1-member-bootstrap.sh
 bash -n scripts/check-g1-profile-verification.sh
 bash -n scripts/check-g1-membership-checkout.sh
+bash -n scripts/check-g1-membership-entitlement.sh
 ./scripts/check-g0-baseline.sh
 
 database_output="$(./scripts/manage-local-database.sh verify)"
@@ -285,12 +286,13 @@ member_ui_test_minimum="$(manifest_g1_minimum \
 ./scripts/check-g1-member-bootstrap.sh
 ./scripts/check-g1-profile-verification.sh
 ./scripts/check-g1-membership-checkout.sh
+./scripts/check-g1-membership-entitlement.sh
 
 openapi_output="$(ruby backend/custom/openapi/validate.rb)"
 printf '%s\n' "${openapi_output}"
 grep -Fxq '  Contract version: 0.5.0' <<<"${openapi_output}" \
     || fail "OpenAPI membership contract version changed"
-grep -Fxq '  Paths: 14 (15 implemented, 1 planned operations)' <<<"${openapi_output}" \
+grep -Fxq '  Paths: 14 (16 implemented, 0 planned operations)' <<<"${openapi_output}" \
     || fail "OpenAPI membership operation inventory changed"
 openapi_schema_count="$(awk '$1 == "Component" && $2 == "schemas:" && $3 ~ /^[0-9]+$/ && NF == 3 { print $3 }' <<<"${openapi_output}")"
 [[ "${openapi_schema_count}" =~ ^[0-9]+$ ]] || fail "OpenAPI membership schema count is unavailable"
@@ -304,11 +306,12 @@ ruby -rjson -e '
   project = manifest.fetch("project")
   documents = manifest.fetch("documents")
   baseline = manifest.fetch("g1_membership_baseline")
-  abort "PROJECT_MANIFEST project status is stale" unless project["status"] == "g1-01d-membership-checkout-complete"
+  abort "PROJECT_MANIFEST project status is stale" unless project["status"] == "g1-01e-membership-entitlement-complete"
   expected_documents = {
-    "prd_progress" => "docs/PRD-开发进度总结-2026-07-25.html",
+    "prd_progress" => "docs/PRD-开发进度总结-2026-07-26.html",
     "g1_profile_verification_baseline" => "docs/G1-个人资料与毕业认证开发基线.html",
-    "g1_membership_checkout_baseline" => "docs/G1-会籍计划与下单开发基线.html"
+    "g1_membership_checkout_baseline" => "docs/G1-会籍计划与下单开发基线.html",
+    "g1_membership_entitlement_baseline" => "docs/G1-会籍支付与权益开发基线.html"
   }
   document_mismatches = expected_documents.each_with_object([]) do |(key, value), found|
     found << "#{key}=#{documents[key].inspect}, expected #{value.inspect}" unless documents[key] == value
@@ -323,7 +326,7 @@ ruby -rjson -e '
   order_context_idempotency_checks = Integer(ARGV[6])
   g1_checks = Integer(ARGV[7])
   expected = {
-    "completed_on" => "2026-07-25",
+    "completed_on" => "2026-07-26",
     "chamber_domain_tables" => 22,
     "migration_registry_tables" => 1,
     "chamber_tables_including_registry" => 23,
@@ -360,15 +363,20 @@ ruby -rjson -e '
     "member_ui_tests" => Integer(ARGV[20]),
     "profile_verification_completed_on" => "2026-07-25",
     "membership_checkout_completed_on" => "2026-07-25",
+    "membership_entitlement_completed_on" => "2026-07-26",
+    "membership_payment_replay_attempts" => 10,
+    "membership_concurrent_renewals" => 2,
+    "membership_refund_replay_attempts" => 1,
     "openapi_version" => "0.5.0",
     "openapi_paths" => 14,
     "openapi_operations_total" => 16,
-    "openapi_operations_implemented" => 15,
-    "openapi_operations_planned" => 1,
+    "openapi_operations_implemented" => 16,
+    "openapi_operations_planned" => 0,
     "openapi_schemas" => Integer(ARGV[21]),
     "member_bootstrap_gate" => "scripts/check-g1-member-bootstrap.sh",
     "profile_verification_gate" => "scripts/check-g1-profile-verification.sh",
     "membership_checkout_gate" => "scripts/check-g1-membership-checkout.sh",
+    "membership_entitlement_gate" => "scripts/check-g1-membership-entitlement.sh",
     "gate" => "scripts/check-g1-membership-baseline.sh"
   }
   mismatches = expected.each_with_object([]) do |(key, value), found|
@@ -393,6 +401,7 @@ printf 'Database: 180+ tables, 23+ Chamber tables, %s G1 / %s total structural c
 printf 'Domain: %s membership state and projection tests\n' "${membership_tests}"
 printf 'Checkout: %s domain + %s CRMEB gateway tests, %s database assertions, real HTTP flow\n' \
     "${checkout_tests}" "${order_gateway_tests}" "${checkout_db_assertions}"
+printf 'Entitlement: payment inbox, 10 replays, 2 concurrent renewals, expiry/refund projection\n'
 printf 'Bootstrap: %s auth context + %s request/consent tests; same-key and distinct-key 20-way HTTP races\n' \
     "${auth_context_tests}" "${bootstrap_domain_tests}"
 printf 'Profile/assets: %s + %s domain tests, %s database assertions\n' \
@@ -400,4 +409,4 @@ printf 'Profile/assets: %s + %s domain tests, %s database assertions\n' \
 printf 'Graduate verification: %s domain tests, %s database assertions, real member/admin HTTP flow\n' \
     "${verification_tests}" "${verification_db_assertions}"
 printf 'Frontend: %s tenant brand + %s member UI tests\n' "${tenant_brand_tests}" "${member_ui_tests}"
-printf 'OpenAPI: 0.5.0, 15 implemented + 1 planned operations, %s schemas\n' "${openapi_schema_count}"
+printf 'OpenAPI: 0.5.0, 16 implemented + 0 planned operations, %s schemas\n' "${openapi_schema_count}"

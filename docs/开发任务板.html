@@ -9,7 +9,7 @@
 <body>
   <header class="doc-head">
     <div class="wrap">
-      <p class="eyebrow">DELIVERY BOARD · 2026-07-25</p>
+      <p class="eyebrow">DELIVERY BOARD · 2026-07-26</p>
       <h1>开发任务板</h1>
       <p>只按可运行代码、已执行迁移和测试证据计算进度。文档、空目录和 Mock 页面不单独算功能完成。</p>
     </div>
@@ -48,7 +48,7 @@
           <tr><td><code>G1-01B</code></td><td>CRMEB Token、MemberContext、member/profile 并发初始化、协议与首次归因</td><td>已完成</td><td>33 + 28 项 PHP 测试；同 Key/不同 Key 各 20 路真实 HTTP 并发；跨租户隔离；退出态旧/新 Key 均 403</td></tr>
           <tr><td><code>G1-01C</code></td><td>个人资料、隐私、私有附件、毕业认证提交/查询、运营审核及两端页面</td><td>已完成</td><td>资料 16、附件 10 + DB 44、认证 12 + DB 119、会员 UI 18；真实 HTTP 用户到管理员全链路通过</td></tr>
           <tr><td><code>G1-01D</code></td><td>L3/L4 计划、CRMEB 会籍订单、OrderContext 绑定与补扫</td><td>已完成</td><td>领域 15、网关 11、DB 85；原生入口拒绝、零积分/佣金副作用、同键重放原订单、异请求冲突，真实 HTTP 与 timer 补绑通过</td></tr>
-          <tr><td><code>G1-01E</code></td><td>支付 inbox 消费、term/effect、tier 投影、到期任务与我的会籍查询</td><td>下一任务</td><td>重复支付 10 次仅 1 份权益；两笔并发续费不丢失</td></tr>
+          <tr><td><code>G1-01E</code></td><td>支付 inbox 消费、term/effect、tier 投影、到期任务与我的会籍查询</td><td>已完成</td><td>10 次支付重放、2 笔并发续费、事务回滚、到期、全额退款、摘要接口和原生旁路门禁通过</td></tr>
         </tbody></table></div>
       </section>
 
@@ -69,7 +69,7 @@
 
       <section id="inputs">
         <h2>4. 只在阻塞节点要信息</h2>
-        <p>G0 与 G1-01D 已完成，继续 G1-01E 支付生效后端仍不需要甲方补资料。微信真联调前再要 AppID、支付商户号和回调域名；会员正式验收前需品牌素材、正式协议、头像/证明材料规则；活动规则、商品分成、大咖履约、AI 知识库和生产部署分别到对应批次确认。</p>
+        <p>G0 与 G1-01E 已完成，进入活动最小闭环仍不需要甲方补资料。微信真联调前再要 AppID、支付商户号和回调域名；会员正式验收前需品牌素材、正式协议、头像/证明材料规则；活动规则、商品分成、大咖履约、AI 知识库和生产部署分别到对应批次确认。</p>
       </section>
 
       <section id="done">
@@ -86,8 +86,8 @@
       <section>
         <h2>6. 当前自动验收</h2>
         <pre>./scripts/check-g1-membership-baseline.sh</pre>
-        <p>当前数据库为 180 张表，其中 22 张 Chamber 领域表 + 1 张迁移登记表；全部迁移共 437 项结构检查（G0 165 + G1 272），G1-01D 新增 OrderContext 幂等关联和 timer 注册共 6 项。总门禁保留初始化、资料和认证全部证据，并新增会籍下单领域 15、CRMEB 网关 11、数据库 85、会员 UI 18 项测试，以及 <code>check-g1-membership-checkout.sh</code> 的真实 HTTP 全链路。OpenAPI 0.5.0 固定为 14 条路径、16 个操作（15 implemented + 1 planned）和 85 个 Schema。</p>
-        <div class="callout warn"><strong>上线边界：</strong>本批达到本地下单验收，不代表真实微信支付或会籍权益已经生效。支付 inbox 消费、term/effect、等级投影和到期任务属于 G1-01E；专业恶意软件扫描、生产对象存储、审计告警/检索、监控备份和正式配置同样待办。</div>
+        <p>当前数据库为 180 张表，其中 22 张 Chamber 领域表 + 1 张迁移登记表；全部迁移共 437 项结构检查（G0 165 + G1 272）。总门禁保留初始化、资料和认证全部证据，并新增会籍下单领域 15、CRMEB 网关 11、权益/数据库 85、会员 UI 18 项测试，以及 <code>check-g1-membership-checkout.sh</code> 与 <code>check-g1-membership-entitlement.sh</code> 的真实 HTTP/数据库全链路。OpenAPI 0.5.0 固定为 14 条路径、16 个操作（16 implemented + 0 planned）和 85 个 Schema。</p>
+        <div class="callout warn"><strong>上线边界：</strong>本批达到本地支付事实消费与会籍权益验收，不代表真实微信支付或生产部署已经就绪。正式商户联调、专业恶意软件扫描、生产对象存储、审计告警/检索、监控备份和正式配置仍待办。</div>
       </section>
     </div>
   </main>

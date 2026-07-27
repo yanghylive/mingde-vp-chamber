@@ -25,6 +25,7 @@ required_files=(
   "docs/本地开发环境基线.html"
   "docs/Codex-Agent团队全量开发计划-v1.0.html"
   "docs/开发任务板.html"
+  "docs/PRD-开发进度总结-2026-07-26.html"
   "docs/PRD-开发进度总结-2026-07-25.html"
   "docs/PRD-开发进度总结-2026-07-24.html"
   "docs/ADR-索引.html"
@@ -33,6 +34,7 @@ required_files=(
   "docs/G1-会员初始化开发基线.html"
   "docs/G1-个人资料与毕业认证开发基线.html"
   "docs/G1-会籍计划与下单开发基线.html"
+  "docs/G1-会籍支付与权益开发基线.html"
   "backend/custom/README.html"
   "backend/custom/app/chamber/ChamberExceptionHandle.php"
   "backend/custom/app/chamber/provider.php"
@@ -49,6 +51,7 @@ required_files=(
   "backend/custom/app/chamber/controller/GraduateVerificationReviewController.php"
   "backend/custom/app/chamber/controller/MembershipPlanController.php"
   "backend/custom/app/chamber/controller/MembershipCheckoutController.php"
+  "backend/custom/app/chamber/controller/MembershipSummaryController.php"
   "backend/custom/app/chamber/exceptions/MemberTransactionException.php"
   "backend/custom/app/chamber/identity/AuthenticatedUserContext.php"
   "backend/custom/app/chamber/identity/AuthenticatedAdminContext.php"
@@ -84,8 +87,13 @@ required_files=(
   "backend/custom/app/chamber/services/GuardedStoreOrderCartInfoServices.php"
   "backend/custom/app/chamber/services/GuardedStoreOrderCreateServices.php"
   "backend/custom/app/chamber/services/GuardedStoreOrderRefundServices.php"
+  "backend/custom/app/chamber/services/GuardedStoreOrderDeliveryServices.php"
+  "backend/custom/app/chamber/services/GuardedStoreOrderSuccessServices.php"
+  "backend/custom/app/chamber/services/GuardedOutStoreOrderServices.php"
   "backend/custom/app/chamber/services/GuardedStoreOrderServices.php"
   "backend/custom/app/chamber/services/GuardedStoreOrderTakeServices.php"
+  "backend/custom/app/chamber/services/MembershipPaymentCompletionService.php"
+  "backend/custom/app/chamber/services/MembershipEntitlementService.php"
   "backend/custom/app/chamber/jobs/MembershipOrderContextRepairJob.php"
   "backend/custom/app/chamber/assets/LocalPrivateAssetStorage.php"
   "backend/custom/app/chamber/assets/MemberAssetContent.php"
@@ -198,6 +206,7 @@ required_files=(
   "scripts/check-g1-member-bootstrap.sh"
   "scripts/check-g1-profile-verification.sh"
   "scripts/check-g1-membership-checkout.sh"
+  "scripts/check-g1-membership-entitlement.sh"
 )
 
 required_executables=(
@@ -211,6 +220,7 @@ required_executables=(
   "scripts/check-g1-member-bootstrap.sh"
   "scripts/check-g1-profile-verification.sh"
   "scripts/check-g1-membership-checkout.sh"
+  "scripts/check-g1-membership-entitlement.sh"
 )
 
 for file in "${required_files[@]}"; do
@@ -228,11 +238,13 @@ documents = manifest.fetch('documents')
 baseline = manifest.fetch('g1_membership_baseline')
 
 expected_documents = {
-  'prd_progress' => 'docs/PRD-开发进度总结-2026-07-25.html',
+  'prd_progress' => 'docs/PRD-开发进度总结-2026-07-26.html',
   'g1_profile_verification_baseline' => 'docs/G1-个人资料与毕业认证开发基线.html',
-  'g1_membership_checkout_baseline' => 'docs/G1-会籍计划与下单开发基线.html'
+  'g1_membership_checkout_baseline' => 'docs/G1-会籍计划与下单开发基线.html',
+  'g1_membership_entitlement_baseline' => 'docs/G1-会籍支付与权益开发基线.html'
 }
 expected_baseline = {
+  'completed_on' => '2026-07-26',
   'database_tables_total' => 180,
   'chamber_domain_tables' => 22,
   'migration_registry_tables' => 1,
@@ -248,6 +260,10 @@ expected_baseline = {
   'membership_checkout_domain_tests' => 15,
   'membership_order_gateway_tests' => 11,
   'membership_checkout_database_assertions' => 85,
+  'membership_entitlement_completed_on' => '2026-07-26',
+  'membership_payment_replay_attempts' => 10,
+  'membership_concurrent_renewals' => 2,
+  'membership_refund_replay_attempts' => 1,
   'member_profile_domain_tests' => 16,
   'member_asset_domain_tests' => 10,
   'member_asset_database_assertions' => 44,
@@ -258,15 +274,16 @@ expected_baseline = {
   'openapi_version' => '0.5.0',
   'openapi_paths' => 14,
   'openapi_operations_total' => 16,
-  'openapi_operations_implemented' => 15,
-  'openapi_operations_planned' => 1,
+  'openapi_operations_implemented' => 16,
+  'openapi_operations_planned' => 0,
   'openapi_schemas' => 85,
   'profile_verification_gate' => 'scripts/check-g1-profile-verification.sh',
-  'membership_checkout_gate' => 'scripts/check-g1-membership-checkout.sh'
+  'membership_checkout_gate' => 'scripts/check-g1-membership-checkout.sh',
+  'membership_entitlement_gate' => 'scripts/check-g1-membership-entitlement.sh'
 }
 
 errors = []
-errors << "project.status=#{project['status'].inspect}" unless project['status'] == 'g1-01d-membership-checkout-complete'
+errors << "project.status=#{project['status'].inspect}" unless project['status'] == 'g1-01e-membership-entitlement-complete'
 expected_documents.each do |key, value|
   errors << "documents.#{key}=#{documents[key].inspect}" unless documents[key] == value
 end
@@ -276,7 +293,7 @@ end
 errors << 'Chamber table arithmetic differs' unless baseline['chamber_domain_tables'] + baseline['migration_registry_tables'] == baseline['chamber_tables_including_registry']
 errors << 'migration check arithmetic differs' unless 165 + baseline['g1_migration_structural_checks'] == baseline['migration_structural_checks_total']
 errors << 'OpenAPI operation arithmetic differs' unless baseline['openapi_operations_implemented'] + baseline['openapi_operations_planned'] == baseline['openapi_operations_total']
-abort "PROJECT_MANIFEST G1-01D drift: #{errors.join('; ')}" unless errors.empty?
+abort "PROJECT_MANIFEST G1-01E drift: #{errors.join('; ')}" unless errors.empty?
 RUBY
 
 [[ -f "$ROOT/.gitmodules" ]] || fail "missing .gitmodules"
