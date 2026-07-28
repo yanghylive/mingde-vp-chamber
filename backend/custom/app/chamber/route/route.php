@@ -30,12 +30,23 @@ foreach ([
     'v1/me/assets/:asset_id/content',
     'v1/me/graduate-verifications',
     'v1/me/membership',
+    'v1/me/event-registrations',
+    'v1/me/event-registrations/:registration_id',
     'v1/membership/plans',
     'v1/membership/checkouts',
+    'v1/events',
+    'v1/events/:event_id',
+    'v1/events/:event_id/checkins',
     'admin/v1/member-assets/:asset_id/content',
     'admin/v1/graduate-verifications',
     'admin/v1/graduate-verifications/:application_id',
     'admin/v1/graduate-verifications/:application_id/reviews',
+    'admin/v1/events',
+    'admin/v1/events/:event_id',
+    'admin/v1/events/:event_id/publish',
+    'admin/v1/events/:event_id/cancel',
+    'admin/v1/events/:event_id/checkin-token',
+    'admin/v1/events/:event_id/checkins/manual',
 ] as $route) {
     Route::options($route, $preflight)
         ->middleware(RequestTraceMiddleware::class)
@@ -67,6 +78,9 @@ Route::group('v1/me', function () {
     Route::get('graduate-verifications', 'GraduateVerificationController/show');
     Route::post('graduate-verifications', 'GraduateVerificationController/store');
     Route::get('membership', 'MembershipSummaryController/show');
+    Route::get('event-registrations', 'EventRegistrationController/index');
+    Route::get('event-registrations/:registration_id', 'EventRegistrationController/show')
+        ->pattern(['registration_id' => '\\d+']);
 })->middleware(RequestTraceMiddleware::class)
     ->middleware(ChamberCorsMiddleware::class)
     ->middleware(CrmebAuthTokenMiddleware::class)
@@ -75,6 +89,17 @@ Route::group('v1/me', function () {
 Route::group('v1/membership', function () {
     Route::get('plans', 'MembershipPlanController/index');
     Route::post('checkouts', 'MembershipCheckoutController/store');
+})->middleware(RequestTraceMiddleware::class)
+    ->middleware(ChamberCorsMiddleware::class)
+    ->middleware(CrmebAuthTokenMiddleware::class)
+    ->middleware(TenantContextMiddleware::class, true);
+
+Route::group('v1/events', function () {
+    Route::get('', 'EventController/index');
+    Route::get(':event_id', 'EventController/show')
+        ->pattern(['event_id' => '\\d+']);
+    Route::post(':event_id/checkins', 'EventCheckinController/store')
+        ->pattern(['event_id' => '\\d+']);
 })->middleware(RequestTraceMiddleware::class)
     ->middleware(ChamberCorsMiddleware::class)
     ->middleware(CrmebAuthTokenMiddleware::class)
@@ -90,6 +115,17 @@ Route::group('admin/v1', function () {
         'graduate-verifications/:application_id/reviews',
         'GraduateVerificationReviewController/store'
     )->pattern(['application_id' => '\\d+']);
+    Route::post('events', 'EventAdminController/store');
+    Route::patch('events/:event_id', 'EventAdminController/update')
+        ->pattern(['event_id' => '\\d+']);
+    Route::post('events/:event_id/publish', 'EventAdminController/publish')
+        ->pattern(['event_id' => '\\d+']);
+    Route::post('events/:event_id/cancel', 'EventAdminController/cancel')
+        ->pattern(['event_id' => '\\d+']);
+    Route::post('events/:event_id/checkin-token', 'EventAdminController/checkinToken')
+        ->pattern(['event_id' => '\\d+']);
+    Route::post('events/:event_id/checkins/manual', 'EventAdminController/manualCheckin')
+        ->pattern(['event_id' => '\\d+']);
 })->middleware(RequestTraceMiddleware::class)
     ->middleware(ChamberCorsMiddleware::class)
     ->middleware(CrmebAdminAuthTokenMiddleware::class)
