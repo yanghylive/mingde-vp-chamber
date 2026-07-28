@@ -15,7 +15,7 @@ end
 content = File.read(spec_path)
 
 begin
-  ast = Psych.parse_stream(content, spec_path)
+  ast = Psych.parse_stream(content, filename: spec_path)
 rescue Psych::SyntaxError => e
   warn "FAIL: YAML syntax error: #{e.message}"
   exit 1
@@ -48,7 +48,13 @@ duplicates = find_duplicate_keys(ast)
 errors << "duplicate YAML keys: #{duplicates.uniq.join(', ')}" unless duplicates.empty?
 
 begin
-  spec = Psych.safe_load(content, [], [], true, spec_path)
+  spec = Psych.safe_load(
+    content,
+    permitted_classes: [],
+    permitted_symbols: [],
+    aliases: true,
+    filename: spec_path
+  )
 rescue Psych::Exception => e
   warn "FAIL: cannot load YAML: #{e.message}"
   exit 1

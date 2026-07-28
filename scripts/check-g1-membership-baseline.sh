@@ -294,7 +294,13 @@ grep -Fxq '  Contract version: 0.5.0' <<<"${openapi_output}" \
     || fail "OpenAPI membership contract version changed"
 ruby -rpsych - backend/custom/openapi/chamber-openapi.yaml <<'RUBY'
 content = File.read(ARGV.fetch(0))
-spec = Psych.safe_load(content, [], [], true, ARGV.fetch(0))
+spec = Psych.safe_load(
+  content,
+  permitted_classes: [],
+  permitted_symbols: [],
+  aliases: true,
+  filename: ARGV.fetch(0)
+)
 expected = %w[
   getChamberHealth
   getChamberBootstrap

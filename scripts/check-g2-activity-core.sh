@@ -180,7 +180,13 @@ expected_openapi_planned="$(manifest_g2_value openapi_operations_planned 7)"
 
 ruby -rpsych - backend/custom/openapi/chamber-openapi.yaml <<'RUBY'
 content = File.read(ARGV.fetch(0))
-spec = Psych.safe_load(content, [], [], true, ARGV.fetch(0))
+spec = Psych.safe_load(
+  content,
+  permitted_classes: [],
+  permitted_symbols: [],
+  aliases: true,
+  filename: ARGV.fetch(0)
+)
 expected = {
   'listEvents' => 'implemented',
   'showEvent' => 'implemented',
