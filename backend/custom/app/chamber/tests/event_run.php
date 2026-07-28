@@ -6,6 +6,7 @@ use app\chamber\activity\EventCheckinRequest;
 use app\chamber\activity\EventCheckinToken;
 use app\chamber\activity\EventEligibility;
 use app\chamber\activity\EventListQuery;
+use app\chamber\activity\EventRegistrationRequest;
 use app\chamber\activity\EventRegistrationListQuery;
 use app\chamber\exceptions\MemberTransactionException;
 
@@ -78,6 +79,41 @@ $tests['registration list query maps lifecycle filters and pagination'] = functi
     });
     expectFieldError('event_id', 'unknown_field', function (): void {
         EventRegistrationListQuery::fromArray(['event_id' => 1]);
+    });
+};
+
+$tests['registration request freezes ticket price and points snapshots'] = function (): void {
+    $request = EventRegistrationRequest::fromArray([
+        'ticket_id' => 42,
+        'expected_amount' => '19.90',
+        'expected_integral' => 30,
+    ]);
+    assertSame(42, $request->ticketId());
+    assertSame('19.90', $request->expectedAmount());
+    assertSame(30, $request->expectedIntegral());
+    assertSame([
+        'ticket_id' => 42,
+        'expected_amount' => '19.90',
+        'expected_integral' => 30,
+    ], $request->toIdempotencyArray());
+
+    $minimal = EventRegistrationRequest::fromArray(['ticket_id' => 7]);
+    assertSame(null, $minimal->expectedAmount());
+    assertSame(null, $minimal->expectedIntegral());
+};
+
+$tests['registration request rejects loose identifiers prices and fields'] = function (): void {
+    expectFieldError('ticket_id', 'invalid_value', function (): void {
+        EventRegistrationRequest::fromArray(['ticket_id' => '42']);
+    });
+    expectFieldError('expected_amount', 'invalid_value', function (): void {
+        EventRegistrationRequest::fromArray(['ticket_id' => 42, 'expected_amount' => '19.9']);
+    });
+    expectFieldError('expected_integral', 'invalid_value', function (): void {
+        EventRegistrationRequest::fromArray(['ticket_id' => 42, 'expected_integral' => '30']);
+    });
+    expectFieldError('uid', 'unknown_field', function (): void {
+        EventRegistrationRequest::fromArray(['ticket_id' => 42, 'uid' => 1]);
     });
 };
 

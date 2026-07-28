@@ -25,7 +25,7 @@
 <tr><td>私有材料</td><td>新上传只接受 JPEG/PNG；历史 PDF 仅允许受控读取，用户和管理员鉴权读取已逐字节通过；文件不进入 Git</td></tr>
 <tr><td>CRMEB 子模块</td><td>保持干净，无业务改动</td></tr>
 </tbody></table></div></section>
-<section><h2>4. 当前验证与下一步</h2><pre># 当前 G2 活动核心总门禁
+<section><h2>4. 当前验证与下一步</h2><pre># 当前 G2 活动核心门禁
 ./scripts/check-g2-activity-core.sh
 
 # G1 历史基线
@@ -35,5 +35,5 @@
 ./scripts/check-g1-member-bootstrap.sh
 
 # 仅验证 G1-01C 资料/附件/认证/审核真实 HTTP 链路
-./scripts/check-g1-profile-verification.sh</pre><ul class="checklist"><li>G2 总门禁固定数据库 185 张表、457 项迁移复验与 OpenAPI 0.5.0（26 paths / 28 operations / 21 implemented / 7 planned / 113 schemas）。</li><li>G2 活动领域 10 个用例、数据库 72 个断言通过，覆盖持久化幂等与人工补签奖励。</li><li>G1-01C 分层测试为资料 16、附件 10 + DB 44、认证 12 + DB 119、会员 UI 18、租户品牌 6，均已通过。</li><li>G1-01D/E 另覆盖会籍计划/结算 15、网关 11、权益与数据库 85 条断言、原生 CRMEB 入口拦截、支付重放/并发/退款和 timer 自动补绑。</li><li>HTTP 门禁使用真实 CRMEB 用户/Admin Token；受保护路由按 Auth → Tenant 顺序执行，不接受请求正文伪造身份或租户。</li></ul><div class="callout warn"><strong>边界：</strong>G2 当前是后端核心，不包含报名创建、支付/退款、候补/通知或活动双端页面。当前私有材料仍使用本地文件系统。</div></section>
+./scripts/check-g1-profile-verification.sh</pre><ul class="checklist"><li>G2 门禁固定数据库 185 张表、457 项迁移复验与 OpenAPI 0.5.0（26 paths / 28 operations / 21 implemented / 7 planned / 113 schemas）。</li><li>G2 活动领域 12 个用例、活动数据库 72 个断言、报名数据库 41 个断言通过；另有 6 人竞争 2 个名额的 13 个并发断言。</li><li>免费票和纯积分票报名后端已覆盖持久化幂等、行锁名额、积分扣减与追加流水；现金票当前失败关闭。</li><li>G1-01C 分层测试为资料 16、附件 10 + DB 44、认证 12 + DB 119、会员 UI 18、租户品牌 6，均已通过。</li><li>G1-01D/E 另覆盖会籍计划/结算 15、网关 11、权益与数据库 85 条断言、原生 CRMEB 入口拦截、支付重放/并发/退款和 timer 自动补绑。</li><li>HTTP 门禁使用真实 CRMEB 用户/Admin Token；受保护路由按 Auth → Tenant 顺序执行，不接受请求正文伪造身份或租户。</li></ul><div class="callout warn"><strong>边界：</strong>G2 报名创建当前仅完成免费/纯积分后端，不包含现金/混合 OrderContext、支付回调、取消退款、候补/通知、活动双端页面或报名真实 HTTP 门禁。当前私有材料仍使用本地文件系统。</div></section>
 </div></main><footer><div class="wrap">mingde-vp-chamber · 本地开发环境基线</div></footer></body></html>

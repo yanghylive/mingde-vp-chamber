@@ -59,6 +59,7 @@ required_files=(
   "backend/custom/app/chamber/activity/EventEligibility.php"
   "backend/custom/app/chamber/activity/EventListQuery.php"
   "backend/custom/app/chamber/activity/EventRegistrationListQuery.php"
+  "backend/custom/app/chamber/activity/EventRegistrationRequest.php"
   "backend/custom/app/chamber/controller/EventAdminController.php"
   "backend/custom/app/chamber/controller/EventCheckinController.php"
   "backend/custom/app/chamber/controller/EventController.php"
@@ -108,6 +109,7 @@ required_files=(
   "backend/custom/app/chamber/services/EventAdminService.php"
   "backend/custom/app/chamber/services/EventCheckinService.php"
   "backend/custom/app/chamber/services/EventIdempotency.php"
+  "backend/custom/app/chamber/services/EventRegistrationService.php"
   "backend/custom/app/chamber/services/EventRewardService.php"
   "backend/custom/app/chamber/services/EventService.php"
   "backend/custom/app/chamber/jobs/MembershipOrderContextRepairJob.php"
@@ -141,6 +143,8 @@ required_files=(
   "backend/custom/app/chamber/tests/commerce_db_run.php"
   "backend/custom/app/chamber/tests/event_run.php"
   "backend/custom/app/chamber/tests/event_db_run.php"
+  "backend/custom/app/chamber/tests/event_registration_db_run.php"
+  "backend/custom/app/chamber/tests/event_registration_concurrency_run.php"
   "backend/custom/app/chamber/commerce/CommerceEvent.php"
   "backend/custom/app/chamber/commerce/CommerceEventReceipt.php"
   "backend/custom/app/chamber/commerce/CommerceEventType.php"
@@ -324,6 +328,7 @@ if project['status'].start_with?('g2-')
   errors << 'G2 Chamber table arithmetic differs' unless g2['chamber_domain_tables'] + g2['migration_registry_tables'] == g2['chamber_tables_including_registry']
   errors << 'G2 database table arithmetic differs' unless g2['crm_tables'] + g2['chamber_tables_including_registry'] == g2['database_tables_total']
   errors << 'G2 OpenAPI operation arithmetic differs' unless g2['openapi_operations_implemented'] + g2['openapi_operations_planned'] == g2['openapi_operations_total']
+  errors << 'G2 database assertion arithmetic differs' unless g2['activity_database_assertions'] + g2['registration_database_assertions'] + g2['registration_concurrency_assertions'] == g2['database_assertions_total']
   errors << 'g2_activity_baseline.gate differs' unless g2['gate'] == 'scripts/check-g2-activity-core.sh'
 end
 abort "PROJECT_MANIFEST baseline drift: #{errors.join('; ')}" unless errors.empty?

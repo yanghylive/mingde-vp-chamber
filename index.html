@@ -34,7 +34,7 @@
       <article><small>技术策略</small><strong>复用交易底座，重建商会领域</strong><p>CRMEB 承担账号、商品、订单、支付和后台权限；租户、会籍、好友、活动和预约由项目独立建模。</p></article>
       <article><small>交付原则</small><strong>一次立项，全量开发</strong><p>不拆成用后即弃的演示系统；发布会版先保证主链路可用，随后在同一代码基线上加固。</p></article>
     </div>
-    <div class="callout good"><strong>立项日：</strong>2026-07-17。<strong>G0 工程基线：</strong>已验收。<strong>G1 本地后端：</strong>会员初始化、资料/认证、会籍下单、支付事实与权益已验收。<strong>G2 当前：</strong>活动目录、资格、报名查询、动态码、签到与奖励后端核心已验收；下一门禁是报名、名额、支付/退款和双端页面闭环。</div>
+    <div class="callout good"><strong>立项日：</strong>2026-07-17。<strong>G0 工程基线：</strong>已验收。<strong>G1 本地后端：</strong>会员初始化、资料/认证、会籍下单、支付事实与权益已验收。<strong>G2 当前：</strong>活动目录、资格、免费/积分报名、并发名额、签到与奖励后端核心已验收；下一门禁是现金/混合支付、退款和双端页面闭环。</div>
   </div></section>
 
   <section id="baseline" class="band alt"><div class="wrap">
@@ -50,7 +50,7 @@
         <tr><td>AI 服务</td><td><code>ai-service</code></td><td>独立网关和使用量账本，不持有客户端长期模型密钥。</td></tr>
         <tr><td>本地运行</td><td><code>.build-workspace/crmeb-runtime</code></td><td>官方源码、业务 Overlay、配置和运行数据完全隔离。</td></tr>
         <tr><td>G0 门禁</td><td><code>scripts/check-g0-baseline.sh</code></td><td>数据库、租户、签名重放、CORS、商业事件、CRMEB 源码审计、前端和 OpenAPI 一次验收。</td></tr>
-        <tr><td>当前 G2 门禁</td><td><code>scripts/check-g2-activity-core.sh</code></td><td>保留 G0/G1 全部证据，新增活动领域 10 例、数据库 72 断言、185 张表和 21 implemented / 7 planned 契约门禁。</td></tr>
+        <tr><td>当前 G2 门禁</td><td><code>scripts/check-g2-activity-core.sh</code></td><td>活动领域 12 例、活动数据库 72、报名数据库 41、并发名额 13 个断言，以及 21 implemented / 7 planned 契约门禁。</td></tr>
       </tbody>
     </table></div>
   </div></section>
@@ -134,7 +134,7 @@
       <li>私域数据查询必须有 TenantContext，跨租户负向测试必须通过。</li>
       <li>支付、退款、积分、贡献值和分账采用追加账本与冲正。</li>
       <li>新增 API 同步提交路由、鉴权、错误码、OpenAPI 和 HTML 文档。</li>
-      <li>PR 合并前执行当前总门禁 <code>scripts/check-g2-activity-core.sh</code>，不得带入子模块未提交修改。</li>
+      <li>活动核心变更执行 <code>scripts/check-g2-activity-core.sh</code>；跨阶段合并同时执行 G1/G0 回归门禁，不得带入子模块未提交修改。</li>
     </ul>
   </div></section>
 </main>

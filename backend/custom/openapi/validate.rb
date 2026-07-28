@@ -572,6 +572,7 @@ expected_enums = {
     channel_not_eligible points_required role_required
     event_create_failed event_update_failed event_edit_locked event_publish_locked event_publish_failed
     event_cancel_locked event_cancel_has_registrations event_ticket_create_failed event_serialization_failed
+    event_ticket_not_found event_payment_unavailable event_registration_failed registration_already_exists
     registration_not_found event_reward_failed checkin_token_unavailable checkin_token_invalid checkin_already_completed
   ]
 }

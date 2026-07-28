@@ -48,6 +48,7 @@ activity_php_files=(
     backend/custom/app/chamber/activity/EventCheckinToken.php
     backend/custom/app/chamber/activity/EventEligibility.php
     backend/custom/app/chamber/activity/EventListQuery.php
+    backend/custom/app/chamber/activity/EventRegistrationRequest.php
     backend/custom/app/chamber/activity/EventRegistrationListQuery.php
     backend/custom/app/chamber/controller/EventAdminController.php
     backend/custom/app/chamber/controller/EventCheckinController.php
@@ -56,10 +57,13 @@ activity_php_files=(
     backend/custom/app/chamber/services/EventAdminService.php
     backend/custom/app/chamber/services/EventCheckinService.php
     backend/custom/app/chamber/services/EventIdempotency.php
+    backend/custom/app/chamber/services/EventRegistrationService.php
     backend/custom/app/chamber/services/EventRewardService.php
     backend/custom/app/chamber/services/EventService.php
     backend/custom/app/chamber/tests/event_run.php
     backend/custom/app/chamber/tests/event_db_run.php
+    backend/custom/app/chamber/tests/event_registration_db_run.php
+    backend/custom/app/chamber/tests/event_registration_concurrency_run.php
 )
 
 activity_migrations=(
@@ -100,6 +104,10 @@ if [ "${MODE}" = 'local' ]; then
         php /var/www/app/chamber/tests/event_run.php)"
     database_test_output="$(docker compose -f "${COMPOSE_FILE}" exec -T phpfpm \
         php /var/www/app/chamber/tests/event_db_run.php)"
+    registration_database_output="$(docker compose -f "${COMPOSE_FILE}" exec -T phpfpm \
+        php /var/www/app/chamber/tests/event_registration_db_run.php)"
+    registration_concurrency_output="$(docker compose -f "${COMPOSE_FILE}" exec -T phpfpm \
+        php /var/www/app/chamber/tests/event_registration_concurrency_run.php)"
 else
     for file in "${activity_php_files[@]}"; do
         php -l "${file}" >/dev/null
@@ -107,6 +115,8 @@ else
     done
     domain_output="$(php backend/custom/app/chamber/tests/event_run.php)"
     database_test_output='SKIP: activity database integration requires the local Docker gate'
+    registration_database_output='SKIP: registration database integration requires the local Docker gate'
+    registration_concurrency_output='SKIP: registration concurrency requires the local Docker gate'
 fi
 
 printf '%s\n' "${domain_output}"
@@ -126,8 +136,28 @@ if [ "${MODE}" = 'local' ]; then
     database_minimum="$(manifest_g2_value activity_database_assertions_minimum 33)"
     [ "${database_assertions}" -ge "${database_minimum}" ] \
         || fail "G2 activity database assertions were removed: ${database_assertions} < ${database_minimum}"
+    printf '%s\n' "${registration_database_output}"
+    registration_database_assertions="$(sed -nE \
+        's/^Event registration database integration passed \(([0-9]+) assertions\)\.$/\1/p' \
+        <<<"${registration_database_output}")"
+    [[ "${registration_database_assertions:-}" =~ ^[0-9]+$ ]] \
+        || fail 'G2 registration database assertion result is unavailable'
+    registration_database_minimum="$(manifest_g2_value registration_database_assertions_minimum 41)"
+    [ "${registration_database_assertions}" -ge "${registration_database_minimum}" ] \
+        || fail "G2 registration database assertions were removed: ${registration_database_assertions} < ${registration_database_minimum}"
+    printf '%s\n' "${registration_concurrency_output}"
+    registration_concurrency_assertions="$(sed -nE \
+        's/^Event registration concurrency passed \(([0-9]+) assertions; 6 contenders \/ 2 seats\)\.$/\1/p' \
+        <<<"${registration_concurrency_output}")"
+    [[ "${registration_concurrency_assertions:-}" =~ ^[0-9]+$ ]] \
+        || fail 'G2 registration concurrency assertion result is unavailable'
+    registration_concurrency_minimum="$(manifest_g2_value registration_concurrency_assertions_minimum 13)"
+    [ "${registration_concurrency_assertions}" -ge "${registration_concurrency_minimum}" ] \
+        || fail "G2 registration concurrency assertions were removed: ${registration_concurrency_assertions} < ${registration_concurrency_minimum}"
 else
     printf '%s\n' "${database_test_output}"
+    printf '%s\n' "${registration_database_output}"
+    printf '%s\n' "${registration_concurrency_output}"
 fi
 
 openapi_output="$(ruby backend/custom/openapi/validate.rb)"
@@ -185,7 +215,9 @@ git diff --check
 printf 'G2 activity core gate OK (%s mode)\n' "${MODE}"
 printf 'PHP: %s G2 files linted; domain: %s cases\n' "${linted}" "${domain_cases}"
 if [ "${MODE}" = 'local' ]; then
-    printf 'Database: 19 + 1 migration checks; %s integration assertions\n' "${database_assertions}"
+    printf 'Database: 19 + 1 migration checks; %s activity + %s registration assertions\n' \
+        "${database_assertions}" "${registration_database_assertions}"
+    printf 'Concurrency: 6 contenders / 2 seats; %s assertions\n' "${registration_concurrency_assertions}"
 else
     printf 'Database: migration triplets inventoried; runtime assertions delegated to local mode\n'
 fi

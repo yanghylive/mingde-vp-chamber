@@ -4310,6 +4310,10 @@ components:
         - event_cancel_has_registrations
         - event_ticket_create_failed
         - event_serialization_failed
+        - event_ticket_not_found
+        - event_payment_unavailable
+        - event_registration_failed
+        - registration_already_exists
         - registration_not_found
         - event_reward_failed
         - checkin_token_unavailable

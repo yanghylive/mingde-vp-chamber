@@ -36,6 +36,7 @@ foreach ([
     'v1/membership/checkouts',
     'v1/events',
     'v1/events/:event_id',
+    'v1/events/:event_id/registrations',
     'v1/events/:event_id/checkins',
     'admin/v1/member-assets/:asset_id/content',
     'admin/v1/graduate-verifications',
@@ -97,6 +98,8 @@ Route::group('v1/membership', function () {
 Route::group('v1/events', function () {
     Route::get('', 'EventController/index');
     Route::get(':event_id', 'EventController/show')
+        ->pattern(['event_id' => '\\d+']);
+    Route::post(':event_id/registrations', 'EventRegistrationController/store')
         ->pattern(['event_id' => '\\d+']);
     Route::post(':event_id/checkins', 'EventCheckinController/store')
         ->pattern(['event_id' => '\\d+']);

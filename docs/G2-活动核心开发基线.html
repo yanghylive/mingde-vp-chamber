@@ -28,7 +28,7 @@
         <article><small>机器契约</small><strong>21 implemented / 7 planned</strong><p>OpenAPI 共 26 条路径、28 个操作、113 个 Schema。</p></article>
         <article><small>数据库</small><strong>185 张表</strong><p>157 张 CRMEB + 27 张 Chamber 领域/可靠性表 + 1 张迁移登记表。</p></article>
       </div>
-      <div class="callout warn"><strong>边界：</strong>报名创建、名额占用、积分/现金/混合支付、退款与奖励冲正、候补/通知、活动回顾及所有活动前端页面均未完成。</div>
+      <div class="callout warn"><strong>边界：</strong>免费/纯积分报名事务和并发名额已完成后端验证；现金/混合支付、退款与奖励冲正、候补/通知、活动回顾、真实报名 HTTP 门禁及所有活动前端页面仍未完成。</div>
     </section>
 
     <section>
@@ -37,8 +37,9 @@
         <thead><tr><th>范围</th><th>实现事实</th><th>验收边界</th></tr></thead>
         <tbody>
           <tr><td>活动目录</td><td>租户/渠道限定的活动列表和详情，支持类型、时间、状态和标签查询</td><td><code>listEvents</code>、<code>showEvent</code> 已实现</td></tr>
-          <tr><td>资格判定</td><td>按发布状态、报名窗口、容量、会籍、毕业认证、渠道、角色和积分返回稳定原因</td><td>只做资格读，未建立并发名额占用</td></tr>
+          <tr><td>资格判定</td><td>按发布状态、报名窗口、容量、会籍、毕业认证、渠道、角色和积分返回稳定原因</td><td>资格读与免费/积分报名事务共用同一规则</td></tr>
           <tr><td>我的报名</td><td>本人报名列表和详情，可读取报名、支付、签到状态投影</td><td><code>listMyEventRegistrations</code>、<code>showMyEventRegistration</code> 已实现</td></tr>
+          <tr><td>免费/积分报名</td><td>会员、活动、报名、票种、积分账户依固定锁序执行；名额计数、积分扣减和追加流水同事务提交</td><td>41 个数据库断言 + 6 人抢 2 名额的 13 个并发断言；现金票明确失败关闭，操作仍 planned</td></tr>
           <tr><td>扫码签到</td><td>租户域 HMAC 动态码、过期/签名检查、报名与活动匹配、重复签到安全重放</td><td><code>createEventCheckin</code> 已实现</td></tr>
           <tr><td>签到奖励</td><td>签到后幂等记录积分、贡献值和奖励账本</td><td>取消/撤销后自动冲正未完成</td></tr>
           <tr><td>管理服务</td><td>已有创建、编辑、发布、取消、发码和人工补签的路由/服务代码</td><td>6 个管理写操作在 OpenAPI 中仍为 <code>planned</code>，不计对外完成</td></tr>
@@ -81,8 +82,8 @@
         <tbody>
           <tr><td><code>ACT-001/002</code> 活动发布、类型与标签</td><td>后端服务部分完成；管理契约与界面未完成</td><td>管理写接口门禁 + 运营工作台</td></tr>
           <tr><td><code>ACT-003</code> 日历/列表</td><td>列表和详情 API 已完成</td><td>UniApp 日历、列表、详情页</td></tr>
-          <tr><td><code>ACT-004</code> 报名资格</td><td>后端判定已完成</td><td>接入报名事务并锁定名额</td></tr>
-          <tr><td><code>ACT-005/006</code> 报名支付与地图</td><td>未完成</td><td>免费/积分/现金/混合支付与地图页</td></tr>
+          <tr><td><code>ACT-004</code> 报名资格</td><td>后端判定与报名事务已共用</td><td>补真实 HTTP 门禁和用户页面</td></tr>
+          <tr><td><code>ACT-005/006</code> 报名支付与地图</td><td>免费/纯积分后端事务完成；现金/混合与地图未完成</td><td>CRMEB OrderContext、支付/退款消费和页面</td></tr>
           <tr><td><code>ACT-007</code> 动态码/人工补签</td><td>扫码核心完成；管理发码和补签对外契约仍 planned</td><td>管理 HTTP 门禁和双端页面</td></tr>
           <tr><td><code>ACT-008</code> 积分/贡献值</td><td>签到发放完成，冲正未完成</td><td>取消、撤销和退款驱动的追加式冲正</td></tr>
           <tr><td><code>ACT-009/010</code> 候补通知与回顾</td><td>未完成</td><td>等主报名闭环后实施</td></tr>
@@ -95,10 +96,13 @@
       <pre>./scripts/manage-local-database.sh verify
 ruby backend/custom/openapi/validate.rb
 docker exec mingde_crmeb_php php /var/www/app/chamber/tests/event_run.php
-docker exec mingde_crmeb_php php /var/www/app/chamber/tests/event_db_run.php</pre>
+docker exec mingde_crmeb_php php /var/www/app/chamber/tests/event_db_run.php
+docker exec mingde_crmeb_php php /var/www/app/chamber/tests/event_registration_db_run.php
+docker exec mingde_crmeb_php php /var/www/app/chamber/tests/event_registration_concurrency_run.php</pre>
       <ul class="checklist">
-        <li>活动领域测试 10 个用例通过。</li>
+        <li>活动领域测试 12 个用例通过。</li>
         <li>活动数据库集成测试 72 个断言通过，覆盖持久化幂等和人工补签奖励。</li>
+        <li>免费/积分报名数据库 41 个断言通过；并发门禁 13 个断言，6 个会员争抢 2 个名额时恰好 2 个成功。</li>
         <li>11 个数据库迁移全部重验通过，当前数据库 185 张表。</li>
         <li>OpenAPI 校验通过：26 paths / 28 operations / 21 implemented / 7 planned / 113 schemas。</li>
       </ul>
