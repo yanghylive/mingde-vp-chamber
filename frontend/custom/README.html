@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>前端二开入口</title><link rel="stylesheet" href="../../docs/project-docs.css"></head>
-<body><header class="doc-head"><div class="wrap"><p class="eyebrow">FRONTEND OVERLAY · G1-01D COMPLETE · 2026-07-25</p><h1>前端二开入口</h1><p>CRMEB v6.0.0 的 UniApp 用户端与 Vue2 管理端 overlay。双品牌使用同一代码和租户配置；资料、毕业认证与会籍下单已形成可验收业务切片。</p></div></header>
+<body><header class="doc-head"><div class="wrap"><p class="eyebrow">FRONTEND OVERLAY · G1 UI BASELINE · G2 UI PENDING · 2026-07-28</p><h1>前端二开入口</h1><p>CRMEB v6.0.0 的 UniApp 用户端与 Vue2 管理端 overlay。当前真实页面范围是会员资料、毕业认证和管理审核；会籍购买与 G2 活动前端仍待开发。</p></div></header>
 <main class="doc-main"><div class="wrap"><nav class="doc-nav"><a href="../../index.html">项目首页</a><a href="../../docs/G1-个人资料与毕业认证开发基线.html">G1-01C 基线</a><a href="../../docs/CRMEB-二次开发说明书-v1.0.html#frontend">前端规则</a><a href="../../docs/PRD-v2.0.html">PRD</a></nav>
 <section><h2>目录</h2><pre>frontend/custom/
 ├── uniapp/        # 会员入口、资料、毕业认证页面与 Chamber API
@@ -17,8 +17,9 @@
 <tr><td>UniApp 毕业认证</td><td>状态、最近申请、JPEG/PNG 上传/重试/读取、提交与退回/拒绝后重新提交</td><td>已实现；新上传拒绝 PDF，历史 PDF 仅受控读取；<code>available=false</code> 时禁止打开材料</td></tr>
 <tr><td>Admin 认证审核</td><td>筛选/分页、详情抽屉、私有材料读取、通过/退回/拒绝/撤销</td><td>失效材料禁止打开并隐藏 approve；后端权限最终裁决</td></tr>
 </tbody></table></div></section>
-<section><h2>G1-01D 会籍入口</h2><p>会籍计划与结算页面沿用 Chamber API 契约和 CRMEB Token，不直接调用原生商城购物车；服务端拒绝原生会籍商品入口，前端只展示业务计划、价格、资格和待支付订单投影。</p></section>
+<section><h2>G1 会籍页面缺口</h2><p>会籍计划、下单和权益摘要 API 已有后端契约，但 <code>frontend/custom</code> 尚无会籍购买、支付结果和会籍状态页。实施时必须使用 Chamber API 和 CRMEB Token，不得绕过业务中心直调原生商城购物车。</p></section>
+<section><h2>G2 活动页面缺口</h2><p>后端已实现活动列表/详情、本人报名查询和扫码签到核心，但当前 overlay 中没有活动 UniApp API/页面，也没有 Admin 活动运营工作台。月历、列表、详情、报名/订单、扫码签到和管理端全部计为待开发。</p></section>
 <section><h2>验证结果</h2><pre>./scripts/prepare-local-frontend.sh test
 ./scripts/prepare-local-frontend.sh build-admin</pre><ul class="checklist"><li>会员 UI 静态契约 18 项、租户品牌 6 项通过。</li><li>准备后的 UniApp/Admin 导入、页面注册和本地 API Origin 校验通过。</li><li>Admin 生产构建通过；上游既有 CSS/体积告警保留，未被误写成构建失败。</li><li>上传和审核的最终权限、状态机与配额全部由后端执行，前端状态只改善交互。</li></ul></section>
 <section><h2>首发待开发页面组</h2><div class="table-wrap"><table><thead><tr><th>用户端</th><th>管理端</th></tr></thead><tbody><tr><td>双品牌首页、微信登录/绑手机、会籍、活动、同学/好友、商城/创作者、大咖/预约、AI 生态、我的完整状态页</td><td>租户品牌、活动运营、商品审核、预约履约、结算台账、AI 配额/审计</td></tr></tbody></table></div></section>
-</div></main><footer><div class="wrap">mingde-vp-chamber · Frontend Overlay · 2026-07-25</div></footer></body></html>
+</div></main><footer><div class="wrap">mingde-vp-chamber · Frontend Overlay · 2026-07-28</div></footer></body></html>

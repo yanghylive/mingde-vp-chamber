@@ -75,7 +75,7 @@ Controller / Services     -- execute business operation</pre>
     <section id="governance">
       <h2>5. 本项目 API 治理</h2>
       <ul>
-        <li>新增用户端契约使用 <code>/api/chamber/v1</code>，管理端使用 <code>/admin/chamber/v1</code>，不与上游 v1/v2 路由混写。</li>
+        <li>新增用户端契约使用 <code>/chamber/v1</code>，管理端使用 <code>/chamber/admin/v1</code>，不与上游 v1/v2 路由混写。</li>
         <li>以项目管理的 OpenAPI 3.1 文件作为二开接口契约，测试环境自动发布 HTML 文档。</li>
         <li>每个接口必须登记需求 ID、租户数据范围、主体权限、幂等方式、业务错误码和审计事件。</li>
         <li>CRMEB 上游升级后，先生成路由 diff，再对 Apifox 和项目 OpenAPI 执行契约回归。</li>

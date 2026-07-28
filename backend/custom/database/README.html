@@ -8,9 +8,9 @@
 </head>
 <body>
   <header class="doc-head"><div class="wrap">
-    <p class="eyebrow">DATABASE BASELINE · 202607210001—202607250005</p>
+    <p class="eyebrow">DATABASE BASELINE · 202607210001—202607280001</p>
     <h1>商会数据库迁移基线</h1>
-    <p>在租户会员、认证审核、人物角色、活动报名、商业事件可靠性和 G1 会籍事实基础上，增加管理菜单注册、资料 JSON 规范化、私有会员附件、订单上下文幂等关联和会籍订单缺口补扫定时器；CRMEB 原安装 SQL 与业务表保持不变。</p>
+    <p>在租户会员、认证审核、人物角色、活动报名、商业事件可靠性和 G1 会籍事实基础上，增加 G2 动态签到码、活动奖励、积分账户/流水和贡献流水；CRMEB 原安装 SQL 与业务表保持不变。</p>
   </div></header>
   <main class="doc-main"><div class="wrap">
     <section>
@@ -40,6 +40,10 @@
           <tr><td><code>migrations/202607250004_link_order_context_idempotency.verify.sql</code></td><td>3 项复验：关联列、索引和唯一约束</td><td>是，只读验证</td></tr>
           <tr><td><code>migrations/202607250005_register_membership_repair_timer.up.sql</code></td><td>注册会籍订单上下文缺口补扫定时任务，使用 CRMEB 原生 timer 调度</td><td>是，精确替换商会自有任务行</td></tr>
           <tr><td><code>migrations/202607250005_register_membership_repair_timer.verify.sql</code></td><td>3 项复验：任务唯一性、每分钟计划和 custom code</td><td>是，只读验证</td></tr>
+          <tr><td><code>migrations/202607260001_create_activity_runtime.up.sql</code></td><td>扩展活动/票种/报名事实，创建动态码、奖励、积分账户/流水和贡献流水 5 张表</td><td>是，使用条件 DDL 和 <code>CREATE TABLE IF NOT EXISTS</code></td></tr>
+          <tr><td><code>migrations/202607260001_create_activity_runtime.verify.sql</code></td><td>19 项复验：活动增量列、报名交易关联、5 张新表的列与唯一索引</td><td>是，只读验证</td></tr>
+          <tr><td><code>migrations/202607280001_add_event_checkin_rewards.up.sql</code></td><td>为活动增加签到积分/贡献值可配置列</td><td>是，使用条件 DDL</td></tr>
+          <tr><td><code>migrations/202607280001_add_event_checkin_rewards.verify.sql</code></td><td>1 项复验：签到奖励配置列完整</td><td>是，只读验证</td></tr>
           <tr><td><code>seeds/202607210001_local_ci_baseline.sql</code></td><td>创建两个通用测试租户、默认渠道和人物角色</td><td>是，只补缺，不覆盖已有配置</td></tr>
           <tr><td><code>seeds/202607210001_local_ci_baseline.verify.sql</code></td><td>核对租户、渠道和角色数量及明细</td><td>是，只读查询</td></tr>
         </tbody>
@@ -59,7 +63,7 @@
 ./scripts/manage-local-database.sh verify</pre>
       <p><code>setup</code> 先确认每个 <code>*.up.sql</code> 都有同版本 <code>*.verify.sql</code>，再按文件名顺序执行迁移。新迁移只有在结构验证通过后，才把版本、SHA-256 校验和与执行时间写入 <code>ch_schema_migration</code>；验证失败会保留未登记状态，修复结构后可安全重跑。</p>
       <p>已登记迁移不会只做跳过：脚本先核对历史校验和，再重新运行对应结构验证，用于发现缺表、缺列、关键类型变化、索引缺失等常见漂移。独立执行 <code>verify</code> 会同时复验全部迁移结构和本地种子；若结构完整但版本未登记，会明确要求执行 <code>migrate</code> 完成登记。</p>
-      <p>当前本地基线为 CRMEB 157 张原表、22 张 Chamber 领域/可靠性表和 1 张迁移登记表，共 180 张；<code>ch_*</code> 共 23 张。全部迁移验证器合计 437 项结构复验，其中 G0 为 165 项、G1 为 272 项；本批 202607250001—005 为 4 + 5 + 28 + 3 + 3 = 43 项。MySQL DDL 会自动提交，发布时先执行迁移再切换应用版本；生产环境不得执行通用种子或 <code>down.sql</code>。后续变更必须新增迁移文件，不回写已登记迁移，也不修改 CRMEB 的 <code>public/install/crmeb.sql</code>。</p>
+      <p>当前本地基线为 CRMEB 157 张原表、27 张 Chamber 领域/可靠性表和 1 张迁移登记表，共 185 张；<code>ch_*</code> 共 28 张。全部迁移验证器合计 457 项结构复验，其中 G0 + G1 为 437 项，G2 两个迁移新增 20 项。MySQL DDL 会自动提交，发布时先执行迁移再切换应用版本；生产环境不得执行通用种子或 <code>down.sql</code>。后续变更必须新增迁移文件，不回写已登记迁移，也不修改 CRMEB 的 <code>public/install/crmeb.sql</code>。</p>
     </section>
     <section>
       <h2>本地与 CI 种子边界</h2>
@@ -78,11 +82,11 @@
         <li>租户与运营组织：<code>ch_tenant</code>、<code>ch_channel</code>。</li>
         <li>会员与认证：<code>ch_tenant_member</code>、<code>ch_member_profile</code>、<code>ch_member_asset</code>、<code>ch_graduate_verification</code>、<code>ch_audit_record</code>。</li>
         <li>人物角色：<code>ch_persona_role</code>、<code>ch_role_application</code>、<code>ch_member_role</code>。</li>
-        <li>活动报名：<code>ch_event</code>、<code>ch_event_ticket</code>、<code>ch_event_registration</code>、<code>ch_event_checkin</code>。</li>
+        <li>活动报名与激励：<code>ch_event</code>、<code>ch_event_ticket</code>、<code>ch_event_registration</code>、<code>ch_event_checkin</code>、<code>ch_event_checkin_token</code>、<code>ch_event_reward</code>、<code>ch_point_account</code>、<code>ch_point_ledger</code>、<code>ch_contribution_ledger</code>。</li>
         <li>商业事件可靠性：<code>ch_commerce_event_inbox</code>、<code>ch_idempotency_record</code>、<code>ch_refund_attempt</code>。</li>
         <li>会籍交易：<code>ch_membership_plan</code>、<code>ch_order_context</code>、<code>ch_membership_term</code>、<code>ch_membership_term_effect</code>、<code>ch_member_consent</code>。</li>
       </ul>
-      <p>好友关系、积分/贡献账本、商品审核、分账、大咖预约和 AI 账本不属于当前迁移，待对应服务契约确认后分批追加。</p>
+      <p>好友关系、商品审核、分账、大咖预约和 AI 账本不属于当前迁移，待对应服务契约确认后分批追加。当前积分/贡献账本只固定活动签到奖励核心，不等于完整会员积分中心。</p>
     </section>
     <section>
       <h2>商业事件与退款契约</h2>

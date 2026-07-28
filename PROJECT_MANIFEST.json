@@ -2,7 +2,7 @@
   "project": {
     "code": "mingde-vp-chamber",
     "name": "VP 毕业生同学会数字平台",
-    "status": "g1-01e-membership-entitlement-complete",
+    "status": "g2-activity-backend-core-complete",
     "established_on": "2026-07-17",
     "default_branch": "main",
     "repository_visibility": "private"
@@ -25,9 +25,9 @@
     "local_environment": "docs/本地开发环境基线.html",
     "agent_delivery_plan": "docs/Codex-Agent团队全量开发计划-v1.0.html",
     "delivery_board": "docs/开发任务板.html",
-    "prd_progress": "docs/PRD-开发进度总结-2026-07-26.html",
-    "previous_prd_progress": "docs/PRD-开发进度总结-2026-07-25.html",
-    "earlier_prd_progress": "docs/PRD-开发进度总结-2026-07-24.html",
+    "prd_progress": "docs/PRD-开发进度总结-2026-07-28.html",
+    "previous_prd_progress": "docs/PRD-开发进度总结-2026-07-26.html",
+    "earlier_prd_progress": "docs/PRD-开发进度总结-2026-07-25.html",
     "architecture_decisions": "docs/ADR-索引.html",
     "commerce_event_audit": "docs/CRMEB-支付退款事件核验.html",
     "g1_membership_baseline": "docs/G1-会员交易开发基线.html",
@@ -35,6 +35,7 @@
     "g1_profile_verification_baseline": "docs/G1-个人资料与毕业认证开发基线.html",
     "g1_membership_checkout_baseline": "docs/G1-会籍计划与下单开发基线.html",
     "g1_membership_entitlement_baseline": "docs/G1-会籍支付与权益开发基线.html",
+    "g2_activity_baseline": "docs/G2-活动核心开发基线.html",
     "commerce_source_audit": "backend/custom/commerce/README.html",
     "api_contract": "backend/custom/openapi/README.html",
     "database_baseline": "backend/custom/database/README.html"
@@ -129,5 +130,31 @@
     "membership_checkout_gate": "scripts/check-g1-membership-checkout.sh",
     "membership_entitlement_gate": "scripts/check-g1-membership-entitlement.sh",
     "gate": "scripts/check-g1-membership-baseline.sh"
+  },
+  "g2_activity_baseline": {
+    "completed_on": "2026-07-28",
+    "scope": "backend_core",
+    "scope_note": "Activity catalog, member eligibility, registration reads, rotating check-in token, scan check-in and reward ledger are implemented; registration creation, payment/refund, waitlist/notification, activity UI and admin UI remain incomplete.",
+    "crm_tables": 157,
+    "chamber_domain_tables": 27,
+    "migration_registry_tables": 1,
+    "chamber_tables_including_registry": 28,
+    "database_tables_total": 185,
+    "activity_runtime_tables_added": 5,
+    "activity_migration_structural_checks": 20,
+    "migration_structural_checks_total": 457,
+    "activity_domain_tests": 10,
+    "activity_domain_tests_minimum": 10,
+    "activity_database_assertions": 72,
+    "activity_database_assertions_minimum": 72,
+    "openapi_version": "0.5.0",
+    "openapi_paths": 26,
+    "openapi_operations_total": 28,
+    "openapi_operations_implemented": 21,
+    "openapi_operations_planned": 7,
+    "openapi_schemas": 113,
+    "implemented_activity_operations": 5,
+    "planned_activity_operations": 7,
+    "gate": "scripts/check-g2-activity-core.sh"
   }
 }

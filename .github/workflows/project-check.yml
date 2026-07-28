@@ -21,3 +21,12 @@ jobs:
 
       - name: Verify locked source and required HTML documents
         run: bash scripts/check-project.sh
+
+      - name: Set up PHP 7.4 for CRMEB-compatible domain checks
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '7.4'
+          coverage: none
+
+      - name: Verify G2 activity domain and OpenAPI contract
+        run: bash scripts/check-g2-activity-core.sh ci

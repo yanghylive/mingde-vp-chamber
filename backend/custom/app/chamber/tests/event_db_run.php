@@ -8,8 +8,12 @@ use app\chamber\activity\EventEligibility;
 use app\chamber\activity\EventListQuery;
 use app\chamber\activity\EventRegistrationListQuery;
 use app\chamber\exceptions\MemberTransactionException;
+use app\chamber\identity\AuthenticatedAdminContext;
 use app\chamber\identity\AuthenticatedUserContext;
+use app\chamber\membership\BootstrapIdempotency;
+use app\chamber\services\EventAdminService;
 use app\chamber\services\EventCheckinService;
+use app\chamber\services\EventIdempotency;
 use app\chamber\services\EventRewardService;
 use app\chamber\services\EventService;
 use app\chamber\tenancy\TenantContext;
@@ -214,13 +218,308 @@ try {
         $checkinRequest,
         'event-checkin-db-' . $runId
     );
-    assertSame(true, $replayedCheckin['replayed']);
-    assertSame($checkin['id'], $replayedCheckin['id']);
+    assertSame(
+        BootstrapIdempotency::canonicalJson($checkin),
+        BootstrapIdempotency::canonicalJson($replayedCheckin)
+    );
+    assertSame(false, $replayedCheckin['replayed']);
+
+    $changedToken = EventCheckinToken::issue(
+        (int) $primaryTenant['id'],
+        $eventId,
+        $now,
+        300,
+        (string) getenv('CHAMBER_TENANT_SIGNING_SECRET')
+    );
+    Db::table('ch_event_checkin_token')->insert([
+        'tenant_id' => (int) $primaryTenant['id'],
+        'event_id' => $eventId,
+        'token_digest' => $changedToken['digest'],
+        'issued_by_admin_id' => 1,
+        'valid_from' => $changedToken['valid_from'],
+        'expires_time' => $changedToken['expires_time'],
+        'status' => 1,
+        'add_time' => $now,
+        'update_time' => $now,
+    ]);
+    expectReason('idempotency_conflict', 409, function () use (
+        $checkinService,
+        $tenant,
+        $auth,
+        $eventId,
+        $registrationId,
+        $changedToken,
+        $runId
+    ): void {
+        $checkinService->checkin(
+            $tenant,
+            $auth,
+            $eventId,
+            EventCheckinRequest::fromArray([
+                'token' => $changedToken['token'],
+                'registration_id' => $registrationId,
+            ]),
+            'event-checkin-db-' . $runId
+        );
+    });
+    $naturalReplay = $checkinService->checkin(
+        $tenant,
+        $auth,
+        $eventId,
+        $checkinRequest,
+        'event-checkin-natural-' . $runId
+    );
+    assertSame(true, $naturalReplay['replayed']);
+    assertSame($checkin['id'], $naturalReplay['id']);
+    expectReason('checkin_token_invalid', 422, function () use (
+        $checkinService,
+        $tenant,
+        $auth,
+        $eventId,
+        $registrationId,
+        $runId
+    ): void {
+        $checkinService->checkin(
+            $tenant,
+            $auth,
+            $eventId,
+            EventCheckinRequest::fromArray([
+                'token' => str_repeat('x', 32),
+                'registration_id' => $registrationId,
+            ]),
+            'event-checkin-invalid-' . $runId
+        );
+    });
+
+    $scanInternalKey = BootstrapIdempotency::deriveInternalKey(
+        $tenant->tenantId(),
+        'createEventCheckin',
+        'crmeb_user',
+        $auth->uid(),
+        'event-checkin-db-' . $runId
+    );
+    $scanRecord = Db::table('ch_idempotency_record')
+        ->where('tenant_id', $tenant->tenantId())
+        ->where('idempotency_key', $scanInternalKey)
+        ->find();
+    assertTrue(is_array($scanRecord), 'scan idempotency record must exist');
+    assertSame('succeeded', (string) $scanRecord['status']);
+    assertSame(false, strpos((string) $scanRecord['result_json'], $issued['token']) !== false);
     assertSame(125, (int) Db::table('ch_point_account')->where('member_id', $memberId)->value('balance'));
     assertSame(1, (int) Db::table('ch_event_reward')->where('registration_id', $registrationId)->count());
     assertSame(1, (int) Db::table('ch_contribution_ledger')->where('member_id', $memberId)->count());
     assertSame(5, (int) Db::table('ch_event_registration')->where('id', $registrationId)->value('status'));
     assertSame(true, $service->registrationDetail($tenant, $auth, $registrationId)['checked_in']);
+
+    $adminService = new EventAdminService(
+        new EventRewardService(),
+        new EventIdempotency(function () use ($now): int {
+            return $now;
+        })
+    );
+    $admin = new AuthenticatedAdminContext(900001, true, []);
+    $otherAdmin = new AuthenticatedAdminContext(900002, true, []);
+    $adminPayload = adminEventInput($now, $runId);
+    $adminKey = 'event-admin-create-' . $runId;
+    $draft = $adminService->create($tenant, $admin, $adminPayload, $adminKey);
+    $equivalentAdminPayload = $adminPayload;
+    $equivalentAdminPayload['title'] = '  ' . $adminPayload['title'] . '  ';
+    $draftReplay = $adminService->create($tenant, $admin, $equivalentAdminPayload, $adminKey);
+    assertSame(
+        BootstrapIdempotency::canonicalJson($draft),
+        BootstrapIdempotency::canonicalJson($draftReplay)
+    );
+    assertSame(1, (int) Db::table('ch_event')->where('id', (int) $draft['id'])->count());
+    $changedAdminPayload = $adminPayload;
+    $changedAdminPayload['title'] = 'Changed idempotent activity';
+    expectReason('idempotency_conflict', 409, function () use (
+        $adminService,
+        $tenant,
+        $admin,
+        $changedAdminPayload,
+        $adminKey
+    ): void {
+        $adminService->create($tenant, $admin, $changedAdminPayload, $adminKey);
+    });
+    $otherAdminDraft = $adminService->create($tenant, $otherAdmin, $adminPayload, $adminKey);
+    assertTrue((int) $otherAdminDraft['id'] !== (int) $draft['id'], 'administrator principals must be idempotency scoped');
+    $secondaryContext = context($secondaryTenant, $secondaryChannel);
+    $secondaryDraft = $adminService->create($secondaryContext, $admin, $adminPayload, $adminKey);
+    assertTrue((int) $secondaryDraft['id'] !== (int) $draft['id'], 'tenants must be idempotency scoped');
+
+    $sharedOperationKey = 'event-admin-action-' . $runId;
+    $updatedDraft = $adminService->update(
+        $tenant,
+        $admin,
+        (int) $draft['id'],
+        ['title' => 'Updated idempotent activity'],
+        $sharedOperationKey
+    );
+    $updatedReplay = $adminService->update(
+        $tenant,
+        $admin,
+        (int) $draft['id'],
+        ['title' => 'Updated idempotent activity'],
+        $sharedOperationKey
+    );
+    assertSame(
+        BootstrapIdempotency::canonicalJson($updatedDraft),
+        BootstrapIdempotency::canonicalJson($updatedReplay)
+    );
+    expectReason('idempotency_conflict', 409, function () use (
+        $adminService,
+        $tenant,
+        $admin,
+        $draft,
+        $sharedOperationKey
+    ): void {
+        $adminService->update(
+            $tenant,
+            $admin,
+            (int) $draft['id'],
+            ['title' => 'Different update'],
+            $sharedOperationKey
+        );
+    });
+
+    $published = $adminService->publish($tenant, $admin, (int) $draft['id'], $sharedOperationKey);
+    $publishedReplay = $adminService->publish($tenant, $admin, (int) $draft['id'], $sharedOperationKey);
+    assertSame(
+        BootstrapIdempotency::canonicalJson($published),
+        BootstrapIdempotency::canonicalJson($publishedReplay)
+    );
+    assertSame(EventEligibility::EVENT_PUBLISHED, $published['status']);
+
+    $adminToken = $adminService->issueCheckinToken(
+        $tenant,
+        $admin,
+        (int) $draft['id'],
+        300,
+        $sharedOperationKey
+    );
+    $adminTokenReplay = $adminService->issueCheckinToken(
+        $tenant,
+        $admin,
+        (int) $draft['id'],
+        300,
+        $sharedOperationKey
+    );
+    assertSame(
+        BootstrapIdempotency::canonicalJson($adminToken),
+        BootstrapIdempotency::canonicalJson($adminTokenReplay)
+    );
+    assertSame(1, (int) Db::table('ch_event_checkin_token')->where('id', (int) $adminToken['token_id'])->count());
+    $adminTokenInternalKey = BootstrapIdempotency::deriveInternalKey(
+        $tenant->tenantId(),
+        'issueEventCheckinTokenForAdmin',
+        'crmeb_admin',
+        $admin->adminId(),
+        $sharedOperationKey
+    );
+    $adminTokenRecord = Db::table('ch_idempotency_record')
+        ->where('tenant_id', $tenant->tenantId())
+        ->where('idempotency_key', $adminTokenInternalKey)
+        ->find();
+    assertTrue(is_array($adminTokenRecord), 'administrator token idempotency record must exist');
+    assertSame(false, strpos((string) $adminTokenRecord['result_json'], $adminToken['token']) !== false);
+    expectReason('idempotency_conflict', 409, function () use (
+        $adminService,
+        $tenant,
+        $admin,
+        $draft,
+        $sharedOperationKey
+    ): void {
+        $adminService->issueCheckinToken($tenant, $admin, (int) $draft['id'], 600, $sharedOperationKey);
+    });
+
+    $cancelled = $adminService->cancel($tenant, $admin, (int) $draft['id'], 'test cancellation', $sharedOperationKey);
+    $cancelledReplay = $adminService->cancel($tenant, $admin, (int) $draft['id'], 'test cancellation', $sharedOperationKey);
+    assertSame(
+        BootstrapIdempotency::canonicalJson($cancelled),
+        BootstrapIdempotency::canonicalJson($cancelledReplay)
+    );
+    assertSame(EventEligibility::EVENT_CANCELLED, $cancelled['status']);
+
+    $manualEventId = createEvent(
+        (int) $primaryTenant['id'],
+        (int) $primaryChannel['id'],
+        'EM' . strtoupper($runId),
+        'industry',
+        ['人工补签'],
+        EventEligibility::EVENT_PUBLISHED,
+        $now
+    );
+    $manualTicketId = createTicket((int) $primaryTenant['id'], $manualEventId, $primaryChannel, $now);
+    $manualRegistrationId = createRegistration(
+        (int) $primaryTenant['id'],
+        $manualEventId,
+        $manualTicketId,
+        $memberId,
+        $uid,
+        'RM' . strtoupper($runId),
+        $now
+    );
+    $manualKey = 'event-manual-checkin-' . $runId;
+    $manual = $adminService->manualCheckin(
+        $tenant,
+        $admin,
+        $manualEventId,
+        $manualRegistrationId,
+        'operator verified attendance',
+        $manualKey
+    );
+    $manualReplay = $adminService->manualCheckin(
+        $tenant,
+        $admin,
+        $manualEventId,
+        $manualRegistrationId,
+        'operator verified attendance',
+        $manualKey
+    );
+    assertSame(
+        BootstrapIdempotency::canonicalJson($manual),
+        BootstrapIdempotency::canonicalJson($manualReplay)
+    );
+    assertSame(false, $manualReplay['replayed']);
+    assertSame('manual', $manual['checkin_type']);
+    assertSame(5, (int) Db::table('ch_event_registration')->where('id', $manualRegistrationId)->value('status'));
+    assertSame(1, (int) Db::table('ch_event_reward')->where('registration_id', $manualRegistrationId)->count());
+    assertSame(150, (int) Db::table('ch_point_account')->where('member_id', $memberId)->value('balance'));
+    assertSame(2, (int) Db::table('ch_contribution_ledger')->where('member_id', $memberId)->count());
+    expectReason('idempotency_conflict', 409, function () use (
+        $adminService,
+        $tenant,
+        $admin,
+        $manualEventId,
+        $manualRegistrationId,
+        $manualKey
+    ): void {
+        $adminService->manualCheckin(
+            $tenant,
+            $admin,
+            $manualEventId,
+            $manualRegistrationId,
+            'changed reason',
+            $manualKey
+        );
+    });
+    expectReason('checkin_already_completed', 409, function () use (
+        $adminService,
+        $tenant,
+        $admin,
+        $manualEventId,
+        $manualRegistrationId,
+        $runId
+    ): void {
+        $adminService->manualCheckin(
+            $tenant,
+            $admin,
+            $manualEventId,
+            $manualRegistrationId,
+            'operator verified attendance',
+            'event-manual-second-' . $runId
+        );
+    });
 
     $ended = $service->list($tenant, $auth, EventListQuery::fromArray(['status' => 'ended']));
     assertSame(0, $ended['page']['total']);
@@ -339,6 +638,65 @@ function createTicket(int $tenantId, int $eventId, array $channel, int $now): in
         'update_time' => $now,
         'is_del' => 0,
     ]);
+}
+
+function createRegistration(
+    int $tenantId,
+    int $eventId,
+    int $ticketId,
+    int $memberId,
+    int $uid,
+    string $registrationNo,
+    int $now
+): int {
+    return (int) Db::table('ch_event_registration')->insertGetId([
+        'tenant_id' => $tenantId,
+        'event_id' => $eventId,
+        'ticket_id' => $ticketId,
+        'member_id' => $memberId,
+        'uid' => $uid,
+        'registration_no' => $registrationNo,
+        'order_pk' => 0,
+        'order_no' => '',
+        'order_context_id' => 0,
+        'amount' => '0.00',
+        'integral_amount' => 0,
+        'status' => 1,
+        'reserve_expire_time' => 0,
+        'paid_time' => $now,
+        'cancel_time' => 0,
+        'refund_time' => 0,
+        'add_time' => $now,
+        'update_time' => $now,
+    ]);
+}
+
+function adminEventInput(int $now, string $runId): array
+{
+    return [
+        'event_type' => 'industry',
+        'title' => 'Idempotent activity ' . $runId,
+        'tags' => ['AI'],
+        'start_time' => $now + 14400,
+        'end_time' => $now + 18000,
+        'signup_start_time' => $now - 600,
+        'signup_end_time' => $now + 7200,
+        'location_name' => 'Activity test venue',
+        'address' => 'Test road 1',
+        'longitude' => '123.400000',
+        'latitude' => '41.800000',
+        'checkin_reward_points' => 10,
+        'checkin_reward_contribution' => 2,
+        'tickets' => [[
+            'name' => 'Free ticket',
+            'price' => '0.00',
+            'integral_price' => 0,
+            'capacity' => 20,
+            'sale_start_time' => $now - 600,
+            'sale_end_time' => $now + 7200,
+            'status' => 1,
+        ]],
+    ];
 }
 
 function expectReason(string $reason, int $status, callable $callback): void

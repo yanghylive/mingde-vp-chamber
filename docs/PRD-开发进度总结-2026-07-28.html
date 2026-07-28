@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>PRD 开发进度总结 · 2026-07-28</title>
+  <link rel="stylesheet" href="project-docs.css">
+</head>
+<body>
+  <header class="doc-head"><div class="wrap">
+    <p class="eyebrow">PRD PROGRESS REVIEW · 2026-07-28</p>
+    <h1>PRD 开发进度总结</h1>
+    <p>以 PRD v2.0 的 53 条编号需求为范围，只按可运行代码、已执行迁移、机器契约和测试证据计入进度。本版已纠正 G2 代码与旧文档之间的口径漂移。</p>
+  </div></header>
+  <main class="doc-main"><div class="wrap">
+    <nav class="doc-nav">
+      <a href="../index.html">项目首页</a>
+      <a href="PRD-v2.0.html">PRD v2.0</a>
+      <a href="开发任务板.html">开发任务板</a>
+      <a href="G2-活动核心开发基线.html">G2 基线</a>
+      <a href="PRD-开发进度总结-2026-07-26.html">上一版进度</a>
+    </nav>
+
+    <section>
+      <h2>1. 管理结论</h2>
+      <div class="decision-grid">
+        <article><small>当前工程阶段</small><strong>G2 活动后端核心</strong><p>G0/G1 本地基线保持，活动读、签到和奖励核心已进入运行时。</p></article>
+        <article><small>PRD 全量产品完成度</small><strong>约 25%–30%</strong><p>后端基础明显领先于用户界面；活动仍缺报名支付和双端页面。</p></article>
+        <article><small>本地全量剩余周期</small><strong>AI 连续开发 3–4 天</strong><p>4 个 Agent 并行、不计上线和外部审批；5–6 天为回归缓冲上限。</p></article>
+      </div>
+      <div class="callout good"><strong>漂移判断：</strong>业务方向没有漂移，仍按“会员→活动→商城/大咖/AI”推进。已确认的漂移是文档、Manifest 和旧门禁计数停在 G1；本版已把当前事实统一为 185 张表、21 implemented / 7 planned。</div>
+    </section>
+
+    <section>
+      <h2>2. 较 7 月 26 日新增交付</h2>
+      <div class="table-wrap"><table>
+        <thead><tr><th>增量</th><th>实现事实</th><th>验收证据</th></tr></thead>
+        <tbody>
+          <tr><td>活动数据基线</td><td>增加动态码、签到奖励、积分账户/流水、贡献流水 5 张表，扩展 event/ticket/registration</td><td>G2 迁移 20 项结构验证；当前 185 张表</td></tr>
+          <tr><td>活动目录</td><td>按可信租户/渠道列出活动、读取详情，返回会员个人资格原因</td><td>OpenAPI 两个活动读操作 implemented</td></tr>
+          <tr><td>报名查询</td><td>本人报名列表/详情，支持生命周期筛选和分页</td><td>OpenAPI 两个本人报名读操作 implemented</td></tr>
+          <tr><td>扫码签到</td><td>租户域 HMAC 动态码、报名所有权、活动匹配、重复签到重放</td><td>活动领域测试 10 个用例</td></tr>
+          <tr><td>签到奖励</td><td>积分、贡献值和奖励账本同事务幂等入账；人工补签同步更新状态并发放奖励</td><td>活动数据库集成测试 72 个断言</td></tr>
+          <tr><td>契约扩展</td><td>活动新增 12 个操作：5 implemented + 7 planned</td><td>OpenAPI 26 paths / 28 operations / 113 schemas 校验通过</td></tr>
+        </tbody>
+      </table></div>
+    </section>
+
+    <section>
+      <h2>3. 当前 PRD 状态</h2>
+      <div class="table-wrap"><table>
+        <thead><tr><th>范围</th><th>当前状态</th><th>已完成</th><th>主要缺口</th></tr></thead>
+        <tbody>
+          <tr><td>会员 MEM</td><td><strong>约 52%</strong></td><td>Token、初始化、协议、归因、资料、私有材料、毕业认证/审核、会籍计划/下单/权益/查询</td><td>会籍购买界面、登录补齐、目录/好友、积分明细、贡献排行、客服和通讯录</td></tr>
+          <tr><td>租户 TEN</td><td><strong>约 38%</strong></td><td>tenant/channel、可信上下文、双租户隔离、会员/活动核心租户范围</td><td>品牌后台、配置发布/回滚、共享资源和渠道业绩报表</td></tr>
+          <tr><td>活动 ACT</td><td><strong>约 30%–35%</strong></td><td>目录/详情、资格、本人报名查询、动态码、扫码签到和奖励核心</td><td>报名创建/支付/退款、冲正、候补/通知、回顾、用户端和管理端页面</td></tr>
+          <tr><td>商城 COM</td><td><strong>约 5%–8%</strong></td><td>CRMEB 商城底座、支付退款审计、inbox/幂等基础</td><td>七类商品、会员申请审核、会员价、混合支付、虚拟履约和售后冲正</td></tr>
+          <tr><td>大咖 EXP</td><td><strong>约 2%</strong></td><td>人物角色、角色申请和会员角色数据基础</td><td>主页、案例、档期、付费预约、履约、AI 助手和咨询纪要</td></tr>
+          <tr><td>AI 生态 AIE</td><td><strong>0% 运行时</strong></td><td>架构目录和安全边界文档</td><td>网关、对话、模型路由、工具、配额、RAG、护栏、日志和 UI</td></tr>
+        </tbody>
+      </table></div>
+      <p>完成度是产品范围权重估算，不是文件数或代码行数。CRMEB 已有功能只有在经过租户、权限、状态和项目契约验证后才计入。</p>
+    </section>
+
+    <section>
+      <h2>4. 已确认缺陷与风险</h2>
+      <div class="table-wrap"><table>
+        <thead><tr><th>级别</th><th>问题</th><th>处理方向</th></tr></thead>
+        <tbody>
+          <tr><td>P1</td><td>G2 管理写接口仍是 planned，不能因路由/服务存在就对外宣称完成</td><td>完成持久化幂等、权限、异常和真实 HTTP 门禁后切 implemented</td></tr>
+          <tr><td>P1</td><td>活动主交易链未存在：用户不能创建报名，也没有名额、支付和退款闭环</td><td>下一切片优先实现 <code>createEventRegistration</code> 和 CRMEB OrderContext</td></tr>
+          <tr><td>P1</td><td>取消/撤销后的积分与贡献值自动冲正缺失</td><td>使用追加式反向流水，禁止覆盖原奖励事实</td></tr>
+          <tr><td>P2</td><td>活动没有 UniApp/Admin 页面，当前 implemented API 无用户可操作入口</td><td>后端报名闭环稳定后立即并行两端页面</td></tr>
+          <tr><td>P2</td><td>当前前端只有资料/毕业认证界面，会籍购买、活动及其他业务页均未完成</td><td>按真实用户旅程补齐，不以 Mock 页计完成</td></tr>
+        </tbody>
+      </table></div>
+      <div class="callout warn"><strong>无已确认 P0：</strong>现有 G0/G1 门禁、G2 领域 10 例和数据库 72 断言当前通过；但这不能替代未完成的报名支付与端到端验证。</div>
+    </section>
+
+    <section>
+      <h2>5. 当前工程证据</h2>
+      <div class="table-wrap"><table>
+        <thead><tr><th>证据</th><th>当前结果</th></tr></thead>
+        <tbody>
+          <tr><td>代码基线</td><td><code>feature/g2-activity-core</code>；CRMEB v6.0.0 锁定提交 <code>7dcddffff73ec542d689f159724296351f29ea9a</code></td></tr>
+          <tr><td>数据库</td><td>185 张表：157 CRMEB + 27 Chamber 领域/可靠性 + 1 迁移登记；457 项结构复验</td></tr>
+          <tr><td>OpenAPI</td><td>0.5.0 / 26 paths / 28 operations / 21 implemented / 7 planned / 113 schemas</td></tr>
+          <tr><td>G2 测试</td><td>活动领域 10 个用例；数据库集成 72 个断言</td></tr>
+          <tr><td>前端</td><td>会员资料/毕业认证用户端和管理端已有；会籍与活动前端未完成</td></tr>
+        </tbody>
+      </table></div>
+    </section>
+
+    <section>
+      <h2>6. AI 开发剩余计划</h2>
+      <p>不按人工工时折算，不考虑上线、资质和外部审批。以主 Agent + 3 个并行 Agent 持续开发为口径：</p>
+      <div class="table-wrap"><table>
+        <thead><tr><th>墙钟阶段</th><th>主要交付</th><th>完成出口</th></tr></thead>
+        <tbody>
+          <tr><td>本轮已完成</td><td>修正门禁、持久化幂等/人工补签缺陷、Manifest 和全套当前文档</td><td>G2 代码、门禁和文档基线已统一</td></tr>
+          <tr><td>第 1 天</td><td>活动报名、名额、支付/退款、冲正、用户端和管理端</td><td>免费与付费活动各一条真闭环</td></tr>
+          <tr><td>第 2 天</td><td>会员目录/好友/积分/排行/租户配置，并行启动商城</td><td>会员主旅程和商城核心 API 可运行</td></tr>
+          <tr><td>第 3 天</td><td>商城二开、大咖预约和 AI 对话/工具/配额/护栏</td><td>五大模块均有真实 API 与主页面</td></tr>
+          <tr><td>第 4 天</td><td>全链路联调、回归、缺陷修复和 HTML 文档同步</td><td>本地全量 Beta 门禁通过</td></tr>
+          <tr><td>第 5–6 天（缓冲）</td><td>CRMEB 深层冲突、跨模块回归和剩余 Bug</td><td>只在必要时启用，不作为默认排期</td></tr>
+        </tbody>
+      </table></div>
+    </section>
+
+    <section>
+      <h2>7. 立即下一步</h2>
+      <ol>
+        <li>G2 自动门禁已覆盖活动迁移、10 个领域用例和 72 个数据库断言，后续变更不得降低该基线。</li>
+        <li>管理写操作持久化幂等和人工补签状态/奖励已加固；补齐完整 HTTP/权限门禁后切入报名创建。</li>
+        <li>实现免费、积分、现金和混合支付的统一报名事务，复用 CRMEB 订单与 OrderContext。</li>
+        <li>在后端合同稳定后立即并行活动 UniApp 和 Admin 页面，不再让前端落后一个完整波次。</li>
+      </ol>
+    </section>
+  </div></main>
+  <footer><div class="wrap">mingde-vp-chamber · PRD 开发进度总结 · 数据截止 2026-07-28</div></footer>
+</body>
+</html>

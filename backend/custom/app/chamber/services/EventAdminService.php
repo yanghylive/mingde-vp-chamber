@@ -20,181 +20,248 @@ final class EventAdminService
     private const MANAGE_PERMISSION = 'chamber.event.manage';
     private const CHECKIN_PERMISSION = 'chamber.event.checkin';
 
-    public function create(TenantContext $tenant, AuthenticatedAdminContext $admin, array $input): array
+    /** @var EventRewardService */
+    private $rewards;
+
+    /** @var EventIdempotency */
+    private $idempotency;
+
+    public function __construct(EventRewardService $rewards = null, EventIdempotency $idempotency = null)
     {
-        $admin->assertPermission(self::MANAGE_PERMISSION);
-        $event = $this->normalizeEvent($input, false);
+        $this->rewards = $rewards ?: new EventRewardService();
+        $this->idempotency = $idempotency ?: new EventIdempotency();
+    }
+
+    public function create(
+        TenantContext $tenant,
+        AuthenticatedAdminContext $admin,
+        array $input,
+        string $callerKey
+    ): array
+    {
+        $eventInput = $input;
+        unset($eventInput['tickets']);
+        $event = $this->normalizeEvent($eventInput, false);
         $tickets = $this->normalizeTickets($input['tickets'] ?? []);
-        $now = time();
 
-        $eventId = (int) Db::transaction(function () use ($tenant, $admin, $event, $tickets, $now): int {
-            $eventNo = $this->eventNo($tenant->tenantId(), $now);
-            $id = (int) Db::table('ch_event')->insertGetId([
-                'tenant_id' => $tenant->tenantId(),
-                'channel_id' => $tenant->channelId(),
-                'event_no' => $eventNo,
-                'event_type' => $event['event_type'],
-                'title' => $event['title'],
-                'cover_image' => $event['cover_image'],
-                'summary' => $event['summary'],
-                'detail' => $event['detail'],
-                'tags_json' => $this->json($event['tags']),
-                'speakers_json' => $this->json($event['speakers']),
-                'start_time' => $event['start_time'],
-                'end_time' => $event['end_time'],
-                'signup_start_time' => $event['signup_start_time'],
-                'signup_end_time' => $event['signup_end_time'],
-                'location_name' => $event['location_name'],
-                'address' => $event['address'],
-                'longitude' => $event['longitude'],
-                'latitude' => $event['latitude'],
-                'min_tier' => $event['min_tier'],
-                'eligibility_json' => $this->json($event['eligibility']),
-                'refund_policy_json' => $this->json($event['refund_policy']),
-                'checkin_reward_points' => $event['checkin_reward_points'],
-                'checkin_reward_contribution' => $event['checkin_reward_contribution'],
-                'status' => EventEligibility::EVENT_DRAFT,
-                'created_admin_id' => $admin->adminId(),
-                'publish_time' => 0,
-                'add_time' => $now,
-                'update_time' => $now,
-                'is_del' => 0,
-            ]);
-            if ($id <= 0) {
-                throw $this->failure('event_create_failed', 'Event could not be created');
+        return $this->idempotency->execute(
+            $tenant,
+            'createEventForAdmin',
+            'crmeb_admin',
+            $admin->adminId(),
+            $callerKey,
+            ['event' => $event, 'tickets' => $tickets],
+            201,
+            function (int $now) use ($tenant, $admin, $event, $tickets): array {
+                $eventNo = $this->eventNo($tenant->tenantId(), $now);
+                $eventId = (int) Db::table('ch_event')->insertGetId([
+                    'tenant_id' => $tenant->tenantId(),
+                    'channel_id' => $tenant->channelId(),
+                    'event_no' => $eventNo,
+                    'event_type' => $event['event_type'],
+                    'title' => $event['title'],
+                    'cover_image' => $event['cover_image'],
+                    'summary' => $event['summary'],
+                    'detail' => $event['detail'],
+                    'tags_json' => $this->json($event['tags']),
+                    'speakers_json' => $this->json($event['speakers']),
+                    'start_time' => $event['start_time'],
+                    'end_time' => $event['end_time'],
+                    'signup_start_time' => $event['signup_start_time'],
+                    'signup_end_time' => $event['signup_end_time'],
+                    'location_name' => $event['location_name'],
+                    'address' => $event['address'],
+                    'longitude' => $event['longitude'],
+                    'latitude' => $event['latitude'],
+                    'min_tier' => $event['min_tier'],
+                    'eligibility_json' => $this->json($event['eligibility']),
+                    'refund_policy_json' => $this->json($event['refund_policy']),
+                    'checkin_reward_points' => $event['checkin_reward_points'],
+                    'checkin_reward_contribution' => $event['checkin_reward_contribution'],
+                    'status' => EventEligibility::EVENT_DRAFT,
+                    'created_admin_id' => $admin->adminId(),
+                    'publish_time' => 0,
+                    'add_time' => $now,
+                    'update_time' => $now,
+                    'is_del' => 0,
+                ]);
+                if ($eventId <= 0) {
+                    throw $this->failure('event_create_failed', 'Event could not be created');
+                }
+                $this->replaceTickets($tenant->tenantId(), $eventId, $tickets, $now);
+
+                return $this->detail($tenant, $eventId, true);
+            },
+            function () use ($admin): void {
+                $admin->assertPermission(self::MANAGE_PERMISSION);
             }
-            $this->replaceTickets($tenant->tenantId(), $id, $tickets, $now);
-
-            return $id;
-        });
-
-        return $this->detail($tenant, $eventId, true);
+        );
     }
 
     public function update(
         TenantContext $tenant,
         AuthenticatedAdminContext $admin,
         int $eventId,
-        array $input
+        array $input,
+        string $callerKey
     ): array {
-        $admin->assertPermission(self::MANAGE_PERMISSION);
         if ($eventId <= 0) {
             throw $this->validation('event_id must be a positive integer');
         }
-        $event = $this->normalizeEvent($input, true);
+        $eventInput = $input;
+        unset($eventInput['tickets']);
+        $event = $this->normalizeEvent($eventInput, true);
         $tickets = array_key_exists('tickets', $input) ? $this->normalizeTickets($input['tickets']) : null;
-        $now = time();
 
-        Db::transaction(function () use ($tenant, $admin, $eventId, $event, $tickets, $now): void {
-            $row = $this->lockEvent($tenant, $eventId);
-            if ((int) $row['status'] !== EventEligibility::EVENT_DRAFT) {
-                throw $this->conflict('event_edit_locked', 'Only draft events can be edited');
-            }
-            $updates = [
-                'update_time' => $now,
-            ];
-            foreach ($event as $key => $value) {
-                if ($key === 'tags' || $key === 'speakers' || $key === 'eligibility' || $key === 'refund_policy') {
-                    $column = $key . '_json';
-                    $updates[$column] = $this->json($value);
-                } else {
-                    $updates[$key] = $value;
+        return $this->idempotency->execute(
+            $tenant,
+            'updateEventForAdmin',
+            'crmeb_admin',
+            $admin->adminId(),
+            $callerKey,
+            ['event_id' => $eventId, 'event' => $event, 'tickets' => $tickets],
+            200,
+            function (int $now) use ($tenant, $eventId, $event, $tickets): array {
+                $row = $this->lockEvent($tenant, $eventId);
+                if ((int) $row['status'] !== EventEligibility::EVENT_DRAFT) {
+                    throw $this->conflict('event_edit_locked', 'Only draft events can be edited');
                 }
-            }
-            $changed = Db::table('ch_event')
-                ->where('tenant_id', $tenant->tenantId())
-                ->where('id', $eventId)
-                ->update($updates);
-            if ($changed !== 1) {
-                throw $this->failure('event_update_failed', 'Event could not be updated');
-            }
-            if ($tickets !== null) {
-                $this->replaceTickets($tenant->tenantId(), $eventId, $tickets, $now);
-            }
-        });
+                $updates = ['update_time' => $now];
+                foreach ($event as $key => $value) {
+                    if ($key === 'tags' || $key === 'speakers' || $key === 'eligibility' || $key === 'refund_policy') {
+                        $updates[$key . '_json'] = $this->json($value);
+                    } else {
+                        $updates[$key] = $value;
+                    }
+                }
+                $changed = Db::table('ch_event')
+                    ->where('tenant_id', $tenant->tenantId())
+                    ->where('id', $eventId)
+                    ->update($updates);
+                if ($changed !== 1) {
+                    throw $this->failure('event_update_failed', 'Event could not be updated');
+                }
+                if ($tickets !== null) {
+                    $this->replaceTickets($tenant->tenantId(), $eventId, $tickets, $now);
+                }
 
-        return $this->detail($tenant, $eventId, true);
+                return $this->detail($tenant, $eventId, true);
+            },
+            function () use ($admin): void {
+                $admin->assertPermission(self::MANAGE_PERMISSION);
+            }
+        );
     }
 
     public function publish(
         TenantContext $tenant,
         AuthenticatedAdminContext $admin,
-        int $eventId
+        int $eventId,
+        string $callerKey
     ): array {
-        $admin->assertPermission(self::MANAGE_PERMISSION);
-        $now = time();
-        Db::transaction(function () use ($tenant, $admin, $eventId, $now): void {
-            $event = $this->lockEvent($tenant, $eventId);
-            if ((int) $event['status'] !== EventEligibility::EVENT_DRAFT) {
-                throw $this->conflict('event_publish_locked', 'Only draft events can be published');
-            }
-            $tickets = $this->ticketRows($tenant->tenantId(), $eventId, true);
-            $this->assertPublishable($event, $tickets, $now);
-            $updated = Db::table('ch_event')
-                ->where('tenant_id', $tenant->tenantId())
-                ->where('id', $eventId)
-                ->where('status', EventEligibility::EVENT_DRAFT)
-                ->update([
-                    'status' => EventEligibility::EVENT_PUBLISHED,
-                    'publish_time' => $now,
-                    'update_time' => $now,
-                ]);
-            if ($updated !== 1) {
-                throw $this->failure('event_publish_failed', 'Event could not be published');
-            }
-        });
+        if ($eventId <= 0) {
+            throw $this->validation('event_id must be a positive integer');
+        }
 
-        return $this->detail($tenant, $eventId, false);
+        return $this->idempotency->execute(
+            $tenant,
+            'publishEventForAdmin',
+            'crmeb_admin',
+            $admin->adminId(),
+            $callerKey,
+            ['event_id' => $eventId],
+            200,
+            function (int $now) use ($tenant, $eventId): array {
+                $event = $this->lockEvent($tenant, $eventId);
+                if ((int) $event['status'] !== EventEligibility::EVENT_DRAFT) {
+                    throw $this->conflict('event_publish_locked', 'Only draft events can be published');
+                }
+                $tickets = $this->ticketRows($tenant->tenantId(), $eventId, true);
+                $this->assertPublishable($event, $tickets, $now);
+                $updated = Db::table('ch_event')
+                    ->where('tenant_id', $tenant->tenantId())
+                    ->where('id', $eventId)
+                    ->where('status', EventEligibility::EVENT_DRAFT)
+                    ->update([
+                        'status' => EventEligibility::EVENT_PUBLISHED,
+                        'publish_time' => $now,
+                        'update_time' => $now,
+                    ]);
+                if ($updated !== 1) {
+                    throw $this->failure('event_publish_failed', 'Event could not be published');
+                }
+
+                return $this->detail($tenant, $eventId, false);
+            },
+            function () use ($admin): void {
+                $admin->assertPermission(self::MANAGE_PERMISSION);
+            }
+        );
     }
 
     public function cancel(
         TenantContext $tenant,
         AuthenticatedAdminContext $admin,
         int $eventId,
-        string $reason = ''
+        string $reason,
+        string $callerKey
     ): array {
-        $admin->assertPermission(self::MANAGE_PERMISSION);
+        if ($eventId <= 0) {
+            throw $this->validation('event_id must be a positive integer');
+        }
         $reason = trim($reason);
         if (strlen($reason) > 500) {
             throw $this->validation('cancel reason is too long');
         }
-        $now = time();
-        Db::transaction(function () use ($tenant, $admin, $eventId, $reason, $now): void {
-            $event = $this->lockEvent($tenant, $eventId);
-            if ((int) $event['status'] === EventEligibility::EVENT_CANCELLED) {
-                return;
-            }
-            if ((int) $event['status'] === EventEligibility::EVENT_ENDED) {
-                throw $this->conflict('event_cancel_locked', 'Ended events cannot be cancelled');
-            }
-            $active = (int) Db::table('ch_event_registration')
-                ->where('tenant_id', $tenant->tenantId())
-                ->where('event_id', $eventId)
-                ->whereIn('status', [0, 1, 4, 5])
-                ->count();
-            if ($active > 0) {
-                throw $this->conflict('event_cancel_has_registrations', 'Events with active registrations need a refund workflow');
-            }
-            Db::table('ch_event')->where('tenant_id', $tenant->tenantId())->where('id', $eventId)->update([
-                'status' => EventEligibility::EVENT_CANCELLED,
-                'update_time' => $now,
-            ]);
-            Db::table('ch_audit_record')->insert([
-                'tenant_id' => $tenant->tenantId(),
-                'business_type' => 'event',
-                'business_id' => $eventId,
-                'action' => 'cancel',
-                'from_status' => (int) $event['status'],
-                'to_status' => EventEligibility::EVENT_CANCELLED,
-                'operator_type' => 2,
-                'operator_id' => $admin->adminId(),
-                'opinion' => $reason,
-                'extra_json' => '{}',
-                'add_time' => $now,
-            ]);
-        });
 
-        return $this->detail($tenant, $eventId, false);
+        return $this->idempotency->execute(
+            $tenant,
+            'cancelEventForAdmin',
+            'crmeb_admin',
+            $admin->adminId(),
+            $callerKey,
+            ['event_id' => $eventId, 'reason' => $reason],
+            200,
+            function (int $now) use ($tenant, $admin, $eventId, $reason): array {
+                $event = $this->lockEvent($tenant, $eventId);
+                if ((int) $event['status'] === EventEligibility::EVENT_CANCELLED) {
+                    return $this->detail($tenant, $eventId, false);
+                }
+                if ((int) $event['status'] === EventEligibility::EVENT_ENDED) {
+                    throw $this->conflict('event_cancel_locked', 'Ended events cannot be cancelled');
+                }
+                $active = (int) Db::table('ch_event_registration')
+                    ->where('tenant_id', $tenant->tenantId())
+                    ->where('event_id', $eventId)
+                    ->whereIn('status', [0, 1, 4, 5])
+                    ->count();
+                if ($active > 0) {
+                    throw $this->conflict('event_cancel_has_registrations', 'Events with active registrations need a refund workflow');
+                }
+                Db::table('ch_event')->where('tenant_id', $tenant->tenantId())->where('id', $eventId)->update([
+                    'status' => EventEligibility::EVENT_CANCELLED,
+                    'update_time' => $now,
+                ]);
+                Db::table('ch_audit_record')->insert([
+                    'tenant_id' => $tenant->tenantId(),
+                    'business_type' => 'event',
+                    'business_id' => $eventId,
+                    'action' => 'cancel',
+                    'from_status' => (int) $event['status'],
+                    'to_status' => EventEligibility::EVENT_CANCELLED,
+                    'operator_type' => 2,
+                    'operator_id' => $admin->adminId(),
+                    'opinion' => $reason,
+                    'extra_json' => '{}',
+                    'add_time' => $now,
+                ]);
+
+                return $this->detail($tenant, $eventId, false);
+            },
+            function () use ($admin): void {
+                $admin->assertPermission(self::MANAGE_PERMISSION);
+            }
+        );
     }
 
     public function detail(TenantContext $tenant, int $eventId, bool $includeDraft = true): array
@@ -219,40 +286,57 @@ final class EventAdminService
         TenantContext $tenant,
         AuthenticatedAdminContext $admin,
         int $eventId,
-        int $ttl = 300
+        int $ttl,
+        string $callerKey
     ): array {
-        $admin->assertPermission(self::CHECKIN_PERMISSION);
-        $event = $this->lockEvent($tenant, $eventId);
-        if ((int) $event['status'] !== EventEligibility::EVENT_PUBLISHED) {
-            throw $this->conflict('event_not_open', 'Only published events can issue check-in tokens');
-        }
-        $now = time();
-        try {
-            $issued = EventCheckinToken::issue($tenant->tenantId(), $eventId, $now, $ttl);
-        } catch (Throwable $exception) {
-            throw new MemberTransactionException(503, 'checkin_token_unavailable', 'Check-in token signing is not configured');
-        }
-        $id = (int) Db::table('ch_event_checkin_token')->insertGetId([
-            'tenant_id' => $tenant->tenantId(),
-            'event_id' => $eventId,
-            'token_digest' => $issued['digest'],
-            'issued_by_admin_id' => $admin->adminId(),
-            'valid_from' => $issued['valid_from'],
-            'expires_time' => $issued['expires_time'],
-            'status' => 1,
-            'add_time' => $now,
-            'update_time' => $now,
-        ]);
-        if ($id <= 0) {
-            throw $this->failure('checkin_token_unavailable', 'Check-in token could not be stored');
+        if ($eventId <= 0 || $ttl < 30 || $ttl > 3600) {
+            throw $this->validation('check-in token parameters are invalid');
         }
 
-        return [
-            'token_id' => $id,
-            'token' => $issued['token'],
-            'valid_from' => $issued['valid_from'],
-            'expires_time' => $issued['expires_time'],
-        ];
+        return $this->idempotency->execute(
+            $tenant,
+            'issueEventCheckinTokenForAdmin',
+            'crmeb_admin',
+            $admin->adminId(),
+            $callerKey,
+            ['event_id' => $eventId, 'ttl_seconds' => $ttl],
+            201,
+            function (int $now) use ($tenant, $admin, $eventId, $ttl): array {
+                $event = $this->lockEvent($tenant, $eventId);
+                if ((int) $event['status'] !== EventEligibility::EVENT_PUBLISHED) {
+                    throw $this->conflict('event_not_open', 'Only published events can issue check-in tokens');
+                }
+                try {
+                    $issued = EventCheckinToken::issue($tenant->tenantId(), $eventId, $now, $ttl);
+                } catch (Throwable $exception) {
+                    throw new MemberTransactionException(503, 'checkin_token_unavailable', 'Check-in token signing is not configured');
+                }
+                $id = (int) Db::table('ch_event_checkin_token')->insertGetId([
+                    'tenant_id' => $tenant->tenantId(),
+                    'event_id' => $eventId,
+                    'token_digest' => $issued['digest'],
+                    'issued_by_admin_id' => $admin->adminId(),
+                    'valid_from' => $issued['valid_from'],
+                    'expires_time' => $issued['expires_time'],
+                    'status' => 1,
+                    'add_time' => $now,
+                    'update_time' => $now,
+                ]);
+                if ($id <= 0) {
+                    throw $this->failure('checkin_token_unavailable', 'Check-in token could not be stored');
+                }
+
+                return [
+                    'token_id' => $id,
+                    'token' => $issued['token'],
+                    'valid_from' => $issued['valid_from'],
+                    'expires_time' => $issued['expires_time'],
+                ];
+            },
+            function () use ($admin): void {
+                $admin->assertPermission(self::CHECKIN_PERMISSION);
+            }
+        );
     }
 
     public function manualCheckin(
@@ -260,9 +344,9 @@ final class EventAdminService
         AuthenticatedAdminContext $admin,
         int $eventId,
         int $registrationId,
-        string $reason
+        string $reason,
+        string $callerKey
     ): array {
-        $admin->assertPermission(self::CHECKIN_PERMISSION);
         if ($eventId <= 0) {
             throw $this->validation('event_id must be a positive integer');
         }
@@ -273,76 +357,118 @@ final class EventAdminService
         if ($reason === '' || strlen($reason) > 500) {
             throw $this->validation('reason must contain 1 to 500 characters');
         }
-        $now = time();
 
-        return Db::transaction(function () use ($tenant, $admin, $eventId, $registrationId, $reason, $now): array {
-            $event = $this->lockEvent($tenant, $eventId);
-            if (in_array((int) $event['status'], [
-                EventEligibility::EVENT_DRAFT,
-                EventEligibility::EVENT_CANCELLED,
-            ], true)) {
-                throw $this->conflict('event_not_open', 'Only active events can be checked in');
-            }
+        return $this->idempotency->execute(
+            $tenant,
+            'createManualEventCheckinForAdmin',
+            'crmeb_admin',
+            $admin->adminId(),
+            $callerKey,
+            ['event_id' => $eventId, 'registration_id' => $registrationId, 'reason' => $reason],
+            201,
+            function (int $now) use ($tenant, $admin, $eventId, $registrationId, $reason): array {
+                $event = $this->lockEvent($tenant, $eventId);
+                if (in_array((int) $event['status'], [
+                    EventEligibility::EVENT_DRAFT,
+                    EventEligibility::EVENT_CANCELLED,
+                ], true)) {
+                    throw $this->conflict('event_not_open', 'Only active events can be checked in');
+                }
 
-            $registration = Db::table('ch_event_registration')
-                ->where('tenant_id', $tenant->tenantId())
-                ->where('event_id', $eventId)
-                ->where('id', $registrationId)
-                ->lock(true)
-                ->find();
-            if (!is_array($registration)
-                || (int) $registration['member_id'] <= 0
-                || (int) $registration['uid'] <= 0
-                || !in_array((int) $registration['status'], [1, 5], true)) {
-                throw new MemberTransactionException(404, 'registration_not_found', 'Event registration was not found');
-            }
+                $registration = Db::table('ch_event_registration')
+                    ->where('tenant_id', $tenant->tenantId())
+                    ->where('event_id', $eventId)
+                    ->where('id', $registrationId)
+                    ->lock(true)
+                    ->find();
+                if (!is_array($registration)
+                    || (int) $registration['member_id'] <= 0
+                    || (int) $registration['uid'] <= 0
+                    || !in_array((int) $registration['status'], [1, 5], true)) {
+                    throw new MemberTransactionException(404, 'registration_not_found', 'Event registration was not found');
+                }
 
-            $existing = Db::table('ch_event_checkin')
-                ->where('tenant_id', $tenant->tenantId())
-                ->where('registration_id', $registrationId)
-                ->lock(true)
-                ->find();
-            if (is_array($existing)) {
-                throw $this->conflict('checkin_already_completed', 'Event registration is already checked in');
-            }
-
-            try {
-                $checkinId = (int) Db::table('ch_event_checkin')->insertGetId([
-                    'tenant_id' => $tenant->tenantId(),
-                    'event_id' => $eventId,
-                    'registration_id' => $registrationId,
-                    'member_id' => (int) $registration['member_id'],
-                    'uid' => (int) $registration['uid'],
-                    'checkin_type' => 2,
-                    'token_digest' => '',
-                    'operator_admin_id' => $admin->adminId(),
-                    'reason' => $reason,
-                    'checked_time' => $now,
-                    'add_time' => $now,
-                ]);
-            } catch (Throwable $exception) {
                 $existing = Db::table('ch_event_checkin')
                     ->where('tenant_id', $tenant->tenantId())
                     ->where('registration_id', $registrationId)
+                    ->lock(true)
                     ->find();
                 if (is_array($existing)) {
                     throw $this->conflict('checkin_already_completed', 'Event registration is already checked in');
                 }
-                throw $this->failure('event_reward_failed', 'Event check-in could not be recorded');
-            }
-            if ($checkinId <= 0) {
-                throw $this->failure('event_reward_failed', 'Event check-in could not be recorded');
-            }
 
-            return [
-                'id' => $checkinId,
-                'event_id' => $eventId,
-                'registration_id' => $registrationId,
-                'checked_at' => $now,
-                'checkin_type' => 'manual',
-                'replayed' => false,
-            ];
-        });
+                try {
+                    $checkinId = (int) Db::table('ch_event_checkin')->insertGetId([
+                        'tenant_id' => $tenant->tenantId(),
+                        'event_id' => $eventId,
+                        'registration_id' => $registrationId,
+                        'member_id' => (int) $registration['member_id'],
+                        'uid' => (int) $registration['uid'],
+                        'checkin_type' => 2,
+                        'token_digest' => '',
+                        'operator_admin_id' => $admin->adminId(),
+                        'reason' => $reason,
+                        'checked_time' => $now,
+                        'add_time' => $now,
+                    ]);
+                } catch (Throwable $exception) {
+                    $existing = Db::table('ch_event_checkin')
+                        ->where('tenant_id', $tenant->tenantId())
+                        ->where('registration_id', $registrationId)
+                        ->find();
+                    if (is_array($existing)) {
+                        throw $this->conflict('checkin_already_completed', 'Event registration is already checked in');
+                    }
+                    throw $this->failure('event_reward_failed', 'Event check-in could not be recorded');
+                }
+                if ($checkinId <= 0) {
+                    throw $this->failure('event_reward_failed', 'Event check-in could not be recorded');
+                }
+                if ((int) $registration['status'] === 1) {
+                    $updated = Db::table('ch_event_registration')
+                        ->where('tenant_id', $tenant->tenantId())
+                        ->where('id', $registrationId)
+                        ->where('status', 1)
+                        ->update(['status' => 5, 'update_time' => $now]);
+                    if ($updated !== 1) {
+                        throw $this->failure('event_reward_failed', 'Event registration status could not be updated');
+                    }
+                }
+                $this->grantReward($tenant, $event, $registration, $now);
+
+                return [
+                    'id' => $checkinId,
+                    'event_id' => $eventId,
+                    'registration_id' => $registrationId,
+                    'checked_at' => $now,
+                    'checkin_type' => 'manual',
+                    'replayed' => false,
+                ];
+            },
+            function () use ($admin): void {
+                $admin->assertPermission(self::CHECKIN_PERMISSION);
+            }
+        );
+    }
+
+    private function grantReward(TenantContext $tenant, array $event, array $registration, int $now): void
+    {
+        $this->rewards->grant(
+            $tenant->tenantId(),
+            (int) $event['id'],
+            (int) $registration['id'],
+            (int) $registration['uid'],
+            'attendance',
+            max(0, (int) ($event['checkin_reward_points'] ?? 0)),
+            max(0, (int) ($event['checkin_reward_contribution'] ?? 0)),
+            hash('sha256', implode(':', [
+                'event_checkin_reward',
+                $tenant->tenantId(),
+                (int) $event['id'],
+                (int) $registration['id'],
+            ])),
+            $now
+        );
     }
 
     public function lockEvent(TenantContext $tenant, int $eventId): array

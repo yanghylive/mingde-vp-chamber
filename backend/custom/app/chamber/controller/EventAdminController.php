@@ -31,10 +31,10 @@ final class EventAdminController
         TenantContext $tenant,
         AuthenticatedAdminContext $admin
     ): Response {
-        $this->requireIdempotencyKey($request);
+        $callerKey = $this->requireIdempotencyKey($request);
         $payload = $this->decodeJsonObject($request);
 
-        return $this->created($this->service->create($tenant, $admin, $payload));
+        return $this->created($this->service->create($tenant, $admin, $payload, $callerKey));
     }
 
     public function update(
@@ -43,14 +43,15 @@ final class EventAdminController
         AuthenticatedAdminContext $admin,
         $event_id
     ): Response {
-        $this->requireIdempotencyKey($request);
+        $callerKey = $this->requireIdempotencyKey($request);
         $payload = $this->decodeJsonObject($request);
 
         return $this->ok($this->service->update(
             $tenant,
             $admin,
             $this->positiveId($event_id, 'event_id'),
-            $payload
+            $payload,
+            $callerKey
         ));
     }
 
@@ -60,12 +61,13 @@ final class EventAdminController
         AuthenticatedAdminContext $admin,
         $event_id
     ): Response {
-        $this->requireIdempotencyKey($request);
+        $callerKey = $this->requireIdempotencyKey($request);
 
         return $this->ok($this->service->publish(
             $tenant,
             $admin,
-            $this->positiveId($event_id, 'event_id')
+            $this->positiveId($event_id, 'event_id'),
+            $callerKey
         ));
     }
 
@@ -75,7 +77,7 @@ final class EventAdminController
         AuthenticatedAdminContext $admin,
         $event_id
     ): Response {
-        $this->requireIdempotencyKey($request);
+        $callerKey = $this->requireIdempotencyKey($request);
         $payload = $this->decodeJsonObject($request);
         $this->assertAllowedFields($payload, ['reason']);
         $reason = $this->optionalString($payload, 'reason', 500);
@@ -84,7 +86,8 @@ final class EventAdminController
             $tenant,
             $admin,
             $this->positiveId($event_id, 'event_id'),
-            $reason
+            $reason,
+            $callerKey
         ));
     }
 
@@ -94,7 +97,7 @@ final class EventAdminController
         AuthenticatedAdminContext $admin,
         $event_id
     ): Response {
-        $this->requireIdempotencyKey($request);
+        $callerKey = $this->requireIdempotencyKey($request);
         $payload = $this->decodeJsonObject($request);
         $this->assertAllowedFields($payload, ['ttl_seconds']);
         $ttl = $this->optionalInteger($payload, 'ttl_seconds', 300, 30, 3600);
@@ -103,7 +106,8 @@ final class EventAdminController
             $tenant,
             $admin,
             $this->positiveId($event_id, 'event_id'),
-            $ttl
+            $ttl,
+            $callerKey
         ));
     }
 
@@ -113,7 +117,7 @@ final class EventAdminController
         AuthenticatedAdminContext $admin,
         $event_id
     ): Response {
-        $this->requireIdempotencyKey($request);
+        $callerKey = $this->requireIdempotencyKey($request);
         $payload = $this->decodeJsonObject($request);
         $this->assertAllowedFields($payload, ['registration_id', 'reason']);
 
@@ -122,7 +126,8 @@ final class EventAdminController
             $admin,
             $this->positiveId($event_id, 'event_id'),
             $this->positiveId($payload['registration_id'] ?? null, 'registration_id'),
-            $this->requiredString($payload, 'reason', 500)
+            $this->requiredString($payload, 'reason', 500),
+            $callerKey
         ));
     }
 
