@@ -25,6 +25,7 @@ required_files=(
   "docs/本地开发环境基线.html"
   "docs/Codex-Agent团队全量开发计划-v1.0.html"
   "docs/开发任务板.html"
+  "docs/PRD-开发进度总结-2026-07-29.html"
   "docs/PRD-开发进度总结-2026-07-26.html"
   "docs/PRD-开发进度总结-2026-07-28.html"
   "docs/PRD-开发进度总结-2026-07-25.html"

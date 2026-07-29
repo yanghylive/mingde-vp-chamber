@@ -9,7 +9,7 @@
 <body>
   <header class="doc-head">
     <div class="wrap">
-      <p class="eyebrow">DELIVERY BOARD · 2026-07-28</p>
+      <p class="eyebrow">DELIVERY BOARD · 2026-07-29</p>
       <h1>开发任务板</h1>
       <p>只按可运行代码、已执行迁移和测试证据计算进度。文档、空目录和 Mock 页面不单独算功能完成。</p>
     </div>
@@ -62,6 +62,7 @@
           <tr><td><code>G2-02</code></td><td>报名创建、并发名额、支付/退款/冲正和双端页面</td><td>主旅程已贯通</td><td>报名 96 + 并发 13 + 奖励冲正 41 断言；UniApp 11 个测试；继续退款发起/对账和异常人工处理</td></tr>
         </tbody></table></div>
         <div class="callout warn"><strong>计数边界：</strong>G2 主旅程已经可用，但还不是完整活动产品闭环。退款发起/渠道对账、余额不足人工处理、候补/通知、回顾、管理写验收和真机回归未完成。</div>
+        <div class="callout"><strong>合并边界：</strong><code>feature/g2-activity-core @ 8721cdb</code> 已推送 PR #4，GitHub CI 通过且分支可合并；在 PR 实际进入 <code>main</code> 前，状态保持“功能分支已验收”。</div>
       </section>
 
       <section id="next">
@@ -71,7 +72,7 @@
             <thead><tr><th>批次</th><th>后端/数据</th><th>用户端/管理端</th><th>AI/交付</th><th>出口</th></tr></thead>
             <tbody>
               <tr><td><code>G1-F</code> 会员补齐</td><td>目录/好友、积分明细、贡献排行、客服和通讯录开关</td><td>会籍购买/结果、目录、好友、积分和排行</td><td>跨租户/隐私/并发回归</td><td>会员主旅程可操作</td></tr>
-              <tr><td><code>G2</code> 活动闭环</td><td>报名、名额、支付、退款/冲正、候补和通知</td><td>月历、详情、报名、订单、签到和运营工作台</td><td>活动查询工具与并发容量测试</td><td>免费和付费活动各一条真链路</td></tr>
+              <tr><td><code>G2</code> 活动闭环</td><td>退款发起/渠道对账、人工异常、候补和通知</td><td>管理写验收、活动回顾和真机回归</td><td>活动查询工具与退款/容量回归</td><td>退票闭环、6 个管理写操作及活动尾段通过门禁</td></tr>
               <tr><td><code>G3</code> 五模块</td><td>目录/好友、上架审核、大咖/预约、积分/贡献</td><td>同学、商城、大咖、创作者中心</td><td>AI 对话、配额、RAG 和只读工具</td><td>五大模块均有真实 API</td></tr>
               <tr><td><code>G4</code> 候选版</td><td>退款冲正、结算、审计、对账</td><td>双品牌、弱网、真机和异常状态</td><td>安全、恢复、告警和性能门禁</td><td>无 P0、无高危、五条 E2E 通过</td></tr>
             </tbody>
