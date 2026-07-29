@@ -15,7 +15,7 @@ end
 content = File.read(spec_path)
 
 begin
-  ast = Psych.parse_stream(content, spec_path)
+  ast = Psych.parse_stream(content, filename: spec_path)
 rescue Psych::SyntaxError => e
   warn "FAIL: YAML syntax error: #{e.message}"
   exit 1
@@ -48,7 +48,13 @@ duplicates = find_duplicate_keys(ast)
 errors << "duplicate YAML keys: #{duplicates.uniq.join(', ')}" unless duplicates.empty?
 
 begin
-  spec = Psych.safe_load(content, [], [], true, spec_path)
+  spec = Psych.safe_load(
+    content,
+    permitted_classes: [],
+    permitted_symbols: [],
+    aliases: true,
+    filename: spec_path
+  )
 rescue Psych::Exception => e
   warn "FAIL: cannot load YAML: #{e.message}"
   exit 1
@@ -131,7 +137,7 @@ unless spec.is_a?(Hash)
 end
 
 errors << 'openapi must equal 3.1.0' unless spec['openapi'] == '3.1.0'
-errors << 'info.version must equal 0.5.0' unless dig_hash(spec, 'info', 'version') == '0.5.0'
+errors << 'info.version must equal 0.6.0' unless dig_hash(spec, 'info', 'version') == '0.6.0'
 
 expected_paths = [
   '/chamber/health',
@@ -147,7 +153,19 @@ expected_paths = [
   '/chamber/admin/v1/graduate-verifications/{application_id}/reviews',
   '/chamber/v1/membership/plans',
   '/chamber/v1/membership/checkouts',
-  '/chamber/v1/me/membership'
+  '/chamber/v1/me/membership',
+  '/chamber/v1/events',
+  '/chamber/v1/events/{event_id}',
+  '/chamber/v1/events/{event_id}/registrations',
+  '/chamber/v1/me/event-registrations',
+  '/chamber/v1/me/event-registrations/{registration_id}',
+  '/chamber/v1/events/{event_id}/checkins',
+  '/chamber/admin/v1/events',
+  '/chamber/admin/v1/events/{event_id}',
+  '/chamber/admin/v1/events/{event_id}/publish',
+  '/chamber/admin/v1/events/{event_id}/cancel',
+  '/chamber/admin/v1/events/{event_id}/checkin-token',
+  '/chamber/admin/v1/events/{event_id}/checkins/manual'
 ]
 actual_paths = spec.fetch('paths', {}).keys.sort
 errors << "paths must contain only #{expected_paths.join(', ')}" unless actual_paths == expected_paths.sort
@@ -168,7 +186,21 @@ expected_operations = [
   ['/chamber/admin/v1/graduate-verifications/{application_id}/reviews', 'post', 'reviewGraduateVerification', 'implemented', '200', 'CrmebAdminBearerAuth'],
   ['/chamber/v1/membership/plans', 'get', 'listMembershipPlans', 'implemented', '200', 'CrmebBearerAuth'],
   ['/chamber/v1/membership/checkouts', 'post', 'createMembershipCheckout', 'implemented', '201', 'CrmebBearerAuth'],
-  ['/chamber/v1/me/membership', 'get', 'getMembershipSummary', 'implemented', '200', 'CrmebBearerAuth']
+  ['/chamber/v1/me/membership', 'get', 'getMembershipSummary', 'implemented', '200', 'CrmebBearerAuth'],
+  ['/chamber/v1/events', 'get', 'listEvents', 'implemented', '200', 'CrmebBearerAuth'],
+  ['/chamber/v1/events/{event_id}', 'get', 'showEvent', 'implemented', '200', 'CrmebBearerAuth'],
+  ['/chamber/v1/events/{event_id}/registrations', 'post', 'createEventRegistration', 'implemented', '201', 'CrmebBearerAuth'],
+  ['/chamber/v1/me/event-registrations', 'get', 'listMyEventRegistrations', 'implemented', '200', 'CrmebBearerAuth'],
+  ['/chamber/v1/me/event-registrations/{registration_id}', 'get', 'showMyEventRegistration', 'implemented', '200', 'CrmebBearerAuth'],
+  ['/chamber/v1/events/{event_id}/checkins', 'post', 'createEventCheckin', 'implemented', '201', 'CrmebBearerAuth'],
+  ['/chamber/admin/v1/events', 'get', 'listEventsForAdmin', 'implemented', '200', 'CrmebAdminBearerAuth', 'chamber.event.manage'],
+  ['/chamber/admin/v1/events', 'post', 'createEventForAdmin', 'planned', '201', 'CrmebAdminBearerAuth', 'chamber.event.manage'],
+  ['/chamber/admin/v1/events/{event_id}', 'get', 'showEventForAdmin', 'implemented', '200', 'CrmebAdminBearerAuth', 'chamber.event.manage'],
+  ['/chamber/admin/v1/events/{event_id}', 'patch', 'updateEventForAdmin', 'planned', '200', 'CrmebAdminBearerAuth', 'chamber.event.manage'],
+  ['/chamber/admin/v1/events/{event_id}/publish', 'post', 'publishEventForAdmin', 'planned', '200', 'CrmebAdminBearerAuth', 'chamber.event.manage'],
+  ['/chamber/admin/v1/events/{event_id}/cancel', 'post', 'cancelEventForAdmin', 'planned', '200', 'CrmebAdminBearerAuth', 'chamber.event.manage'],
+  ['/chamber/admin/v1/events/{event_id}/checkin-token', 'post', 'issueEventCheckinTokenForAdmin', 'planned', '201', 'CrmebAdminBearerAuth', 'chamber.event.checkin'],
+  ['/chamber/admin/v1/events/{event_id}/checkins/manual', 'post', 'createManualEventCheckinForAdmin', 'planned', '201', 'CrmebAdminBearerAuth', 'chamber.event.checkin']
 ]
 expected_operation_contracts = {
   ['/chamber/health', 'get'] => {
@@ -235,10 +267,66 @@ expected_operation_contracts = {
   ['/chamber/v1/me/membership', 'get'] => {
     request_schema: nil,
     success_response: '#/components/responses/MembershipSummarySuccess'
+  },
+  ['/chamber/v1/events', 'get'] => {
+    request_schema: nil,
+    success_response: '#/components/responses/EventListSuccess'
+  },
+  ['/chamber/v1/events/{event_id}', 'get'] => {
+    request_schema: nil,
+    success_response: '#/components/responses/EventDetailSuccess'
+  },
+  ['/chamber/v1/events/{event_id}/registrations', 'post'] => {
+    request_schema: '#/components/schemas/EventRegistrationRequest',
+    success_response: '#/components/responses/EventRegistrationCreated'
+  },
+  ['/chamber/v1/me/event-registrations', 'get'] => {
+    request_schema: nil,
+    success_response: '#/components/responses/EventRegistrationListSuccess'
+  },
+  ['/chamber/v1/me/event-registrations/{registration_id}', 'get'] => {
+    request_schema: nil,
+    success_response: '#/components/responses/EventRegistrationSuccess'
+  },
+  ['/chamber/v1/events/{event_id}/checkins', 'post'] => {
+    request_schema: '#/components/schemas/EventCheckinRequest',
+    success_response: '#/components/responses/EventCheckinCreated'
+  },
+  ['/chamber/admin/v1/events', 'get'] => {
+    request_schema: nil,
+    success_response: '#/components/responses/AdminEventListSuccess'
+  },
+  ['/chamber/admin/v1/events', 'post'] => {
+    request_schema: '#/components/schemas/AdminEventCreateRequest',
+    success_response: '#/components/responses/AdminEventCreated'
+  },
+  ['/chamber/admin/v1/events/{event_id}', 'patch'] => {
+    request_schema: '#/components/schemas/AdminEventUpdateRequest',
+    success_response: '#/components/responses/AdminEventUpdated'
+  },
+  ['/chamber/admin/v1/events/{event_id}', 'get'] => {
+    request_schema: nil,
+    success_response: '#/components/responses/AdminEventDetailSuccess'
+  },
+  ['/chamber/admin/v1/events/{event_id}/publish', 'post'] => {
+    request_schema: nil,
+    success_response: '#/components/responses/AdminEventActionSuccess'
+  },
+  ['/chamber/admin/v1/events/{event_id}/cancel', 'post'] => {
+    request_schema: '#/components/schemas/AdminEventCancelRequest',
+    success_response: '#/components/responses/AdminEventActionSuccess'
+  },
+  ['/chamber/admin/v1/events/{event_id}/checkin-token', 'post'] => {
+    request_schema: '#/components/schemas/EventCheckinTokenRequest',
+    success_response: '#/components/responses/EventCheckinTokenCreated'
+  },
+  ['/chamber/admin/v1/events/{event_id}/checkins/manual', 'post'] => {
+    request_schema: '#/components/schemas/AdminManualEventCheckinRequest',
+    success_response: '#/components/responses/AdminEventManualCheckinCreated'
   }
 }
 operation_ids = []
-expected_operations.each do |path, method, operation_id, implementation_status, success_status, security_scheme|
+expected_operations.each do |path, method, operation_id, implementation_status, success_status, security_scheme, admin_permission|
   operation = dig_hash(spec, 'paths', path, method)
   if !operation.is_a?(Hash)
     errors << "missing #{method.upcase} operation for #{path}"
@@ -292,7 +380,7 @@ expected_operations.each do |path, method, operation_id, implementation_status, 
   errors << "#{method.upcase} #{path} must enforce all-or-none signed headers" unless operation['x-signed-headers-all-or-none'] == true
   errors << "#{method.upcase} #{path} must require #{security_scheme}" unless operation['security'] == [{ security_scheme => [] }]
   if security_scheme == 'CrmebAdminBearerAuth'
-    expected_permission = 'chamber.graduate_verification.review'
+    expected_permission = admin_permission || 'chamber.graduate_verification.review'
     errors << "#{method.upcase} #{path} x-admin-permission must be #{expected_permission}" unless operation['x-admin-permission'] == expected_permission
   end
   %w[ChamberTenantHeader ChamberChannelHeader ChamberTimestampHeader ChamberNonceHeader ChamberSignatureHeader].each do |name|
@@ -494,8 +582,14 @@ expected_enums = {
     unsupported_media_type asset_upload_invalid asset_quota_exceeded proof_asset_invalid asset_already_consumed asset_not_found
     asset_integrity_failed tenant_scope_denied consent_document_stale
     verification_already_pending verification_application_not_found verification_transition_invalid verification_supersedes_mismatch
-    membership_verification_required membership_plan_unavailable membership_downgrade_not_allowed
+    membership_tier_required membership_verification_required membership_plan_unavailable membership_downgrade_not_allowed
     membership_order_inconsistent membership_order_unavailable
+    event_not_found event_not_open signup_not_open signup_closed event_started event_full
+    channel_not_eligible points_required role_required
+    event_create_failed event_update_failed event_edit_locked event_publish_locked event_publish_failed
+    event_cancel_locked event_cancel_has_registrations event_ticket_create_failed event_serialization_failed
+    event_ticket_not_found event_payment_unavailable event_registration_failed registration_already_exists
+    registration_not_found event_reward_failed checkin_token_unavailable checkin_token_invalid checkin_already_completed
   ]
 }
 expected_enums.each do |name, values|

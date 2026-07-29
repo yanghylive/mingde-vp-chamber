@@ -17,6 +17,16 @@
       <text class="entry-label">毕业认证</text>
       <text class="entry-arrow iconfont icon-xiangyou"></text>
     </view>
+    <view class="entry-row" hover-class="entry-row-hover" @tap="open('/pages/chamber/events/index')">
+      <text class="entry-icon iconfont icon-rilitubiao"></text>
+      <text class="entry-label">活动中心</text>
+      <text class="entry-arrow iconfont icon-xiangyou"></text>
+    </view>
+    <view class="entry-row" hover-class="entry-row-hover" @tap="open('/pages/chamber/event_registrations/index')">
+      <text class="entry-icon iconfont icon-dingdan"></text>
+      <text class="entry-label">我的活动</text>
+      <text class="entry-arrow iconfont icon-xiangyou"></text>
+    </view>
   </view>
 </template>
 

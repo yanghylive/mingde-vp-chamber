@@ -23,7 +23,7 @@
       <h2>首次准备</h2>
       <pre>./scripts/prepare-local-crmeb-runtime.sh install
 ./scripts/manage-local-database.sh setup</pre>
-      <p>第一条命令准备运行副本、启动五个容器（MySQL、Redis、PHP-FPM、CRMEB timer、Nginx）、等待 MySQL/Redis、完整导入 CRMEB 157 张基线表、同步商会 overlay 并锁定安装器；第二条命令执行商会迁移、本地通用种子和数据校验。当前结果为 180 张表、437 项迁移复验。默认后台账号为 <code>admin</code>，密码为 <code>Admin@123456</code>，仅供本机开发。</p>
+      <p>第一条命令准备运行副本、启动五个容器（MySQL、Redis、PHP-FPM、CRMEB timer、Nginx）、等待 MySQL/Redis、完整导入 CRMEB 157 张基线表、同步商会 overlay 并锁定安装器；第二条命令执行商会迁移、本地通用种子和数据校验。当前结果为 187 张表、463 项迁移复验。默认后台账号为 <code>admin</code>，密码为 <code>Admin@123456</code>，仅供本机开发。</p>
     </section>
     <section>
       <h2>日常启动</h2>
@@ -56,7 +56,7 @@
 # 前端隔离测试与 Admin 生产构建
 ./scripts/prepare-local-frontend.sh test
 ./scripts/prepare-local-frontend.sh build-admin</pre>
-      <p>门禁覆盖项目结构、Compose、完整 CRMEB 安装、180 张表、437 项迁移复验、PHP/数据库测试、前端共享/会员 UI、OpenAPI 0.5.0，以及真实 Token 下的会员初始化、资料、私有附件、认证提交、管理员审核和会籍下单；还验证原生 CRMEB 购物车、订单读取、订单商品、退款商品入口被拒绝，订单积分/佣金字段为零，timer 自动补绑断开的上下文。超过 Chamber 上传限制时 Nginx 返回统一 413 JSON envelope。Admin 构建通过，上游 CSS/体积告警仍保留。</p>
+      <p>门禁覆盖项目结构、Compose、完整 CRMEB 安装、187 张表、463 项迁移复验、PHP/数据库测试、前端共享/会员 UI、OpenAPI 0.5.0，以及真实 Token 下的会员初始化、资料、私有附件、认证提交、管理员审核、会籍下单和四类活动报名；还验证原生 CRMEB 购物车/订单/退款入口隔离、支付与退款投影、积分/席位冲正、timer 补偿和并发名额。超过 Chamber 上传限制时 Nginx 返回统一 413 JSON envelope。Admin 构建通过，上游 CSS/体积告警仍保留。</p>
     </section>
     <section>
       <h2>覆盖本地参数</h2>

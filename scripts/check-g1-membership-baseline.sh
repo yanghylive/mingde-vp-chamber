@@ -290,10 +290,48 @@ member_ui_test_minimum="$(manifest_g1_minimum \
 
 openapi_output="$(ruby backend/custom/openapi/validate.rb)"
 printf '%s\n' "${openapi_output}"
-grep -Fxq '  Contract version: 0.5.0' <<<"${openapi_output}" \
+grep -Fxq '  Contract version: 0.6.0' <<<"${openapi_output}" \
     || fail "OpenAPI membership contract version changed"
-grep -Fxq '  Paths: 14 (16 implemented, 0 planned operations)' <<<"${openapi_output}" \
-    || fail "OpenAPI membership operation inventory changed"
+ruby -rpsych - backend/custom/openapi/chamber-openapi.yaml <<'RUBY'
+content = File.read(ARGV.fetch(0))
+spec = Psych.safe_load(
+  content,
+  permitted_classes: [],
+  permitted_symbols: [],
+  aliases: true,
+  filename: ARGV.fetch(0)
+)
+expected = %w[
+  getChamberHealth
+  getChamberBootstrap
+  bootstrapChamberMember
+  getChamberMemberProfile
+  updateChamberMemberProfile
+  uploadChamberMemberAsset
+  getChamberMemberAssetContent
+  getGraduateVerification
+  submitGraduateVerification
+  listGraduateVerificationsForAdmin
+  getChamberMemberAssetContentForAdmin
+  getGraduateVerificationForAdmin
+  reviewGraduateVerification
+  listMembershipPlans
+  createMembershipCheckout
+  getMembershipSummary
+]
+actual = {}
+spec.fetch('paths', {}).each_value do |path_item|
+  path_item.each do |method, operation|
+    next unless %w[get post patch put delete].include?(method) && operation.is_a?(Hash)
+    operation_id = operation['operationId']
+    actual[operation_id] = operation['x-implementation-status'] if expected.include?(operation_id)
+  end
+end
+mismatches = expected.each_with_object([]) do |operation_id, found|
+  found << "#{operation_id}=#{actual[operation_id].inspect}" unless actual[operation_id] == 'implemented'
+end
+abort "OpenAPI lost a G1 implemented operation: #{mismatches.join('; ')}" unless mismatches.empty?
+RUBY
 openapi_schema_count="$(awk '$1 == "Component" && $2 == "schemas:" && $3 ~ /^[0-9]+$/ && NF == 3 { print $3 }' <<<"${openapi_output}")"
 [[ "${openapi_schema_count}" =~ ^[0-9]+$ ]] || fail "OpenAPI membership schema count is unavailable"
 openapi_schema_minimum="$(manifest_g1_minimum \
@@ -303,20 +341,7 @@ openapi_schema_minimum="$(manifest_g1_minimum \
 
 ruby -rjson -e '
   manifest = JSON.parse(File.read(ARGV[0]))
-  project = manifest.fetch("project")
-  documents = manifest.fetch("documents")
   baseline = manifest.fetch("g1_membership_baseline")
-  abort "PROJECT_MANIFEST project status is stale" unless project["status"] == "g1-01e-membership-entitlement-complete"
-  expected_documents = {
-    "prd_progress" => "docs/PRD-开发进度总结-2026-07-26.html",
-    "g1_profile_verification_baseline" => "docs/G1-个人资料与毕业认证开发基线.html",
-    "g1_membership_checkout_baseline" => "docs/G1-会籍计划与下单开发基线.html",
-    "g1_membership_entitlement_baseline" => "docs/G1-会籍支付与权益开发基线.html"
-  }
-  document_mismatches = expected_documents.each_with_object([]) do |(key, value), found|
-    found << "#{key}=#{documents[key].inspect}, expected #{value.inspect}" unless documents[key] == value
-  end
-  abort "PROJECT_MANIFEST document pointers differ: #{document_mismatches.join("; ")}" unless document_mismatches.empty?
 
   membership_checks = Integer(ARGV[1])
   hardening_checks = Integer(ARGV[2])
@@ -372,7 +397,7 @@ ruby -rjson -e '
     "openapi_operations_total" => 16,
     "openapi_operations_implemented" => 16,
     "openapi_operations_planned" => 0,
-    "openapi_schemas" => Integer(ARGV[21]),
+    "openapi_schemas" => 85,
     "member_bootstrap_gate" => "scripts/check-g1-member-bootstrap.sh",
     "profile_verification_gate" => "scripts/check-g1-profile-verification.sh",
     "membership_checkout_gate" => "scripts/check-g1-membership-checkout.sh",
@@ -409,4 +434,4 @@ printf 'Profile/assets: %s + %s domain tests, %s database assertions\n' \
 printf 'Graduate verification: %s domain tests, %s database assertions, real member/admin HTTP flow\n' \
     "${verification_tests}" "${verification_db_assertions}"
 printf 'Frontend: %s tenant brand + %s member UI tests\n' "${tenant_brand_tests}" "${member_ui_tests}"
-printf 'OpenAPI: 0.5.0, 16 implemented + 0 planned operations, %s schemas\n' "${openapi_schema_count}"
+printf 'OpenAPI: 16 G1 implemented operations preserved, %s current schemas\n' "${openapi_schema_count}"

@@ -11,5 +11,33 @@
       "navigationBarTitleText": "毕业认证",
       "enablePullDownRefresh": true
     }
+  },
+  {
+    "path": "pages/chamber/events/index",
+    "style": {
+      "navigationBarTitleText": "活动中心",
+      "enablePullDownRefresh": true,
+      "onReachBottomDistance": 100
+    }
+  },
+  {
+    "path": "pages/chamber/event_detail/index",
+    "style": {
+      "navigationBarTitleText": "活动详情"
+    }
+  },
+  {
+    "path": "pages/chamber/event_registrations/index",
+    "style": {
+      "navigationBarTitleText": "我的活动",
+      "enablePullDownRefresh": true,
+      "onReachBottomDistance": 100
+    }
+  },
+  {
+    "path": "pages/chamber/event_registration/index",
+    "style": {
+      "navigationBarTitleText": "报名详情"
+    }
   }
 ]

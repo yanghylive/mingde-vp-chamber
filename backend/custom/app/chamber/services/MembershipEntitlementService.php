@@ -141,6 +141,7 @@ final class MembershipEntitlementService
         }
         $now = time();
         $rows = Db::table('ch_commerce_event_inbox')
+            ->where('business_type', 'membership')
             ->whereIn('status', ['received', 'failed'])
             ->where('next_retry_time', '<=', $now)
             ->order('id', 'asc')

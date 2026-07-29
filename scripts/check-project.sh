@@ -25,7 +25,9 @@ required_files=(
   "docs/本地开发环境基线.html"
   "docs/Codex-Agent团队全量开发计划-v1.0.html"
   "docs/开发任务板.html"
+  "docs/PRD-开发进度总结-2026-07-29.html"
   "docs/PRD-开发进度总结-2026-07-26.html"
+  "docs/PRD-开发进度总结-2026-07-28.html"
   "docs/PRD-开发进度总结-2026-07-25.html"
   "docs/PRD-开发进度总结-2026-07-24.html"
   "docs/ADR-索引.html"
@@ -35,6 +37,7 @@ required_files=(
   "docs/G1-个人资料与毕业认证开发基线.html"
   "docs/G1-会籍计划与下单开发基线.html"
   "docs/G1-会籍支付与权益开发基线.html"
+  "docs/G2-活动核心开发基线.html"
   "backend/custom/README.html"
   "backend/custom/app/chamber/ChamberExceptionHandle.php"
   "backend/custom/app/chamber/provider.php"
@@ -52,6 +55,16 @@ required_files=(
   "backend/custom/app/chamber/controller/MembershipPlanController.php"
   "backend/custom/app/chamber/controller/MembershipCheckoutController.php"
   "backend/custom/app/chamber/controller/MembershipSummaryController.php"
+  "backend/custom/app/chamber/activity/EventCheckinRequest.php"
+  "backend/custom/app/chamber/activity/EventCheckinToken.php"
+  "backend/custom/app/chamber/activity/EventEligibility.php"
+  "backend/custom/app/chamber/activity/EventListQuery.php"
+  "backend/custom/app/chamber/activity/EventRegistrationListQuery.php"
+  "backend/custom/app/chamber/activity/EventRegistrationRequest.php"
+  "backend/custom/app/chamber/controller/EventAdminController.php"
+  "backend/custom/app/chamber/controller/EventCheckinController.php"
+  "backend/custom/app/chamber/controller/EventController.php"
+  "backend/custom/app/chamber/controller/EventRegistrationController.php"
   "backend/custom/app/chamber/exceptions/MemberTransactionException.php"
   "backend/custom/app/chamber/identity/AuthenticatedUserContext.php"
   "backend/custom/app/chamber/identity/AuthenticatedAdminContext.php"
@@ -94,6 +107,12 @@ required_files=(
   "backend/custom/app/chamber/services/GuardedStoreOrderTakeServices.php"
   "backend/custom/app/chamber/services/MembershipPaymentCompletionService.php"
   "backend/custom/app/chamber/services/MembershipEntitlementService.php"
+  "backend/custom/app/chamber/services/EventAdminService.php"
+  "backend/custom/app/chamber/services/EventCheckinService.php"
+  "backend/custom/app/chamber/services/EventIdempotency.php"
+  "backend/custom/app/chamber/services/EventRegistrationService.php"
+  "backend/custom/app/chamber/services/EventRewardService.php"
+  "backend/custom/app/chamber/services/EventService.php"
   "backend/custom/app/chamber/jobs/MembershipOrderContextRepairJob.php"
   "backend/custom/app/chamber/assets/LocalPrivateAssetStorage.php"
   "backend/custom/app/chamber/assets/MemberAssetContent.php"
@@ -123,6 +142,10 @@ required_files=(
   "backend/custom/app/chamber/tests/membership_checkout_fixture.php"
   "backend/custom/app/chamber/tests/commerce_run.php"
   "backend/custom/app/chamber/tests/commerce_db_run.php"
+  "backend/custom/app/chamber/tests/event_run.php"
+  "backend/custom/app/chamber/tests/event_db_run.php"
+  "backend/custom/app/chamber/tests/event_registration_db_run.php"
+  "backend/custom/app/chamber/tests/event_registration_concurrency_run.php"
   "backend/custom/app/chamber/commerce/CommerceEvent.php"
   "backend/custom/app/chamber/commerce/CommerceEventReceipt.php"
   "backend/custom/app/chamber/commerce/CommerceEventType.php"
@@ -169,10 +192,28 @@ required_files=(
   "backend/custom/database/migrations/202607250005_register_membership_repair_timer.up.sql"
   "backend/custom/database/migrations/202607250005_register_membership_repair_timer.verify.sql"
   "backend/custom/database/migrations/202607250005_register_membership_repair_timer.down.sql"
+  "backend/custom/database/migrations/202607260001_create_activity_runtime.up.sql"
+  "backend/custom/database/migrations/202607260001_create_activity_runtime.verify.sql"
+  "backend/custom/database/migrations/202607260001_create_activity_runtime.down.sql"
+  "backend/custom/database/migrations/202607280001_add_event_checkin_rewards.up.sql"
+  "backend/custom/database/migrations/202607280001_add_event_checkin_rewards.verify.sql"
+  "backend/custom/database/migrations/202607280001_add_event_checkin_rewards.down.sql"
+  "backend/custom/database/migrations/202607280002_create_event_payment_runtime.up.sql"
+  "backend/custom/database/migrations/202607280002_create_event_payment_runtime.verify.sql"
+  "backend/custom/database/migrations/202607280002_create_event_payment_runtime.down.sql"
+  "backend/custom/database/migrations/202607280003_register_event_reservation_timer.up.sql"
+  "backend/custom/database/migrations/202607280003_register_event_reservation_timer.verify.sql"
+  "backend/custom/database/migrations/202607280003_register_event_reservation_timer.down.sql"
+  "backend/custom/database/migrations/202607280004_create_event_refund_effect.up.sql"
+  "backend/custom/database/migrations/202607280004_create_event_refund_effect.verify.sql"
+  "backend/custom/database/migrations/202607280004_create_event_refund_effect.down.sql"
   "backend/custom/database/seeds/202607210001_local_ci_baseline.sql"
   "backend/custom/database/seeds/202607210001_local_ci_baseline.verify.sql"
   "backend/custom/database/seeds/202607250002_local_membership_checkout.sql"
   "backend/custom/database/seeds/202607250002_local_membership_checkout.verify.sql"
+  "backend/custom/database/seeds/202607280002_local_event_registration.sql"
+  "backend/custom/database/seeds/202607280002_local_event_registration.verify.sql"
+  "backend/custom/app/chamber/tests/event_registration_http_fixture.php"
   "backend/custom/openapi/README.html"
   "backend/custom/openapi/chamber-openapi.yaml"
   "backend/custom/openapi/validate.rb"
@@ -207,6 +248,8 @@ required_files=(
   "scripts/check-g1-profile-verification.sh"
   "scripts/check-g1-membership-checkout.sh"
   "scripts/check-g1-membership-entitlement.sh"
+  "scripts/check-g2-activity-core.sh"
+  "scripts/check-g2-event-registration-http.sh"
 )
 
 required_executables=(
@@ -221,6 +264,8 @@ required_executables=(
   "scripts/check-g1-profile-verification.sh"
   "scripts/check-g1-membership-checkout.sh"
   "scripts/check-g1-membership-entitlement.sh"
+  "scripts/check-g2-activity-core.sh"
+  "scripts/check-g2-event-registration-http.sh"
 )
 
 for file in "${required_files[@]}"; do
@@ -238,7 +283,6 @@ documents = manifest.fetch('documents')
 baseline = manifest.fetch('g1_membership_baseline')
 
 expected_documents = {
-  'prd_progress' => 'docs/PRD-开发进度总结-2026-07-26.html',
   'g1_profile_verification_baseline' => 'docs/G1-个人资料与毕业认证开发基线.html',
   'g1_membership_checkout_baseline' => 'docs/G1-会籍计划与下单开发基线.html',
   'g1_membership_entitlement_baseline' => 'docs/G1-会籍支付与权益开发基线.html'
@@ -283,7 +327,7 @@ expected_baseline = {
 }
 
 errors = []
-errors << "project.status=#{project['status'].inspect}" unless project['status'] == 'g1-01e-membership-entitlement-complete'
+errors << "project.status=#{project['status'].inspect}" unless project['status'].is_a?(String) && !project['status'].empty?
 expected_documents.each do |key, value|
   errors << "documents.#{key}=#{documents[key].inspect}" unless documents[key] == value
 end
@@ -293,8 +337,27 @@ end
 errors << 'Chamber table arithmetic differs' unless baseline['chamber_domain_tables'] + baseline['migration_registry_tables'] == baseline['chamber_tables_including_registry']
 errors << 'migration check arithmetic differs' unless 165 + baseline['g1_migration_structural_checks'] == baseline['migration_structural_checks_total']
 errors << 'OpenAPI operation arithmetic differs' unless baseline['openapi_operations_implemented'] + baseline['openapi_operations_planned'] == baseline['openapi_operations_total']
-abort "PROJECT_MANIFEST G1-01E drift: #{errors.join('; ')}" unless errors.empty?
+if project['status'].start_with?('g2-')
+  g2 = manifest.fetch('g2_activity_baseline')
+  errors << 'g2_activity_baseline.scope differs' unless g2['scope'] == 'activity_vertical_slice'
+  errors << 'G2 Chamber table arithmetic differs' unless g2['chamber_domain_tables'] + g2['migration_registry_tables'] == g2['chamber_tables_including_registry']
+  errors << 'G2 database table arithmetic differs' unless g2['crm_tables'] + g2['chamber_tables_including_registry'] == g2['database_tables_total']
+  errors << 'G2 OpenAPI operation arithmetic differs' unless g2['openapi_operations_implemented'] + g2['openapi_operations_planned'] == g2['openapi_operations_total']
+  errors << 'G2 database assertion arithmetic differs' unless \
+    g2['activity_database_assertions'] + g2['registration_database_assertions'] +
+    g2['registration_concurrency_assertions'] + g2['reward_reversal_database_assertions'] +
+    g2['admin_read_database_assertions'] == g2['database_assertions_total']
+  errors << 'g2_activity_baseline.gate differs' unless g2['gate'] == 'scripts/check-g2-activity-core.sh'
+end
+abort "PROJECT_MANIFEST baseline drift: #{errors.join('; ')}" unless errors.empty?
 RUBY
+
+while IFS= read -r document; do
+  [[ -s "$ROOT/$document" ]] || fail "PROJECT_MANIFEST document is missing or empty: $document"
+done < <(ruby -rjson -e '
+  manifest = JSON.parse(File.read(ARGV.fetch(0)))
+  manifest.fetch("documents").each_value { |path| puts path }
+' "$ROOT/PROJECT_MANIFEST.json")
 
 [[ -f "$ROOT/.gitmodules" ]] || fail "missing .gitmodules"
 grep -Fq 'path = backend/crmeb' "$ROOT/.gitmodules" || fail "CRMEB submodule path is not registered"

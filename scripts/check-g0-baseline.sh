@@ -110,7 +110,7 @@ grep -Fxq '25 tests, 0 failures' <<<"${tenant_test_output}" \
 
 commerce_test_output="$(docker exec mingde_crmeb_php php /var/www/app/chamber/tests/commerce_run.php)"
 printf '%s\n' "${commerce_test_output}"
-grep -Fxq '18 tests, 0 failures' <<<"${commerce_test_output}" \
+grep -Fxq '20 tests, 0 failures' <<<"${commerce_test_output}" \
     || fail "commerce domain test count changed"
 
 commerce_db_output="$(docker exec -w /var/www mingde_crmeb_php php app/chamber/tests/commerce_db_run.php)"
@@ -218,5 +218,5 @@ assert_json "${TMP_DIR}/cors-denied.json" data.reason cors_origin_denied
 printf 'G0 baseline OK\n'
 printf 'HTTP: health, host tenant, signed tenant, replay rejection, CORS allow/deny\n'
 printf 'Database: 174+ tables, 165+ migration checks, seed verification, real commerce adapter\n'
-printf 'Commerce: 18 domain tests, 7 database assertions, 11 CRMEB source checks\n'
+printf 'Commerce: 20 domain tests, 7 database assertions, 11 CRMEB source checks\n'
 printf 'Frontend: shared bootstrap tests; OpenAPI: current contract preserves G0 vocabulary\n'

@@ -26,6 +26,16 @@ export default {
   component: LayoutMain,
   children: [
     {
+      path: 'events',
+      name: 'chamber_events',
+      meta: {
+        auth: ['chamber.event.manage'],
+        title: '活动运营',
+      },
+      beforeEnter: superAdministratorOnly,
+      component: () => import('@/pages/chamber/events/index'),
+    },
+    {
       path: 'graduate-verifications',
       name: 'chamber_graduate_verifications',
       meta: {

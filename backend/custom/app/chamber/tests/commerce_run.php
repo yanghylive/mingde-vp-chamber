@@ -3,6 +3,7 @@
 use app\chamber\commerce\CommerceEvent;
 use app\chamber\commerce\CommerceEventReceipt;
 use app\chamber\commerce\CommerceEventType;
+use app\chamber\commerce\RefundAttemptState;
 use app\chamber\commerce\RefundLifecycle;
 use app\chamber\exceptions\CommerceEventConflictException;
 use app\chamber\services\CommerceEventRecorder;
@@ -37,6 +38,61 @@ $tests['event vocabulary is frozen at v1'] = function (): void {
         CommerceEventType::REFUND_COMPLETED,
         CommerceEventType::REFUND_FAILED,
     ]);
+};
+
+$tests['refund attempts preserve unknown outcomes for provider query'] = function (): void {
+    assertSame(RefundAttemptState::PROCESSING, RefundAttemptState::assertTransition(
+        RefundAttemptState::REQUESTED,
+        RefundAttemptState::PROCESSING
+    ));
+    assertSame(RefundAttemptState::UNKNOWN, RefundAttemptState::assertTransition(
+        RefundAttemptState::PROCESSING,
+        RefundAttemptState::UNKNOWN
+    ));
+    assertSame(true, RefundAttemptState::shouldQuery(RefundAttemptState::UNKNOWN));
+    assertSame(true, RefundAttemptState::shouldQuery(RefundAttemptState::PROCESSING));
+    assertSame(false, RefundAttemptState::shouldQuery(RefundAttemptState::REQUESTED));
+};
+
+$tests['refund finality requires a trusted source and remains terminal'] = function (): void {
+    RefundAttemptState::assertFinalConfirmation(
+        RefundAttemptState::SUCCEEDED,
+        RefundAttemptState::SOURCE_PROVIDER_QUERY
+    );
+    RefundAttemptState::assertFinalConfirmation(
+        RefundAttemptState::SUCCEEDED,
+        RefundAttemptState::SOURCE_BALANCE
+    );
+    RefundAttemptState::assertFinalConfirmation(
+        RefundAttemptState::MANUAL,
+        RefundAttemptState::SOURCE_MANUAL
+    );
+    assertSame(true, RefundAttemptState::isFinal(RefundAttemptState::SUCCEEDED));
+    assertSame(true, RefundAttemptState::isFinal(RefundAttemptState::FAILED));
+    assertSame(true, RefundAttemptState::isFinal(RefundAttemptState::MANUAL));
+    assertSame(RefundAttemptState::SUCCEEDED, RefundAttemptState::assertTransition(
+        RefundAttemptState::SUCCEEDED,
+        RefundAttemptState::SUCCEEDED
+    ));
+
+    expectException(InvalidArgumentException::class, function (): void {
+        RefundAttemptState::assertFinalConfirmation(
+            RefundAttemptState::SUCCEEDED,
+            'provider_accepted'
+        );
+    });
+    expectException(InvalidArgumentException::class, function (): void {
+        RefundAttemptState::assertTransition(
+            RefundAttemptState::SUCCEEDED,
+            RefundAttemptState::PROCESSING
+        );
+    });
+    expectException(InvalidArgumentException::class, function (): void {
+        RefundAttemptState::assertTransition(
+            RefundAttemptState::FAILED,
+            RefundAttemptState::REQUESTED
+        );
+    });
 };
 
 $tests['event identity and payload hash are deterministic'] = function (): void {
