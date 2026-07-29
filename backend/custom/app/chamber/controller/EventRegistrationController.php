@@ -14,6 +14,7 @@ use app\chamber\services\EventRegistrationService;
 use app\chamber\services\EventService;
 use app\chamber\tenancy\TenantContext;
 use InvalidArgumentException;
+use RuntimeException;
 use stdClass;
 use think\Response;
 
@@ -50,9 +51,30 @@ final class EventRegistrationController
                 $auth,
                 $this->positiveId($event_id, 'event_id'),
                 $registration,
-                $callerKey
+                $callerKey,
+                $this->authenticatedUser($request, $auth)
             ),
         ], 'json', 201);
+    }
+
+    private function authenticatedUser(Request $request, AuthenticatedUserContext $auth): array
+    {
+        $user = $request->user();
+        $authenticatedUser = is_array($user)
+            ? $user
+            : (is_object($user) && method_exists($user, 'toArray') ? $user->toArray() : null);
+        if (!is_array($authenticatedUser)) {
+            throw new RuntimeException('Authenticated CRMEB user is unavailable');
+        }
+        $uid = $authenticatedUser['uid'] ?? null;
+        if (is_string($uid) && preg_match('/^[1-9][0-9]*$/D', $uid) === 1) {
+            $uid = (int) $uid;
+        }
+        if (!is_int($uid) || $uid !== $auth->uid()) {
+            throw new RuntimeException('Authenticated CRMEB user identity is inconsistent');
+        }
+
+        return $authenticatedUser;
     }
 
     public function index(

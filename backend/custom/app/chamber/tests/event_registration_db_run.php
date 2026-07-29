@@ -5,17 +5,23 @@ declare(strict_types=1);
 use app\chamber\activity\EventEligibility;
 use app\chamber\activity\EventRegistrationRequest;
 use app\chamber\exceptions\MemberTransactionException;
+use app\chamber\commerce\CommerceEvent;
+use app\chamber\commerce\CommerceEventType;
 use app\chamber\identity\AuthenticatedUserContext;
 use app\chamber\membership\BootstrapIdempotency;
 use app\chamber\services\EventIdempotency;
 use app\chamber\services\EventRegistrationService;
+use app\chamber\services\EventRegistrationCommerceProjection;
+use app\chamber\services\EventReservationRepairService;
 use app\chamber\services\EventService;
+use app\chamber\services\ThinkDbCommerceEventStore;
 use app\chamber\tenancy\TenantContext;
 use app\chamber\tenancy\TenantRecord;
 use think\App;
 use think\facade\Db;
 
 require dirname(__DIR__, 3) . '/vendor/autoload.php';
+require __DIR__ . '/event_order_gateway_fixture.php';
 
 (new App())->initialize();
 
@@ -23,6 +29,7 @@ $now = time();
 $runId = strtolower(bin2hex(random_bytes(6)));
 $assertions = 0;
 $registrationSequence = 0;
+$eventOrders = new TestEventOrderGateway(900000, strtoupper($runId));
 
 Db::startTrans();
 try {
@@ -50,7 +57,8 @@ try {
             $registrationSequence++;
 
             return 'REG' . str_pad((string) $registrationSequence, 29, '0', STR_PAD_LEFT);
-        }
+        },
+        $eventOrders
     );
 
     $freeEvent = createRegistrationEvent(
@@ -317,27 +325,152 @@ try {
         0,
         $now
     );
-    expectReason('event_payment_unavailable', 409, function () use (
-        $service,
+    $cash = $service->register(
         $tenant,
         $auth,
         $cashEvent,
-        $cashTicket,
-        $runId
-    ): void {
-        $service->register(
-            $tenant,
-            $auth,
-            $cashEvent,
-            EventRegistrationRequest::fromArray([
-                'ticket_id' => $cashTicket,
-                'expected_amount' => '10.00',
-            ]),
-            'event-registration-cash-' . $runId
-        );
-    });
+        EventRegistrationRequest::fromArray([
+            'ticket_id' => $cashTicket,
+            'expected_amount' => '10.00',
+        ]),
+        'event-registration-cash-' . $runId,
+        ['uid' => $uid]
+    );
+    assertSame('pending_payment', $cash['status']);
+    assertSame(true, $cash['payment_required']);
+    assertTrue($cash['order_no'] !== '', 'cash event order must be bound');
+    assertSame(1, (int) Db::table('ch_event_ticket')->where('id', $cashTicket)->value('reserved_count'));
     assertSame(0, (int) Db::table('ch_event_ticket')->where('id', $cashTicket)->value('paid_count'));
-    assertSame(0, (int) Db::table('ch_event_registration')->where('event_id', $cashEvent)->count());
+    assertSame(1, (int) Db::table('ch_event_registration')->where('event_id', $cashEvent)->count());
+    $cashReplay = $service->register(
+        $tenant,
+        $auth,
+        $cashEvent,
+        EventRegistrationRequest::fromArray([
+            'ticket_id' => $cashTicket,
+            'expected_amount' => '10.00',
+        ]),
+        'event-registration-cash-' . $runId,
+        ['uid' => $uid]
+    );
+    assertSame($cash['order_no'], $cashReplay['order_no']);
+    assertSame(1, $eventOrders->createCount());
+
+    $mixedEvent = createRegistrationEvent(
+        (int) $tenantRow['id'],
+        (int) $channel['id'],
+        'RMX' . strtoupper($runId),
+        $now
+    );
+    $mixedTicket = createRegistrationTicket(
+        (int) $tenantRow['id'],
+        $mixedEvent,
+        (int) $channel['id'],
+        '12.00',
+        20,
+        1,
+        0,
+        $now
+    );
+    $mixed = $service->register(
+        $tenant,
+        $auth,
+        $mixedEvent,
+        EventRegistrationRequest::fromArray(['ticket_id' => $mixedTicket]),
+        'event-registration-mixed-' . $runId,
+        ['uid' => $uid]
+    );
+    assertSame('pending_payment', $mixed['status']);
+    assertSame(50, (int) Db::table('ch_point_account')->where('member_id', $memberId)->value('balance'));
+    assertSame(20, (int) Db::table('ch_point_account')->where('member_id', $memberId)->value('frozen_balance'));
+    assertSame(1, (int) Db::table('ch_point_hold')->where('registration_id', (int) $mixed['id'])->value('status'));
+    assertSame(0, (int) Db::table('ch_point_ledger')->where('source_type', 'event_registration')
+        ->where('source_id', (string) $mixed['id'])->count());
+
+    $mixedContext = Db::table('ch_order_context')->where('business_type', 'event_registration')
+        ->where('business_id', (int) $mixed['id'])->find();
+    assertTrue(is_array($mixedContext), 'mixed registration order context must exist');
+    Db::table('ch_order_context')->where('id', (int) $mixedContext['id'])->update([
+        'pay_status' => 1,
+        'completion_kind' => 'paid',
+        'paid_amount' => '12.00',
+        'paid_time' => $now,
+        'version' => (int) $mixedContext['version'] + 1,
+        'update_time' => $now,
+    ]);
+    $paymentEvent = CommerceEvent::fromArray([
+        'source' => 'crmeb',
+        'source_event_id' => 'order:' . $mixedContext['order_pk'] . ':paid',
+        'event_type' => CommerceEventType::ORDER_COMPLETED,
+        'occurred_at' => $now,
+        'tenant_id' => (int) $tenantRow['id'],
+        'channel_id' => (int) $channel['id'],
+        'order_pk' => (int) $mixedContext['order_pk'],
+        'order_no' => (string) $mixedContext['order_no'],
+        'uid' => $uid,
+        'business_type' => 'event_registration',
+        'context_id' => (int) $mixedContext['id'],
+        'currency' => 'CNY',
+        'paid_amount' => '12.00',
+        'correlation_id' => 'chamber:event:test:' . $mixed['id'],
+        'completion_kind' => 'paid',
+        'pay_type' => 'weixin',
+        'trade_no' => '',
+        'paid_at' => $now,
+    ]);
+    (new ThinkDbCommerceEventStore())->record($paymentEvent);
+    $projection = new EventRegistrationCommerceProjection();
+    Db::transaction(function () use ($projection, $paymentEvent): void {
+        $projection->consumeEvent($paymentEvent);
+    });
+    Db::transaction(function () use ($projection, $paymentEvent): void {
+        $projection->consumeEvent($paymentEvent);
+    });
+    assertSame(1, (int) Db::table('ch_event_registration')->where('id', (int) $mixed['id'])->value('status'));
+    assertSame(0, (int) Db::table('ch_event_ticket')->where('id', $mixedTicket)->value('reserved_count'));
+    assertSame(1, (int) Db::table('ch_event_ticket')->where('id', $mixedTicket)->value('paid_count'));
+    assertSame(50, (int) Db::table('ch_point_account')->where('member_id', $memberId)->value('balance'));
+    assertSame(0, (int) Db::table('ch_point_account')->where('member_id', $memberId)->value('frozen_balance'));
+    assertSame(2, (int) Db::table('ch_point_hold')->where('registration_id', (int) $mixed['id'])->value('status'));
+    assertSame(1, (int) Db::table('ch_point_ledger')->where('source_type', 'event_registration')
+        ->where('source_id', (string) $mixed['id'])->count());
+
+    $expiryEvent = createRegistrationEvent(
+        (int) $tenantRow['id'],
+        (int) $channel['id'],
+        'REX' . strtoupper($runId),
+        $now
+    );
+    $expiryTicket = createRegistrationTicket(
+        (int) $tenantRow['id'],
+        $expiryEvent,
+        (int) $channel['id'],
+        '8.00',
+        10,
+        1,
+        0,
+        $now
+    );
+    $expiring = $service->register(
+        $tenant,
+        $auth,
+        $expiryEvent,
+        EventRegistrationRequest::fromArray(['ticket_id' => $expiryTicket]),
+        'event-registration-expiry-' . $runId,
+        ['uid' => $uid]
+    );
+    Db::table('ch_event_registration')->where('id', (int) $expiring['id'])->update([
+        'reserve_expire_time' => time() - 1,
+    ]);
+    $expirySummary = (new EventReservationRepairService($eventOrders))->releaseExpired(10);
+    assertSame(1, $expirySummary['released']);
+    assertSame(2, (int) Db::table('ch_event_registration')->where('id', (int) $expiring['id'])->value('status'));
+    assertSame(0, (int) Db::table('ch_event_ticket')->where('id', $expiryTicket)->value('reserved_count'));
+    assertSame(50, (int) Db::table('ch_point_account')->where('member_id', $memberId)->value('balance'));
+    assertSame(0, (int) Db::table('ch_point_account')->where('member_id', $memberId)->value('frozen_balance'));
+    assertSame(3, (int) Db::table('ch_point_hold')->where('registration_id', (int) $expiring['id'])->value('status'));
+    assertSame(3, (int) Db::table('ch_order_context')->where('business_type', 'event_registration')
+        ->where('business_id', (int) $expiring['id'])->value('pay_status'));
 
     $foreignEvent = createRegistrationEvent(
         (int) $otherTenant['id'],
@@ -534,7 +667,7 @@ function createRegistrationTicket(
         'price' => $price,
         'integral_price' => $integral,
         'product_id' => $price === '0.00' ? 0 : 1,
-        'product_attr_unique' => '',
+        'product_attr_unique' => $price === '0.00' ? '' : 'event' . $eventId,
         'capacity' => $capacity,
         'reserved_count' => 0,
         'paid_count' => $paidCount,

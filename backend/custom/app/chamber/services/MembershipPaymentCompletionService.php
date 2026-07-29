@@ -26,12 +26,17 @@ final class MembershipPaymentCompletionService
     /** @var MembershipEntitlementService */
     private $entitlements;
 
+    /** @var EventRegistrationCommerceProjection */
+    private $eventRegistrations;
+
     public function __construct(
         CommerceEventStoreInterface $events,
-        MembershipEntitlementService $entitlements
+        MembershipEntitlementService $entitlements,
+        EventRegistrationCommerceProjection $eventRegistrations = null
     ) {
         $this->events = $events;
         $this->entitlements = $entitlements;
+        $this->eventRegistrations = $eventRegistrations ?: new EventRegistrationCommerceProjection();
     }
 
     public function complete(array $input, string $payType, array $other = [], bool $zeroAmount = false): bool
@@ -46,11 +51,14 @@ final class MembershipPaymentCompletionService
                 throw $this->inconsistent();
             }
             $context = Db::table('ch_order_context')
-                ->where('business_type', 'membership')
                 ->where('order_pk', $orderId)
                 ->lock(true)
                 ->find();
             if (!is_array($context)) {
+                throw $this->inconsistent();
+            }
+            $businessType = (string) $context['business_type'];
+            if (!in_array($businessType, ['membership', 'event_registration'], true)) {
                 throw $this->inconsistent();
             }
             $this->assertOrderContext($order, $context);
@@ -129,7 +137,7 @@ final class MembershipPaymentCompletionService
                 'order_pk' => $orderId,
                 'order_no' => (string) $freshContext['order_no'],
                 'uid' => (int) $freshContext['uid'],
-                'business_type' => 'membership',
+                'business_type' => $businessType,
                 'context_id' => (int) $freshContext['id'],
                 'currency' => (string) $freshContext['currency'],
                 'paid_amount' => $this->money($freshContext['paid_amount']),
@@ -140,7 +148,11 @@ final class MembershipPaymentCompletionService
                 'paid_at' => (int) $freshContext['paid_time'],
             ]);
             $this->events->record($event);
-            $this->entitlements->consumeEvent($event);
+            if ($businessType === 'membership') {
+                $this->entitlements->consumeEvent($event);
+            } else {
+                $this->eventRegistrations->consumeEvent($event);
+            }
 
             return true;
         });

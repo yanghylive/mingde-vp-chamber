@@ -58,6 +58,10 @@ activity_php_files=(
     backend/custom/app/chamber/services/EventCheckinService.php
     backend/custom/app/chamber/services/EventIdempotency.php
     backend/custom/app/chamber/services/EventRegistrationService.php
+    backend/custom/app/chamber/services/EventRegistrationCommerceProjection.php
+    backend/custom/app/chamber/services/EventReservationRepairService.php
+    backend/custom/app/chamber/services/CrmebEventOrderGateway.php
+    backend/custom/app/chamber/jobs/EventReservationRepairJob.php
     backend/custom/app/chamber/services/EventRewardService.php
     backend/custom/app/chamber/services/EventService.php
     backend/custom/app/chamber/tests/event_run.php
@@ -69,6 +73,8 @@ activity_php_files=(
 activity_migrations=(
     202607260001_create_activity_runtime
     202607280001_add_event_checkin_rewards
+    202607280002_create_event_payment_runtime
+    202607280003_register_event_reservation_timer
 )
 
 for file in "${activity_php_files[@]}"; do
@@ -92,6 +98,10 @@ if [ "${MODE}" = 'local' ]; then
         || fail 'G2 activity runtime migration structural checks changed'
     grep -Fq 'PASS 202607280001_add_event_checkin_rewards (1 structural checks)' <<<"${database_output}" \
         || fail 'G2 activity reward migration structural checks changed'
+    grep -Fq 'PASS 202607280002_create_event_payment_runtime (1 structural checks)' <<<"${database_output}" \
+        || fail 'G2 event payment runtime migration structural checks changed'
+    grep -Fq 'PASS 202607280003_register_event_reservation_timer (1 structural checks)' <<<"${database_output}" \
+        || fail 'G2 event reservation timer migration structural checks changed'
 
     for file in "${activity_php_files[@]}"; do
         relative="${file#backend/custom/app/chamber/}"

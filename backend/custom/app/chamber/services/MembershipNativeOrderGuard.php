@@ -12,10 +12,18 @@ final class MembershipNativeOrderGuard
     /** @var callable */
     private $isMembershipProduct;
 
-    public function __construct(callable $isMembershipProduct = null)
+    /** @var callable */
+    private $isEventProduct;
+
+    public function __construct(callable $isMembershipProduct = null, callable $isEventProduct = null)
     {
         $this->isMembershipProduct = $isMembershipProduct ?: function (int $productId): bool {
             return Db::table('ch_membership_plan')
+                ->where('product_id', $productId)
+                ->count() > 0;
+        };
+        $this->isEventProduct = $isEventProduct ?: function (int $productId): bool {
+            return Db::table('ch_event_ticket')
                 ->where('product_id', $productId)
                 ->count() > 0;
         };
@@ -25,6 +33,9 @@ final class MembershipNativeOrderGuard
     {
         if ($productId > 0 && (bool) call_user_func($this->isMembershipProduct, $productId)) {
             throw new ApiException('会籍商品只能从会籍中心购买');
+        }
+        if ($productId > 0 && (bool) call_user_func($this->isEventProduct, $productId)) {
+            throw new ApiException('活动票只能从活动中心购买');
         }
     }
 
@@ -91,7 +102,9 @@ final class MembershipNativeOrderGuard
             return;
         }
 
-        throw new ApiException('会籍订单只能从会籍中心操作');
+        throw new ApiException($this->isEventOrder($order)
+            ? '活动订单只能从活动中心操作'
+            : '会籍订单只能从会籍中心操作');
     }
 
     /**
@@ -104,7 +117,9 @@ final class MembershipNativeOrderGuard
     public function assertNativeReadAllowed($order): void
     {
         if ($this->isMembershipOrder($order)) {
-            throw new ApiException('会籍订单只能从会籍中心查看');
+            throw new ApiException($this->isEventOrder($order)
+                ? '活动订单只能从活动中心查看'
+                : '会籍订单只能从会籍中心查看');
         }
     }
 
@@ -123,6 +138,37 @@ final class MembershipNativeOrderGuard
             return false;
         }
 
+        $productIds = $this->orderProductIds($order);
+        foreach ($productIds as $productId) {
+            if ($productId > 0 && ((bool) call_user_func($this->isMembershipProduct, $productId)
+                    || (bool) call_user_func($this->isEventProduct, $productId))) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /** @param mixed $order */
+    private function isEventOrder($order): bool
+    {
+        if (is_object($order) && method_exists($order, 'toArray')) {
+            $order = $order->toArray();
+        }
+        if (!is_array($order)) {
+            return false;
+        }
+        foreach ($this->orderProductIds($order) as $productId) {
+            if ($productId > 0 && (bool) call_user_func($this->isEventProduct, $productId)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function orderProductIds(array $order): array
+    {
         $productIds = [];
         $cartInfo = $order['cart_info'] ?? ($order['cartInfo'] ?? []);
         if (is_string($cartInfo)) {
@@ -149,13 +195,7 @@ final class MembershipNativeOrderGuard
                     ->column('product_id'))
             );
         }
-        foreach (array_unique($productIds) as $productId) {
-            if ($productId > 0 && (bool) call_user_func($this->isMembershipProduct, $productId)) {
-                return true;
-            }
-        }
-
-        return false;
+        return array_values(array_unique($productIds));
     }
 
     public function isBoundMembershipOrder(int $orderId, string $orderNo = ''): bool
@@ -164,7 +204,7 @@ final class MembershipNativeOrderGuard
             return false;
         }
         $query = Db::table('ch_order_context')
-            ->where('business_type', 'membership')
+            ->whereIn('business_type', ['membership', 'event_registration'])
             ->where('order_pk', $orderId);
         if ($orderNo !== '') {
             $query->where('order_no', $orderNo);

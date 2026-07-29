@@ -6,9 +6,12 @@ namespace app\chamber\services;
 
 use app\chamber\activity\EventEligibility;
 use app\chamber\activity\EventRegistrationRequest;
+use app\chamber\activity\EventTicketOrderSnapshot;
 use app\chamber\commerce\Money;
+use app\chamber\contracts\EventOrderGatewayInterface;
 use app\chamber\exceptions\MemberTransactionException;
 use app\chamber\identity\AuthenticatedUserContext;
+use app\chamber\membership\BootstrapIdempotency;
 use app\chamber\tenancy\TenantContext;
 use RuntimeException;
 use think\facade\Db;
@@ -16,6 +19,8 @@ use think\facade\Db;
 /** Creates immediate free/points registrations under one database transaction. */
 final class EventRegistrationService
 {
+    private const RESERVATION_SECONDS = 900;
+
     /** @var EventService */
     private $events;
 
@@ -25,10 +30,14 @@ final class EventRegistrationService
     /** @var callable */
     private $registrationNoFactory;
 
+    /** @var EventOrderGatewayInterface|null */
+    private $orders;
+
     public function __construct(
         EventService $events = null,
         EventIdempotency $idempotency = null,
-        callable $registrationNoFactory = null
+        callable $registrationNoFactory = null,
+        EventOrderGatewayInterface $orders = null
     ) {
         $this->events = $events ?: new EventService();
         $this->idempotency = $idempotency ?: new EventIdempotency();
@@ -47,6 +56,7 @@ final class EventRegistrationService
                 bin2hex(random_bytes(16)),
             ])), 0, 32));
         };
+        $this->orders = $orders;
     }
 
     public function register(
@@ -54,13 +64,22 @@ final class EventRegistrationService
         AuthenticatedUserContext $auth,
         int $eventId,
         EventRegistrationRequest $request,
-        string $callerKey
+        string $callerKey,
+        array $authenticatedUser = []
     ): array {
         if ($eventId <= 0) {
             throw $this->validation('event_id', 'invalid_value', 'event_id must be a positive integer');
         }
 
-        return $this->idempotency->execute(
+        $internalKey = BootstrapIdempotency::deriveInternalKey(
+            $tenant->tenantId(),
+            'createEventRegistration',
+            'crmeb_user',
+            $auth->uid(),
+            $callerKey
+        );
+        $checkoutKey = substr(hash('sha256', 'event_registration_order:' . $internalKey), 0, 32);
+        $result = $this->idempotency->execute(
             $tenant,
             'createEventRegistration',
             'crmeb_user',
@@ -68,7 +87,7 @@ final class EventRegistrationService
             $callerKey,
             array_merge(['event_id' => $eventId], $request->toIdempotencyArray()),
             201,
-            function (int $now) use ($tenant, $auth, $eventId, $request): array {
+            function (int $now) use ($tenant, $auth, $eventId, $request, $internalKey, $checkoutKey, $authenticatedUser): array {
                 $member = $this->member($tenant, $auth, true);
                 $event = $this->event($tenant, $eventId);
                 $existing = Db::table('ch_event_registration')
@@ -107,12 +126,9 @@ final class EventRegistrationService
                 if ($reason !== null) {
                     throw new MemberTransactionException(409, $reason, 'Member is not eligible for this event ticket');
                 }
-                if (Money::toMinor($amount) > 0) {
-                    throw new MemberTransactionException(
-                        409,
-                        'event_payment_unavailable',
-                        'Cash event registration is not available yet'
-                    );
+                $cashPayment = Money::toMinor($amount) > 0;
+                if ($cashPayment) {
+                    $this->assertAuthenticatedUser($authenticatedUser, $auth->uid());
                 }
 
                 if ($integral > $points) {
@@ -143,9 +159,9 @@ final class EventRegistrationService
                     'order_context_id' => 0,
                     'amount' => $amount,
                     'integral_amount' => $integral,
-                    'status' => 1,
-                    'reserve_expire_time' => 0,
-                    'paid_time' => $now,
+                    'status' => $cashPayment ? 0 : 1,
+                    'reserve_expire_time' => $cashPayment ? $now + self::RESERVATION_SECONDS : 0,
+                    'paid_time' => $cashPayment ? 0 : $now,
                     'cancel_time' => 0,
                     'refund_time' => 0,
                     'add_time' => $now,
@@ -155,19 +171,69 @@ final class EventRegistrationService
                     throw new MemberTransactionException(409, 'event_registration_failed', 'Event registration could not be created');
                 }
 
+                $counterField = $cashPayment ? 'reserved_count' : 'paid_count';
                 $updated = Db::table('ch_event_ticket')
                     ->where('tenant_id', $tenant->tenantId())
                     ->where('id', (int) $ticket['id'])
-                    ->where('paid_count', (int) $ticket['paid_count'])
+                    ->where($counterField, (int) $ticket[$counterField])
                     ->update([
-                        'paid_count' => (int) $ticket['paid_count'] + 1,
+                        $counterField => (int) $ticket[$counterField] + 1,
                         'update_time' => $now,
                     ]);
                 if ($updated !== 1) {
                     throw new MemberTransactionException(409, 'event_full', 'Event ticket capacity changed');
                 }
 
-                if ($integral > 0) {
+                if ($cashPayment) {
+                    $record = Db::table('ch_idempotency_record')
+                        ->where('tenant_id', $tenant->tenantId())
+                        ->where('idempotency_key', $internalKey)
+                        ->lock(true)
+                        ->find();
+                    if (!is_array($record)) {
+                        throw new MemberTransactionException(503, 'event_order_inconsistent', 'Event idempotency context is unavailable');
+                    }
+                    $snapshot = EventTicketOrderSnapshot::fromRows($event, $ticket);
+                    $contextId = (int) Db::table('ch_order_context')->insertGetId([
+                        'tenant_id' => $tenant->tenantId(),
+                        'channel_id' => $tenant->channelId(),
+                        'member_id' => (int) $member['id'],
+                        'uid' => $auth->uid(),
+                        'context_no' => $checkoutKey,
+                        'idempotency_record_id' => (int) $record['id'],
+                        'order_pk' => null,
+                        'order_no' => null,
+                        'business_type' => 'event_registration',
+                        'business_id' => $registrationId,
+                        'currency' => $snapshot->currency(),
+                        'list_amount' => $snapshot->price(),
+                        'payable_amount' => $snapshot->price(),
+                        'paid_amount' => '0.00',
+                        'refunded_amount' => '0.00',
+                        'integral_amount' => number_format($integral, 2, '.', ''),
+                        'price_snapshot_json' => BootstrapIdempotency::canonicalJson($snapshot->priceSnapshot()),
+                        'entitlement_snapshot_json' => '{}',
+                        'refund_policy_snapshot_json' => BootstrapIdempotency::canonicalJson($snapshot->refundPolicySnapshot()),
+                        'settlement_snapshot_json' => BootstrapIdempotency::canonicalJson($snapshot->settlementSnapshot()),
+                        'pay_status' => 0,
+                        'completion_kind' => 'pending',
+                        'refund_status' => 0,
+                        'paid_time' => 0,
+                        'version' => 1,
+                        'add_time' => $now,
+                        'update_time' => $now,
+                    ]);
+                    if ($contextId <= 0) {
+                        throw new MemberTransactionException(503, 'event_order_inconsistent', 'Event order context could not be created');
+                    }
+                    Db::table('ch_event_registration')->where('id', $registrationId)->update([
+                        'order_context_id' => $contextId,
+                        'update_time' => $now,
+                    ]);
+                    if ($integral > 0) {
+                        $this->holdPoints($tenant->tenantId(), $member, $account, $registrationId, $integral, $now);
+                    }
+                } elseif ($integral > 0) {
                     $this->debitPoints($tenant->tenantId(), $member, $account, $registrationId, $integral, $now);
                 }
 
@@ -177,6 +243,172 @@ final class EventRegistrationService
                 $this->member($tenant, $auth, false);
             }
         );
+
+        if (($result['payment_required'] ?? false) === true) {
+            return $this->createAndBindCashOrder(
+                $tenant,
+                $auth,
+                (int) $result['id'],
+                $checkoutKey,
+                $authenticatedUser
+            );
+        }
+
+        return $result;
+    }
+
+    private function createAndBindCashOrder(
+        TenantContext $tenant,
+        AuthenticatedUserContext $auth,
+        int $registrationId,
+        string $checkoutKey,
+        array $authenticatedUser
+    ): array {
+        $this->assertAuthenticatedUser($authenticatedUser, $auth->uid());
+        $registration = Db::table('ch_event_registration')
+            ->where('tenant_id', $tenant->tenantId())
+            ->where('id', $registrationId)
+            ->where('uid', $auth->uid())
+            ->find();
+        if (!is_array($registration) || (int) $registration['status'] !== 0) {
+            return $this->events->registrationDetail($tenant, $auth, $registrationId);
+        }
+        $context = Db::table('ch_order_context')
+            ->where('tenant_id', $tenant->tenantId())
+            ->where('id', (int) $registration['order_context_id'])
+            ->where('business_type', 'event_registration')
+            ->find();
+        if (!is_array($context)
+            || (int) $context['business_id'] !== $registrationId
+            || !hash_equals((string) $context['context_no'], $checkoutKey)) {
+            throw new MemberTransactionException(503, 'event_order_inconsistent', 'Reserved event order context is unavailable');
+        }
+        $snapshot = EventTicketOrderSnapshot::fromContext($context);
+        $orders = $this->orderGateway();
+        $persistedOrder = $orders->findByCheckoutKey($auth->uid(), $checkoutKey);
+        if ($persistedOrder === null) {
+            $orders->assertTicketProduct($snapshot);
+            $persistedOrder = $orders->create($authenticatedUser, $snapshot, $checkoutKey);
+        }
+        $order = $orders->assertOrderMatches($persistedOrder, $snapshot, $auth->uid(), $checkoutKey);
+
+        $bound = (bool) Db::transaction(function () use ($tenant, $auth, $registrationId, $checkoutKey, $order): bool {
+            $registration = Db::table('ch_event_registration')
+                ->where('tenant_id', $tenant->tenantId())
+                ->where('id', $registrationId)
+                ->where('uid', $auth->uid())
+                ->lock(true)
+                ->find();
+            if (!is_array($registration)) {
+                throw new MemberTransactionException(503, 'event_order_inconsistent', 'Event registration disappeared during order binding');
+            }
+            $context = Db::table('ch_order_context')
+                ->where('tenant_id', $tenant->tenantId())
+                ->where('id', (int) $registration['order_context_id'])
+                ->where('business_type', 'event_registration')
+                ->lock(true)
+                ->find();
+            if (!is_array($context) || !hash_equals((string) $context['context_no'], $checkoutKey)) {
+                throw new MemberTransactionException(503, 'event_order_inconsistent', 'Event order context is inconsistent');
+            }
+            if ((int) $registration['status'] !== 0 || (int) $context['pay_status'] !== 0) {
+                return false;
+            }
+            if ($context['order_pk'] !== null || $context['order_no'] !== null) {
+                if ((int) $context['order_pk'] !== (int) $order['order_pk']
+                    || (string) $context['order_no'] !== (string) $order['order_no']) {
+                    throw new MemberTransactionException(503, 'event_order_inconsistent', 'Event order binding is inconsistent');
+                }
+                return true;
+            }
+            if ((string) $context['payable_amount'] !== (string) $order['payable_amount']
+                || (string) $context['currency'] !== (string) $order['currency']) {
+                throw new MemberTransactionException(503, 'event_order_inconsistent', 'Event order amount is inconsistent');
+            }
+            $now = time();
+            $updated = Db::table('ch_order_context')->where('id', (int) $context['id'])
+                ->whereNull('order_pk')->whereNull('order_no')->update([
+                    'order_pk' => (int) $order['order_pk'],
+                    'order_no' => (string) $order['order_no'],
+                    'version' => (int) $context['version'] + 1,
+                    'update_time' => $now,
+                ]);
+            if ($updated !== 1) {
+                throw new MemberTransactionException(503, 'event_order_inconsistent', 'Event order could not be bound');
+            }
+            Db::table('ch_event_registration')->where('id', $registrationId)->update([
+                'order_pk' => (int) $order['order_pk'],
+                'order_no' => (string) $order['order_no'],
+                'update_time' => $now,
+            ]);
+            return true;
+        });
+        if (!$bound) {
+            $orders->cancelUnpaid($persistedOrder);
+        }
+
+        return $this->events->registrationDetail($tenant, $auth, $registrationId);
+    }
+
+    private function holdPoints(
+        int $tenantId,
+        array $member,
+        array $account,
+        int $registrationId,
+        int $points,
+        int $now
+    ): void {
+        $balance = (int) $account['balance'];
+        if ($balance < $points) {
+            throw new MemberTransactionException(409, 'points_required', 'Member points are insufficient');
+        }
+        $updated = Db::table('ch_point_account')->where('id', (int) $account['id'])
+            ->where('tenant_id', $tenantId)->where('version', (int) $account['version'])->update([
+                'balance' => $balance - $points,
+                'frozen_balance' => (int) ($account['frozen_balance'] ?? 0) + $points,
+                'version' => (int) $account['version'] + 1,
+                'update_time' => $now,
+            ]);
+        if ($updated !== 1) {
+            throw new MemberTransactionException(409, 'points_required', 'Member points balance changed');
+        }
+        $id = (int) Db::table('ch_point_hold')->insertGetId([
+            'tenant_id' => $tenantId,
+            'account_id' => (int) $account['id'],
+            'member_id' => (int) $member['id'],
+            'uid' => (int) $member['uid'],
+            'registration_id' => $registrationId,
+            'amount' => $points,
+            'status' => 1,
+            'idempotency_key' => hash('sha256', 'event_registration_hold:' . $tenantId . ':' . $registrationId),
+            'expire_time' => $now + self::RESERVATION_SECONDS,
+            'version' => 1,
+            'add_time' => $now,
+            'update_time' => $now,
+        ]);
+        if ($id <= 0) {
+            throw new MemberTransactionException(503, 'event_order_inconsistent', 'Event points hold could not be recorded');
+        }
+    }
+
+    private function assertAuthenticatedUser(array $user, int $uid): void
+    {
+        $actual = $user['uid'] ?? null;
+        if (is_string($actual) && preg_match('/^[1-9][0-9]*$/D', $actual) === 1) {
+            $actual = (int) $actual;
+        }
+        if (!is_int($actual) || $actual !== $uid) {
+            throw new MemberTransactionException(503, 'event_order_unavailable', 'Authenticated CRMEB user is unavailable');
+        }
+    }
+
+    private function orderGateway(): EventOrderGatewayInterface
+    {
+        if ($this->orders === null) {
+            $this->orders = app()->make(EventOrderGatewayInterface::class);
+        }
+
+        return $this->orders;
     }
 
     private function member(TenantContext $tenant, AuthenticatedUserContext $auth, bool $lock): array
