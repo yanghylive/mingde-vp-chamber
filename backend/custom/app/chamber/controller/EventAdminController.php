@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace app\chamber\controller;
 
 use app\Request;
+use app\chamber\activity\EventListQuery;
 use app\chamber\exceptions\MemberTransactionException;
 use app\chamber\identity\AuthenticatedAdminContext;
 use app\chamber\membership\BootstrapIdempotency;
@@ -24,6 +25,31 @@ final class EventAdminController
     public function __construct(EventAdminService $service)
     {
         $this->service = $service;
+    }
+
+    public function index(
+        Request $request,
+        TenantContext $tenant,
+        AuthenticatedAdminContext $admin
+    ): Response {
+        $filters = EventListQuery::fromArray((array) $request->get());
+
+        return $this->ok($this->service->listForAdmin($tenant, $admin, $filters));
+    }
+
+    public function show(
+        Request $request,
+        TenantContext $tenant,
+        AuthenticatedAdminContext $admin,
+        $event_id
+    ): Response {
+        unset($request);
+
+        return $this->ok($this->service->detailForAdmin(
+            $tenant,
+            $admin,
+            $this->positiveId($event_id, 'event_id')
+        ));
     }
 
     public function store(

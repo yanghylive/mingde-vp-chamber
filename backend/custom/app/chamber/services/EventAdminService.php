@@ -6,6 +6,7 @@ namespace app\chamber\services;
 
 use app\chamber\activity\EventCheckinToken;
 use app\chamber\activity\EventEligibility;
+use app\chamber\activity\EventListQuery;
 use app\chamber\exceptions\MemberTransactionException;
 use app\chamber\identity\AuthenticatedAdminContext;
 use app\chamber\tenancy\TenantContext;
@@ -30,6 +31,74 @@ final class EventAdminService
     {
         $this->rewards = $rewards ?: new EventRewardService();
         $this->idempotency = $idempotency ?: new EventIdempotency();
+    }
+
+    public function listForAdmin(
+        TenantContext $tenant,
+        AuthenticatedAdminContext $admin,
+        EventListQuery $filters
+    ): array {
+        $this->assertAdminPermission($admin, self::MANAGE_PERMISSION);
+
+        $query = Db::table('ch_event')
+            ->where('tenant_id', $tenant->tenantId())
+            ->where('channel_id', $tenant->channelId())
+            ->where('is_del', 0);
+        if ($filters->eventType() !== null) {
+            $query->where('event_type', $filters->eventType());
+        }
+        if ($filters->databaseStatus() !== null) {
+            $query->where('status', $filters->databaseStatus());
+        }
+        if ($filters->tag() !== '') {
+            $encodedTag = json_encode($filters->tag(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            $query->whereRaw(
+                "JSON_CONTAINS(COALESCE(NULLIF(tags_json, ''), '[]'), ?)",
+                [$encodedTag]
+            );
+        }
+
+        $total = (int) (clone $query)->count();
+        $rows = $query
+            ->order('add_time', 'desc')
+            ->order('id', 'desc')
+            ->page($filters->page(), $filters->limit())
+            ->select()
+            ->toArray();
+        $eventIds = array_map(function (array $row): int {
+            return (int) $row['id'];
+        }, $rows);
+        $tickets = $this->ticketRowsByEvent($tenant->tenantId(), $eventIds);
+        $items = array_map(function (array $row) use ($tickets): array {
+            $eventId = (int) $row['id'];
+
+            return $this->formatEvent($row, $tickets[$eventId] ?? []);
+        }, $rows);
+        $totalPages = $total === 0 ? 0 : (int) ceil($total / $filters->limit());
+
+        return [
+            'items' => $items,
+            'page' => [
+                'page' => $filters->page(),
+                'limit' => $filters->limit(),
+                'total' => $total,
+                'total_pages' => $totalPages,
+                'has_more' => $filters->page() < $totalPages,
+            ],
+        ];
+    }
+
+    public function detailForAdmin(
+        TenantContext $tenant,
+        AuthenticatedAdminContext $admin,
+        int $eventId
+    ): array {
+        $this->assertAdminPermission($admin, self::MANAGE_PERMISSION);
+        if ($eventId <= 0) {
+            throw $this->validation('event_id must be a positive integer');
+        }
+
+        return $this->detail($tenant, $eventId, true);
     }
 
     public function create(
@@ -93,7 +162,7 @@ final class EventAdminService
                 return $this->detail($tenant, $eventId, true);
             },
             function () use ($admin): void {
-                $admin->assertPermission(self::MANAGE_PERMISSION);
+                $this->assertAdminPermission($admin, self::MANAGE_PERMISSION);
             }
         );
     }
@@ -148,7 +217,7 @@ final class EventAdminService
                 return $this->detail($tenant, $eventId, true);
             },
             function () use ($admin): void {
-                $admin->assertPermission(self::MANAGE_PERMISSION);
+                $this->assertAdminPermission($admin, self::MANAGE_PERMISSION);
             }
         );
     }
@@ -194,7 +263,7 @@ final class EventAdminService
                 return $this->detail($tenant, $eventId, false);
             },
             function () use ($admin): void {
-                $admin->assertPermission(self::MANAGE_PERMISSION);
+                $this->assertAdminPermission($admin, self::MANAGE_PERMISSION);
             }
         );
     }
@@ -259,7 +328,7 @@ final class EventAdminService
                 return $this->detail($tenant, $eventId, false);
             },
             function () use ($admin): void {
-                $admin->assertPermission(self::MANAGE_PERMISSION);
+                $this->assertAdminPermission($admin, self::MANAGE_PERMISSION);
             }
         );
     }
@@ -334,7 +403,7 @@ final class EventAdminService
                 ];
             },
             function () use ($admin): void {
-                $admin->assertPermission(self::CHECKIN_PERMISSION);
+                $this->assertAdminPermission($admin, self::CHECKIN_PERMISSION);
             }
         );
     }
@@ -446,7 +515,7 @@ final class EventAdminService
                 ];
             },
             function () use ($admin): void {
-                $admin->assertPermission(self::CHECKIN_PERMISSION);
+                $this->assertAdminPermission($admin, self::CHECKIN_PERMISSION);
             }
         );
     }
@@ -504,6 +573,28 @@ final class EventAdminService
         }
 
         return $query->select()->toArray();
+    }
+
+    /** @return array<int, array<int, array>> */
+    private function ticketRowsByEvent(int $tenantId, array $eventIds): array
+    {
+        if ($eventIds === []) {
+            return [];
+        }
+        $rows = Db::table('ch_event_ticket')
+            ->where('tenant_id', $tenantId)
+            ->whereIn('event_id', $eventIds)
+            ->where('is_del', 0)
+            ->order('sort', 'asc')
+            ->order('id', 'asc')
+            ->select()
+            ->toArray();
+        $grouped = [];
+        foreach ($rows as $row) {
+            $grouped[(int) $row['event_id']][] = $row;
+        }
+
+        return $grouped;
     }
 
     private function replaceTickets(int $tenantId, int $eventId, array $tickets, int $now): void
@@ -916,6 +1007,18 @@ final class EventAdminService
     private function conflict(string $reason, string $message): MemberTransactionException
     {
         return new MemberTransactionException(409, $reason, $message);
+    }
+
+    private function assertAdminPermission(AuthenticatedAdminContext $admin, string $permission): void
+    {
+        $admin->assertPermission($permission);
+        if (!$admin->isSuperAdministrator()) {
+            throw new MemberTransactionException(
+                403,
+                'permission_denied',
+                'Level-0 administrator scope is required'
+            );
+        }
     }
 
     private function failure(string $reason, string $message): MemberTransactionException

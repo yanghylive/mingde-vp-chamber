@@ -137,7 +137,7 @@ unless spec.is_a?(Hash)
 end
 
 errors << 'openapi must equal 3.1.0' unless spec['openapi'] == '3.1.0'
-errors << 'info.version must equal 0.5.0' unless dig_hash(spec, 'info', 'version') == '0.5.0'
+errors << 'info.version must equal 0.6.0' unless dig_hash(spec, 'info', 'version') == '0.6.0'
 
 expected_paths = [
   '/chamber/health',
@@ -193,7 +193,9 @@ expected_operations = [
   ['/chamber/v1/me/event-registrations', 'get', 'listMyEventRegistrations', 'implemented', '200', 'CrmebBearerAuth'],
   ['/chamber/v1/me/event-registrations/{registration_id}', 'get', 'showMyEventRegistration', 'implemented', '200', 'CrmebBearerAuth'],
   ['/chamber/v1/events/{event_id}/checkins', 'post', 'createEventCheckin', 'implemented', '201', 'CrmebBearerAuth'],
+  ['/chamber/admin/v1/events', 'get', 'listEventsForAdmin', 'implemented', '200', 'CrmebAdminBearerAuth', 'chamber.event.manage'],
   ['/chamber/admin/v1/events', 'post', 'createEventForAdmin', 'planned', '201', 'CrmebAdminBearerAuth', 'chamber.event.manage'],
+  ['/chamber/admin/v1/events/{event_id}', 'get', 'showEventForAdmin', 'implemented', '200', 'CrmebAdminBearerAuth', 'chamber.event.manage'],
   ['/chamber/admin/v1/events/{event_id}', 'patch', 'updateEventForAdmin', 'planned', '200', 'CrmebAdminBearerAuth', 'chamber.event.manage'],
   ['/chamber/admin/v1/events/{event_id}/publish', 'post', 'publishEventForAdmin', 'planned', '200', 'CrmebAdminBearerAuth', 'chamber.event.manage'],
   ['/chamber/admin/v1/events/{event_id}/cancel', 'post', 'cancelEventForAdmin', 'planned', '200', 'CrmebAdminBearerAuth', 'chamber.event.manage'],
@@ -290,6 +292,10 @@ expected_operation_contracts = {
     request_schema: '#/components/schemas/EventCheckinRequest',
     success_response: '#/components/responses/EventCheckinCreated'
   },
+  ['/chamber/admin/v1/events', 'get'] => {
+    request_schema: nil,
+    success_response: '#/components/responses/AdminEventListSuccess'
+  },
   ['/chamber/admin/v1/events', 'post'] => {
     request_schema: '#/components/schemas/AdminEventCreateRequest',
     success_response: '#/components/responses/AdminEventCreated'
@@ -297,6 +303,10 @@ expected_operation_contracts = {
   ['/chamber/admin/v1/events/{event_id}', 'patch'] => {
     request_schema: '#/components/schemas/AdminEventUpdateRequest',
     success_response: '#/components/responses/AdminEventUpdated'
+  },
+  ['/chamber/admin/v1/events/{event_id}', 'get'] => {
+    request_schema: nil,
+    success_response: '#/components/responses/AdminEventDetailSuccess'
   },
   ['/chamber/admin/v1/events/{event_id}/publish', 'post'] => {
     request_schema: nil,

@@ -338,11 +338,14 @@ errors << 'migration check arithmetic differs' unless 165 + baseline['g1_migrati
 errors << 'OpenAPI operation arithmetic differs' unless baseline['openapi_operations_implemented'] + baseline['openapi_operations_planned'] == baseline['openapi_operations_total']
 if project['status'].start_with?('g2-')
   g2 = manifest.fetch('g2_activity_baseline')
-  errors << 'g2_activity_baseline.scope must remain backend_core' unless g2['scope'] == 'backend_core'
+  errors << 'g2_activity_baseline.scope differs' unless g2['scope'] == 'activity_vertical_slice'
   errors << 'G2 Chamber table arithmetic differs' unless g2['chamber_domain_tables'] + g2['migration_registry_tables'] == g2['chamber_tables_including_registry']
   errors << 'G2 database table arithmetic differs' unless g2['crm_tables'] + g2['chamber_tables_including_registry'] == g2['database_tables_total']
   errors << 'G2 OpenAPI operation arithmetic differs' unless g2['openapi_operations_implemented'] + g2['openapi_operations_planned'] == g2['openapi_operations_total']
-  errors << 'G2 database assertion arithmetic differs' unless g2['activity_database_assertions'] + g2['registration_database_assertions'] + g2['registration_concurrency_assertions'] == g2['database_assertions_total']
+  errors << 'G2 database assertion arithmetic differs' unless \
+    g2['activity_database_assertions'] + g2['registration_database_assertions'] +
+    g2['registration_concurrency_assertions'] + g2['reward_reversal_database_assertions'] +
+    g2['admin_read_database_assertions'] == g2['database_assertions_total']
   errors << 'g2_activity_baseline.gate differs' unless g2['gate'] == 'scripts/check-g2-activity-core.sh'
 end
 abort "PROJECT_MANIFEST baseline drift: #{errors.join('; ')}" unless errors.empty?

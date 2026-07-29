@@ -14,6 +14,14 @@ use think\facade\Db;
 /** Projects trusted payment and refund facts into event registrations. */
 final class EventRegistrationCommerceProjection
 {
+    /** @var EventRewardReversalService */
+    private $rewardReversals;
+
+    public function __construct(EventRewardReversalService $rewardReversals = null)
+    {
+        $this->rewardReversals = $rewardReversals ?: new EventRewardReversalService();
+    }
+
     public function consumePending(int $limit = 50): array
     {
         $rows = Db::table('ch_commerce_event_inbox')
@@ -248,6 +256,16 @@ final class EventRegistrationCommerceProjection
         }
 
         $points = $this->restoreRegistrationPoints($event, $registration);
+        if ((int) $registration['status'] === 5) {
+            $this->rewardReversals->reverseForRefund(
+                $event->tenantId(),
+                (int) $registration['event_id'],
+                (int) $registration['id'],
+                (int) $registration['uid'],
+                $event->completionFingerprint(),
+                (int) $event->payload()['occurred_at']
+            );
+        }
         Db::table('ch_event_registration')->where('id', (int) $registration['id'])->update([
             'status' => 3,
             'refund_time' => (int) $event->payload()['occurred_at'],

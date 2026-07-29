@@ -243,9 +243,14 @@ verify_workspace() {
   [[ -f "$UNIAPP_TARGET/chamber/shared/tenant-brand.js" ]] || fail "UniApp shared bootstrap is missing"
   [[ -f "$ADMIN_TARGET/src/router/modules/chamber.js" ]] || fail "admin Chamber route module is missing"
   [[ -f "$ADMIN_TARGET/src/pages/chamber/graduateVerification/index.vue" ]] || fail "admin verification page is missing"
+  [[ -f "$ADMIN_TARGET/src/pages/chamber/events/index.vue" ]] || fail "admin activity workbench is missing"
   [[ -f "$UNIAPP_TARGET/pages/chamber/profile/index.vue" ]] || fail "UniApp profile page is missing"
   [[ -f "$UNIAPP_TARGET/pages/chamber/graduate_verification/index.vue" ]] || fail "UniApp verification page is missing"
   [[ -f "$UNIAPP_TARGET/components/chamberMemberEntry/index.vue" ]] || fail "UniApp member entry is missing"
+  [[ -f "$UNIAPP_TARGET/pages/chamber/events/index.vue" ]] || fail "UniApp activity list is missing"
+  [[ -f "$UNIAPP_TARGET/pages/chamber/event_detail/index.vue" ]] || fail "UniApp activity detail is missing"
+  [[ -f "$UNIAPP_TARGET/pages/chamber/event_registrations/index.vue" ]] || fail "UniApp registration list is missing"
+  [[ -f "$UNIAPP_TARGET/pages/chamber/event_registration/index.vue" ]] || fail "UniApp registration detail is missing"
   ! grep -Fq 'https://demo.crmeb.com' "$UNIAPP_TARGET/config/app.js" \
     || fail "prepared UniApp must not target the public CRMEB demo"
   grep -Fq "HTTP_REQUEST_URL: \"${UNIAPP_API_ORIGIN%/}\"," "$UNIAPP_TARGET/config/app.js" \
@@ -277,6 +282,8 @@ NODE
 run_tests() {
   node "$SHARED_SOURCE/tests/tenant-brand.test.js"
   node "$SHARED_SOURCE/tests/member-ui.test.js"
+  node "$CUSTOM_ROOT/uniapp/tests/activity-ui.test.js"
+  node "$CUSTOM_ROOT/admin/tests/activity-admin.test.js"
   node - "$ADMIN_TARGET/src/chamber/shared" "$UNIAPP_TARGET/chamber/shared" <<'NODE'
 const [adminShared, uniShared] = process.argv.slice(2);
 for (const directory of [adminShared, uniShared]) {

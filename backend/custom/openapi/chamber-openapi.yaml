@@ -2,18 +2,17 @@ openapi: 3.1.0
 jsonSchemaDialect: https://json-schema.org/draft/2020-12/schema
 info:
   title: Mingde VP Chamber API
-  version: 0.5.0
-  summary: Chamber overlay G0 runtime and G1 member, verification, and membership-checkout verticals
+  version: 0.6.0
+  summary: Chamber overlay G0/G1 runtime and G2 activity vertical
   description: |
     This document is the source-controlled contract for the independently developed
     Chamber API overlay. Runtime behavior is defined by the locked CRMEB v6.0.0
     source plus `backend/custom/app/chamber`.
 
-    Every operation declares `x-implementation-status`. G0 routes, authenticated
-    member bootstrap, profile, graduate-verification, membership-plan, and
-    membership-checkout operations marked `implemented` are live. The remaining
-    G1 membership-summary route marked `planned` freezes the G1-01E contract and
-    MUST NOT be represented as runtime-delivered yet.
+    Every operation declares `x-implementation-status`. G0/G1 member operations
+    and the implemented G2 activity reads, registration, and check-in operations
+    are live. Administration write routes remain outside the delivered contract
+    until their HTTP acceptance gate is complete.
 
     All response envelopes contain `status`, `msg`, `data`, and `request_id`.
     The G0 request tracing middleware returns independent request/correlation IDs
@@ -995,6 +994,48 @@ paths:
         '503':
           $ref: '#/components/responses/TenantServiceUnavailable'
   /chamber/admin/v1/events:
+    get:
+      tags:
+        - Administration
+      summary: List tenant/channel-scoped events for administration
+      description: Returns draft and non-draft events in the trusted tenant and channel for the activity workbench.
+      operationId: listEventsForAdmin
+      security:
+        - CrmebAdminBearerAuth: []
+      x-implementation-status: implemented
+      x-requirement-id: ACT-001
+      x-tenant-context: required
+      x-signed-headers-all-or-none: true
+      x-admin-permission: chamber.event.manage
+      x-admin-scope: level-0-super-administrator-only
+      parameters:
+        - $ref: '#/components/parameters/EventTypeQuery'
+        - $ref: '#/components/parameters/EventStatusQuery'
+        - $ref: '#/components/parameters/EventTagQuery'
+        - $ref: '#/components/parameters/PageQuery'
+        - $ref: '#/components/parameters/LimitQuery'
+        - $ref: '#/components/parameters/RequestIdHeader'
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+        - $ref: '#/components/parameters/ChamberTenantHeader'
+        - $ref: '#/components/parameters/ChamberChannelHeader'
+        - $ref: '#/components/parameters/ChamberTimestampHeader'
+        - $ref: '#/components/parameters/ChamberNonceHeader'
+        - $ref: '#/components/parameters/ChamberSignatureHeader'
+      responses:
+        '200':
+          $ref: '#/components/responses/AdminEventListSuccess'
+        '400':
+          $ref: '#/components/responses/ChamberRequestError'
+        '401':
+          $ref: '#/components/responses/ChamberRequestError'
+        '403':
+          $ref: '#/components/responses/ChamberRequestError'
+        '422':
+          $ref: '#/components/responses/MemberTransactionError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/TenantServiceUnavailable'
     post:
       tags:
         - Administration
@@ -1041,6 +1082,47 @@ paths:
         '503':
           $ref: '#/components/responses/TenantServiceUnavailable'
   /chamber/admin/v1/events/{event_id}:
+    get:
+      tags:
+        - Administration
+      summary: Get one tenant/channel-scoped event for administration
+      operationId: showEventForAdmin
+      security:
+        - CrmebAdminBearerAuth: []
+      x-implementation-status: implemented
+      x-requirement-id: ACT-001
+      x-tenant-context: required
+      x-signed-headers-all-or-none: true
+      x-admin-permission: chamber.event.manage
+      x-admin-scope: level-0-super-administrator-only
+      parameters:
+        - name: event_id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/PositiveId'
+        - $ref: '#/components/parameters/RequestIdHeader'
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+        - $ref: '#/components/parameters/ChamberTenantHeader'
+        - $ref: '#/components/parameters/ChamberChannelHeader'
+        - $ref: '#/components/parameters/ChamberTimestampHeader'
+        - $ref: '#/components/parameters/ChamberNonceHeader'
+        - $ref: '#/components/parameters/ChamberSignatureHeader'
+      responses:
+        '200':
+          $ref: '#/components/responses/AdminEventDetailSuccess'
+        '400':
+          $ref: '#/components/responses/ChamberRequestError'
+        '401':
+          $ref: '#/components/responses/ChamberRequestError'
+        '403':
+          $ref: '#/components/responses/ChamberRequestError'
+        '404':
+          $ref: '#/components/responses/MemberTransactionError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/TenantServiceUnavailable'
     patch:
       tags:
         - Administration
@@ -1861,6 +1943,28 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/EventCheckinEnvelope'
+    AdminEventListSuccess:
+      description: Tenant/channel-scoped activities, including drafts, returned for administration.
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestIdResponseHeader'
+        X-Correlation-Id:
+          $ref: '#/components/headers/CorrelationIdResponseHeader'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/EventListEnvelope'
+    AdminEventDetailSuccess:
+      description: One tenant/channel-scoped activity returned for administration.
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestIdResponseHeader'
+        X-Correlation-Id:
+          $ref: '#/components/headers/CorrelationIdResponseHeader'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/EventDetailEnvelope'
     AdminEventCreated:
       description: A draft activity was created.
       headers:

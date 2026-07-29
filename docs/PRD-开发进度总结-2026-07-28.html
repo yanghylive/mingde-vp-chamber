@@ -25,10 +25,10 @@
       <h2>1. 管理结论</h2>
       <div class="decision-grid">
         <article><small>当前工程阶段</small><strong>G2 活动交易收口</strong><p>四类报名、支付、退款终态投影、积分/席位冲正和超时释放已进入运行时。</p></article>
-        <article><small>PRD 全量产品完成度</small><strong>约 25%–30%</strong><p>后端基础明显领先于用户界面；活动仍缺报名支付和双端页面。</p></article>
-        <article><small>本地全量剩余工作量</small><strong>AI 专注开发 26–37 小时</strong><p>按 AI 实际产能计，不按人工工作日折算；不计部署和外部凭据等待。</p></article>
+        <article><small>PRD 全量产品完成度</small><strong>约 28%–33%</strong><p>活动交易与双端主旅程已形成；会籍界面、退款发起/对账及后续业务模块仍是主要缺口。</p></article>
+        <article><small>本地全量剩余工作量</small><strong>AI 专注开发 24–34 小时</strong><p>按 AI 实际产能计，不按人工工作日折算；不计部署和外部凭据等待。</p></article>
       </div>
-      <div class="callout good"><strong>漂移判断：</strong>业务方向没有漂移，仍按“会员→活动→商城/大咖/AI”推进。此前仅有验收口径落后；现已统一为 187 张表、22 implemented / 6 planned。</div>
+      <div class="callout good"><strong>漂移判断：</strong>业务方向没有漂移，仍按“会员→活动→商城/大咖/AI”推进。当前代码、门禁和文档已统一为 187 张表、24 implemented / 6 planned。</div>
     </section>
 
     <section>
@@ -41,8 +41,10 @@
           <tr><td>报名查询</td><td>本人报名列表/详情，支持生命周期筛选和分页</td><td>OpenAPI 两个本人报名读操作 implemented</td></tr>
           <tr><td>扫码签到</td><td>租户域 HMAC 动态码、报名所有权、活动匹配、重复签到重放</td><td>扫码/资格纳入活动领域测试 12 个用例</td></tr>
           <tr><td>签到奖励</td><td>积分、贡献值和奖励账本同事务幂等入账；人工补签同步更新状态并发放奖励</td><td>活动数据库集成测试 72 个断言</td></tr>
-          <tr><td>活动报名支付</td><td>四类报名、CRMEB 三段建单、积分冻结、可信支付、部分/全额退款投影、积分/席位冲正和超时释放</td><td>数据库 87、并发 13 个断言；四模式真实 HTTP、支付与退款重放通过</td></tr>
-          <tr><td>契约扩展</td><td>活动新增 12 个操作：6 implemented + 6 planned</td><td>OpenAPI 26 paths / 28 operations / 113 schemas 校验通过</td></tr>
+          <tr><td>活动报名支付</td><td>四类报名、CRMEB 三段建单、积分冻结、可信支付、部分/全额退款投影、积分/席位冲正和超时释放</td><td>数据库 96、并发 13 个断言；四模式真实 HTTP、支付与退款重放通过</td></tr>
+          <tr><td>奖励冲正</td><td>已签到报名全额退款时追加积分/贡献负向流水，原奖励与冲正事实双向关联</td><td>专项 41 个断言；混合支付退款集成链路覆盖</td></tr>
+          <tr><td>活动双端</td><td>UniApp 4 页主旅程 + Admin 运营台；管理员列表/详情使用专用认证域</td><td>UniApp 11 + Admin 8 项测试；Admin 生产构建通过；管理读 24 个数据库断言</td></tr>
+          <tr><td>契约扩展</td><td>活动 14 个操作：8 implemented + 6 planned</td><td>OpenAPI 0.6.0 / 26 paths / 30 operations / 113 schemas 校验通过</td></tr>
         </tbody>
       </table></div>
     </section>
@@ -54,7 +56,7 @@
         <tbody>
           <tr><td>会员 MEM</td><td><strong>约 52%</strong></td><td>Token、初始化、协议、归因、资料、私有材料、毕业认证/审核、会籍计划/下单/权益/查询</td><td>会籍购买界面、登录补齐、目录/好友、积分明细、贡献排行、客服和通讯录</td></tr>
           <tr><td>租户 TEN</td><td><strong>约 38%</strong></td><td>tenant/channel、可信上下文、双租户隔离、会员/活动核心租户范围</td><td>品牌后台、配置发布/回滚、共享资源和渠道业绩报表</td></tr>
-          <tr><td>活动 ACT</td><td><strong>约 50%–55%</strong></td><td>目录/详情、资格、四类报名、真实 HTTP、支付/退款投影、积分/席位冲正、并发名额、扫码签到和奖励核心</td><td>退款发起/对账、奖励冲正、候补/通知、回顾和双端页面</td></tr>
+          <tr><td>活动 ACT</td><td><strong>约 65%–70%</strong></td><td>目录/详情、资格、四类报名、真实 HTTP、支付/退款投影、积分/席位/签到奖励冲正、并发名额、扫码签到和双端主旅程</td><td>退款发起/渠道对账/人工确认、候补/通知、回顾、管理写 HTTP 门禁和真机验收</td></tr>
           <tr><td>商城 COM</td><td><strong>约 5%–8%</strong></td><td>CRMEB 商城底座、支付退款审计、inbox/幂等基础</td><td>七类商品、会员申请审核、会员价、混合支付、虚拟履约和售后冲正</td></tr>
           <tr><td>大咖 EXP</td><td><strong>约 2%</strong></td><td>人物角色、角色申请和会员角色数据基础</td><td>主页、案例、档期、付费预约、履约、AI 助手和咨询纪要</td></tr>
           <tr><td>AI 生态 AIE</td><td><strong>0% 运行时</strong></td><td>架构目录和安全边界文档</td><td>网关、对话、模型路由、工具、配额、RAG、护栏、日志和 UI</td></tr>
@@ -70,12 +72,12 @@
         <tbody>
           <tr><td>P1</td><td>G2 管理写接口仍是 planned，不能因路由/服务存在就对外宣称完成</td><td>完成持久化幂等、权限、异常和真实 HTTP 门禁后切 implemented</td></tr>
           <tr><td>P1</td><td>活动已消费可信退款终态并完成积分/席位冲正，但退款发起、渠道查询和人工财务确认入口仍缺失</td><td>复用 ch_refund_attempt，接入查询/人工确认后再开放退票入口</td></tr>
-          <tr><td>P1</td><td>取消/撤销后的积分与贡献值自动冲正缺失</td><td>使用追加式反向流水，禁止覆盖原奖励事实</td></tr>
-          <tr><td>P2</td><td>活动没有 UniApp/Admin 页面，当前 implemented API 无用户可操作入口</td><td>后端报名闭环稳定后立即并行两端页面</td></tr>
-          <tr><td>P2</td><td>当前前端只有资料/毕业认证界面，会籍购买、活动及其他业务页均未完成</td><td>按真实用户旅程补齐，不以 Mock 页计完成</td></tr>
+          <tr><td>P1</td><td>奖励冲正遇到积分已消费时会安全失败，当前不建立负积分债务</td><td>进入重试/人工核账；后续若启用积分负债需单独扩展账户模型</td></tr>
+          <tr><td>P2</td><td>活动双端主旅程已有代码和契约测试，但 UniApp 尚未完成真机/HBuilderX 验收</td><td>真实登录、支付返回、扫码和弱网场景纳入真机门禁</td></tr>
+          <tr><td>P2</td><td>会籍购买及其他业务页仍未完成</td><td>按真实用户旅程补齐，不以 Mock 页计完成</td></tr>
         </tbody>
       </table></div>
-      <div class="callout warn"><strong>无已确认 P0：</strong>现有 G0/G1 门禁、G2 领域 12 例、活动数据库 72、报名数据库 87、并发 13 个断言及真实报名 HTTP 当前通过；退款发起到渠道确认的端到端验证仍未完成。</div>
+      <div class="callout warn"><strong>无已确认 P0：</strong>现有 G0/G1 门禁、G2 领域 12 例、活动数据库 72、报名数据库 96、奖励冲正 41、管理读 24、并发 13 个断言及真实报名 HTTP 当前通过；退款发起到渠道确认的端到端验证仍未完成。</div>
     </section>
 
     <section>
@@ -85,9 +87,9 @@
         <tbody>
           <tr><td>代码基线</td><td><code>feature/g2-activity-core</code>；CRMEB v6.0.0 锁定提交 <code>7dcddffff73ec542d689f159724296351f29ea9a</code></td></tr>
           <tr><td>数据库</td><td>187 张表：157 CRMEB + 29 Chamber 领域/可靠性 + 1 迁移登记；463 项结构复验</td></tr>
-          <tr><td>OpenAPI</td><td>0.5.0 / 26 paths / 28 operations / 22 implemented / 6 planned / 113 schemas</td></tr>
-          <tr><td>G2 测试</td><td>活动领域 12 个用例；活动数据库 72、报名数据库 87、并发 13 个断言；报名真实 HTTP 门禁通过</td></tr>
-          <tr><td>前端</td><td>会员资料/毕业认证用户端和管理端已有；会籍与活动前端未完成</td></tr>
+          <tr><td>OpenAPI</td><td>0.6.0 / 26 paths / 30 operations / 24 implemented / 6 planned / 113 schemas</td></tr>
+          <tr><td>G2 测试</td><td>领域 12；活动数据库 72、报名数据库 96、奖励冲正 41、管理读 24、并发 13；报名真实 HTTP 门禁通过</td></tr>
+          <tr><td>前端</td><td>会员资料/毕业认证、活动 UniApp 主旅程和 Admin 运营台已有；会籍及后续业务页未完成</td></tr>
         </tbody>
       </table></div>
     </section>
@@ -98,7 +100,7 @@
       <div class="table-wrap"><table>
         <thead><tr><th>AI 工时</th><th>主要交付</th><th>完成出口</th></tr></thead>
         <tbody>
-          <tr><td>4–6 小时</td><td>退款发起/对账、奖励冲正、活动 UniApp/Admin 主旅程</td><td>活动退款和双端操作闭环</td></tr>
+          <tr><td>2–3 小时</td><td>退款发起/渠道对账/人工确认、候补通知和活动回顾收口</td><td>退票闭环与活动尾段通过门禁</td></tr>
           <tr><td>4–6 小时</td><td>会员目录/好友/积分/排行和租户配置</td><td>会员与租户主旅程补齐</td></tr>
           <tr><td>6–8 小时</td><td>商城七类商品、审核、混合支付、虚拟履约和售后</td><td>商城核心 API 与主页面可运行</td></tr>
           <tr><td>4–5 小时</td><td>大咖主页、档期、预约、履约和纪要</td><td>预约闭环通过并发与退款门禁</td></tr>
@@ -111,10 +113,10 @@
     <section>
       <h2>7. 立即下一步</h2>
       <ol>
-        <li>G2 自动门禁已覆盖 12 个领域用例、72 个活动数据库断言、87 个报名数据库断言和 13 个并发断言。</li>
-        <li>退款终态、报名积分和席位冲正已完成；下一段接入退款发起/查询确认，并处理签到奖励冲正。</li>
-        <li><code>createEventRegistration</code> 已通过真实 HTTP 门禁并保持 implemented。</li>
-        <li>在后端合同稳定后立即并行活动 UniApp 和 Admin 页面，不再让前端落后一个完整波次。</li>
+        <li>G2 门禁已覆盖 12 个领域用例、72 个活动数据库断言、96 个报名、41 个奖励冲正、24 个管理读和 13 个并发断言。</li>
+        <li>退款终态、报名积分/席位和签到奖励冲正已完成；下一段接入退款发起、渠道查询和人工财务确认。</li>
+        <li><code>createEventRegistration</code> 及两条 Admin 活动读接口保持 implemented；6 个管理写操作继续保持 planned。</li>
+        <li>活动 UniApp/Admin 主旅程已落地，下一轮补真机门禁、候补/通知和回顾。</li>
       </ol>
     </section>
   </div></main>

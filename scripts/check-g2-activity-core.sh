@@ -32,7 +32,7 @@ case "${MODE}" in
     *) fail "Unknown mode: ${MODE}" ;;
 esac
 
-for command in awk grep ruby sed; do
+for command in awk grep node ruby sed; do
     command -v "${command}" >/dev/null 2>&1 || fail "Required command not found: ${command}"
 done
 if [ "${MODE}" = 'local' ]; then
@@ -63,12 +63,15 @@ activity_php_files=(
     backend/custom/app/chamber/services/CrmebEventOrderGateway.php
     backend/custom/app/chamber/jobs/EventReservationRepairJob.php
     backend/custom/app/chamber/services/EventRewardService.php
+    backend/custom/app/chamber/services/EventRewardReversalService.php
     backend/custom/app/chamber/services/EventService.php
     backend/custom/app/chamber/tests/event_run.php
     backend/custom/app/chamber/tests/event_db_run.php
     backend/custom/app/chamber/tests/event_registration_db_run.php
     backend/custom/app/chamber/tests/event_registration_concurrency_run.php
     backend/custom/app/chamber/tests/event_registration_http_fixture.php
+    backend/custom/app/chamber/tests/event_reward_reversal_db_run.php
+    backend/custom/app/chamber/tests/event_admin_read_db_run.php
 )
 
 activity_migrations=(
@@ -122,6 +125,10 @@ if [ "${MODE}" = 'local' ]; then
         php /var/www/app/chamber/tests/event_registration_db_run.php)"
     registration_concurrency_output="$(docker compose -f "${COMPOSE_FILE}" exec -T phpfpm \
         php /var/www/app/chamber/tests/event_registration_concurrency_run.php)"
+    reward_reversal_output="$(docker compose -f "${COMPOSE_FILE}" exec -T phpfpm \
+        php /var/www/app/chamber/tests/event_reward_reversal_db_run.php)"
+    admin_read_output="$(docker compose -f "${COMPOSE_FILE}" exec -T phpfpm \
+        php /var/www/app/chamber/tests/event_admin_read_db_run.php)"
     registration_http_output="$(./scripts/check-g2-event-registration-http.sh)"
 else
     for file in "${activity_php_files[@]}"; do
@@ -132,6 +139,8 @@ else
     database_test_output='SKIP: activity database integration requires the local Docker gate'
     registration_database_output='SKIP: registration database integration requires the local Docker gate'
     registration_concurrency_output='SKIP: registration concurrency requires the local Docker gate'
+    reward_reversal_output='SKIP: reward reversal integration requires the local Docker gate'
+    admin_read_output='SKIP: admin activity reads require the local Docker gate'
     registration_http_output='SKIP: registration HTTP acceptance requires the local Docker gate'
 fi
 
@@ -141,6 +150,19 @@ domain_cases="$(sed -nE 's/^Activity domain tests passed \(([0-9]+) cases\)\.$/\
 domain_minimum="$(manifest_g2_value activity_domain_tests_minimum 10)"
 [ "${domain_cases}" -ge "${domain_minimum}" ] \
     || fail "G2 activity domain tests were removed: ${domain_cases} < ${domain_minimum}"
+
+uniapp_ui_output="$(node frontend/custom/uniapp/tests/activity-ui.test.js)"
+admin_ui_output="$(node frontend/custom/admin/tests/activity-admin.test.js)"
+printf '%s\n' "${uniapp_ui_output}"
+printf '%s\n' "${admin_ui_output}"
+uniapp_ui_tests="$(grep -c '^PASS ' <<<"${uniapp_ui_output}")"
+admin_ui_tests="$(grep -c '^PASS ' <<<"${admin_ui_output}")"
+uniapp_ui_minimum="$(manifest_g2_value activity_uniapp_tests_minimum 11)"
+admin_ui_minimum="$(manifest_g2_value activity_admin_tests_minimum 8)"
+[ "${uniapp_ui_tests}" -ge "${uniapp_ui_minimum}" ] \
+    || fail "G2 UniApp activity tests were removed: ${uniapp_ui_tests} < ${uniapp_ui_minimum}"
+[ "${admin_ui_tests}" -ge "${admin_ui_minimum}" ] \
+    || fail "G2 Admin activity tests were removed: ${admin_ui_tests} < ${admin_ui_minimum}"
 
 if [ "${MODE}" = 'local' ]; then
     printf '%s\n' "${database_test_output}"
@@ -170,6 +192,24 @@ if [ "${MODE}" = 'local' ]; then
     registration_concurrency_minimum="$(manifest_g2_value registration_concurrency_assertions_minimum 13)"
     [ "${registration_concurrency_assertions}" -ge "${registration_concurrency_minimum}" ] \
         || fail "G2 registration concurrency assertions were removed: ${registration_concurrency_assertions} < ${registration_concurrency_minimum}"
+    printf '%s\n' "${reward_reversal_output}"
+    reward_reversal_assertions="$(sed -nE \
+        's/^Event reward reversal database integration passed \(([0-9]+) assertions\)\.$/\1/p' \
+        <<<"${reward_reversal_output}")"
+    [[ "${reward_reversal_assertions:-}" =~ ^[0-9]+$ ]] \
+        || fail 'G2 reward reversal database assertion result is unavailable'
+    reward_reversal_minimum="$(manifest_g2_value reward_reversal_database_assertions_minimum 41)"
+    [ "${reward_reversal_assertions}" -ge "${reward_reversal_minimum}" ] \
+        || fail "G2 reward reversal assertions were removed: ${reward_reversal_assertions} < ${reward_reversal_minimum}"
+    printf '%s\n' "${admin_read_output}"
+    admin_read_assertions="$(sed -nE \
+        's/^Activity admin read integration passed \(([0-9]+) assertions\)\.$/\1/p' \
+        <<<"${admin_read_output}")"
+    [[ "${admin_read_assertions:-}" =~ ^[0-9]+$ ]] \
+        || fail 'G2 admin read database assertion result is unavailable'
+    admin_read_minimum="$(manifest_g2_value admin_read_database_assertions_minimum 24)"
+    [ "${admin_read_assertions}" -ge "${admin_read_minimum}" ] \
+        || fail "G2 admin read assertions were removed: ${admin_read_assertions} < ${admin_read_minimum}"
     printf '%s\n' "${registration_http_output}"
     grep -Fxq 'G2 event registration HTTP gate OK' <<<"${registration_http_output}" \
         || fail 'G2 registration HTTP gate failed'
@@ -177,6 +217,8 @@ else
     printf '%s\n' "${database_test_output}"
     printf '%s\n' "${registration_database_output}"
     printf '%s\n' "${registration_concurrency_output}"
+    printf '%s\n' "${reward_reversal_output}"
+    printf '%s\n' "${admin_read_output}"
     printf '%s\n' "${registration_http_output}"
 fi
 
@@ -214,6 +256,8 @@ expected = {
   'listMyEventRegistrations' => 'implemented',
   'showMyEventRegistration' => 'implemented',
   'createEventCheckin' => 'implemented',
+  'listEventsForAdmin' => 'implemented',
+  'showEventForAdmin' => 'implemented',
   'createEventForAdmin' => 'planned',
   'updateEventForAdmin' => 'planned',
   'publishEventForAdmin' => 'planned',
@@ -240,10 +284,13 @@ git diff --check
 
 printf 'G2 activity core gate OK (%s mode)\n' "${MODE}"
 printf 'PHP: %s G2 files linted; domain: %s cases\n' "${linted}" "${domain_cases}"
+printf 'Frontend: %s UniApp + %s Admin activity tests\n' "${uniapp_ui_tests}" "${admin_ui_tests}"
 if [ "${MODE}" = 'local' ]; then
     printf 'Database: 26 G2 migration checks; %s activity + %s registration assertions\n' \
         "${database_assertions}" "${registration_database_assertions}"
     printf 'Concurrency: 6 contenders / 2 seats; %s assertions\n' "${registration_concurrency_assertions}"
+    printf 'Reward reversal: %s assertions\n' "${reward_reversal_assertions}"
+    printf 'Admin reads: %s assertions\n' "${admin_read_assertions}"
     printf 'HTTP: authentication, idempotency, four pricing modes, native isolation and payment projection passed\n'
 else
     printf 'Database: migration triplets inventoried; runtime assertions delegated to local mode\n'

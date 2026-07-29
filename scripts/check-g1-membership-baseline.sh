@@ -290,7 +290,7 @@ member_ui_test_minimum="$(manifest_g1_minimum \
 
 openapi_output="$(ruby backend/custom/openapi/validate.rb)"
 printf '%s\n' "${openapi_output}"
-grep -Fxq '  Contract version: 0.5.0' <<<"${openapi_output}" \
+grep -Fxq '  Contract version: 0.6.0' <<<"${openapi_output}" \
     || fail "OpenAPI membership contract version changed"
 ruby -rpsych - backend/custom/openapi/chamber-openapi.yaml <<'RUBY'
 content = File.read(ARGV.fetch(0))

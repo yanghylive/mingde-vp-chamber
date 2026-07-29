@@ -118,7 +118,10 @@ Route::group('admin/v1', function () {
         'graduate-verifications/:application_id/reviews',
         'GraduateVerificationReviewController/store'
     )->pattern(['application_id' => '\\d+']);
+    Route::get('events', 'EventAdminController/index');
     Route::post('events', 'EventAdminController/store');
+    Route::get('events/:event_id', 'EventAdminController/show')
+        ->pattern(['event_id' => '\\d+']);
     Route::patch('events/:event_id', 'EventAdminController/update')
         ->pattern(['event_id' => '\\d+']);
     Route::post('events/:event_id/publish', 'EventAdminController/publish')

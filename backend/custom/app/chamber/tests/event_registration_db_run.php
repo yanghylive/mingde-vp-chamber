@@ -13,6 +13,7 @@ use app\chamber\services\EventIdempotency;
 use app\chamber\services\EventRegistrationService;
 use app\chamber\services\EventRegistrationCommerceProjection;
 use app\chamber\services\EventReservationRepairService;
+use app\chamber\services\EventRewardService;
 use app\chamber\services\EventService;
 use app\chamber\services\ThinkDbCommerceEventStore;
 use app\chamber\tenancy\TenantContext;
@@ -435,6 +436,26 @@ try {
     assertSame(1, (int) Db::table('ch_point_ledger')->where('source_type', 'event_registration')
         ->where('source_id', (string) $mixed['id'])->count());
 
+    Db::table('ch_event_registration')->where('id', (int) $mixed['id'])->update([
+        'status' => 5,
+        'update_time' => $now,
+    ]);
+    $attendanceReward = (new EventRewardService())->grant(
+        (int) $tenantRow['id'],
+        $mixedEvent,
+        (int) $mixed['id'],
+        $uid,
+        'attendance',
+        8,
+        3,
+        hash('sha256', 'event-registration-refund-reward:' . $runId),
+        $now
+    );
+    assertSame(false, $attendanceReward['replayed']);
+    assertSame(58, (int) Db::table('ch_point_account')->where('member_id', $memberId)->value('balance'));
+    assertSame(1, (int) Db::table('ch_event_reward')->where('id', (int) $attendanceReward['reward_id'])
+        ->value('status'));
+
     $mixedContext = Db::table('ch_order_context')->where('id', (int) $mixedContext['id'])->find();
     assertTrue(is_array($mixedContext), 'paid mixed registration context must remain available');
 
@@ -507,9 +528,11 @@ try {
         ->value('refund_status'));
     assertSame('5.00', (string) Db::table('ch_order_context')->where('id', (int) $mixedContext['id'])
         ->value('refunded_amount'));
-    assertSame(1, (int) Db::table('ch_event_registration')->where('id', (int) $mixed['id'])->value('status'));
+    assertSame(5, (int) Db::table('ch_event_registration')->where('id', (int) $mixed['id'])->value('status'));
     assertSame(1, (int) Db::table('ch_event_ticket')->where('id', $mixedTicket)->value('paid_count'));
-    assertSame(50, (int) Db::table('ch_point_account')->where('member_id', $memberId)->value('balance'));
+    assertSame(58, (int) Db::table('ch_point_account')->where('member_id', $memberId)->value('balance'));
+    assertSame(1, (int) Db::table('ch_event_reward')->where('id', (int) $attendanceReward['reward_id'])
+        ->value('status'));
     assertSame(1, (int) Db::table('ch_event_registration_effect')
         ->where('registration_id', (int) $mixed['id'])->where('effect_type', 'partial_refund')->count());
 
@@ -586,6 +609,15 @@ try {
         ->where('registration_id', (int) $mixed['id'])->where('effect_type', 'full_refund')->value('points_delta'));
     assertSame(-1, (int) Db::table('ch_event_registration_effect')
         ->where('registration_id', (int) $mixed['id'])->where('effect_type', 'full_refund')->value('seat_delta'));
+    assertSame(2, (int) Db::table('ch_event_reward')->where('id', (int) $attendanceReward['reward_id'])
+        ->value('status'));
+    assertSame(2, (int) Db::table('ch_event_reward')->where('registration_id', (int) $mixed['id'])->count());
+    assertSame(1, (int) Db::table('ch_event_reward')->where('registration_id', (int) $mixed['id'])
+        ->where('reward_type', 'refund_reversal')->count());
+    assertSame(-8, (int) Db::table('ch_point_ledger')->where('source_type', 'event_checkin_refund')
+        ->where('source_id', (string) $mixed['id'])->value('delta'));
+    assertSame(-3, (int) Db::table('ch_contribution_ledger')->where('source_type', 'event_checkin_refund')
+        ->where('source_id', (string) $mixed['id'])->value('delta'));
 
     $expiryEvent = createRegistrationEvent(
         (int) $tenantRow['id'],
