@@ -8,7 +8,7 @@
 </head>
 <body>
   <header class="doc-head"><div class="wrap">
-    <p class="eyebrow">DATABASE BASELINE · 202607210001—202607280003</p>
+    <p class="eyebrow">DATABASE BASELINE · 202607210001—202607280004</p>
     <h1>商会数据库迁移基线</h1>
     <p>在租户会员、认证审核、人物角色、活动报名、商业事件可靠性和 G1 会籍事实基础上，增加 G2 动态签到码、活动奖励、积分账户/流水和贡献流水；CRMEB 原安装 SQL 与业务表保持不变。</p>
   </div></header>
@@ -48,6 +48,8 @@
           <tr><td><code>migrations/202607280002_create_event_payment_runtime.verify.sql</code></td><td>1 项复验：支付运行时表、列和索引完整</td><td>是，只读验证</td></tr>
           <tr><td><code>migrations/202607280003_register_event_reservation_timer.up.sql</code></td><td>注册活动报名超时释放与支付投影重试任务</td><td>是，精确替换商会自有任务行</td></tr>
           <tr><td><code>migrations/202607280003_register_event_reservation_timer.verify.sql</code></td><td>1 项复验：任务唯一、启用且每分钟执行</td><td>是，只读验证</td></tr>
+          <tr><td><code>migrations/202607280004_create_event_refund_effect.up.sql</code></td><td>创建活动报名退款追加效果表，固定完成指纹、累计金额、积分和席位变化</td><td>是，使用 <code>CREATE TABLE IF NOT EXISTS</code></td></tr>
+          <tr><td><code>migrations/202607280004_create_event_refund_effect.verify.sql</code></td><td>4 项复验：表、字段、索引及金额/键边界</td><td>是，只读验证</td></tr>
           <tr><td><code>seeds/202607210001_local_ci_baseline.sql</code></td><td>创建两个通用测试租户、默认渠道和人物角色</td><td>是，只补缺，不覆盖已有配置</td></tr>
           <tr><td><code>seeds/202607210001_local_ci_baseline.verify.sql</code></td><td>核对租户、渠道和角色数量及明细</td><td>是，只读查询</td></tr>
           <tr><td><code>seeds/202607280002_local_event_registration.sql</code></td><td>创建报名真实 HTTP 门禁使用的本地虚拟活动商品和 SKU</td><td>是，只补缺并恢复固定测试属性</td></tr>
@@ -69,7 +71,7 @@
 ./scripts/manage-local-database.sh verify</pre>
       <p><code>setup</code> 先确认每个 <code>*.up.sql</code> 都有同版本 <code>*.verify.sql</code>，再按文件名顺序执行迁移。新迁移只有在结构验证通过后，才把版本、SHA-256 校验和与执行时间写入 <code>ch_schema_migration</code>；验证失败会保留未登记状态，修复结构后可安全重跑。</p>
       <p>已登记迁移不会只做跳过：脚本先核对历史校验和，再重新运行对应结构验证，用于发现缺表、缺列、关键类型变化、索引缺失等常见漂移。独立执行 <code>verify</code> 会同时复验全部迁移结构和本地种子；若结构完整但版本未登记，会明确要求执行 <code>migrate</code> 完成登记。</p>
-      <p>当前本地基线为 CRMEB 157 张原表、28 张 Chamber 领域/可靠性表和 1 张迁移登记表，共 186 张；<code>ch_*</code> 共 29 张。全部迁移验证器合计 459 项结构复验，其中 G0 + G1 为 437 项，G2 四个迁移新增 22 项。MySQL DDL 会自动提交，发布时先执行迁移再切换应用版本；生产环境不得执行通用种子或 <code>down.sql</code>。后续变更必须新增迁移文件，不回写已登记迁移，也不修改 CRMEB 的 <code>public/install/crmeb.sql</code>。</p>
+      <p>当前本地基线为 CRMEB 157 张原表、29 张 Chamber 领域/可靠性表和 1 张迁移登记表，共 187 张；<code>ch_*</code> 共 30 张。全部迁移验证器合计 463 项结构复验，其中 G0 + G1 为 437 项，G2 五个迁移新增 26 项。MySQL DDL 会自动提交，发布时先执行迁移再切换应用版本；生产环境不得执行通用种子或 <code>down.sql</code>。后续变更必须新增迁移文件，不回写已登记迁移，也不修改 CRMEB 的 <code>public/install/crmeb.sql</code>。</p>
     </section>
     <section>
       <h2>本地与 CI 种子边界</h2>

@@ -435,6 +435,158 @@ try {
     assertSame(1, (int) Db::table('ch_point_ledger')->where('source_type', 'event_registration')
         ->where('source_id', (string) $mixed['id'])->count());
 
+    $mixedContext = Db::table('ch_order_context')->where('id', (int) $mixedContext['id'])->find();
+    assertTrue(is_array($mixedContext), 'paid mixed registration context must remain available');
+
+    $refundRequested = registrationRefundEvent(
+        CommerceEventType::REFUND_REQUESTED,
+        $mixedContext,
+        (int) $tenantRow['id'],
+        (int) $channel['id'],
+        $uid,
+        $now,
+        [
+            'source_event_id' => 'refund:701:requested',
+            'refund_pk' => 701,
+            'refund_no' => 'EVENTREFUND701',
+        ]
+    );
+    (new ThinkDbCommerceEventStore())->record($refundRequested);
+    Db::transaction(function () use ($projection, $refundRequested): void {
+        $projection->consumeEvent($refundRequested);
+    });
+    assertSame(1, (int) Db::table('ch_order_context')->where('id', (int) $mixedContext['id'])
+        ->value('refund_status'));
+
+    $refundProcessing = registrationRefundEvent(
+        CommerceEventType::REFUND_PROCESSING,
+        $mixedContext,
+        (int) $tenantRow['id'],
+        (int) $channel['id'],
+        $uid,
+        $now,
+        [
+            'source_event_id' => 'refund:701:processing',
+            'refund_pk' => 701,
+            'refund_no' => 'EVENTREFUND701',
+            'completion_source' => 'provider_accepted',
+            'provider_status' => 'processing',
+        ]
+    );
+    (new ThinkDbCommerceEventStore())->record($refundProcessing);
+    Db::transaction(function () use ($projection, $refundProcessing): void {
+        $projection->consumeEvent($refundProcessing);
+    });
+    assertSame(2, (int) Db::table('ch_order_context')->where('id', (int) $mixedContext['id'])
+        ->value('refund_status'));
+
+    $partialRefund = registrationRefundEvent(
+        CommerceEventType::REFUND_COMPLETED,
+        $mixedContext,
+        (int) $tenantRow['id'],
+        (int) $channel['id'],
+        $uid,
+        $now,
+        [
+            'source_event_id' => 'refund:701:completed',
+            'refund_pk' => 701,
+            'refund_no' => 'EVENTREFUND701',
+            'provider_refund_no' => 'PROVIDER701',
+            'refund_delta' => '5.00',
+            'cumulative_refunded_amount' => '5.00',
+            'completion_id' => 'event-refund-completion-701',
+            'completion_source' => 'provider_query_success',
+            'provider_status' => 'success',
+        ]
+    );
+    (new ThinkDbCommerceEventStore())->record($partialRefund);
+    Db::transaction(function () use ($projection, $partialRefund): void {
+        $projection->consumeEvent($partialRefund);
+    });
+    assertSame(3, (int) Db::table('ch_order_context')->where('id', (int) $mixedContext['id'])
+        ->value('refund_status'));
+    assertSame('5.00', (string) Db::table('ch_order_context')->where('id', (int) $mixedContext['id'])
+        ->value('refunded_amount'));
+    assertSame(1, (int) Db::table('ch_event_registration')->where('id', (int) $mixed['id'])->value('status'));
+    assertSame(1, (int) Db::table('ch_event_ticket')->where('id', $mixedTicket)->value('paid_count'));
+    assertSame(50, (int) Db::table('ch_point_account')->where('member_id', $memberId)->value('balance'));
+    assertSame(1, (int) Db::table('ch_event_registration_effect')
+        ->where('registration_id', (int) $mixed['id'])->where('effect_type', 'partial_refund')->count());
+
+    $partialReobserved = registrationRefundEvent(
+        CommerceEventType::REFUND_COMPLETED,
+        $mixedContext,
+        (int) $tenantRow['id'],
+        (int) $channel['id'],
+        $uid,
+        $now,
+        [
+            'source_event_id' => 'refund:701:completed:reobserved',
+            'refund_pk' => 701,
+            'refund_no' => 'EVENTREFUND701',
+            'provider_refund_no' => 'PROVIDER701',
+            'refund_delta' => '5.00',
+            'cumulative_refunded_amount' => '5.00',
+            'completion_id' => 'event-refund-completion-701',
+            'completion_source' => 'provider_query_success',
+            'provider_status' => 'success',
+        ]
+    );
+    (new ThinkDbCommerceEventStore())->record($partialReobserved);
+    Db::transaction(function () use ($projection, $partialReobserved): void {
+        $projection->consumeEvent($partialReobserved);
+    });
+    assertSame(1, (int) Db::table('ch_event_registration_effect')
+        ->where('registration_id', (int) $mixed['id'])->where('effect_type', 'partial_refund')->count());
+
+    $fullRefund = registrationRefundEvent(
+        CommerceEventType::REFUND_COMPLETED,
+        $mixedContext,
+        (int) $tenantRow['id'],
+        (int) $channel['id'],
+        $uid,
+        $now,
+        [
+            'source_event_id' => 'refund:702:completed',
+            'refund_pk' => 702,
+            'refund_no' => 'EVENTREFUND702',
+            'provider_refund_no' => 'PROVIDER702',
+            'refund_delta' => '7.00',
+            'cumulative_refunded_amount' => '12.00',
+            'completion_id' => 'event-refund-completion-702',
+            'completion_source' => 'provider_query_success',
+            'provider_status' => 'success',
+        ]
+    );
+    (new ThinkDbCommerceEventStore())->record($fullRefund);
+    Db::transaction(function () use ($projection, $fullRefund): void {
+        $projection->consumeEvent($fullRefund);
+    });
+    Db::transaction(function () use ($projection, $fullRefund): void {
+        $projection->consumeEvent($fullRefund);
+    });
+    assertSame(4, (int) Db::table('ch_order_context')->where('id', (int) $mixedContext['id'])
+        ->value('refund_status'));
+    assertSame('12.00', (string) Db::table('ch_order_context')->where('id', (int) $mixedContext['id'])
+        ->value('refunded_amount'));
+    assertSame(3, (int) Db::table('ch_event_registration')->where('id', (int) $mixed['id'])->value('status'));
+    assertSame($now, (int) Db::table('ch_event_registration')->where('id', (int) $mixed['id'])
+        ->value('refund_time'));
+    assertSame(0, (int) Db::table('ch_event_ticket')->where('id', $mixedTicket)->value('paid_count'));
+    assertSame(70, (int) Db::table('ch_point_account')->where('member_id', $memberId)->value('balance'));
+    assertSame(2, (int) Db::table('ch_point_ledger')->where('source_type', 'event_registration')
+        ->where('source_id', (string) $mixed['id'])->value('status'));
+    assertSame(1, (int) Db::table('ch_point_ledger')->where('source_type', 'event_registration_refund')
+        ->where('source_id', (string) $mixed['id'])->count());
+    assertSame(20, (int) Db::table('ch_point_ledger')->where('source_type', 'event_registration_refund')
+        ->where('source_id', (string) $mixed['id'])->value('delta'));
+    assertSame(2, (int) Db::table('ch_event_registration_effect')
+        ->where('registration_id', (int) $mixed['id'])->count());
+    assertSame(20, (int) Db::table('ch_event_registration_effect')
+        ->where('registration_id', (int) $mixed['id'])->where('effect_type', 'full_refund')->value('points_delta'));
+    assertSame(-1, (int) Db::table('ch_event_registration_effect')
+        ->where('registration_id', (int) $mixed['id'])->where('effect_type', 'full_refund')->value('seat_delta'));
+
     $expiryEvent = createRegistrationEvent(
         (int) $tenantRow['id'],
         (int) $channel['id'],
@@ -466,7 +618,7 @@ try {
     assertSame(1, $expirySummary['released']);
     assertSame(2, (int) Db::table('ch_event_registration')->where('id', (int) $expiring['id'])->value('status'));
     assertSame(0, (int) Db::table('ch_event_ticket')->where('id', $expiryTicket)->value('reserved_count'));
-    assertSame(50, (int) Db::table('ch_point_account')->where('member_id', $memberId)->value('balance'));
+    assertSame(70, (int) Db::table('ch_point_account')->where('member_id', $memberId)->value('balance'));
     assertSame(0, (int) Db::table('ch_point_account')->where('member_id', $memberId)->value('frozen_balance'));
     assertSame(3, (int) Db::table('ch_point_hold')->where('registration_id', (int) $expiring['id'])->value('status'));
     assertSame(3, (int) Db::table('ch_order_context')->where('business_type', 'event_registration')
@@ -682,6 +834,42 @@ function createRegistrationTicket(
         'update_time' => $now,
         'is_del' => 0,
     ]);
+}
+
+function registrationRefundEvent(
+    string $eventType,
+    array $context,
+    int $tenantId,
+    int $channelId,
+    int $uid,
+    int $now,
+    array $overrides
+): CommerceEvent {
+    return CommerceEvent::fromArray(array_replace([
+        'source' => 'crmeb',
+        'source_event_id' => 'refund:event:test',
+        'event_type' => $eventType,
+        'occurred_at' => $now,
+        'tenant_id' => $tenantId,
+        'channel_id' => $channelId,
+        'order_pk' => (int) $context['order_pk'],
+        'order_no' => (string) $context['order_no'],
+        'uid' => $uid,
+        'business_type' => 'event_registration',
+        'context_id' => (int) $context['id'],
+        'currency' => 'CNY',
+        'paid_amount' => (string) $context['paid_amount'],
+        'correlation_id' => 'chamber:event:refund:' . (int) $context['business_id'],
+        'refund_pk' => 700,
+        'refund_no' => 'EVENTREFUND700',
+        'provider_refund_no' => '',
+        'refund_status' => CommerceEventType::refundStatus($eventType),
+        'refund_delta' => '0.00',
+        'cumulative_refunded_amount' => '0.00',
+        'completion_id' => '',
+        'completion_source' => '',
+        'provider_status' => '',
+    ], $overrides));
 }
 
 function expectReason(string $reason, int $status, callable $callback): void

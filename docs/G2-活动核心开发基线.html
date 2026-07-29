@@ -26,9 +26,9 @@
       <div class="decision-grid">
         <article><small>当前阶段</small><strong>G2 后端核心完成</strong><p>用户端活动读、本人报名读和扫码签到进入 implemented。</p></article>
         <article><small>机器契约</small><strong>22 implemented / 6 planned</strong><p>OpenAPI 共 26 条路径、28 个操作、113 个 Schema。</p></article>
-        <article><small>数据库</small><strong>186 张表</strong><p>157 张 CRMEB + 28 张 Chamber 领域/可靠性表 + 1 张迁移登记表。</p></article>
+        <article><small>数据库</small><strong>187 张表</strong><p>157 张 CRMEB + 29 张 Chamber 领域/可靠性表 + 1 张迁移登记表。</p></article>
       </div>
-      <div class="callout warn"><strong>边界：</strong>免费、纯积分、现金和混合报名，可信支付投影、超时释放与真实 HTTP 门禁已完成；退款与奖励冲正、候补/通知、活动回顾及所有活动前端页面仍未完成。</div>
+      <div class="callout warn"><strong>边界：</strong>四类报名、可信支付、部分/全额退款投影、积分与席位冲正、超时释放和报名真实 HTTP 已完成；退款发起/渠道对账、签到奖励冲正、候补/通知、活动回顾及所有活动前端页面仍未完成。</div>
     </section>
 
     <section>
@@ -39,7 +39,7 @@
           <tr><td>活动目录</td><td>租户/渠道限定的活动列表和详情，支持类型、时间、状态和标签查询</td><td><code>listEvents</code>、<code>showEvent</code> 已实现</td></tr>
           <tr><td>资格判定</td><td>按发布状态、报名窗口、容量、会籍、毕业认证、渠道、角色和积分返回稳定原因</td><td>资格读与免费/积分报名事务共用同一规则</td></tr>
           <tr><td>我的报名</td><td>本人报名列表和详情，可读取报名、支付、签到状态投影</td><td><code>listMyEventRegistrations</code>、<code>showMyEventRegistration</code> 已实现</td></tr>
-          <tr><td>活动报名交易</td><td>免费/积分即时确认；现金/混合按预占、CRMEB 建单、OrderContext 回绑三段执行；积分先冻结，支付后扣账，超时后释放</td><td>65 个数据库断言 + 6 人抢 2 名额的 13 个并发断言；四种计费模式真实 HTTP 门禁通过，创建操作已 implemented</td></tr>
+          <tr><td>活动报名交易</td><td>免费/积分即时确认；现金/混合三段建单；可信全额退款恢复报名积分并释放席位，部分退款只更新累计事实</td><td>87 个数据库断言 + 6 人抢 2 名额的 13 个并发断言；四种计费模式真实 HTTP 门禁通过</td></tr>
           <tr><td>扫码签到</td><td>租户域 HMAC 动态码、过期/签名检查、报名与活动匹配、重复签到安全重放</td><td><code>createEventCheckin</code> 已实现</td></tr>
           <tr><td>签到奖励</td><td>签到后幂等记录积分、贡献值和奖励账本</td><td>取消/撤销后自动冲正未完成</td></tr>
           <tr><td>管理服务</td><td>已有创建、编辑、发布、取消、发码和人工补签的路由/服务代码</td><td>6 个管理写操作在 OpenAPI 中仍为 <code>planned</code>，不计对外完成</td></tr>
@@ -49,7 +49,7 @@
 
     <section>
       <h2>3. 数据库增量</h2>
-      <p>活动运行时、签到奖励、支付冻结和超时任务共 4 个 G2 迁移已执行并登记，新增 6 张表，同时扩展活动、票种、报名和积分账户事实。</p>
+      <p>活动运行时、签到奖励、支付冻结、超时任务和退款效果共 5 个 G2 迁移已执行并登记，新增 7 张表，同时扩展活动、票种、报名和积分账户事实。</p>
       <div class="table-wrap"><table>
         <thead><tr><th>数据对象</th><th>用途</th><th>关键不变量</th></tr></thead>
         <tbody>
@@ -59,9 +59,10 @@
           <tr><td><code>ch_point_ledger</code></td><td>积分追加式流水</td><td>来源事实不重复入账</td></tr>
           <tr><td><code>ch_contribution_ledger</code></td><td>贡献值追加式流水</td><td>来源事实不重复入账</td></tr>
           <tr><td><code>ch_point_hold</code></td><td>混合支付报名积分冻结</td><td>每笔报名唯一；只可冻结转扣减或释放</td></tr>
+          <tr><td><code>ch_event_registration_effect</code></td><td>部分/全额退款追加效果</td><td>可信完成指纹唯一；现金、积分和席位变化可审计</td></tr>
         </tbody>
       </table></div>
-      <p>当前共 13 个已登记迁移，迁移结构验证合计 459 项，其中 G2 新增 22 项。</p>
+      <p>当前共 14 个已登记迁移，迁移结构验证合计 463 项，其中 G2 新增 26 项。</p>
     </section>
 
     <section>
@@ -84,7 +85,7 @@
           <tr><td><code>ACT-001/002</code> 活动发布、类型与标签</td><td>后端服务部分完成；管理契约与界面未完成</td><td>管理写接口门禁 + 运营工作台</td></tr>
           <tr><td><code>ACT-003</code> 日历/列表</td><td>列表和详情 API 已完成</td><td>UniApp 日历、列表、详情页</td></tr>
           <tr><td><code>ACT-004</code> 报名资格</td><td>后端判定与报名事务已共用，真实 HTTP 门禁通过</td><td>补用户页面</td></tr>
-          <tr><td><code>ACT-005/006</code> 报名支付与地图</td><td>免费/积分/现金/混合事务、支付投影、超时释放与真实 HTTP 门禁完成；退款与地图未完成</td><td>退款冲正和页面</td></tr>
+          <tr><td><code>ACT-005/006</code> 报名支付与地图</td><td>四类报名、支付、退款终态投影、积分/席位冲正、超时释放和真实 HTTP 完成；退款发起与地图未完成</td><td>退款发起/对账和页面</td></tr>
           <tr><td><code>ACT-007</code> 动态码/人工补签</td><td>扫码核心完成；管理发码和补签对外契约仍 planned</td><td>管理 HTTP 门禁和双端页面</td></tr>
           <tr><td><code>ACT-008</code> 积分/贡献值</td><td>签到发放完成，冲正未完成</td><td>取消、撤销和退款驱动的追加式冲正</td></tr>
           <tr><td><code>ACT-009/010</code> 候补通知与回顾</td><td>未完成</td><td>等主报名闭环后实施</td></tr>
@@ -103,8 +104,8 @@ docker exec mingde_crmeb_php php /var/www/app/chamber/tests/event_registration_c
       <ul class="checklist">
         <li>活动领域测试 12 个用例通过。</li>
         <li>活动数据库集成测试 72 个断言通过，覆盖持久化幂等和人工补签奖励。</li>
-        <li>活动报名数据库 65 个断言通过，覆盖现金/混合建单、积分冻结、支付重放和超时释放；并发门禁 13 个断言。</li>
-        <li>13 个数据库迁移全部重验通过，当前数据库 186 张表。</li>
+        <li>活动报名数据库 87 个断言通过，覆盖现金/混合建单、积分冻结、支付重放、部分/全额退款、积分/席位冲正和超时释放；并发门禁 13 个断言。</li>
+        <li>14 个数据库迁移全部重验通过，当前数据库 187 张表。</li>
         <li>真实 HTTP 门禁通过：鉴权、幂等、免费/积分/现金/混合报名、原生购物车隔离、支付投影与重复回放。</li>
         <li>OpenAPI 校验通过：26 paths / 28 operations / 22 implemented / 6 planned / 113 schemas。</li>
       </ul>

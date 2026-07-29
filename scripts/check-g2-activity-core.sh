@@ -76,6 +76,7 @@ activity_migrations=(
     202607280001_add_event_checkin_rewards
     202607280002_create_event_payment_runtime
     202607280003_register_event_reservation_timer
+    202607280004_create_event_refund_effect
 )
 
 for file in "${activity_php_files[@]}"; do
@@ -103,6 +104,8 @@ if [ "${MODE}" = 'local' ]; then
         || fail 'G2 event payment runtime migration structural checks changed'
     grep -Fq 'PASS 202607280003_register_event_reservation_timer (1 structural checks)' <<<"${database_output}" \
         || fail 'G2 event reservation timer migration structural checks changed'
+    grep -Fq 'PASS 202607280004_create_event_refund_effect (4 structural checks)' <<<"${database_output}" \
+        || fail 'G2 event refund effect migration structural checks changed'
 
     for file in "${activity_php_files[@]}"; do
         relative="${file#backend/custom/app/chamber/}"
@@ -238,7 +241,7 @@ git diff --check
 printf 'G2 activity core gate OK (%s mode)\n' "${MODE}"
 printf 'PHP: %s G2 files linted; domain: %s cases\n' "${linted}" "${domain_cases}"
 if [ "${MODE}" = 'local' ]; then
-    printf 'Database: 19 + 1 migration checks; %s activity + %s registration assertions\n' \
+    printf 'Database: 26 G2 migration checks; %s activity + %s registration assertions\n' \
         "${database_assertions}" "${registration_database_assertions}"
     printf 'Concurrency: 6 contenders / 2 seats; %s assertions\n' "${registration_concurrency_assertions}"
     printf 'HTTP: authentication, idempotency, four pricing modes, native isolation and payment projection passed\n'

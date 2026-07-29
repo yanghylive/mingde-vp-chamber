@@ -117,7 +117,7 @@ docker exec -w /var/www mingde_crmeb_php php app/chamber/tests/graduate_verifica
 ./scripts/manage-local-database.sh status
 ruby backend/custom/commerce/audit_crmeb_v6.rb
 ruby backend/custom/openapi/validate.rb</pre>
-      <p>完整门禁会安装或复用隔离运行副本、执行 437 项迁移复验、运行 PHP/前端/OpenAPI 测试，并检查真实 HTTP Token、租户解析、同/不同 Key 并发、退出态重放、资料、私有附件、认证提交、管理员审核和会籍下单。当前数据库为 180 张表，OpenAPI 为 0.5.0；CRMEB 原生购物车/订单/退款入口、积分/佣金副作用和 timer 缺口补绑也纳入验收。</p>
+      <p>完整门禁会安装或复用隔离运行副本、执行 463 项迁移复验、运行 PHP/前端/OpenAPI 测试，并检查真实 HTTP Token、租户解析、并发/重放、资料、认证、会籍下单和四类活动报名。当前数据库为 187 张表，OpenAPI 为 0.5.0；CRMEB 原生购物车/订单/退款入口隔离、支付与退款投影、积分/席位冲正和 timer 补偿也纳入验收。</p>
     </section>
     <section>
       <h2>不可破坏的规则</h2>
