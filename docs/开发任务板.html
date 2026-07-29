@@ -59,9 +59,9 @@
           <tr><td><code>G2-01B</code></td><td>活动列表/详情、会员资格和我的报名查询</td><td>已完成</td><td>4 个读操作 implemented；租户/渠道/会员范围通过领域和数据库测试</td></tr>
           <tr><td><code>G2-01C</code></td><td>动态签到码、扫码签到、重复重放和积分/贡献奖励</td><td>已完成</td><td><code>createEventCheckin</code> implemented；活动数据库 72 断言</td></tr>
           <tr><td><code>G2-01D</code></td><td>管理创建/编辑/发布/取消/发码/补签</td><td>代码加固完成，契约仍 planned</td><td>持久化幂等和人工补签奖励已纳入测试；完整 HTTP/权限门禁后才切 implemented</td></tr>
-          <tr><td><code>G2-02</code></td><td>报名创建、并发名额、支付/退款/冲正和双端页面</td><td>四类报名、支付和超时后端完成</td><td>报名数据库 65 + 并发 13 断言；继续完成退款冲正、HTTP 门禁和双端页面</td></tr>
+          <tr><td><code>G2-02</code></td><td>报名创建、并发名额、支付/退款/冲正和双端页面</td><td>四类报名、支付、超时和真实 HTTP 完成</td><td>报名数据库 65 + 并发 13 断言；继续完成退款冲正和双端页面</td></tr>
         </tbody></table></div>
-        <div class="callout warn"><strong>计数边界：</strong>G2 当前仍不是活动产品闭环。四类报名、支付和并发名额只完成后端；退款冲正、候补/通知、回顾、真实报名 HTTP 门禁、UniApp 和 Admin 页面未完成。</div>
+        <div class="callout warn"><strong>计数边界：</strong>G2 当前仍不是活动产品闭环。四类报名、支付、并发名额和真实 HTTP 已完成；退款冲正、候补/通知、回顾、UniApp 和 Admin 页面未完成。</div>
       </section>
 
       <section id="next">
@@ -98,7 +98,7 @@
       <section>
         <h2>7. 当前自动验收</h2>
         <pre>./scripts/check-g2-activity-core.sh</pre>
-        <p>当前数据库为 186 张表，其中 28 张 Chamber 领域/可靠性表 + 1 张迁移登记表；全部迁移共 459 项结构检查。G2 门禁包含活动领域 12 个用例、活动数据库 72、报名数据库 65、并发名额 13 个断言。OpenAPI 0.5.0 当前为 26 条路径、28 个操作（21 implemented + 7 planned）和 113 个 Schema。</p>
+        <p>当前数据库为 186 张表，其中 28 张 Chamber 领域/可靠性表 + 1 张迁移登记表；全部迁移共 459 项结构检查。G2 门禁包含活动领域 12 个用例、活动数据库 72、报名数据库 65、并发名额 13 个断言和四模式报名真实 HTTP。OpenAPI 0.5.0 当前为 26 条路径、28 个操作（22 implemented + 6 planned）和 113 个 Schema。</p>
         <div class="callout warn"><strong>上线边界：</strong>本批达到本地支付事实消费与会籍权益验收，不代表真实微信支付或生产部署已经就绪。正式商户联调、专业恶意软件扫描、生产对象存储、审计告警/检索、监控备份和正式配置仍待办。</div>
       </section>
     </div>

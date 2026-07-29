@@ -189,7 +189,7 @@ expected_operations = [
   ['/chamber/v1/me/membership', 'get', 'getMembershipSummary', 'implemented', '200', 'CrmebBearerAuth'],
   ['/chamber/v1/events', 'get', 'listEvents', 'implemented', '200', 'CrmebBearerAuth'],
   ['/chamber/v1/events/{event_id}', 'get', 'showEvent', 'implemented', '200', 'CrmebBearerAuth'],
-  ['/chamber/v1/events/{event_id}/registrations', 'post', 'createEventRegistration', 'planned', '201', 'CrmebBearerAuth'],
+  ['/chamber/v1/events/{event_id}/registrations', 'post', 'createEventRegistration', 'implemented', '201', 'CrmebBearerAuth'],
   ['/chamber/v1/me/event-registrations', 'get', 'listMyEventRegistrations', 'implemented', '200', 'CrmebBearerAuth'],
   ['/chamber/v1/me/event-registrations/{registration_id}', 'get', 'showMyEventRegistration', 'implemented', '200', 'CrmebBearerAuth'],
   ['/chamber/v1/events/{event_id}/checkins', 'post', 'createEventCheckin', 'implemented', '201', 'CrmebBearerAuth'],

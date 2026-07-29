@@ -207,6 +207,9 @@ required_files=(
   "backend/custom/database/seeds/202607210001_local_ci_baseline.verify.sql"
   "backend/custom/database/seeds/202607250002_local_membership_checkout.sql"
   "backend/custom/database/seeds/202607250002_local_membership_checkout.verify.sql"
+  "backend/custom/database/seeds/202607280002_local_event_registration.sql"
+  "backend/custom/database/seeds/202607280002_local_event_registration.verify.sql"
+  "backend/custom/app/chamber/tests/event_registration_http_fixture.php"
   "backend/custom/openapi/README.html"
   "backend/custom/openapi/chamber-openapi.yaml"
   "backend/custom/openapi/validate.rb"
@@ -242,6 +245,7 @@ required_files=(
   "scripts/check-g1-membership-checkout.sh"
   "scripts/check-g1-membership-entitlement.sh"
   "scripts/check-g2-activity-core.sh"
+  "scripts/check-g2-event-registration-http.sh"
 )
 
 required_executables=(
@@ -257,6 +261,7 @@ required_executables=(
   "scripts/check-g1-membership-checkout.sh"
   "scripts/check-g1-membership-entitlement.sh"
   "scripts/check-g2-activity-core.sh"
+  "scripts/check-g2-event-registration-http.sh"
 )
 
 for file in "${required_files[@]}"; do

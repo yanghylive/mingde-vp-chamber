@@ -822,7 +822,7 @@ paths:
       operationId: createEventRegistration
       security:
         - CrmebBearerAuth: []
-      x-implementation-status: planned
+      x-implementation-status: implemented
       x-requirement-id: ACT-004,ACT-005
       x-tenant-context: required
       x-signed-headers-all-or-none: true

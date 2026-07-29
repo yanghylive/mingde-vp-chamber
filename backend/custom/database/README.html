@@ -8,7 +8,7 @@
 </head>
 <body>
   <header class="doc-head"><div class="wrap">
-    <p class="eyebrow">DATABASE BASELINE · 202607210001—202607280001</p>
+    <p class="eyebrow">DATABASE BASELINE · 202607210001—202607280003</p>
     <h1>商会数据库迁移基线</h1>
     <p>在租户会员、认证审核、人物角色、活动报名、商业事件可靠性和 G1 会籍事实基础上，增加 G2 动态签到码、活动奖励、积分账户/流水和贡献流水；CRMEB 原安装 SQL 与业务表保持不变。</p>
   </div></header>
@@ -50,6 +50,8 @@
           <tr><td><code>migrations/202607280003_register_event_reservation_timer.verify.sql</code></td><td>1 项复验：任务唯一、启用且每分钟执行</td><td>是，只读验证</td></tr>
           <tr><td><code>seeds/202607210001_local_ci_baseline.sql</code></td><td>创建两个通用测试租户、默认渠道和人物角色</td><td>是，只补缺，不覆盖已有配置</td></tr>
           <tr><td><code>seeds/202607210001_local_ci_baseline.verify.sql</code></td><td>核对租户、渠道和角色数量及明细</td><td>是，只读查询</td></tr>
+          <tr><td><code>seeds/202607280002_local_event_registration.sql</code></td><td>创建报名真实 HTTP 门禁使用的本地虚拟活动商品和 SKU</td><td>是，只补缺并恢复固定测试属性</td></tr>
+          <tr><td><code>seeds/202607280002_local_event_registration.verify.sql</code></td><td>核对活动测试商品与 SKU 的虚拟商品、价格和库存边界</td><td>是，只读查询</td></tr>
         </tbody>
       </table></div>
     </section>
@@ -71,9 +73,9 @@
     </section>
     <section>
       <h2>本地与 CI 种子边界</h2>
-      <p>通用基线种子创建 <code>local-primary</code>、<code>local-secondary</code> 两个不绑定真实品牌的租户；每个租户只创建一个 <code>default</code> 渠道，以及普通会员、导师、教练、行业领袖四个角色。会籍验收种子另行创建两条本地虚拟商品和四个会籍计划映射，用于真实订单链路。</p>
+      <p>通用基线种子创建 <code>local-primary</code>、<code>local-secondary</code> 两个不绑定真实品牌的租户；每个租户只创建一个 <code>default</code> 渠道，以及普通会员、导师、教练、行业领袖四个角色。会籍验收种子另行创建两条本地虚拟商品和四个会籍计划映射；活动报名 HTTP 门禁种子创建一条固定虚拟活动商品和 SKU，用于真实 CRMEB 订单链路。</p>
       <ul class="checklist">
-        <li>通用基线种子不创建 CRMEB 用户、租户会员、活动、商品或订单；会籍验收种子只创建带 <code>is_sub=1</code>、零积分/零佣金字段的本地虚拟会籍商品及计划映射。</li>
+        <li>通用基线种子不创建 CRMEB 用户、租户会员、活动、商品或订单；会籍和活动验收种子只创建本地虚拟测试商品及必要映射，不创建业务订单。</li>
         <li>重复执行只插入缺少的唯一键，不更新、启用或恢复已有记录。</li>
         <li>若基线记录已被停用或软删除，校验结果会显示 <code>FAIL</code>，由开发者明确处理，不由种子覆盖配置。</li>
         <li>该种子不得在生产环境执行，生产租户必须通过受控初始化流程创建。</li>

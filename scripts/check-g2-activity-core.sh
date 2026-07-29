@@ -68,6 +68,7 @@ activity_php_files=(
     backend/custom/app/chamber/tests/event_db_run.php
     backend/custom/app/chamber/tests/event_registration_db_run.php
     backend/custom/app/chamber/tests/event_registration_concurrency_run.php
+    backend/custom/app/chamber/tests/event_registration_http_fixture.php
 )
 
 activity_migrations=(
@@ -118,6 +119,7 @@ if [ "${MODE}" = 'local' ]; then
         php /var/www/app/chamber/tests/event_registration_db_run.php)"
     registration_concurrency_output="$(docker compose -f "${COMPOSE_FILE}" exec -T phpfpm \
         php /var/www/app/chamber/tests/event_registration_concurrency_run.php)"
+    registration_http_output="$(./scripts/check-g2-event-registration-http.sh)"
 else
     for file in "${activity_php_files[@]}"; do
         php -l "${file}" >/dev/null
@@ -127,6 +129,7 @@ else
     database_test_output='SKIP: activity database integration requires the local Docker gate'
     registration_database_output='SKIP: registration database integration requires the local Docker gate'
     registration_concurrency_output='SKIP: registration concurrency requires the local Docker gate'
+    registration_http_output='SKIP: registration HTTP acceptance requires the local Docker gate'
 fi
 
 printf '%s\n' "${domain_output}"
@@ -164,10 +167,14 @@ if [ "${MODE}" = 'local' ]; then
     registration_concurrency_minimum="$(manifest_g2_value registration_concurrency_assertions_minimum 13)"
     [ "${registration_concurrency_assertions}" -ge "${registration_concurrency_minimum}" ] \
         || fail "G2 registration concurrency assertions were removed: ${registration_concurrency_assertions} < ${registration_concurrency_minimum}"
+    printf '%s\n' "${registration_http_output}"
+    grep -Fxq 'G2 event registration HTTP gate OK' <<<"${registration_http_output}" \
+        || fail 'G2 registration HTTP gate failed'
 else
     printf '%s\n' "${database_test_output}"
     printf '%s\n' "${registration_database_output}"
     printf '%s\n' "${registration_concurrency_output}"
+    printf '%s\n' "${registration_http_output}"
 fi
 
 openapi_output="$(ruby backend/custom/openapi/validate.rb)"
@@ -200,7 +207,7 @@ spec = Psych.safe_load(
 expected = {
   'listEvents' => 'implemented',
   'showEvent' => 'implemented',
-  'createEventRegistration' => 'planned',
+  'createEventRegistration' => 'implemented',
   'listMyEventRegistrations' => 'implemented',
   'showMyEventRegistration' => 'implemented',
   'createEventCheckin' => 'implemented',
@@ -234,6 +241,7 @@ if [ "${MODE}" = 'local' ]; then
     printf 'Database: 19 + 1 migration checks; %s activity + %s registration assertions\n' \
         "${database_assertions}" "${registration_database_assertions}"
     printf 'Concurrency: 6 contenders / 2 seats; %s assertions\n' "${registration_concurrency_assertions}"
+    printf 'HTTP: authentication, idempotency, four pricing modes, native isolation and payment projection passed\n'
 else
     printf 'Database: migration triplets inventoried; runtime assertions delegated to local mode\n'
 fi

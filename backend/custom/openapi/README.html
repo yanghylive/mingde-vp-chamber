@@ -15,7 +15,7 @@
     <div class="eyebrow">API CONTRACT · G0 + G1 + G2 BACKEND CORE · 2026-07-28</div>
     <h1>Chamber API 契约基线</h1>
     <p>固定 G0 运行契约、G1 会员/认证/会籍交易契约，以及 G2 活动目录、会员资格、报名查询和扫码签到核心。YAML 是机器可读的唯一事实源；每个操作显式标记 implemented 或 planned。</p>
-    <div class="meta"><span>OpenAPI 3.1.0</span><span>契约版本 0.5.0</span><span>CRMEB-KY v6.0.0</span><span>26 路径 / 28 操作</span><span>21 implemented / 7 planned</span><span>Schema 113</span></div>
+    <div class="meta"><span>OpenAPI 3.1.0</span><span>契约版本 0.5.0</span><span>CRMEB-KY v6.0.0</span><span>26 路径 / 28 操作</span><span>22 implemented / 6 planned</span><span>Schema 113</span></div>
   </header>
   <div class="content">
     <nav class="toc" aria-label="页内目录">
@@ -24,7 +24,7 @@
 
     <section id="scope">
       <h2>1. 范围与结论</h2>
-      <p><a href="chamber-openapi.yaml">chamber-openapi.yaml</a> 是二开接口契约的版本库事实源。G0/G1 保持 16 个 implemented 操作；G2 增加 12 个活动操作，其中活动列表/详情、我的报名列表/详情和扫码签到 5 个已实现，报名创建与 6 个管理写操作仍为 planned。</p>
+      <p><a href="chamber-openapi.yaml">chamber-openapi.yaml</a> 是二开接口契约的版本库事实源。G0/G1 保持 16 个 implemented 操作；G2 增加 12 个活动操作，其中活动列表/详情、报名创建、我的报名列表/详情和扫码签到 6 个已实现，6 个管理写操作仍为 planned。</p>
       <div class="callout"><strong>交付边界：</strong><code>planned</code> 只表示契约已确定，不表示路由已上线。实现完成时必须在同一变更中加入路由、服务、测试，并把状态改为 <code>implemented</code>。前端不得根据中文 <code>msg</code> 分支。</div>
       <div class="callout"><strong>运行时已对齐：</strong>用户端使用 CRMEB api Token，管理端使用 CRMEB Admin Token + 专用权限；身份后解析 TenantContext。G1 主链路已有真实 HTTP 验证；G2 当前的 implemented 范围是用户端读和扫码签到核心，管理写操作不越过 planned 边界。</div>
       <p>G1 实施边界见 <a href="../../../docs/G1-会员交易开发基线.html">G1 会员交易开发基线</a>；G2 当前事实和缺口见 <a href="../../../docs/G2-活动核心开发基线.html">G2 活动核心开发基线</a>。</p>
@@ -167,7 +167,7 @@ X-Chamber-Signature</pre>
 
 # 也可指定待验证文件
 ruby backend/custom/openapi/validate.rb path/to/chamber-openapi.yaml</pre>
-      <p>它会检查 YAML 重复键、本地 <code>$ref</code>、26 条路径与 28 个 operationId、113 个 Schema、21 implemented / 7 planned 状态、用户/管理 Bearer、租户头、幂等头、私有内容查询/响应头、统一 envelope、金额/时间/分页、商业事件和无 PII 约束，并固定活动 5 implemented / 7 planned 操作边界。它是项目治理校验，不代替完整 OpenAPI JSON Schema 校验器。</p>
+      <p>它会检查 YAML 重复键、本地 <code>$ref</code>、26 条路径与 28 个 operationId、113 个 Schema、22 implemented / 6 planned 状态、用户/管理 Bearer、租户头、幂等头、私有内容查询/响应头、统一 envelope、金额/时间/分页、商业事件和无 PII 约束，并固定活动 6 implemented / 6 planned 操作边界。它是项目治理校验，不代替完整 OpenAPI JSON Schema 校验器。</p>
       <div class="callout warn"><strong>变更规则：</strong>破坏性变更必须提升 API 主版本；非破坏性字段扩展提升契约次版本；仅文案/示例修订提升补丁版本。</div>
     </section>
   </div>

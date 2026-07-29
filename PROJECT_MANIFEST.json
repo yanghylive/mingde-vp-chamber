@@ -156,11 +156,12 @@
     "openapi_version": "0.5.0",
     "openapi_paths": 26,
     "openapi_operations_total": 28,
-    "openapi_operations_implemented": 21,
-    "openapi_operations_planned": 7,
+    "openapi_operations_implemented": 22,
+    "openapi_operations_planned": 6,
     "openapi_schemas": 113,
-    "implemented_activity_operations": 5,
-    "planned_activity_operations": 7,
+    "implemented_activity_operations": 6,
+    "planned_activity_operations": 6,
+    "event_registration_http_gate": "scripts/check-g2-event-registration-http.sh",
     "gate": "scripts/check-g2-activity-core.sh"
   }
 }
