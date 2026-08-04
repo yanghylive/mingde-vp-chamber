@@ -131,7 +131,7 @@ unless spec.is_a?(Hash)
 end
 
 errors << 'openapi must equal 3.1.0' unless spec['openapi'] == '3.1.0'
-errors << 'info.version must equal 0.3.0' unless dig_hash(spec, 'info', 'version') == '0.3.0'
+errors << 'info.version must equal 0.4.0' unless dig_hash(spec, 'info', 'version') == '0.4.0'
 
 expected_paths = [
   '/chamber/health',
@@ -139,6 +139,8 @@ expected_paths = [
   '/chamber/v1/me/bootstrap',
   '/chamber/v1/me/profile',
   '/chamber/v1/me/graduate-verifications',
+  '/chamber/admin/v1/graduate-verifications',
+  '/chamber/admin/v1/graduate-verifications/{application_id}',
   '/chamber/admin/v1/graduate-verifications/{application_id}/reviews',
   '/chamber/v1/membership/plans',
   '/chamber/v1/membership/checkouts',
@@ -151,11 +153,13 @@ expected_operations = [
   ['/chamber/health', 'get', 'getChamberHealth', 'implemented', '200', nil],
   ['/chamber/v1/bootstrap', 'get', 'getChamberBootstrap', 'implemented', '200', nil],
   ['/chamber/v1/me/bootstrap', 'post', 'bootstrapChamberMember', 'implemented', '200', 'CrmebBearerAuth'],
-  ['/chamber/v1/me/profile', 'get', 'getChamberMemberProfile', 'planned', '200', 'CrmebBearerAuth'],
-  ['/chamber/v1/me/profile', 'patch', 'updateChamberMemberProfile', 'planned', '200', 'CrmebBearerAuth'],
-  ['/chamber/v1/me/graduate-verifications', 'get', 'getGraduateVerification', 'planned', '200', 'CrmebBearerAuth'],
-  ['/chamber/v1/me/graduate-verifications', 'post', 'submitGraduateVerification', 'planned', '201', 'CrmebBearerAuth'],
-  ['/chamber/admin/v1/graduate-verifications/{application_id}/reviews', 'post', 'reviewGraduateVerification', 'planned', '200', 'CrmebAdminBearerAuth'],
+  ['/chamber/v1/me/profile', 'get', 'getChamberMemberProfile', 'implemented', '200', 'CrmebBearerAuth'],
+  ['/chamber/v1/me/profile', 'patch', 'updateChamberMemberProfile', 'implemented', '200', 'CrmebBearerAuth'],
+  ['/chamber/v1/me/graduate-verifications', 'get', 'getGraduateVerification', 'implemented', '200', 'CrmebBearerAuth'],
+  ['/chamber/v1/me/graduate-verifications', 'post', 'submitGraduateVerification', 'implemented', '201', 'CrmebBearerAuth'],
+  ['/chamber/admin/v1/graduate-verifications', 'get', 'listGraduateVerificationsForAdmin', 'implemented', '200', 'CrmebAdminBearerAuth'],
+  ['/chamber/admin/v1/graduate-verifications/{application_id}', 'get', 'getGraduateVerificationForAdmin', 'implemented', '200', 'CrmebAdminBearerAuth'],
+  ['/chamber/admin/v1/graduate-verifications/{application_id}/reviews', 'post', 'reviewGraduateVerification', 'implemented', '200', 'CrmebAdminBearerAuth'],
   ['/chamber/v1/membership/plans', 'get', 'listMembershipPlans', 'planned', '200', 'CrmebBearerAuth'],
   ['/chamber/v1/membership/checkouts', 'post', 'createMembershipCheckout', 'planned', '201', 'CrmebBearerAuth'],
   ['/chamber/v1/me/membership', 'get', 'getMembershipSummary', 'planned', '200', 'CrmebBearerAuth']
@@ -188,6 +192,14 @@ expected_operation_contracts = {
   ['/chamber/v1/me/graduate-verifications', 'post'] => {
     request_schema: '#/components/schemas/GraduateVerificationSubmission',
     success_response: '#/components/responses/GraduateVerificationCreated'
+  },
+  ['/chamber/admin/v1/graduate-verifications', 'get'] => {
+    request_schema: nil,
+    success_response: '#/components/responses/GraduateVerificationAdminListSuccess'
+  },
+  ['/chamber/admin/v1/graduate-verifications/{application_id}', 'get'] => {
+    request_schema: nil,
+    success_response: '#/components/responses/GraduateVerificationAdminDetailSuccess'
   },
   ['/chamber/admin/v1/graduate-verifications/{application_id}/reviews', 'post'] => {
     request_schema: '#/components/schemas/GraduateVerificationReviewRequest',
@@ -493,21 +505,41 @@ actual_operation_pairs.each do |path, method|
   end
 end
 
-admin_review_parameters = Array(dig_hash(
-  spec,
-  'paths',
-  '/chamber/admin/v1/graduate-verifications/{application_id}/reviews',
-  'post',
-  'parameters'
-))
 expected_application_id = {
   'name' => 'application_id',
   'in' => 'path',
   'required' => true,
   'schema' => { '$ref' => '#/components/schemas/PositiveId' }
 }
-unless admin_review_parameters.include?(expected_application_id)
-  errors << 'graduate-verification review must require the PositiveId application_id path parameter'
+[
+  ['/chamber/admin/v1/graduate-verifications/{application_id}', 'get'],
+  ['/chamber/admin/v1/graduate-verifications/{application_id}/reviews', 'post']
+].each do |path, method|
+  parameters = Array(dig_hash(spec, 'paths', path, method, 'parameters'))
+  unless parameters.include?(expected_application_id)
+    errors << "#{method.upcase} #{path} must require the PositiveId application_id path parameter"
+  end
+end
+
+admin_list_parameters = Array(dig_hash(
+  spec,
+  'paths',
+  '/chamber/admin/v1/graduate-verifications',
+  'get',
+  'parameters'
+))
+admin_list_query_parameters = admin_list_parameters.map do |parameter_or_ref|
+  parameter = resolve_reference(spec, parameter_or_ref)
+  parameter if parameter.is_a?(Hash) && parameter['in'] == 'query'
+end.compact
+expected_admin_list_queries = %w[keyword page per_page status]
+actual_admin_list_queries = admin_list_query_parameters.map { |parameter| parameter['name'] }.sort
+unless actual_admin_list_queries == expected_admin_list_queries
+  errors << 'graduate-verification admin list query parameters differ from the frozen contract'
+end
+status_query = admin_list_query_parameters.find { |parameter| parameter['name'] == 'status' } || {}
+unless status_query['schema'] == { '$ref' => '#/components/schemas/GraduateVerificationStatus' }
+  errors << 'graduate-verification admin list status must use GraduateVerificationStatus'
 end
 
 expected_operations.each do |path, method, _operation_id, _status, _success, _security|
@@ -522,7 +554,8 @@ end
 
 expected_member_envelopes = %w[
   MemberBootstrapEnvelope MemberProfileEnvelope GraduateVerificationQueryEnvelope
-  GraduateVerificationCreatedEnvelope GraduateVerificationReviewEnvelope MembershipPlansEnvelope
+  GraduateVerificationCreatedEnvelope GraduateVerificationReviewEnvelope
+  GraduateVerificationAdminListEnvelope GraduateVerificationAdminDetailEnvelope MembershipPlansEnvelope
   MembershipCheckoutEnvelope MembershipSummaryEnvelope MemberTransactionErrorEnvelope
   ChamberRequestErrorEnvelope
 ]
@@ -556,6 +589,7 @@ page_meta_required = Array(schemas.dig('PageMeta', 'required'))
 expected_page_meta = %w[page limit total total_pages has_more]
 errors << 'PageMeta required fields differ from the frozen contract' unless page_meta_required == expected_page_meta
 errors << 'limit maximum must be 100' unless dig_hash(spec, 'components', 'parameters', 'LimitQuery', 'schema', 'maximum') == 100
+errors << 'per_page maximum must be 100' unless dig_hash(spec, 'components', 'parameters', 'PerPageQuery', 'schema', 'maximum') == 100
 
 commerce_event = schemas['CommerceEvent'] || {}
 expected_commerce_fields = %w[

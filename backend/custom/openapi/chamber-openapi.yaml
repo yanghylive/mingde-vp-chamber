@@ -2,17 +2,17 @@ openapi: 3.1.0
 jsonSchemaDialect: https://json-schema.org/draft/2020-12/schema
 info:
   title: Mingde VP Chamber API
-  version: 0.3.0
-  summary: Chamber overlay G0 runtime and G1 membership contract baseline
+  version: 0.4.0
+  summary: Chamber overlay G0 runtime and G1 profile and graduate-verification vertical
   description: |
     This document is the source-controlled contract for the independently developed
     Chamber API overlay. Runtime behavior is defined by the locked CRMEB v6.0.0
     source plus `backend/custom/app/chamber`.
 
-    Every operation declares `x-implementation-status`. G0 routes and the G1
-    authenticated member bootstrap marked `implemented` are live. Remaining G1
-    routes marked `planned` freeze the next implementation contract and MUST NOT
-    be represented as runtime-delivered yet.
+    Every operation declares `x-implementation-status`. G0 routes, authenticated
+    member bootstrap, profile, and graduate-verification operations marked
+    `implemented` are live. Remaining G1 routes marked `planned` freeze the next
+    implementation contract and MUST NOT be represented as runtime-delivered yet.
 
     All response envelopes contain `status`, `msg`, `data`, and `request_id`.
     The G0 request tracing middleware returns independent request/correlation IDs
@@ -166,7 +166,7 @@ paths:
       operationId: getChamberMemberProfile
       security:
         - CrmebBearerAuth: []
-      x-implementation-status: planned
+      x-implementation-status: implemented
       x-requirement-id: MEM-003
       x-tenant-context: required
       x-signed-headers-all-or-none: true
@@ -200,7 +200,7 @@ paths:
       operationId: updateChamberMemberProfile
       security:
         - CrmebBearerAuth: []
-      x-implementation-status: planned
+      x-implementation-status: implemented
       x-requirement-id: MEM-003
       x-tenant-context: required
       x-signed-headers-all-or-none: true
@@ -246,7 +246,7 @@ paths:
       operationId: getGraduateVerification
       security:
         - CrmebBearerAuth: []
-      x-implementation-status: planned
+      x-implementation-status: implemented
       x-requirement-id: MEM-002
       x-tenant-context: required
       x-signed-headers-all-or-none: true
@@ -280,7 +280,7 @@ paths:
       operationId: submitGraduateVerification
       security:
         - CrmebBearerAuth: []
-      x-implementation-status: planned
+      x-implementation-status: implemented
       x-requirement-id: MEM-002
       x-tenant-context: required
       x-signed-headers-all-or-none: true
@@ -316,6 +316,94 @@ paths:
           $ref: '#/components/responses/InternalServerError'
         '503':
           $ref: '#/components/responses/TenantServiceUnavailable'
+  /chamber/admin/v1/graduate-verifications:
+    get:
+      tags:
+        - Administration
+      summary: List graduate-verification applications in the trusted tenant and channel
+      operationId: listGraduateVerificationsForAdmin
+      security:
+        - CrmebAdminBearerAuth: []
+      x-implementation-status: implemented
+      x-requirement-id: MEM-002
+      x-tenant-context: required
+      x-signed-headers-all-or-none: true
+      x-admin-permission: chamber.graduate_verification.review
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/GraduateVerificationStatus'
+        - name: keyword
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 80
+        - $ref: '#/components/parameters/PageQuery'
+        - $ref: '#/components/parameters/PerPageQuery'
+        - $ref: '#/components/parameters/RequestIdHeader'
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+        - $ref: '#/components/parameters/ChamberTenantHeader'
+        - $ref: '#/components/parameters/ChamberChannelHeader'
+        - $ref: '#/components/parameters/ChamberTimestampHeader'
+        - $ref: '#/components/parameters/ChamberNonceHeader'
+        - $ref: '#/components/parameters/ChamberSignatureHeader'
+      responses:
+        '200':
+          $ref: '#/components/responses/GraduateVerificationAdminListSuccess'
+        '400':
+          $ref: '#/components/responses/ChamberRequestError'
+        '401':
+          $ref: '#/components/responses/ChamberRequestError'
+        '403':
+          $ref: '#/components/responses/ChamberRequestError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/TenantServiceUnavailable'
+  /chamber/admin/v1/graduate-verifications/{application_id}:
+    get:
+      tags:
+        - Administration
+      summary: Get one graduate-verification application in the trusted tenant and channel
+      operationId: getGraduateVerificationForAdmin
+      security:
+        - CrmebAdminBearerAuth: []
+      x-implementation-status: implemented
+      x-requirement-id: MEM-002
+      x-tenant-context: required
+      x-signed-headers-all-or-none: true
+      x-admin-permission: chamber.graduate_verification.review
+      parameters:
+        - name: application_id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/PositiveId'
+        - $ref: '#/components/parameters/RequestIdHeader'
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+        - $ref: '#/components/parameters/ChamberTenantHeader'
+        - $ref: '#/components/parameters/ChamberChannelHeader'
+        - $ref: '#/components/parameters/ChamberTimestampHeader'
+        - $ref: '#/components/parameters/ChamberNonceHeader'
+        - $ref: '#/components/parameters/ChamberSignatureHeader'
+      responses:
+        '200':
+          $ref: '#/components/responses/GraduateVerificationAdminDetailSuccess'
+        '400':
+          $ref: '#/components/responses/ChamberRequestError'
+        '401':
+          $ref: '#/components/responses/ChamberRequestError'
+        '403':
+          $ref: '#/components/responses/ChamberRequestError'
+        '404':
+          $ref: '#/components/responses/MemberTransactionError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/TenantServiceUnavailable'
   /chamber/admin/v1/graduate-verifications/{application_id}/reviews:
     post:
       tags:
@@ -324,7 +412,7 @@ paths:
       operationId: reviewGraduateVerification
       security:
         - CrmebAdminBearerAuth: []
-      x-implementation-status: planned
+      x-implementation-status: implemented
       x-requirement-id: MEM-002
       x-tenant-context: required
       x-signed-headers-all-or-none: true
@@ -584,6 +672,16 @@ components:
         minimum: 1
         maximum: 100
         default: 20
+    PerPageQuery:
+      name: per_page
+      in: query
+      required: false
+      description: Maximum graduate-verification applications per page.
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
   headers:
     RequestIdResponseHeader:
       description: |
@@ -828,6 +926,28 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/GraduateVerificationReviewEnvelope'
+    GraduateVerificationAdminListSuccess:
+      description: Tenant/channel-scoped graduate-verification applications returned.
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestIdResponseHeader'
+        X-Correlation-Id:
+          $ref: '#/components/headers/CorrelationIdResponseHeader'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GraduateVerificationAdminListEnvelope'
+    GraduateVerificationAdminDetailSuccess:
+      description: One tenant/channel-scoped graduate-verification application returned.
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestIdResponseHeader'
+        X-Correlation-Id:
+          $ref: '#/components/headers/CorrelationIdResponseHeader'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GraduateVerificationAdminDetailEnvelope'
     MembershipPlansSuccess:
       description: Enabled tenant/channel membership plans returned.
       headers:
@@ -1923,6 +2043,78 @@ components:
           maxLength: 500
         can_resubmit:
           type: boolean
+    GraduateVerificationAdminApplication:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - application_no
+        - status
+        - class_name
+        - graduation_year
+        - proof_object_keys
+        - submitted_at
+        - reviewed_at
+        - review_note
+        - can_resubmit
+        - member_id
+        - uid
+        - channel_id
+        - previous_application_id
+        - reviewer_admin_id
+        - is_current
+        - member_name
+      properties:
+        id:
+          $ref: '#/components/schemas/PositiveId'
+        application_no:
+          type: string
+          minLength: 1
+          maxLength: 32
+        status:
+          $ref: '#/components/schemas/GraduateVerificationStatus'
+        class_name:
+          type: string
+          maxLength: 80
+        graduation_year:
+          type: integer
+          minimum: 1900
+          maximum: 2106
+        graduation_at:
+          $ref: '#/components/schemas/UnixTimestampSeconds'
+        proof_object_keys:
+          type: array
+          maxItems: 10
+          items:
+            $ref: '#/components/schemas/ObjectStorageKey'
+        submitted_at:
+          $ref: '#/components/schemas/UnixTimestampSeconds'
+        reviewed_at:
+          $ref: '#/components/schemas/UnixTimestampSeconds'
+        review_note:
+          type: string
+          maxLength: 500
+        can_resubmit:
+          type: boolean
+        member_id:
+          $ref: '#/components/schemas/PositiveId'
+        uid:
+          $ref: '#/components/schemas/PositiveId'
+        channel_id:
+          $ref: '#/components/schemas/PositiveId'
+        previous_application_id:
+          oneOf:
+            - $ref: '#/components/schemas/PositiveId'
+            - type: 'null'
+        reviewer_admin_id:
+          oneOf:
+            - $ref: '#/components/schemas/PositiveId'
+            - type: 'null'
+        is_current:
+          type: boolean
+        member_name:
+          type: string
+          maxLength: 40
     GraduateVerificationQueryData:
       type: object
       additionalProperties: false
@@ -1939,6 +2131,56 @@ components:
             - type: 'null'
         can_submit:
           type: boolean
+    GraduateVerificationAdminListData:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+        - total
+        - page
+        - per_page
+      properties:
+        items:
+          type: array
+          maxItems: 100
+          items:
+            $ref: '#/components/schemas/GraduateVerificationAdminApplication'
+        total:
+          type: integer
+          minimum: 0
+        page:
+          type: integer
+          minimum: 1
+        per_page:
+          type: integer
+          minimum: 1
+          maximum: 100
+    GraduateVerificationAdminListEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelopeBase'
+        - type: object
+          required:
+            - data
+          properties:
+            status:
+              const: 200
+            msg:
+              const: ok
+            data:
+              $ref: '#/components/schemas/GraduateVerificationAdminListData'
+    GraduateVerificationAdminDetailEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelopeBase'
+        - type: object
+          required:
+            - data
+          properties:
+            status:
+              const: 200
+            msg:
+              const: ok
+            data:
+              $ref: '#/components/schemas/GraduateVerificationAdminApplication'
     GraduateVerificationQueryEnvelope:
       allOf:
         - $ref: '#/components/schemas/ResponseEnvelopeBase'
@@ -2006,7 +2248,7 @@ components:
             msg:
               const: ok
             data:
-              $ref: '#/components/schemas/GraduateVerificationApplication'
+              $ref: '#/components/schemas/GraduateVerificationAdminApplication'
     MembershipPlanTier:
       type: string
       enum:
