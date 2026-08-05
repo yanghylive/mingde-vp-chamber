@@ -187,7 +187,7 @@
         <view class="fd-left">
           <view class="fd-badge">限量席位</view>
           <view>
-            <view class="fd-meta">{{ fdDate(featured) }} · {{ featured.location_name || featured.address }}</view>
+            <view class="fd-meta">{{ fdDate(featured) }} · {{ featured.location_name || featured.address || '地点待定' }}</view>
             <view class="fd-title">{{ featured.title }}</view>
           </view>
         </view>
@@ -229,7 +229,7 @@
           </view>
           <view class="week-info">
             <text class="week-title">{{ ev.title }}</text>
-            <text class="week-meta">{{ weekDate(ev) }} · {{ ev.location_name || ev.address }}</text>
+            <text class="week-meta">{{ weekDate(ev) }} · {{ ev.location_name || ev.address || '地点待定' }}</text>
             <view class="week-badge">{{ metaLabel(ev.event_type) }}</view>
           </view>
         </view>

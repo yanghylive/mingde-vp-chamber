@@ -72,7 +72,7 @@
             <text class="ev-title">{{ ev.title }}</text>
             <view class="ev-meta">
               <view class="ev-meta-row"><view class="ic ic-xs ic-clock-3-orange" /><text>{{ evTime(ev) }}</text></view>
-              <view class="ev-meta-row"><view class="ic ic-xs ic-map-pin-orange" /><text>{{ ev.location_name || ev.address }}</text></view>
+              <view class="ev-meta-row"><view class="ic ic-xs ic-map-pin-orange" /><text>{{ ev.location_name || ev.address || '地点待定' }}</text></view>
             </view>
             <view class="ev-foot">
               <text class="ev-seats">{{ remaining(ev) }} 席可约</text>
