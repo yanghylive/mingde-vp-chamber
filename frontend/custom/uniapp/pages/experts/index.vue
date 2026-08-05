@@ -113,7 +113,12 @@
 import chamber from '@/api/chamber'
 import Skeleton from '@/components/Skeleton.vue'
 
-const CATEGORIES = ['全部', '知名导师', '行业领袖', '企业家教练', '投资人']
+const CATEGORIES = ['全部', '知名导师', '知名教练', '行业领袖']
+const ROLE_KEYWORDS = {
+  '知名导师': /导师|mentor/i,
+  '知名教练': /教练|coach/i,
+  '行业领袖': /领袖|投资人|创始|总裁|CEO|董事|会长|秘书长/i
+}
 
 export default {
   components: { Skeleton },
@@ -130,10 +135,19 @@ export default {
     visible() {
       const q = this.search.trim().toLowerCase()
       return this.experts.filter((e) => {
-        const catOk = this.category === '全部' || (e.category || '').indexOf(this.category) >= 0 || (e.industry || '').indexOf(this.category) >= 0
+        const catOk = this.matchCategory(e)
         const qOk = !q || ((e.name || '') + ' ' + (e.industry || '') + ' ' + (e.title || '')).toLowerCase().indexOf(q) >= 0
         return catOk && qOk
       })
+    },
+    matchCategory(e) {
+      if (this.category === '全部') return true
+      const role = String(e.role || '').toLowerCase()
+      if (this.category === '知名导师' && role === 'mentor') return true
+      if (this.category === '知名教练' && role === 'coach') return true
+      if (this.category === '行业领袖' && role === 'industry_leader') return true
+      const haystack = (e.title || '') + ' ' + (e.company || '') + ' ' + (e.industry || '') + ' ' + (e.bio || '') + ' ' + (e.category || '')
+      return ROLE_KEYWORDS[this.category].test(haystack)
     },
     stats() {
       return [

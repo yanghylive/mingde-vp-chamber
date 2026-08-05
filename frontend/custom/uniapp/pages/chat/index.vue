@@ -1,5 +1,10 @@
 <template>
   <view class="chat-page">
+    <view class="chat-top">
+      <text class="ct-title">{{ expertId ? '大咖 AI 对话' : (topic || 'AI 助手') }}</text>
+      <view v-if="messages.length > 0" class="ct-clear" @tap="clearChat">清空</view>
+    </view>
+
     <scroll-view scroll-y class="msg-list" :scroll-into-view="scrollInto">
       <view v-if="messages.length === 0" class="chat-empty">
         <text class="ce-icon">AI</text>
@@ -13,6 +18,10 @@
       >
         <view class="bubble">{{ m.content }}<text v-if="m.streaming" class="cursor">▍</text></view>
       </view>
+    </scroll-view>
+
+    <scroll-view v-if="messages.length <= 2 && !sending" scroll-x class="suggest-bar">
+      <view v-for="s in suggestions" :key="s" class="suggest-chip" @tap="sendSuggestion(s)">{{ s }}</view>
     </scroll-view>
 
     <view class="input-bar">
@@ -44,14 +53,47 @@ export default {
       draft: '',
       sending: false,
       messages: [],
-      scrollInto: ''
+      scrollInto: '',
+      suggestions: ['介绍一下这个活动', '帮我推荐一门课程', '适合线上还是线下 1v1？', '大咖能帮我解决什么问题？']
     }
   },
   onLoad(options) {
     this.topic = decodeURIComponent(options.topic || '')
+    if (options.expert) this.expertId = Number(options.expert)
     if (options.expert_id) this.expertId = Number(options.expert_id)
+    // 恢复历史对话（按 expert 维度持久化，对齐 H5）
+    const key = 'chat_' + (this.expertId || 'default')
+    const saved = uni.getStorageSync(key)
+    if (saved) {
+      try {
+        const list = JSON.parse(saved)
+        if (Array.isArray(list) && list.length) this.messages = list
+      } catch (e) {}
+    }
+    this.chatKey = key
+  },
+  persist() {
+    try {
+      uni.setStorageSync(this.chatKey || 'chat_default', JSON.stringify(this.messages.slice(-50)))
+    } catch (e) {}
+  },
+  clearChat() {
+    uni.showModal({
+      title: '清空对话',
+      content: '确定清空当前对话历史？',
+      success: (res) => {
+        if (res.confirm) {
+          uni.removeStorageSync(this.chatKey || 'chat_default')
+          this.messages = []
+        }
+      }
+    })
   },
   methods: {
+    sendSuggestion(text) {
+      this.draft = text
+      this.send()
+    },
     send() {
       const content = this.draft.trim()
       if (!content || this.sending) return
@@ -124,6 +166,7 @@ export default {
     pushMsg(role, content, streaming) {
       const msg = { id: idSeq++, role, content, streaming: !!streaming }
       this.messages.push(msg)
+      this.persist()
       this.scrollTo(msg.id)
     },
     renderAssistant(text) {
@@ -279,5 +322,38 @@ function extractAnswer(body) {
 }
 .send-btn-disabled {
   opacity: 0.5;
+}
+</style>
+.chat-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20rpx 32rpx 4rpx;
+}
+.ct-title {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #17233d;
+}
+.ct-clear {
+  font-size: 24rpx;
+  color: #8a94a3;
+  padding: 10rpx 20rpx;
+  background: #f1f4f8;
+  border-radius: 999rpx;
+}
+.suggest-bar {
+  white-space: nowrap;
+  padding: 16rpx 24rpx 0;
+  box-sizing: border-box;
+}
+.suggest-chip {
+  display: inline-block;
+  margin-right: 16rpx;
+  padding: 12rpx 24rpx;
+  font-size: 22rpx;
+  color: #24507f;
+  background: #eaf0f8;
+  border-radius: 999rpx;
 }
 </style>

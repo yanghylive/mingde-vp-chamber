@@ -6,25 +6,33 @@
       <text class="h-sub">明德 AI 智能生态，为企业家赋能</text>
     </view>
 
-    <view class="list">
+    <view class="grid">
       <view
         v-for="c in cards"
         :key="c.key"
-        class="ai-card card"
-        @tap="goChat(c)"
+        class="{{'ai-card card' + (active === c.key ? ' ai-card-open' : '')}}"
+        @tap="toggle(c.key)"
       >
-        <view class="{{'ac-icon tone-' + c.key}}">
-          <text>{{ c.icon }}</text>
+        <view class="ac-head">
+          <view class="{{'ac-icon tone-' + c.key}}">
+            <text>{{ c.icon }}</text>
+          </view>
+          <view class="ac-info">
+            <text class="ac-title">{{ c.title }}</text>
+            <text class="ac-desc">{{ c.desc }}</text>
+          </view>
+          <text class="ac-caret">{{ active === c.key ? '^' : 'v' }}</text>
         </view>
-        <view class="ac-info">
-          <text class="ac-title">{{ c.title }}</text>
-          <text class="ac-desc">{{ c.desc }}</text>
-          <view class="ac-cta">
-            <view class="ic ic-sm ic-bot-gold" />
+        <view v-if="active === c.key" class="ac-open">
+          <text class="ac-detail">{{ c.detail }}</text>
+          <view class="ac-points">
+            <text v-for="p in c.points" :key="p" class="ac-point">{{ p }}</text>
+          </view>
+          <view class="btn-primary ac-go" @tap.stop="goChat(c)">
+            <view class="ic ic-sm ic-message-circle-white" />
             <text>与 AI 助手对话</text>
           </view>
         </view>
-        <text class="ac-arrow">></text>
       </view>
     </view>
 
@@ -36,16 +44,21 @@
 import { fetchSiteConfig } from '@/common/site-config'
 
 const CARDS = [
-  { key: 'mentor', icon: '师‍学', title: 'AI 导师', desc: '创业答疑、企业管理建议', topic: '你是一位资深创业导师' },
-  { key: 'company', icon: '企', title: '名企咨询', desc: '对标名企，AI 给出经营策略', topic: '你是一位名企战略顾问' },
-  { key: 'toolbox', icon: '具', title: 'AI 工具箱', desc: '常用 AI 工具使用指南', topic: '你是 AI 工具使用专家' },
-  { key: 'companion', icon: '陪', title: 'AI 陪跑', desc: '项目陪跑，全程伴飞', topic: '你是企业家成长陪跑教练' }
+  { key: 'mentor', icon: '师', title: 'AI 导师', desc: '创业答疑、企业管理建议', topic: '你是一位资深创业导师',
+    detail: '聚焦创业难题与经营决策，从战略到执行给出可落地的建议。', points: ['战略诊断', '经营复盘', '决策推演'] },
+  { key: 'company', icon: '企', title: '名企咨询', desc: '对标名企，AI 给出经营策略', topic: '你是一位名企战略顾问',
+    detail: '借鉴标杆企业打法，输出适合你企业阶段的经营策略与方法论。', points: ['标杆对标', '增长策略', '组织建设'] },
+  { key: 'toolbox', icon: '具', title: 'AI 工具箱', desc: '常用 AI 工具使用指南', topic: '你是 AI 工具使用专家',
+    detail: '文案生成、PPT 制作、数据分析，常用 AI 工具一键调用指南。', points: ['文案生成', 'PPT 制作', '数据分析'] },
+  { key: 'companion', icon: '陪', title: 'AI 陪跑', desc: '项目陪跑，全程伴飞', topic: '你是企业家成长陪跑教练',
+    detail: '把你的项目目标交给 AI 陪跑，分阶段跟进、复盘、迭代。', points: ['目标拆解', '阶段跟进', '复盘迭代'] }
 ]
 
 export default {
   data() {
     return {
-      cards: CARDS
+      cards: CARDS,
+      active: ''
     }
   },
   onLoad() {
@@ -63,6 +76,9 @@ export default {
     })
   },
   methods: {
+    toggle(key) {
+      this.active = this.active === key ? '' : key
+    },
     goChat(c) {
       uni.navigateTo({ url: '/pages/chat/index?topic=' + encodeURIComponent(c.topic || c.title || '') })
     }
@@ -155,5 +171,62 @@ export default {
   font-size: 22rpx;
   color: #c0c6d0;
   padding: 48rpx 0 20rpx;
+}
+</style>
+.grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20rpx;
+  margin-top: 8rpx;
+}
+.ai-card {
+  width: calc(50% - 10rpx);
+  padding: 28rpx;
+  box-sizing: border-box;
+}
+.ai-card-open {
+  width: 100%;
+}
+.ac-head {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+.ac-caret {
+  font-size: 26rpx;
+  color: #a0a9b6;
+  margin-left: auto;
+  font-weight: 700;
+}
+.ac-open {
+  margin-top: 24rpx;
+  padding-top: 24rpx;
+  border-top: 1rpx solid #eef1f5;
+}
+.ac-detail {
+  display: block;
+  font-size: 22rpx;
+  line-height: 1.7;
+  color: #5a6b80;
+}
+.ac-points {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+  margin-top: 20rpx;
+}
+.ac-point {
+  font-size: 20rpx;
+  color: #6b7889;
+  background: #eef0f3;
+  padding: 6rpx 18rpx;
+  border-radius: 999rpx;
+}
+.ac-go {
+  margin-top: 24rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10rpx;
 }
 </style>
