@@ -1,0 +1,32 @@
+{
+  "name": "mingde-chamber-uniapp",
+  "version": "1.0.0",
+  "description": "明德恒智会员端微信小程序（uni-app Vue2）",
+  "main": "main.js",
+  "scripts": {
+    "dev:mp-weixin": "cross-env NODE_ENV=development UNI_PLATFORM=mp-weixin vue-cli-service uni-build --watch",
+    "build:mp-weixin": "cross-env NODE_ENV=production UNI_PLATFORM=mp-weixin vue-cli-service uni-build",
+    "dev:h5": "cross-env NODE_ENV=development UNI_PLATFORM=h5 vue-cli-service uni-serve",
+    "build:h5": "cross-env NODE_ENV=production UNI_PLATFORM=h5 vue-cli-service uni-build"
+  },
+  "dependencies": {
+    "@dcloudio/uni-app": "2.0.2-alpha-5010220260604002",
+    "@dcloudio/uni-h5": "2.0.2-alpha-5010220260604002",
+    "@dcloudio/uni-i18n": "2.0.2-alpha-5010220260604002",
+    "@dcloudio/uni-mp-weixin": "2.0.2-alpha-5010220260604002",
+    "@dcloudio/uni-stat": "2.0.2-alpha-5010220260604002",
+    "vue": "2.6.14",
+    "vuex": "3.6.2"
+  },
+  "devDependencies": {
+    "@dcloudio/vue-cli-plugin-uni": "2.0.2-alpha-5010220260604002",
+    "@dcloudio/uni-cli-shared": "2.0.2-alpha-5010220260604002",
+    "@dcloudio/uni-app-plus": "2.0.2-alpha-5010220260604002",
+    "@dcloudio/uni-migration": "2.0.2-alpha-5010220260604002",
+    "@vue/cli-plugin-babel": "4.2.3",
+    "@vue/cli-service": "4.2.3",
+    "@vue/cli-shared-utils": "4.2.3",
+    "cross-env": "7.0.3",
+    "vue-template-compiler": "2.6.14"
+  }
+}
