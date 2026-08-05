@@ -12,7 +12,7 @@
 
     <!-- 积分规则提示条 -->
     <view class="rule-bar glass-control" @tap="rulesOpen = true">
-      <text class="rb-icon">规</text>
+      <view class="ic ic-sm ic-shield-check-gold" />
       <text class="rb-text">积分规则：1 元 = 10 积分，积分不足可用现金补差价</text>
       <text class="rb-arrow">></text>
     </view>
@@ -268,6 +268,7 @@ export default {
 
 <style lang="scss">
 .mall-page {
+  padding-top: env(safe-area-inset-top);
   padding: 24rpx 32rpx 60rpx;
   min-height: 100vh;
 }

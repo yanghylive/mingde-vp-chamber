@@ -198,6 +198,7 @@ export default {
 
 <style lang="scss">
 .membership-page {
+  padding-top: env(safe-area-inset-top);
   padding: 24rpx 32rpx 60rpx;
   min-height: 100vh;
 }

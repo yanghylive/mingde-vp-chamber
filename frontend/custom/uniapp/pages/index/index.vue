@@ -444,6 +444,7 @@ const DEFAULT_GRIDS = [
 
 /* ===== 头部 ===== */
 .header-glass {
+  padding-top: env(safe-area-inset-top);
   position: sticky;
   top: 0;
   z-index: 20;

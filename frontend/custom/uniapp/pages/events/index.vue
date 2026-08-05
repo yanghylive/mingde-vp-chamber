@@ -199,6 +199,7 @@ export default {
   min-height: 100vh;
 }
 .ph {
+  padding-top: env(safe-area-inset-top);
   padding: 8rpx 0 24rpx;
 }
 .ph-row {

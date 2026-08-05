@@ -27,7 +27,7 @@
 
       <!-- 手机号 -->
       <view class="field">
-        <text class="f-icon">话</text>
+        <view class="ic ic-sm ic-phone-gold" />
         <input v-model="phone" class="input" type="number" maxlength="11" placeholder="请输入手机号" placeholder-class="ph" />
       </view>
 
@@ -35,7 +35,7 @@
       <block v-if="mode === 'sms'">
         <view class="field-row">
           <view class="field flex1">
-            <text class="f-icon">图</text>
+            <view class="ic ic-sm ic-image-gold" />
             <input v-model="imgCode" class="input" type="number" maxlength="6" placeholder="图片验证码" placeholder-class="ph" />
           </view>
           <image v-if="captchaImg" :src="captchaImg" class="captcha-img" mode="aspectFill" @tap="refreshCaptcha" />
@@ -43,7 +43,7 @@
         </view>
         <view class="field-row">
           <view class="field flex1">
-            <text class="f-icon">码</text>
+            <view class="ic ic-sm ic-message-circle-gold" />
             <input v-model="smsCode" class="input" type="number" maxlength="6" placeholder="短信验证码" placeholder-class="ph" />
           </view>
           <view class="{{'send-btn' + ((countdown > 0 || loading) ? ' send-btn-disabled' : '')}}" @tap="sendSms">
