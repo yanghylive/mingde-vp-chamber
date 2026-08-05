@@ -51,16 +51,22 @@
       </view>
     </scroll-view>
 
+    <!-- 月历 -->
+    <view class="section-head">
+      <text class="section-title">活动月历</text>
+    </view>
+    <calendar :events="events" @select="onSelectDay" />
+
     <!-- 活动列表 -->
     <view class="section-head">
-      <text class="section-title">近期活动</text>
-      <text class="section-more" @tap="goEvents">全部 ›</text>
+      <text class="section-title">{{ selectedEvents.length ? '当日活动' : '近期活动' }}</text>
+      <text v-if="!selectedEvents.length" class="section-more" @tap="goEvents">全部 ›</text>
     </view>
     <view v-if="loading" class="empty">加载中…</view>
-    <view v-else-if="filteredEvents.length === 0" class="empty">暂无活动</view>
+    <view v-else-if="displayEvents.length === 0" class="empty">{{ selectedEvents.length ? '该日暂无活动' : '暂无活动' }}</view>
     <view v-else class="event-list">
       <view
-        v-for="ev in filteredEvents"
+        v-for="ev in displayEvents"
         :key="ev.id"
         class="event-item card"
         @tap="goEventDetail(ev.id)"
@@ -98,6 +104,7 @@ import { checkLogin } from '@/libs/login'
 import { fetchSiteConfig } from '@/common/site-config'
 import { TIERS, tierToNumber, applyTierConfig } from '@/common/tier'
 import { toDate } from '@/common/format'
+import Calendar from '@/components/Calendar.vue'
 
 const GRIDS = [
   { label: '官方活动', icon: 'event', to: '/pages/events/index' },
@@ -110,10 +117,13 @@ const GRIDS = [
 const DIRECTIONS = ['全部', '个人成长', '事业行业', '公益慈善']
 
 export default {
+  components: { Calendar },
   data() {
     return {
       events: [],
       filteredEvents: [],
+      displayEvents: [],
+      selectedEvents: [],
       points: 0,
       membership: null,
       profile: null,
@@ -178,6 +188,14 @@ export default {
         const dir = DIRECTIONS[this.chip]
         this.filteredEvents = this.events.filter((ev) => (ev.direction || ev.event_type || '').indexOf(dir) >= 0)
       }
+      // 未选中日期时，列表展示当前过滤结果
+      if (!this.selectedEvents.length) {
+        this.displayEvents = this.filteredEvents
+      }
+    },
+    onSelectDay(list) {
+      this.selectedEvents = list || []
+      this.displayEvents = this.selectedEvents.length ? this.selectedEvents : this.filteredEvents
     },
     eventDay(ev) {
       return toDate(ev.start_time).slice(8, 10)
