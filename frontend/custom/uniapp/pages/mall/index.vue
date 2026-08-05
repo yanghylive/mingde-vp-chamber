@@ -1,74 +1,119 @@
 <template>
   <view class="mall-page">
-    <view class="points-bar card">
-      <view class="pb-left">
-        <text class="pb-label">我的积分</text>
-        <text class="pb-num gold">{{ points }}</text>
-      </view>
-      <view class="pb-right">
-        <text class="pb-link" @tap="goPointsPaths">积分获取 ></text>
-        <text class="pb-link" @tap="goLedger">明细 ></text>
+    <!-- 页头 -->
+    <view class="ph">
+      <text class="ph-title">积分商城</text>
+      <text class="ph-sub">我的积分 {{ points == null ? '—' : points }}</text>
+      <view class="search-box glass-control">
+        <text class="s-icon">搜</text>
+        <input v-model="keyword" class="s-input" placeholder="搜索课程 / 沙龙 / 实物" placeholder-class="ph" />
       </view>
     </view>
 
-    <!-- 搜索框 -->
-    <view class="search-box">
-      <text class="s-icon">搜</text>
-      <input
-        v-model="keyword"
-        class="s-input"
-        placeholder="搜索商品"
-        placeholder-class="ph"
-        confirm-type="search"
-      />
+    <!-- 积分规则提示条 -->
+    <view class="rule-bar glass-control" @tap="rulesOpen = true">
+      <text class="rb-icon">规</text>
+      <text class="rb-text">积分规则：1 元 = 10 积分，积分不足可用现金补差价</text>
+      <text class="rb-arrow">></text>
     </view>
 
-    <!-- 分类 chip -->
+    <!-- 分类 chips -->
     <scroll-view scroll-x class="chips">
       <view
-        v-for="(c, i) in categoryOptions"
+        v-for="c in categoryOptions"
         :key="c"
-        :class="['chip', activeChip === i && 'chip-active']"
-        @tap="activeChip = i"
+        :class="['chip', 'glass-control', tab === c && 'glass-control-active']"
+        @tap="tab = c"
       >
         {{ c }}
       </view>
     </scroll-view>
 
-    <view v-if="loading" class="empty"><skeleton type="list" :rows="3" /></view>
-    <view v-else-if="visible.length === 0" class="empty">暂无商品</view>
-    <view v-else class="grid">
-      <view v-for="p in visible" :key="p.id" class="product card" @tap="openConfirm(p)">
-        <view class="p-img">
-          <text>{{ (p.store_name || '商品').slice(0, 1) }}</text>
-        </view>
-        <text class="p-name">{{ p.store_name }}</text>
-        <view class="p-price-row">
-          <text class="p-points">{{ p.integral_price || p.points_price || 0 }} 积分</text>
-          <text v-if="p.price > 0" class="p-cash">+ ¥{{ cashOf(p) }}</text>
+    <!-- 人气臻选 -->
+    <view class="sec-head">
+      <view class="sh-row">
+        <text class="sh-icon">商</text>
+        <view>
+          <text class="sh-title">人气臻选</text>
+          <text class="sh-sub">积分好礼，兑换品质生活</text>
         </view>
       </view>
     </view>
 
+    <view v-if="loading" class="empty"><skeleton type="grid" :rows="4" /></view>
+    <view v-else-if="visible.length === 0" class="empty">暂无相关商品</view>
+    <view v-else class="grid">
+      <view v-for="p in visible" :key="p.id" class="product card" @tap="openConfirm(p)">
+        <view :class="['p-img', catTone(p.category)]">
+          <text class="pi-glyph">{{ catGlyph(p.category) }}</text>
+        </view>
+        <view class="p-cat">{{ normalizeCategory(p.category) }}</view>
+        <text class="p-name">{{ p.name || p.store_name || '未命名商品' }}</text>
+        <view class="p-price-row">
+          <text class="p-points">{{ p.integral_price || 0 }}<text class="p-unit"> 积分</text></text>
+          <text v-if="Number(p.price) > 0" class="p-cash">¥{{ cashOf(p) }}</text>
+        </view>
+        <view class="p-btn" @tap.stop="openConfirm(p)">立即兑换</view>
+      </view>
+    </view>
+
+    <!-- 积分获取路径 -->
+    <view class="sec-head">
+      <view class="sh-row">
+        <text class="sh-icon">荐</text>
+        <view>
+          <text class="sh-title">积分获取路径</text>
+          <text class="sh-sub">贡献越多，收获越多</text>
+        </view>
+      </view>
+      <view class="sh-link" @tap="rulesOpen = true">规则 ></view>
+    </view>
+    <view class="card paths-card">
+      <view v-for="(p, i) in paths" :key="i" :class="['path-row', i < paths.length - 1 && 'path-row-border']">
+        <view class="pr-icon">{{ pathGlyph(p.icon) }}</view>
+        <view class="pr-info">
+          <text class="pr-title">{{ p.title }}</text>
+          <text class="pr-desc">{{ p.desc }}</text>
+        </view>
+        <view class="pr-points">+{{ p.points }}<text class="pr-unit">{{ pathUnit(p.icon) }}</text></view>
+      </view>
+    </view>
+
     <!-- 兑换确认弹窗 -->
-    <view v-if="confirmTarget" class="modal-mask" @tap="confirmTarget = null">
-      <view class="modal" @tap.stop>
-        <view class="modal-title">兑换商品</view>
-        <view class="modal-product">{{ confirmTarget.store_name }}</view>
-        <view class="modal-cost">
-          需积分 {{ needPoints }}<text v-if="needCash > 0"> · 补差价 {{ formatMoney(needCash) }}</text>
+    <view v-if="confirmTarget" class="sheet-mask" @tap="confirmTarget = null">
+      <view class="sheet" @tap.stop>
+        <view class="sheet-bar" />
+        <view class="sheet-head">
+          <text class="sheet-title">兑换商品</text>
+          <view class="sheet-close" @tap="confirmTarget = null">×</view>
         </view>
-        <view v-if="needCash > 0" class="modal-short">
-          当前余额 {{ points }} / 需 {{ needPoints }}
+        <view class="sheet-product">{{ confirmTarget.name || confirmTarget.store_name }}</view>
+        <view class="sheet-cost">
+          需积分 {{ needPoints }}<text v-if="needCash > 0"> · 补差价 ¥{{ needCash }}</text>
         </view>
-        <view class="modal-btns">
-          <view class="btn-secondary mbtn" @tap="confirmTarget = null">取消</view>
-          <view
-            :class="['btn-primary', 'mbtn', exchanging && 'mbtn-disabled']"
-            @tap="handleConfirm"
-          >
-            {{ exchanging ? '兑换中…' : needCash > 0 ? '混合支付 · 积分 + ' + (formatMoney(needCash)) : '积分支付' }}
+        <view v-if="needCash > 0" class="sheet-short">当前余额 {{ points }} / 需 {{ needPoints }}</view>
+        <view class="sheet-btns">
+          <view class="btn-secondary sb" @tap="confirmTarget = null">取消</view>
+          <view :class="['btn-primary', 'sb', exchanging && 'sb-disabled']" @tap="handleConfirm">
+            {{ exchanging ? '兑换中…' : needCash > 0 ? '混合支付 · 积分 + ¥' + needCash : '积分支付' }}
           </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 积分规则弹窗 -->
+    <view v-if="rulesOpen" class="sheet-mask" @tap="rulesOpen = false">
+      <view class="sheet" @tap.stop>
+        <view class="sheet-bar" />
+        <view class="sheet-head">
+          <text class="sheet-title">积分规则</text>
+          <view class="sheet-close" @tap="rulesOpen = false">×</view>
+        </view>
+        <view class="rule-content">
+          <view class="rule-item">· 1 元 = 10 积分，积分可用于商城兑换</view>
+          <view class="rule-item">· 积分不足时可用现金补差价（自动计算）</view>
+          <view class="rule-item">· 参与活动、贡献、学习可获得积分</view>
+          <view class="rule-item">· 兑换后不可退，请联系客服处理</view>
         </view>
       </view>
     </view>
@@ -77,10 +122,9 @@
 
 <script>
 import chamber from '@/api/chamber'
-import Skeleton from '@/components/Skeleton.vue'
 import { checkLogin } from '@/libs/login'
-import { formatMoney } from '@/common/format'
 import { fetchSiteConfig } from '@/common/site-config'
+import Skeleton from '@/components/Skeleton.vue'
 
 const CATEGORY_ALIAS = {
   course: '课程', courses: '课程', curriculum: '课程', training: '课程', workshop: '课程', lesson: '课程',
@@ -102,30 +146,31 @@ export default {
   data() {
     return {
       list: [],
-      points: 0,
+      paths: [],
+      points: null,
       loading: true,
       confirmTarget: null,
       exchanging: false,
       pointsToYuan: 10,
       keyword: '',
-      activeChip: 0,
-      categoryOptions: ['全部']
+      tab: '全部',
+      categoryOptions: ['全部'],
+      rulesOpen: false
     }
   },
   computed: {
     needPoints() {
-      return Number((this.confirmTarget && (this.confirmTarget.integral_price || this.confirmTarget.points_price)) || 0)
+      return Number((this.confirmTarget && (this.confirmTarget.integral_price || 0)) || 0)
     },
     needCash() {
-      const short = Math.max(0, this.needPoints - this.points)
+      const short = Math.max(0, this.needPoints - (this.points || 0))
       return Math.ceil(short / (this.pointsToYuan || 10))
     },
     visible() {
       const kw = this.keyword.trim().toLowerCase()
-      const cat = this.categoryOptions[this.activeChip]
       return this.list.filter((p) => {
-        const catOk = this.activeChip === 0 || normalizeCategory(p.category) === cat
-        const nameOk = !kw || ((p.store_name || '') + ' ' + (p.name || '')).toLowerCase().indexOf(kw) >= 0
+        const catOk = this.tab === '全部' || normalizeCategory(p.category) === this.tab
+        const nameOk = !kw || ((p.name || '') + ' ' + (p.store_name || '')).toLowerCase().indexOf(kw) >= 0
         return catOk && nameOk
       })
     }
@@ -140,11 +185,10 @@ export default {
           this.pointsToYuan = Number(cfg.points_ratio)
         }
       })
-      const jobs = [chamber.products(), chamber.points()]
+      const jobs = [chamber.products(), chamber.points(), chamber.pointsPaths()]
       const results = await Promise.allSettled(jobs)
       if (results[0].status === 'fulfilled') {
         this.list = results[0].value || []
-        // 提取分类（去重）
         const cats = ['全部']
         for (const p of this.list) {
           const c = normalizeCategory(p.category)
@@ -153,11 +197,28 @@ export default {
         this.categoryOptions = cats
       }
       if (results[1].status === 'fulfilled') this.points = results[1].value
+      if (results[2].status === 'fulfilled') this.paths = results[2].value || []
       this.loading = false
+    },
+    normalizeCategory,
+    catGlyph(cat) {
+      const map = { 课程: '课', 沙龙: '沙', 公益: '益', 路演: '演', 商品: '品', 服务: '务' }
+      return map[normalizeCategory(cat)] || '品'
+    },
+    catTone(cat) {
+      const map = { 课程: 'tone-course', 沙龙: 'tone-salon', 公益: 'tone-charity', 路演: 'tone-roadshow', 商品: 'tone-product', 服务: 'tone-service' }
+      return map[normalizeCategory(cat)] || 'tone-product'
     },
     cashOf(p) {
       const n = Number(p.price || 0)
       return Number.isInteger(n) ? String(n) : n.toFixed(2)
+    },
+    pathGlyph(icon) {
+      const map = { coach: '学', charity: '益', roadshow: '演', distribution: '推', study: '习', medal: '奖' }
+      return map[icon] || '奖'
+    },
+    pathUnit(icon) {
+      return icon === 'distribution' ? '/人' : '/次'
     },
     openConfirm(p) {
       if (!checkLogin()) {
@@ -172,24 +233,16 @@ export default {
       try {
         const order = await chamber.exchangeProduct(
           this.confirmTarget.id,
-          Math.min(this.needPoints, this.points),
+          Math.min(this.needPoints, this.points || 0),
           this.needCash > 0 ? this.needCash.toFixed(2) : '0.00'
         )
         this.confirmTarget = null
         uni.showToast({ title: '兑换成功', icon: 'success' })
-        setTimeout(() => {
-          uni.navigateTo({ url: '/pages/mall/exchange-success?id=' + this.confirmTarget.id })
-        }, 600)
+        this.loadData()
       } catch (e) {
       } finally {
         this.exchanging = false
       }
-    },
-    goPointsPaths() {
-      uni.navigateTo({ url: '/pages/mall/points-paths' })
-    },
-    goLedger() {
-      uni.navigateTo({ url: '/pages/mine/points-ledger' })
     }
   }
 }
@@ -198,84 +251,131 @@ export default {
 <style lang="scss">
 .mall-page {
   padding: 24rpx 32rpx 60rpx;
+  min-height: 100vh;
 }
-.points-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 28rpx 32rpx;
-  margin-bottom: 24rpx;
+.ph-title {
+  display: block;
+  font-size: 44rpx;
+  font-weight: 800;
+  color: #17233d;
 }
-.pb-left {
-  display: flex;
-  align-items: baseline;
-  gap: 12rpx;
-}
-.pb-label {
+.ph-sub {
+  display: block;
   font-size: 24rpx;
   color: #8a94a3;
-}
-.pb-num {
-  font-size: 40rpx;
-  font-weight: 800;
-  color: #b8751d;
-}
-.pb-right {
-  display: flex;
-  gap: 20rpx;
-}
-.pb-link {
-  font-size: 24rpx;
-  color: #ad6b22;
+  margin-top: 8rpx;
 }
 .search-box {
   display: flex;
   align-items: center;
   gap: 12rpx;
-  background: #fff;
-  border-radius: 999rpx;
+  border-radius: 24rpx;
   padding: 20rpx 28rpx;
-  margin-bottom: 20rpx;
-  box-shadow: 0 4rpx 16rpx rgba(39, 59, 89, 0.04);
+  margin-top: 20rpx;
 }
 .s-icon {
-  color: #b8751d;
-  font-size: 32rpx;
+  color: #b87325;
+  font-size: 26rpx;
 }
 .s-input {
   flex: 1;
-  font-size: 28rpx;
-  color: #273b59;
+  font-size: 26rpx;
+  color: #203454;
 }
 .ph {
-  color: #c0c6d0;
+  color: #7f8b9c;
 }
-.chips {
+
+/* 规则条 */
+.rule-bar {
   display: flex;
-  gap: 16rpx;
-  margin-bottom: 24rpx;
-  white-space: nowrap;
+  align-items: center;
+  gap: 14rpx;
+  border-radius: 24rpx;
+  padding: 24rpx 28rpx;
+  margin-top: 24rpx;
 }
-.chip {
+.rb-icon {
+  width: 40rpx;
+  height: 40rpx;
+  border-radius: 12rpx;
+  background: #f6ead6;
+  color: #b87325;
+  font-size: 22rpx;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
-  padding: 12rpx 28rpx;
-  border-radius: 999rpx;
-  background: #fff;
-  color: #516580;
-  font-size: 24rpx;
-  box-shadow: 0 4rpx 12rpx rgba(39, 59, 89, 0.04);
 }
-.chip-active {
-  background: linear-gradient(135deg, #d98a2d, #b8751d);
-  color: #fff;
-  font-weight: 600;
+.rb-text {
+  flex: 1;
+  font-size: 22rpx;
+  color: #617087;
 }
-.empty {
-  text-align: center;
-  padding: 100rpx 0;
-  color: #c0c6d0;
+.rb-arrow {
+  color: #b9c2cd;
   font-size: 26rpx;
 }
+
+/* 分类 */
+.chips {
+  white-space: nowrap;
+  margin: 24rpx -32rpx 0;
+  padding: 0 32rpx 8rpx;
+}
+.chip {
+  display: inline-block;
+  padding: 16rpx 32rpx;
+  border-radius: 999rpx;
+  font-size: 24rpx;
+  font-weight: 600;
+  color: #617087;
+  margin-right: 16rpx;
+}
+
+/* 节标题 */
+.sec-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin: 36rpx 0 20rpx;
+}
+.sh-row {
+  display: flex;
+  align-items: center;
+  gap: 14rpx;
+}
+.sh-icon {
+  width: 44rpx;
+  height: 44rpx;
+  border-radius: 12rpx;
+  background: linear-gradient(135deg, #d98a2d, #b8751d);
+  color: #fff;
+  font-size: 22rpx;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.sh-title {
+  display: block;
+  font-size: 34rpx;
+  font-weight: 700;
+  color: #17325b;
+}
+.sh-sub {
+  display: block;
+  font-size: 20rpx;
+  color: #8994a6;
+  margin-top: 4rpx;
+}
+.sh-link {
+  font-size: 22rpx;
+  color: #ad6b22;
+}
+
+/* 商品网格 */
 .grid {
   display: flex;
   flex-wrap: wrap;
@@ -287,92 +387,230 @@ export default {
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  gap: 12rpx;
 }
 .p-img {
-  height: 200rpx;
-  border-radius: 16rpx;
-  background: linear-gradient(135deg, #fff0dc, #f6e2c2);
+  height: 224rpx;
+  border-radius: 28rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 64rpx;
-  color: #b8751d;
+  overflow: hidden;
+}
+.pi-glyph {
+  font-size: 56rpx;
   font-weight: 700;
+}
+.tone-course { background: linear-gradient(135deg, #e9f0f9, #d5e2f0); color: #285181; }
+.tone-salon { background: linear-gradient(135deg, #fff0dc, #f6e2c2); color: #bd7627; }
+.tone-charity { background: linear-gradient(135deg, #e8f0ec, #d3e2d9); color: #477467; }
+.tone-roadshow { background: linear-gradient(135deg, #f0e9f7, #ddd0ec); color: #6b5b95; }
+.tone-product { background: linear-gradient(135deg, #fff0dc, #f6e2c2); color: #bd7627; }
+.tone-service { background: linear-gradient(135deg, #e9f0f9, #d5e2f0); color: #285181; }
+.p-cat {
+  display: inline-block;
+  background: #fff2df;
+  color: #ac691e;
+  font-size: 20rpx;
+  padding: 4rpx 12rpx;
+  border-radius: 8rpx;
+  margin-top: 20rpx;
+  width: fit-content;
 }
 .p-name {
   font-size: 26rpx;
-  color: #273b59;
-  font-weight: 500;
+  font-weight: 700;
+  color: #213653;
+  line-height: 1.4;
+  margin-top: 12rpx;
+  min-height: 72rpx;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 .p-price-row {
   display: flex;
   align-items: baseline;
   gap: 12rpx;
+  margin-top: 12rpx;
 }
 .p-points {
-  font-size: 26rpx;
-  font-weight: 800;
-  color: #b8751d;
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #c57620;
+}
+.p-unit {
+  font-size: 20rpx;
+  font-weight: 600;
+  color: #9aa3b0;
 }
 .p-cash {
-  font-size: 22rpx;
-  color: #8a94a3;
+  font-size: 20rpx;
+  color: #a6aeb9;
+  text-decoration: line-through;
 }
-.modal-mask {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.45);
+.p-btn {
+  margin-top: 20rpx;
+  background: linear-gradient(90deg, #c87922, #eba94e);
+  color: #fff;
+  font-size: 24rpx;
+  font-weight: 600;
+  text-align: center;
+  padding: 16rpx 0;
+  border-radius: 16rpx;
+  box-shadow: 0 10rpx 24rpx rgba(185, 110, 29, 0.2);
+}
+
+/* 积分路径 */
+.paths-card {
+  padding: 8rpx 28rpx;
+}
+.path-row {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  padding: 24rpx 0;
+}
+.path-row-border {
+  border-bottom: 1rpx dashed #e6ebf1;
+}
+.pr-icon {
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 24rpx;
+  background: #fff0dc;
+  color: #bc7423;
+  font-size: 30rpx;
+  font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 99;
+  flex-shrink: 0;
 }
-.modal {
-  width: 600rpx;
-  background: #fff;
-  border-radius: 28rpx;
-  padding: 40rpx 36rpx;
+.pr-info {
+  flex: 1;
+  min-width: 0;
 }
-.modal-title {
-  font-size: 32rpx;
+.pr-title {
+  font-size: 26rpx;
   font-weight: 700;
   color: #273b59;
-  text-align: center;
+  display: block;
 }
-.modal-product {
+.pr-desc {
+  font-size: 20rpx;
+  color: #939cab;
+  display: block;
+  margin-top: 4rpx;
+}
+.pr-points {
+  font-size: 26rpx;
+  font-weight: 700;
+  color: #c57620;
+  flex-shrink: 0;
+}
+.pr-unit {
+  font-size: 20rpx;
+  font-weight: 500;
+  color: #9aa3b0;
+}
+
+/* 弹窗 */
+.sheet-mask {
+  position: fixed;
+  inset: 0;
+  background: rgba(11, 26, 46, 0.45);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 99;
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+}
+.sheet {
+  width: 100%;
+  max-width: 1040rpx;
+  background: #fff;
+  border-radius: 44rpx 44rpx 0 0;
+  padding: 24rpx 40rpx calc(48rpx + env(safe-area-inset-bottom));
+  box-shadow: 0 -20px 60px rgba(10, 32, 60, 0.25);
+}
+.sheet-bar {
+  width: 96rpx;
+  height: 12rpx;
+  border-radius: 999rpx;
+  background: #dce3ec;
+  margin: 0 auto 24rpx;
+}
+.sheet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24rpx;
+}
+.sheet-title {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #17325b;
+}
+.sheet-close {
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: 50%;
+  background: #eef1f5;
+  color: #7c8898;
+  font-size: 36rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.sheet-product {
   text-align: center;
   font-size: 28rpx;
   color: #516580;
-  margin-top: 20rpx;
+  margin-top: 16rpx;
 }
-.modal-cost {
+.sheet-cost {
   text-align: center;
   font-size: 28rpx;
   font-weight: 700;
   color: #b8751d;
   margin-top: 24rpx;
 }
-.modal-short {
+.sheet-short {
   text-align: center;
   font-size: 22rpx;
   color: #8a94a3;
   margin-top: 12rpx;
 }
-.modal-btns {
+.sheet-btns {
   display: flex;
   gap: 20rpx;
   margin-top: 36rpx;
 }
-.mbtn {
+.sb {
   flex: 1;
   font-size: 28rpx;
-  padding: 20rpx 0;
+  padding: 22rpx 0;
 }
-.mbtn-disabled {
+.sb-disabled {
   opacity: 0.6;
+}
+.rule-content {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+  padding: 8rpx 0 24rpx;
+}
+.rule-item {
+  font-size: 26rpx;
+  color: #516580;
+  line-height: 1.6;
+}
+.empty {
+  text-align: center;
+  padding: 80rpx 0;
+  color: #c0c6d0;
+  font-size: 26rpx;
 }
 </style>
