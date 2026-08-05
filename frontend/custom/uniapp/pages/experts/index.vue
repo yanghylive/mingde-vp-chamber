@@ -358,6 +358,8 @@ export default {
   font-size: 24rpx;
   font-weight: 600;
   color: #617087;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 .empty {
   text-align: center;

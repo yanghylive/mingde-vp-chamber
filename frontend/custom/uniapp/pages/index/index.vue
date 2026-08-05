@@ -827,6 +827,7 @@ const DEFAULT_GRIDS = [
   font-weight: 600;
   color: #617087;
   flex-shrink: 0;
+  white-space: nowrap;
 }
 
 /* ===== 活动卡 ===== */

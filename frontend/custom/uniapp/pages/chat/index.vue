@@ -368,5 +368,7 @@ function extractAnswer(body) {
   color: #516580;
   background: rgba(255, 255, 255, 0.7);
   border-radius: 999rpx;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 </style>
