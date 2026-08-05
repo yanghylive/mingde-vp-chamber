@@ -7,6 +7,7 @@
         <text>{{ viewYear }}年{{ viewMonth }}月</text>
         <text v-if="!isCurrentMonth" class="cal-today-tag">回到今天</text>
       </view>
+      <view class="cal-count">本月 {{ monthCount }} 场</view>
       <view class="cal-nav" @tap="nextMonth">›</view>
     </view>
 
@@ -54,6 +55,10 @@ export default {
     events: {
       type: Array,
       default: () => []
+    },
+    monthCount: {
+      type: Number,
+      default: 0
     }
   },
   data() {
@@ -177,12 +182,12 @@ export default {
   margin-bottom: 20rpx;
 }
 .cal-nav {
-  width: 64rpx;
-  height: 64rpx;
-  border-radius: 16rpx;
-  background: #f7f5f0;
-  color: #516580;
-  font-size: 36rpx;
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: 50%;
+  background: #f0f3f7;
+  color: #60708a;
+  font-size: 32rpx;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -192,9 +197,14 @@ export default {
   display: flex;
   align-items: center;
   gap: 14rpx;
-  font-size: 30rpx;
-  font-weight: 700;
-  color: #273b59;
+  font-size: 26rpx;
+  font-weight: 800;
+  color: #203a5c;
+}
+.cal-count {
+  font-size: 20rpx;
+  color: #97a1af;
+  margin-right: 16rpx;
 }
 .cal-today-tag {
   font-size: 20rpx;
