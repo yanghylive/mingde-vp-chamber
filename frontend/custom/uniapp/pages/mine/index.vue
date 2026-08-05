@@ -15,7 +15,7 @@
           </view>
           <text class="pf-sub">{{ currentTier.name }} · 番号 {{ memberNo }}{{ expiresText }}</text>
         </view>
-        <view class="pf-edit" @tap="goProfile">编辑资料</view>
+        <view class="pf-edit" @tap="openEditor">编辑资料</view>
       </view>
       <view class="pf-bottom">
         <view>
@@ -85,7 +85,7 @@
         </view>
         <text class="mi-arrow">></text>
       </view>
-      <view class="menu-item menu-item-border" @tap="goProfile">
+      <view class="menu-item menu-item-border" @tap="openEditor">
         <view class="mi-icon c-blue">料</view>
         <view class="mi-info">
           <text class="mi-label">我的资料</text>
@@ -136,6 +136,56 @@
       </view>
     </view>
 
+
+    <!-- 编辑资料弹窗（对齐 H5 EditProfileModal） -->
+    <view v-if="editing" class="modal-mask" @tap="closeEditor">
+      <view class="modal-sheet" @tap.stop>
+        <view class="ms-head">
+          <text class="ms-title">编辑资料</text>
+          <view class="ms-close" @tap="closeEditor">×</view>
+        </view>
+        <scroll-view scroll-y class="ms-body">
+          <view class="ms-field">
+            <text class="ms-label">姓名</text>
+            <input v-model="editor.real_name" class="ms-input" placeholder="请输入真实姓名" placeholder-class="ph" />
+          </view>
+          <view class="ms-field">
+            <text class="ms-label">昵称</text>
+            <input v-model="editor.nickname" class="ms-input" placeholder="对外展示昵称" placeholder-class="ph" />
+          </view>
+          <view class="ms-row">
+            <view class="ms-field flex1">
+              <text class="ms-label">公司</text>
+              <input v-model="editor.company_name" class="ms-input" placeholder="所在公司" placeholder-class="ph" />
+            </view>
+            <view class="ms-field flex1">
+              <text class="ms-label">职位</text>
+              <input v-model="editor.job_title" class="ms-input" placeholder="职位头衔" placeholder-class="ph" />
+            </view>
+          </view>
+          <view class="ms-row">
+            <view class="ms-field flex1">
+              <text class="ms-label">行业</text>
+              <input v-model="editor.industry" class="ms-input" placeholder="所属行业" placeholder-class="ph" />
+            </view>
+            <view class="ms-field flex1">
+              <text class="ms-label">地区</text>
+              <input v-model="editor.region" class="ms-input" placeholder="所在城市" placeholder-class="ph" />
+            </view>
+          </view>
+          <view class="ms-field">
+            <text class="ms-label">个人简介</text>
+            <textarea v-model="editor.bio" class="ms-input ms-area" placeholder="一句话介绍自己" placeholder-class="ph" />
+          </view>
+          <text v-if="saveError" class="ms-error">{{ saveError }}</text>
+        </scroll-view>
+        <view class="ms-foot">
+          <view class="ms-btn ms-btn-cancel" @tap="closeEditor">取消</view>
+          <view class="ms-btn ms-btn-save" @tap="saveEditor">{{ saving ? '保存中…' : '保存' }}</view>
+        </view>
+      </view>
+    </view>
+
     <view class="footer">明德恒智AI企商汇 · PBC 企业家事业共同体</view>
   </view>
 </template>
@@ -167,7 +217,19 @@ export default {
       distribution: null,
       ladder: TIERS,
       tierNum: 1,
-      MENU_MAIN
+      MENU_MAIN,
+      editing: false,
+      saving: false,
+      saveError: '',
+      editor: {
+        real_name: '',
+        nickname: '',
+        company_name: '',
+        job_title: '',
+        industry: '',
+        region: '',
+        bio: ''
+      }
     }
   },
   computed: {
@@ -248,8 +310,45 @@ export default {
     goTo(path) {
       if (path) uni.navigateTo({ url: path })
     },
-    goProfile() {
-      uni.navigateTo({ url: '/pages/chamber/profile/index' })
+    openEditor() {
+      const p = this.profile || {}
+      this.editor = {
+        real_name: p.real_name || '',
+        nickname: p.nickname || this.displayName || '',
+        company_name: p.company_name || '',
+        job_title: p.job_title || '',
+        industry: p.industry || '',
+        region: p.region || '',
+        bio: p.bio || ''
+      }
+      this.saveError = ''
+      this.editing = true
+    },
+    closeEditor() {
+      if (this.saving) return
+      this.editing = false
+    },
+    async saveEditor() {
+      if (this.saving) return
+      this.saving = true
+      this.saveError = ''
+      try {
+        await chamber.meProfileUpdate({
+          real_name: this.editor.real_name,
+          nickname: this.editor.nickname,
+          company_name: this.editor.company_name,
+          job_title: this.editor.job_title,
+          industry: this.editor.industry,
+          region: this.editor.region,
+          bio: this.editor.bio
+        })
+        uni.showToast({ title: '已保存', icon: 'success' })
+        this.editing = false
+        this.loadData()
+      } catch (e) {
+        this.saveError = '保存失败，请重试'
+      }
+      this.saving = false
     },
     goPointsLedger() {
       uni.navigateTo({ url: '/pages/mine/points-ledger/index' })
@@ -547,6 +646,108 @@ export default {
 .tier-label {
   font-size: 18rpx;
   color: #9aa3b0;
+}
+/* 编辑资料弹窗 */
+.modal-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+.modal-sheet {
+  width: 100%;
+  background: linear-gradient(145deg, rgba(12, 37, 72, 0.97), rgba(23, 66, 108, 0.92));
+  border-radius: 36rpx 36rpx 0 0;
+  color: #fff;
+  max-height: 78vh;
+  display: flex;
+  flex-direction: column;
+}
+.ms-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 32rpx 36rpx 8rpx;
+}
+.ms-title {
+  font-size: 32rpx;
+  font-weight: 700;
+}
+.ms-close {
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30rpx;
+}
+.ms-body {
+  flex: 1;
+  padding: 24rpx 36rpx;
+  box-sizing: border-box;
+  max-height: 56vh;
+}
+.ms-field {
+  margin-bottom: 20rpx;
+}
+.ms-row {
+  display: flex;
+  gap: 20rpx;
+}
+.ms-row .ms-field {
+  width: 50%;
+}
+.ms-label {
+  display: block;
+  font-size: 20rpx;
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 10rpx;
+}
+.ms-input {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1rpx solid rgba(255, 255, 255, 0.12);
+  border-radius: 16rpx;
+  color: #fff;
+  font-size: 26rpx;
+  padding: 20rpx 24rpx;
+  width: 100%;
+  box-sizing: border-box;
+}
+.ms-area {
+  min-height: 140rpx;
+}
+.ms-error {
+  display: block;
+  font-size: 22rpx;
+  color: #f29a8a;
+  margin-top: 8rpx;
+}
+.ms-foot {
+  display: flex;
+  gap: 20rpx;
+  padding: 24rpx 36rpx 40rpx;
+  border-top: 1rpx solid rgba(255, 255, 255, 0.1);
+}
+.ms-btn {
+  flex: 1;
+  text-align: center;
+  font-size: 28rpx;
+  font-weight: 600;
+  padding: 22rpx 0;
+  border-radius: 16rpx;
+}
+.ms-btn-cancel {
+  background: rgba(255, 255, 255, 0.15);
+  color: #17325b;
+}
+.ms-btn-save {
+  background: linear-gradient(90deg, #c87922, #eba94e);
+  color: #fff;
 }
 .footer {
   text-align: center;

@@ -52,22 +52,37 @@
     <view v-if="loading" class="empty"><skeleton type="list" :rows="3" /></view>
     <view v-else-if="visible.length === 0" class="empty">暂无符合条件的大咖</view>
     <view v-else class="list">
-      <view v-for="(e, idx) in visible" :key="e.id" class="expert card" @tap="goDetail(e.id)">
+      <view v-for="(e, idx) in visible" :key="e.id" class="expert card">
         <view class="{{'ex-avatar avatar-' + (idx % 4)}}">{{ e.first }}</view>
         <view class="ex-info">
           <view class="ex-head">
             <view>
               <text class="ex-name">{{ e.name }}</text>
-              <text class="ex-title">{{ e.title || '明德大咖' }}</text>
+              <text class="ex-title">{{ e.title || '明德大咖' }}{{ e.company ? ' · ' + e.company : '' }}</text>
             </view>
           </view>
           <view class="ex-tags">
             <text v-if="e.industry" class="ex-tag">{{ e.industry }}</text>
             <text v-if="e.category" class="ex-tag ex-tag-2">{{ e.category }}</text>
           </view>
-          <text v-if="e.bio || e.description" class="ex-bio">{{ (e.bio || e.description || '').slice(0, 40) }}</text>
+          <text v-if="e.bio || e.description" class="ex-bio">{{ (e.bio || e.description || '').slice(0, 60) }}</text>
+          <!-- 定价条（对齐 H5） -->
+          <view v-if="pricingReady(e)" class="ex-price">
+            线上 {{ fmtPoints(e.online_points) }}积分 + {{ fmtMoney(e.online_cash) }} · 线下 {{ fmtPoints(e.offline_points) }}积分 + {{ fmtMoney(e.offline_cash) }}
+          </view>
+          <view v-else class="ex-price ex-price-muted">收费明细定价更新中，敬请期待</view>
+          <!-- 按钮行（对齐 H5） -->
+          <view class="ex-actions">
+            <view class="ex-btn ex-btn-primary" @tap.stop="goDetail(e.id)">
+              <view class="ic ic-sm ic-calendar-check-white" />
+              <text>预约 1v1</text>
+            </view>
+            <view class="ex-btn ex-btn-ghost" @tap.stop="goChat(e.id)">
+              <view class="ic ic-sm ic-bot-gold" />
+              <text>大咖 AI 对话</text>
+            </view>
+          </view>
         </view>
-        <text class="ex-arrow">></text>
       </view>
     </view>
 
@@ -144,8 +159,18 @@ export default {
     goDetail(id) {
       uni.navigateTo({ url: '/pages/experts/detail/index?id=' + id })
     },
-    goChat() {
-      uni.navigateTo({ url: '/pages/chat/index' })
+    goChat(expertId) {
+      uni.navigateTo({ url: '/pages/chat/index' + (expertId ? '?expert=' + expertId : '') })
+    },
+    pricingReady(e) {
+      return Number(e.online_points || 0) > 0 || Number(e.online_cash || 0) > 0 || Number(e.offline_points || 0) > 0 || Number(e.offline_cash || 0) > 0
+    },
+    fmtPoints(v) {
+      return Number(v || 0)
+    },
+    fmtMoney(v) {
+      const n = Number(v || 0)
+      return n > 0 ? '¥' + (Number.isInteger(n) ? n : n.toFixed(2)) : '¥0'
     }
   }
 }
@@ -386,12 +411,54 @@ export default {
 }
 .ex-bio {
   font-size: 22rpx;
-  color: #a0a8b5;
-  display: block;
-  margin-top: 12rpx;
+  color: #7b8798;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.7;
+  margin-top: 12rpx;
+}
+.ex-price {
+  font-size: 20rpx;
+  color: #a06a2d;
+  background: #fff6e8;
+  border-radius: 20rpx;
+  padding: 12rpx 20rpx;
+  margin-top: 14rpx;
+  line-height: 1.6;
+}
+.ex-price-muted {
+  color: #8d97a6;
+  background: #f2f5f8;
+}
+.ex-actions {
+  display: flex;
+  gap: 16rpx;
+  margin-top: 20rpx;
+  padding-top: 20rpx;
+  border-top: 1rpx solid #eef1f5;
+}
+.ex-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
+  font-size: 24rpx;
+  font-weight: 600;
+  padding: 16rpx 0;
+  border-radius: 14rpx;
+}
+.ex-btn-primary {
+  background: linear-gradient(90deg, #c87922, #eba94e);
+  color: #fff;
+  box-shadow: 0 8rpx 20rpx rgba(185, 110, 29, 0.2);
+}
+.ex-btn-ghost {
+  background: #f1f4f8;
+  color: #24507f;
+  border: 1rpx solid #dfe6ee;
 }
 .ex-arrow {
   color: #c0c6d0;

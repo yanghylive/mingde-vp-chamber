@@ -195,6 +195,37 @@
       </view>
     </view>
 
+
+    <!-- ===== 本周精选（对齐 H5：2 列网格） ===== -->
+    <view class="section px-4">
+      <view class="ev-head">
+        <view>
+          <view class="ev-title-row">
+            <view class="ic ic-md ic-calendar-days-gold" />
+            <text class="ev-title">本周精选</text>
+          </view>
+          <text class="ev-sub">为你的成长节奏精心编排</text>
+        </view>
+        <view class="ev-more" @tap="goEvents">
+          <text>全部活动</text>
+          <text class="ev-arrow">></text>
+        </view>
+      </view>
+      <view v-if="loading" class="empty"><skeleton type="list" :rows="2" /></view>
+      <view v-else class="week-grid">
+        <view v-for="ev in events.slice(0, 4)" :key="ev.id" class="week-card card" @tap="goEventDetail(ev.id)">
+          <view class="{{'week-thumb ' + metaTone(ev.event_type)}}">
+            <view class="{{'ic ic-lg ' + metaIcon(ev.event_type)}}" />
+          </view>
+          <view class="week-info">
+            <text class="week-title">{{ ev.title }}</text>
+            <text class="week-meta">{{ weekDate(ev) }} · {{ ev.location_name || ev.address }}</text>
+            <view class="week-badge">{{ metaLabel(ev.event_type) }}</view>
+          </view>
+        </view>
+      </view>
+    </view>
+
     <view class="footer">明德恒智AI企商汇 · PBC 企业家事业共同体</view>
   </view>
 </template>
@@ -342,6 +373,11 @@ export default {
     },
     fdDate(ev) {
       return toDate(ev.start_time)
+    },
+    weekDate(ev) {
+      const d = toDate(ev.start_time)
+      if (!d) return ''
+      return d.slice(5, 7) + '月' + d.slice(8, 10) + '日'
     },
     gridGlyph(icon) {
       const map = { event: '活', expert: '咖', mall: '商', ai: 'AI', graduate: '认', default: '·' }
@@ -989,6 +1025,55 @@ const DEFAULT_GRIDS = [
   padding: 14rpx 36rpx;
   border-radius: 16rpx;
   box-shadow: 0 10rpx 24rpx rgba(185, 110, 29, 0.2);
+}
+/* ===== 本周精选 2 列网格 ===== */
+.week-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20rpx;
+  margin-top: 8rpx;
+}
+.week-card {
+  width: calc(50% - 10rpx);
+  overflow: hidden;
+}
+.week-thumb {
+  height: 160rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.week-info {
+  padding: 20rpx 24rpx 24rpx;
+}
+.week-title {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  font-size: 26rpx;
+  font-weight: 700;
+  color: #203756;
+  line-height: 1.5;
+  min-height: 78rpx;
+}
+.week-meta {
+  display: block;
+  font-size: 20rpx;
+  color: #8994a5;
+  margin-top: 10rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.week-badge {
+  display: inline-block;
+  font-size: 20rpx;
+  color: #6b7889;
+  background: #eef0f3;
+  padding: 4rpx 14rpx;
+  border-radius: 999rpx;
+  margin-top: 14rpx;
 }
 .footer {
   text-align: center;

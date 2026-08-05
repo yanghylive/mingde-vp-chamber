@@ -1,14 +1,26 @@
 <template>
   <view class="friends-page">
-    <!-- 筛选 chips -->
+    <!-- 筛选模式（对齐 H5：全部/等级/地区/行业） -->
     <view class="chips">
       <view
-        v-for="(t, i) in tierFilters"
-        :key="t"
-        class="{{'chip' + (tierFilter === t ? ' chip-active' : '')}}"
-        @tap="tierFilter = t; applyFilter()"
+        v-for="m in modes"
+        :key="m.key"
+        class="{{'chip' + (mode === m.key ? ' chip-active' : '')}}"
+        @tap="switchMode(m.key)"
       >
-        {{ t }}
+        {{ m.label }}
+      </view>
+    </view>
+
+    <!-- 模式值 chips -->
+    <view v-if="mode !== 'all'" class="chips">
+      <view
+        v-for="v in optionList"
+        :key="v"
+        class="{{'chip chip-sub' + (value === v ? ' chip-active' : '')}}"
+        @tap="value = v; applyFilter()"
+      >
+        {{ v }}
       </view>
     </view>
 
@@ -39,8 +51,25 @@ export default {
       friends: [],
       filtered: [],
       loading: true,
-      tierFilter: '全部',
-      tierFilters: ['全部', 'L1', 'L2', 'L3', 'L4']
+      mode: 'all',
+      value: '',
+      modes: [
+        { key: 'all', label: '全部' },
+        { key: 'tier', label: '等级' },
+        { key: 'region', label: '地区' },
+        { key: 'industry', label: '行业' }
+      ],
+      tierOptions: ['L1', 'L2', 'L3', 'L4'],
+      regionOptions: [],
+      industryOptions: []
+    }
+  },
+  computed: {
+    optionList() {
+      if (this.mode === 'tier') return ['全部'].concat(this.tierOptions)
+      if (this.mode === 'region') return ['全部'].concat(this.regionOptions)
+      if (this.mode === 'industry') return ['全部'].concat(this.industryOptions)
+      return []
     }
   },
   onLoad() {
@@ -58,13 +87,30 @@ export default {
       this.applyFilter()
       this.loading = false
     },
-    applyFilter() {
-      if (this.tierFilter === '全部') {
+    switchMode(key) {
+      this.mode = key
+      this.value = ''
+      if (key === 'all') {
         this.filtered = this.friends
       } else {
-        const tier = Number(this.tierFilter.replace('L', ''))
-        this.filtered = this.friends.filter((f) => Number(f.tier) === tier)
+        // 加载对应选项（去重）
+        if (key === 'region') {
+          this.regionOptions = Array.from(new Set(this.friends.map((f) => f.region).filter(Boolean)))
+        } else if (key === 'industry') {
+          this.industryOptions = Array.from(new Set(this.friends.map((f) => f.industry).filter(Boolean)))
+        }
+        this.applyFilter()
       }
+    },
+    applyFilter() {
+      const key = this.mode
+      const v = this.value
+      this.filtered = this.friends.filter((f) => {
+        if (key === 'tier') return !v || Number(f.tier) === Number(v.replace('L', ''))
+        if (key === 'region') return !v || f.region === v
+        if (key === 'industry') return !v || f.industry === v
+        return true
+      })
     }
   }
 }
@@ -89,6 +135,12 @@ export default {
   color: #516580;
   font-size: 26rpx;
   box-shadow: 0 4rpx 12rpx rgba(39, 59, 89, 0.04);
+}
+.chip-sub {
+  background: #f1f4f8;
+  box-shadow: none;
+  padding: 10rpx 24rpx;
+  font-size: 22rpx;
 }
 .chip-active {
   background: linear-gradient(135deg, #d98a2d, #b8751d);
