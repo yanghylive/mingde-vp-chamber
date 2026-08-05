@@ -38,10 +38,8 @@ page {
 .card {
   position: relative;
   overflow: hidden;
-  border: 1rpx solid transparent;
-  background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.8), rgba(244, 248, 252, 0.59)) padding-box,
-    linear-gradient(128deg, rgba(255, 255, 255, 0.88) 0%, rgba(183, 201, 221, 0.28) 50%, rgba(120, 148, 179, 0.2) 100%) border-box;
+  border: 1rpx solid rgba(183, 201, 221, 0.35);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.8), rgba(244, 248, 252, 0.59));
   box-shadow:
     0 20px 46px rgba(16, 43, 80, 0.1),
     0 4px 12px rgba(16, 43, 80, 0.045),
@@ -67,10 +65,8 @@ page {
 .glass-dark {
   position: relative;
   overflow: hidden;
-  border: 1rpx solid transparent;
-  background:
-    linear-gradient(145deg, rgba(12, 37, 72, 0.91), rgba(23, 66, 108, 0.78)) padding-box,
-    linear-gradient(132deg, rgba(224, 235, 247, 0.34) 0%, rgba(108, 142, 178, 0.15) 47%, rgba(236, 171, 82, 0.28) 100%) border-box;
+  border: 1rpx solid rgba(236, 171, 82, 0.3);
+  background: linear-gradient(145deg, rgba(12, 37, 72, 0.91), rgba(23, 66, 108, 0.78));
   box-shadow:
     0 24px 54px rgba(8, 29, 60, 0.27),
     0 3px 10px rgba(8, 29, 60, 0.1),
@@ -94,10 +90,8 @@ page {
 
 /* ============ glass-control（玻璃控件：输入/容器） ============ */
 .glass-control {
-  border: 1rpx solid transparent;
-  background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.76), rgba(247, 250, 253, 0.56)) padding-box,
-    linear-gradient(132deg, rgba(255, 255, 255, 0.86), rgba(177, 195, 214, 0.28) 54%, rgba(117, 145, 174, 0.18)) border-box;
+  border: 1rpx solid rgba(177, 195, 214, 0.35);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.76), rgba(247, 250, 253, 0.56));
   box-shadow:
     0 10px 24px rgba(17, 47, 86, 0.075),
     inset 0 1px 0 rgba(255, 255, 255, 0.69),
@@ -108,10 +102,8 @@ page {
 
 /* 选中态：深蓝玻璃 + 金边 */
 .glass-control-active {
-  border: 1rpx solid transparent;
-  background:
-    linear-gradient(145deg, rgba(16, 48, 88, 0.95), rgba(29, 73, 117, 0.85)) padding-box,
-    linear-gradient(130deg, rgba(255, 235, 203, 0.42), rgba(112, 148, 184, 0.18) 58%, rgba(222, 150, 57, 0.34)) border-box;
+  border: 1rpx solid rgba(222, 150, 57, 0.4);
+  background: linear-gradient(145deg, rgba(16, 48, 88, 0.95), rgba(29, 73, 117, 0.85));
   box-shadow:
     0 12px 26px rgba(14, 45, 82, 0.19),
     0 0 0 1px rgba(180, 117, 39, 0.07),
