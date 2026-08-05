@@ -1053,7 +1053,8 @@ const DEFAULT_GRIDS = [
   margin-top: 8rpx;
 }
 .week-card {
-  width: calc(50% - 10rpx);
+  /* 微信 wxss 不认 % + rpx 混合 calc；48.5% 浏览器取整溢出会换行，48% 稳定两列 */
+  width: 48%;
   overflow: hidden;
 }
 .week-thumb {

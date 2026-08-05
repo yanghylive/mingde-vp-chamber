@@ -77,7 +77,7 @@
         class="{{'menu-item' + (i < MENU_MAIN.length - 1 ? ' menu-item-border' : '')}}"
         @tap="goTo(m.to)"
       >
-        <view class="{{'mi-icon' + (' ' + m.color)}}">{{ m.glyph }}</view>
+        <view class="{{'mi-icon' + (' ' + m.color)}}"><view class="ic ic-md {{m.icon}}" /></view>
         <view class="mi-info">
           <text class="mi-label">{{ m.label }}</text>
           <text class="mi-sub">{{ m.sub }}</text>
@@ -89,7 +89,7 @@
     <!-- 第二菜单组 -->
     <view class="card menu" style="margin-top: 24rpx">
       <view class="menu-item menu-item-border" @tap="goEvents">
-        <view class="mi-icon c-orange">票</view>
+        <view class="mi-icon c-orange"><view class="ic ic-md ic-ticket-check-orange" /></view>
         <view class="mi-info">
           <text class="mi-label">我的活动</text>
           <text class="mi-sub">{{ registrationsCount }} 场报名记录</text>
@@ -97,7 +97,7 @@
         <text class="mi-arrow">></text>
       </view>
       <view class="menu-item menu-item-border" @tap="openEditor">
-        <view class="mi-icon c-blue">料</view>
+        <view class="mi-icon c-blue"><view class="ic ic-md ic-star-blue" /></view>
         <view class="mi-info">
           <text class="mi-label">我的资料</text>
           <text class="mi-sub">{{ profileText }}</text>
@@ -105,7 +105,7 @@
         <text class="mi-arrow">></text>
       </view>
       <view class="menu-item menu-item-border" @tap="goGraduateVerification">
-        <view class="mi-icon c-green">证</view>
+        <view class="mi-icon c-green"><view class="ic ic-md ic-shield-check-green" /></view>
         <view class="mi-info">
           <text class="mi-label">毕业验证</text>
           <text class="mi-sub">学历 / 身份认证</text>
@@ -113,7 +113,7 @@
         <text class="mi-arrow">></text>
       </view>
       <view class="menu-item" @tap="goMembership">
-        <view class="mi-icon c-pink">会</view>
+        <view class="mi-icon c-pink"><view class="ic ic-md ic-gift-pink" /></view>
         <view class="mi-info">
           <text class="mi-label">会籍中心</text>
           <text class="mi-sub">{{ membershipText }}</text>
@@ -125,7 +125,7 @@
     <!-- 会员等级 grid（对齐 H5） -->
     <view class="sec-head" style="margin-top: 36rpx">
       <view class="sh-row">
-        <view class="sh-icon">皇</view>
+        <view class="sh-icon"><view class="ic ic-sm ic-crown-gold" /></view>
         <view>
           <text class="sh-title">会员等级</text>
           <text class="sh-sub">见证每一次持续成长</text>
@@ -209,11 +209,11 @@ import { toDate } from '@/common/format'
 import { fetchSiteConfig } from '@/common/site-config'
 
 const MENU_MAIN = [
-  { label: '我的分销码', sub: '推荐新会员注册得积分', glyph: '推', color: 'c-orange', to: '/pages/mine/distribution/index' },
-  { label: '客服微信', sub: '扫码添加专属客服', glyph: '客', color: 'c-blue', to: '/pages/mine/customer-service/index' },
-  { label: '我的好友', sub: '按等级 / 地区 / 行业筛选', glyph: '友', color: 'c-green', to: '/pages/mine/friends/index' },
-  { label: '积分记录', sub: '获取与消费明细', glyph: '积', color: 'c-pink', to: '/pages/mine/points-ledger/index' },
-  { label: '设置', sub: '资料 / 通知 / 隐私', glyph: '设', color: 'c-gray', to: '/pages/mine/settings/index' }
+  { label: '我的分销码', sub: '推荐新会员注册得积分', icon: 'ic-link-2-orange', color: 'c-orange', to: '/pages/mine/distribution/index' },
+  { label: '客服微信', sub: '扫码添加专属客服', icon: 'ic-message-circle-blue', color: 'c-blue', to: '/pages/mine/customer-service/index' },
+  { label: '我的好友', sub: '按等级 / 地区 / 行业筛选', icon: 'ic-users-round-green', color: 'c-green', to: '/pages/mine/friends/index' },
+  { label: '积分记录', sub: '获取与消费明细', icon: 'ic-history-pink', color: 'c-pink', to: '/pages/mine/points-ledger/index' },
+  { label: '设置', sub: '资料 / 通知 / 隐私', icon: 'ic-settings-gray', color: 'c-gray', to: '/pages/mine/settings/index' }
 ]
 
 export default {
@@ -412,9 +412,6 @@ export default {
   font-size: 24rpx;
   color: #8a94a3;
   margin-top: 6rpx;
-}
-  padding: 24rpx 32rpx 60rpx;
-  min-height: 100vh;
 }
 
 /* profile 深色卡 */

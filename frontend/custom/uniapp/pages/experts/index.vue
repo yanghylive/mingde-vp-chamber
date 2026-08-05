@@ -40,14 +40,14 @@
     </view>
     <scroll-view scroll-x class="chips">
       <view class="chips-inner">
-
-      <view
-        v-for="c in categories"
-        :key="c"
-        class="{{'chip glass-control' + (category === c ? ' glass-control-active' : '')}}"
-        @tap="category = c"
-      >
-        {{ c }}
+        <view
+          v-for="c in categories"
+          :key="c"
+          class="{{'chip glass-control' + (category === c ? ' glass-control-active' : '')}}"
+          @tap="category = c"
+        >
+          {{ c }}
+        </view>
       </view>
     </scroll-view>
 
