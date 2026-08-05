@@ -24,7 +24,7 @@
         confirm-type="send"
         @confirm="send"
       />
-      <view class="send-btn" class="{{{ 'send-btn-disabled': sending }}}" @tap="send">
+      <view class="send-btn {{sending ? 'send-btn-disabled' : ''}}" @tap="send">
         {{ sending ? '…' : '发送' }}
       </view>
     </view>
