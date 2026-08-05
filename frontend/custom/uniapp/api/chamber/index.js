@@ -26,15 +26,14 @@ export const chamber = {
   meNotifications: () => request('/chamber/v1/me/notifications').then(pickList),
   points: () =>
     request('/chamber/v1/me/points').then((body) => {
+      // body 已解包为 data（可能是数字 / {points} / {balance}）
       if (body === null || body === undefined) return 0
       if (typeof body === 'number') return body
-      const d = body.data
-      if (typeof d === 'number') return d
-      return Number(d && (d.points || body.points)) || 0
+      return Number(body.points !== undefined ? body.points : body.balance) || 0
     }),
 
   // ---- 会员 ----
-  membershipPlans: () => request('/chamber/v1/membership/plans').then((b) => (b && b.data && b.data.plans) || []),
+  membershipPlans: () => request('/chamber/v1/membership/plans').then((b) => (b && b.plans) || []),
 
   // ---- 活动 ----
   events: () => request('/chamber/v1/events').then(pickList),

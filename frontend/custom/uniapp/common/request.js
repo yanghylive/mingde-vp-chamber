@@ -45,7 +45,8 @@ export function request(path, options = {}) {
       success(response) {
         const body = response.data || {}
         if (response.statusCode >= 200 && response.statusCode < 300) {
-          resolve(body)
+          // 统一解包：优先返回 body.data（统一响应结构 {status, msg, data}）
+          resolve(body && body.data !== undefined ? body.data : body)
           return
         }
         // 认证失败
@@ -80,10 +81,14 @@ export function uuid() {
 
 /** 从响应里提取数组（兼容 items/list/data 结构） */
 export function pickList(body) {
+  // body 是 request 解包后的 data（可能是数组 / {items} / {list} / {data}）
   if (!body) return []
   if (Array.isArray(body)) return body
-  if (Array.isArray(body.data)) return body.data
   if (Array.isArray(body.items)) return body.items
   if (Array.isArray(body.list)) return body.list
+  const d = body.data
+  if (d && Array.isArray(d.items)) return d.items
+  if (d && Array.isArray(d.list)) return d.list
+  if (Array.isArray(d)) return d
   return []
 }
