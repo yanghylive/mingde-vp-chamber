@@ -1,41 +1,58 @@
 <template>
-  <view class="ph-page">
-    <view class="ph-card card">
-      <view class="ph-icon">🎉</view>
-      <view class="ph-title">兑换成功</view>
-      <view class="ph-sub">该页面正在建设中，敬请期待</view>
+  <view class="success-page">
+    <view class="s-icon">🎉</view>
+    <view class="s-title">兑换成功</view>
+    <view class="s-sub">商品兑换已受理，详情可在积分记录中查看</view>
+    <view class="s-btns">
+      <view class="btn-secondary s-btn" @tap="goMall">继续逛逛</view>
+      <view class="btn-primary s-btn" @tap="goHome">返回首页</view>
     </view>
   </view>
 </template>
 
 <script>
-export default {}
+export default {
+  methods: {
+    goMall() {
+      uni.switchTab({ url: '/pages/mall/index' })
+    },
+    goHome() {
+      uni.switchTab({ url: '/pages/index/index' })
+    }
+  }
+}
 </script>
 
 <style scoped lang="scss">
-.ph-page {
-  padding: 120rpx 40rpx;
-  display: flex;
-  justify-content: center;
-}
-.ph-card {
-  width: 100%;
-  padding: 80rpx 40rpx;
+.success-page {
+  padding: 140rpx 60rpx;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 20rpx;
 }
-.ph-icon {
-  font-size: 80rpx;
+.s-icon {
+  font-size: 120rpx;
 }
-.ph-title {
-  font-size: 32rpx;
-  font-weight: 700;
+.s-title {
+  font-size: 40rpx;
+  font-weight: 800;
   color: #273b59;
+  margin-top: 32rpx;
 }
-.ph-sub {
-  font-size: 24rpx;
+.s-sub {
+  font-size: 26rpx;
   color: #8a94a3;
+  margin-top: 16rpx;
+  text-align: center;
+}
+.s-btns {
+  display: flex;
+  gap: 24rpx;
+  margin-top: 64rpx;
+  width: 100%;
+}
+.s-btn {
+  flex: 1;
+  text-align: center;
 }
 </style>

@@ -1,41 +1,128 @@
 <template>
-  <view class="ph-page">
-    <view class="ph-card card">
-      <view class="ph-icon">🏅</view>
-      <view class="ph-title">积分获取</view>
-      <view class="ph-sub">该页面正在建设中，敬请期待</view>
+  <view class="paths-page">
+    <view class="head card">
+      <text class="h-title">如何获得积分</text>
+      <text class="h-sub">参与活动、贡献与学习，积分可兑换好礼</text>
+    </view>
+
+    <view v-if="loading" class="empty">加载中…</view>
+    <view v-else class="list">
+      <view v-for="(p, i) in paths" :key="i" class="path card">
+        <view class="p-icon">{{ pathGlyph(p.icon) }}</view>
+        <view class="p-info">
+          <text class="p-title">{{ p.title }}</text>
+          <text v-if="p.desc" class="p-desc">{{ p.desc }}</text>
+        </view>
+        <view class="p-points">+{{ p.points }}<text class="p-unit">{{ pathUnit(p.icon) }}</text></view>
+      </view>
     </view>
   </view>
 </template>
 
 <script>
-export default {}
+import chamber from '@/api/chamber'
+
+export default {
+  data() {
+    return {
+      paths: [],
+      loading: true
+    }
+  },
+  onLoad() {
+    this.loadData()
+  },
+  methods: {
+    async loadData() {
+      try {
+        this.paths = await chamber.pointsPaths()
+      } catch (e) {}
+      this.loading = false
+    },
+    pathGlyph(icon) {
+      const map = { coach: '🎓', charity: '🤝', roadshow: '🎤', distribution: '📢', study: '📚', medal: '🏅' }
+      return map[icon] || '✦'
+    },
+    pathUnit(icon) {
+      return icon === 'distribution' ? '/人' : '/次'
+    }
+  }
+}
 </script>
 
 <style scoped lang="scss">
-.ph-page {
-  padding: 120rpx 40rpx;
-  display: flex;
-  justify-content: center;
+.paths-page {
+  padding: 32rpx;
 }
-.ph-card {
-  width: 100%;
-  padding: 80rpx 40rpx;
+.head {
+  padding: 40rpx 36rpx;
+  background: linear-gradient(135deg, #2c3e50, #273b59);
+  margin-bottom: 24rpx;
+}
+.h-title {
+  display: block;
+  font-size: 36rpx;
+  font-weight: 800;
+  color: #fff;
+}
+.h-sub {
+  display: block;
+  font-size: 24rpx;
+  color: rgba(255, 255, 255, 0.6);
+  margin-top: 10rpx;
+}
+.empty {
+  text-align: center;
+  padding: 100rpx 0;
+  color: #c0c6d0;
+  font-size: 26rpx;
+}
+.list {
   display: flex;
   flex-direction: column;
-  align-items: center;
   gap: 20rpx;
 }
-.ph-icon {
-  font-size: 80rpx;
+.path {
+  display: flex;
+  align-items: center;
+  gap: 24rpx;
+  padding: 28rpx;
 }
-.ph-title {
-  font-size: 32rpx;
-  font-weight: 700;
+.p-icon {
+  width: 88rpx;
+  height: 88rpx;
+  border-radius: 24rpx;
+  background: #fff0dc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40rpx;
+  flex-shrink: 0;
+}
+.p-info {
+  flex: 1;
+  min-width: 0;
+}
+.p-title {
+  font-size: 28rpx;
+  font-weight: 600;
   color: #273b59;
+  display: block;
 }
-.ph-sub {
-  font-size: 24rpx;
+.p-desc {
+  font-size: 22rpx;
   color: #8a94a3;
+  display: block;
+  margin-top: 6rpx;
+}
+.p-points {
+  font-size: 34rpx;
+  font-weight: 800;
+  color: #b8751d;
+}
+.p-unit {
+  font-size: 20rpx;
+  color: #8a94a3;
+  margin-left: 4rpx;
 }
 </style>

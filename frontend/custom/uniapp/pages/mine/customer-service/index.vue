@@ -1,41 +1,130 @@
 <template>
-  <view class="ph-page">
-    <view class="ph-card card">
-      <view class="ph-icon">💬</view>
-      <view class="ph-title">客服微信</view>
-      <view class="ph-sub">该页面正在建设中，敬请期待</view>
+  <view class="cs-page">
+    <view class="card main-card">
+      <view class="cs-icon">💬</view>
+      <view class="cs-title">专属客服</view>
+      <view class="cs-sub">扫码添加客服微信，获取一对一服务</view>
+
+      <!-- 二维码（配置驱动，无配置显示占位） -->
+      <image
+        v-if="qrUrl"
+        :src="qrUrl"
+        class="cs-qr"
+        mode="aspectFit"
+      />
+      <view v-else class="cs-qr cs-qr-placeholder">
+        <text class="qrp-text">客服二维码</text>
+        <text class="qrp-sub">待配置</text>
+      </view>
+
+      <view v-if="wechatId" class="cs-wechat">
+        <text class="cw-label">微信号：</text>
+        <text class="cw-value">{{ wechatId }}</text>
+        <view class="cw-copy" @tap="copyWechat">复制</view>
+      </view>
     </view>
   </view>
 </template>
 
 <script>
-export default {}
+import { fetchSiteConfig } from '@/common/site-config'
+
+export default {
+  data() {
+    return {
+      qrUrl: '',
+      wechatId: ''
+    }
+  },
+  onLoad() {
+    fetchSiteConfig().then((cfg) => {
+      if (!cfg) return
+      const cs = cfg.customer_service || cfg.customerService || {}
+      if (cs.qr_image || cs.qrImage) {
+        let url = cs.qr_image || cs.qrImage
+        if (url && !/^https?:\/\//.test(url)) url = 'https://md.kaypal.cn' + url
+        this.qrUrl = url
+      }
+      this.wechatId = cs.wechat_id || cs.wechatId || ''
+    })
+  },
+  methods: {
+    copyWechat() {
+      if (!this.wechatId) return
+      uni.setClipboardData({ data: this.wechatId })
+    }
+  }
+}
 </script>
 
 <style scoped lang="scss">
-.ph-page {
-  padding: 120rpx 40rpx;
-  display: flex;
-  justify-content: center;
+.cs-page {
+  padding: 60rpx 40rpx;
 }
-.ph-card {
-  width: 100%;
-  padding: 80rpx 40rpx;
+.main-card {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 20rpx;
+  padding: 60rpx 40rpx;
 }
-.ph-icon {
-  font-size: 80rpx;
+.cs-icon {
+  font-size: 72rpx;
 }
-.ph-title {
-  font-size: 32rpx;
-  font-weight: 700;
+.cs-title {
+  font-size: 34rpx;
+  font-weight: 800;
   color: #273b59;
+  margin-top: 20rpx;
 }
-.ph-sub {
+.cs-sub {
   font-size: 24rpx;
   color: #8a94a3;
+  margin-top: 12rpx;
+}
+.cs-qr {
+  width: 360rpx;
+  height: 360rpx;
+  border-radius: 24rpx;
+  margin-top: 40rpx;
+  background: #fff;
+  border: 2rpx solid #f0ddc2;
+}
+.cs-qr-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: #f7f5f0;
+}
+.qrp-text {
+  font-size: 28rpx;
+  color: #8a94a3;
+}
+.qrp-sub {
+  font-size: 22rpx;
+  color: #c0c6d0;
+  margin-top: 8rpx;
+}
+.cs-wechat {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  margin-top: 36rpx;
+  font-size: 28rpx;
+}
+.cw-label {
+  color: #516580;
+}
+.cw-value {
+  color: #273b59;
+  font-weight: 600;
+}
+.cw-copy {
+  padding: 8rpx 24rpx;
+  border-radius: 999rpx;
+  background: #f6ead6;
+  color: #b8751d;
+  font-size: 24rpx;
+  font-weight: 600;
 }
 </style>

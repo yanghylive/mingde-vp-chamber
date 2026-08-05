@@ -128,6 +128,12 @@
       "style": {
         "navigationBarTitleText": "AI 生态"
       }
+    },
+    {
+      "path": "pages/chat/index",
+      "style": {
+        "navigationBarTitleText": "AI 对话"
+      }
     }
   ],
   "globalStyle": {

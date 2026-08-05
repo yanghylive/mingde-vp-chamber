@@ -1,41 +1,98 @@
 <template>
-  <view class="ph-page">
-    <view class="ph-card card">
-      <view class="ph-icon">🔔</view>
-      <view class="ph-title">通知</view>
-      <view class="ph-sub">该页面正在建设中，敬请期待</view>
+  <view class="notifications-page">
+    <view v-if="loading" class="empty">加载中…</view>
+    <view v-else-if="list.length === 0" class="empty">暂无通知</view>
+    <view v-else class="list">
+      <view
+        v-for="n in list"
+        :key="n.id"
+        :class="['notif card', !n.is_read && 'notif-unread']"
+      >
+        <view class="n-icon">{{ n.title === '活动提醒' ? '🎯' : '📣' }}</view>
+        <view class="n-info">
+          <text class="n-title">{{ n.title }}</text>
+          <text v-if="n.content" class="n-content">{{ n.content }}</text>
+          <text class="n-time">{{ timeText(n.created_at) }}</text>
+        </view>
+      </view>
     </view>
   </view>
 </template>
 
 <script>
-export default {}
+import chamber from '@/api/chamber'
+import { toDate } from '@/common/format'
+
+export default {
+  data() {
+    return {
+      list: [],
+      loading: true
+    }
+  },
+  onLoad() {
+    this.loadData()
+  },
+  methods: {
+    async loadData() {
+      try {
+        this.list = await chamber.meNotifications()
+      } catch (e) {}
+      this.loading = false
+    },
+    timeText(ts) {
+      return toDate(ts, 'datetime')
+    }
+  }
+}
 </script>
 
 <style scoped lang="scss">
-.ph-page {
-  padding: 120rpx 40rpx;
-  display: flex;
-  justify-content: center;
+.notifications-page {
+  padding: 24rpx 32rpx 60rpx;
 }
-.ph-card {
-  width: 100%;
-  padding: 80rpx 40rpx;
+.empty {
+  text-align: center;
+  padding: 100rpx 0;
+  color: #c0c6d0;
+  font-size: 26rpx;
+}
+.list {
   display: flex;
   flex-direction: column;
-  align-items: center;
   gap: 20rpx;
 }
-.ph-icon {
-  font-size: 80rpx;
+.notif {
+  display: flex;
+  gap: 20rpx;
+  padding: 28rpx;
+  border-left: 6rpx solid transparent;
 }
-.ph-title {
-  font-size: 32rpx;
-  font-weight: 700;
+.notif-unread {
+  border-left-color: #d98a2d;
+}
+.n-icon {
+  font-size: 36rpx;
+}
+.n-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+.n-title {
+  font-size: 28rpx;
+  font-weight: 600;
   color: #273b59;
 }
-.ph-sub {
+.n-content {
   font-size: 24rpx;
-  color: #8a94a3;
+  color: #516580;
+  line-height: 1.6;
+}
+.n-time {
+  font-size: 20rpx;
+  color: #c0c6d0;
 }
 </style>
