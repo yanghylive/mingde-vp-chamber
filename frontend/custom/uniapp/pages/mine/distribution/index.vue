@@ -191,7 +191,7 @@ export default {
 }
 .sh-title {
   display: block;
-  font-size: 32rpx;
+  font-size: 34rpx;
   font-weight: 700;
   color: #17325b;
 }

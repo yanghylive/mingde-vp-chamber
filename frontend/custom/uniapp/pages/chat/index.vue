@@ -334,7 +334,7 @@ function extractAnswer(body) {
 .ct-sub {
   display: block;
   font-size: 20rpx;
-  color: #97a1af;
+  color: #a06a2d;
   margin-top: 4rpx;
 }
 .chat-top {
@@ -365,8 +365,8 @@ function extractAnswer(body) {
   margin-right: 16rpx;
   padding: 12rpx 24rpx;
   font-size: 22rpx;
-  color: #24507f;
-  background: #eaf0f8;
+  color: #516580;
+  background: rgba(255, 255, 255, 0.7);
   border-radius: 999rpx;
 }
 </style>

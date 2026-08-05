@@ -23,18 +23,24 @@
     </view>
     <view class="card group">
       <view class="item" @tap="toggle('notify', 'activity')">
+        <view class="it-left">
         <text class="it-label">活动提醒</text>
         <text class="it-desc">报名、签到、开课等动态即时通知</text>
+        </view>
         <view class="{{'switch' + (notify.activity ? ' switch-on' : '')}}" />
       </view>
       <view class="item" @tap="toggle('notify', 'points')">
+        <view class="it-left">
         <text class="it-label">积分变动提醒</text>
         <text class="it-desc">获取 / 消耗积分时通知</text>
+        </view>
         <view class="{{'switch' + (notify.points ? ' switch-on' : '')}}" />
       </view>
       <view class="item" @tap="toggle('notify', 'system')">
+        <view class="it-left">
         <text class="it-label">系统公告</text>
         <text class="it-desc">平台重要公告与升级通知</text>
+        </view>
         <view class="{{'switch' + (notify.system ? ' switch-on' : '')}}" />
       </view>
     </view>
@@ -46,18 +52,24 @@
     </view>
     <view class="card group">
       <view class="item" @tap="toggle('privacy', 'profileVisible')">
+        <view class="it-left">
         <text class="it-label">允许好友查看我的资料</text>
         <text class="it-desc">好友可在名片中看到我的公司与职位</text>
+        </view>
         <view class="{{'switch' + (privacy.profileVisible ? ' switch-on' : '')}}" />
       </view>
       <view class="item" @tap="toggle('privacy', 'inRecommend')">
+        <view class="it-left">
         <text class="it-label">向推荐列表展示我</text>
         <text class="it-desc">出现在地区 / 行业筛选结果中</text>
+        </view>
         <view class="{{'switch' + (privacy.inRecommend ? ' switch-on' : '')}}" />
       </view>
       <view class="item" @tap="toggle('privacy', 'hidePhone')">
+        <view class="it-left">
         <text class="it-label">对非好友隐藏手机号</text>
         <text class="it-desc">仅好友与平台客服可见联系方式</text>
+        </view>
         <view class="{{'switch' + (privacy.hidePhone ? ' switch-on' : '')}}" />
       </view>
     </view>
@@ -201,6 +213,7 @@ export default {
   color: #273b59;
 }
 .it-desc {
+  display: block;
   font-size: 20rpx;
   color: #969fad;
 }
@@ -247,10 +260,17 @@ export default {
 .it-icon {
   font-size: 32rpx;
 }
-.it-label {
+.it-left {
   flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+.it-label {
   font-size: 28rpx;
   color: #273b59;
+  font-weight: 700;
 }
 .it-arrow {
   color: #c0c6d0;

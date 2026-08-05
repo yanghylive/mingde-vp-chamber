@@ -143,7 +143,8 @@ export default {
   border-radius: 999rpx;
   background: #fff;
   color: #516580;
-  font-size: 26rpx;
+  font-size: 24rpx;
+  font-weight: 600;
   box-shadow: 0 4rpx 12rpx rgba(39, 59, 89, 0.04);
 }
 .chip-sub {
