@@ -14,7 +14,7 @@
           <text class="en-reason">{{ item.reason || item.type || '积分变动' }}</text>
           <text class="en-time">{{ timeText(item.created_at) }}</text>
         </view>
-        <text :class="['en-points', (item.points || 0) >= 0 ? 'en-plus' : 'en-minus']">
+        <text class="{{'en-points' + ((item.points || 0) >= 0 ? ' en-plus' : ' en-minus')}}">
           {{ (item.points || 0) >= 0 ? '+' : '' }}{{ item.points }}
         </text>
       </view>

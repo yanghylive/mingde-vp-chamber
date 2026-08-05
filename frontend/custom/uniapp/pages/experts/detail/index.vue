@@ -53,7 +53,7 @@
             <view
               v-for="s in list"
               :key="s.id"
-              :class="['slot-item', s.status !== 'open' && 'slot-item-disabled', selectedSlot === s.id && 'slot-item-active']"
+              class="{{'slot-item' + (s.status !== 'open' ? ' slot-item-disabled' : '') + (selectedSlot === s.id ? ' slot-item-active' : '')}}"
               @tap="s.status === 'open' && selectSlot(s)"
             >
               <text class="si-time">{{ slotTime(s) }}</text>
@@ -69,7 +69,7 @@
           <text class="bi-label">已选档期</text>
           <text class="bi-value">{{ selectedSlotText }}</text>
         </view>
-        <view :class="['book-btn', submitting && 'book-btn-disabled']" @tap="submitAppointment">
+        <view class="{{'book-btn' + (submitting ? ' book-btn-disabled' : '')}}" @tap="submitAppointment">
           {{ submitting ? '提交中…' : '确认预约' }}
         </view>
       </view>

@@ -14,7 +14,7 @@
       <view class="page-head">
         <view>
           <text class="page-title">会员资料</text>
-          <text class="page-status" :class="profileComplete ? 'complete' : 'incomplete'">
+          <text class="page-status" class="{{profileComplete ? 'complete' : 'incomplete'}}">
             {{ profileComplete ? '资料已完善' : '资料待完善' }}
           </text>
         </view>

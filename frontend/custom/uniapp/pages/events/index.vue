@@ -21,7 +21,7 @@
           <text class="bn-meta-item">历 {{ bannerDate(banner) }}</text>
           <text class="bn-meta-item">地 {{ banner.location_name || banner.address }}</text>
         </view>
-        <view :class="['bn-btn', joined.includes(banner.id) && 'bn-btn-joined']" @tap.stop="toggle(banner.id)">
+        <view class="{{'bn-btn' + (joined.includes(banner.id) ? ' bn-btn-joined' : '')}}" @tap.stop="toggle(banner.id)">
           {{ joined.includes(banner.id) ? '已报名' : '预约席位' }}
         </view>
       </view>
@@ -42,7 +42,7 @@
         <view
           v-for="f in filters"
           :key="f"
-          :class="['chip', 'glass-control', filter === f && 'glass-control-active']"
+          class="{{'chip' + 'glass-control' + (filter === f ? ' glass-control-active' : '')}}"
           @tap="filter = filter === f ? '全部' : f"
         >
           {{ f }}
@@ -67,7 +67,7 @@
             </view>
             <view class="ev-foot">
               <text class="ev-seats">席 {{ remaining(ev) }} 席可约</text>
-              <view :class="['ev-btn', joined.includes(ev.id) && 'ev-btn-joined']" @tap.stop="toggle(ev.id)">
+              <view class="{{'ev-btn' + (joined.includes(ev.id) ? ' ev-btn-joined' : '')}}" @tap.stop="toggle(ev.id)">
                 {{ joined.includes(ev.id) ? '已报名' : '立即报名' }}
               </view>
             </view>

@@ -11,7 +11,7 @@
     </view>
 
     <template v-else>
-      <view class="status-band" :class="'tone-' + statusMeta.tone">
+      <view class="status-band" class="{{'tone-' + statusMeta.tone}}">
         <view>
           <text class="status-label">毕业认证</text>
           <text class="status-value">{{ statusMeta.label }}</text>
@@ -79,7 +79,7 @@
             <view class="field compact">
               <text class="field-label">毕业日期</text>
               <picker mode="date" :value="form.graduation_at" @change="changeGraduationDate">
-                <view class="field-input picker-value" :class="{ muted: !form.graduation_at }">
+                <view class="field-input picker-value" class="{{{ muted: !form.graduation_at }}}">
                   {{ form.graduation_at || '选择日期' }}
                 </view>
               </picker>

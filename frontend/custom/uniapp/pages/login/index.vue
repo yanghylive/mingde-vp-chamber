@@ -12,13 +12,13 @@
       <!-- tab 切换 -->
       <view class="tabs">
         <view
-          :class="['tab', mode === 'sms' && 'tab-active']"
+          class="{{'tab' + (mode === 'sms' ? ' tab-active' : '')}}"
           @tap="switchMode('sms')"
         >
           验证码登录
         </view>
         <view
-          :class="['tab', mode === 'password' && 'tab-active']"
+          class="{{'tab' + (mode === 'password' ? ' tab-active' : '')}}"
           @tap="switchMode('password')"
         >
           密码登录
@@ -46,7 +46,7 @@
             <text class="f-icon">码</text>
             <input v-model="smsCode" class="input" type="number" maxlength="6" placeholder="短信验证码" placeholder-class="ph" />
           </view>
-          <view :class="['send-btn', (countdown > 0 || loading) && 'send-btn-disabled']" @tap="sendSms">
+          <view class="{{'send-btn' + ((countdown > 0 || loading) ? ' send-btn-disabled' : '')}}" @tap="sendSms">
             {{ countdown > 0 ? countdown + 's' : '获取验证码' }}
           </view>
         </view>
@@ -62,7 +62,7 @@
       <view v-if="error" class="error-tip">{{ error }}</view>
 
       <!-- 登录按钮 -->
-      <view :class="['submit', loading && 'submit-disabled']" @tap="submit">
+      <view class="{{'submit' + (loading ? ' submit-disabled' : '')}}" @tap="submit">
         {{ loading ? '登录中…' : '登 录' }}
       </view>
     </view>

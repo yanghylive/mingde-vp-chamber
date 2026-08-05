@@ -8,7 +8,7 @@
       <view
         v-for="m in messages"
         :key="m.id"
-        :class="['msg', m.role === 'user' ? 'msg-user' : 'msg-ai']"
+        class="{{'msg' + (m.role === 'user' ? ' msg-user' : ' msg-ai')}}"
         :id="'msg-' + m.id"
       >
         <view class="bubble">{{ m.content }}<text v-if="m.streaming" class="cursor">▍</text></view>
@@ -24,7 +24,7 @@
         confirm-type="send"
         @confirm="send"
       />
-      <view class="send-btn" :class="{ 'send-btn-disabled': sending }" @tap="send">
+      <view class="send-btn" class="{{{ 'send-btn-disabled': sending }}}" @tap="send">
         {{ sending ? '…' : '发送' }}
       </view>
     </view>

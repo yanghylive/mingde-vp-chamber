@@ -4,7 +4,7 @@
     <view class="profile glass-dark">
       <view class="pf-ring" />
       <view class="pf-row">
-        <view class="pf-avatar">{{ (displayName || '明')[0] }}</view>
+        <view class="pf-avatar">{{ avatarText }}</view>
         <view class="pf-info">
           <view class="pf-name-row">
             <text class="pf-name">{{ displayName }}</text>
@@ -63,10 +63,10 @@
       <view
         v-for="(m, i) in MENU_MAIN"
         :key="m.label"
-        :class="['menu-item', i < MENU_MAIN.length - 1 && 'menu-item-border']"
+        class="{{'menu-item' + (i < MENU_MAIN.length - 1 ? ' menu-item-border' : '')}}"
         @tap="goTo(m.to)"
       >
-        <view :class="['mi-icon', m.color]">{{ m.glyph }}</view>
+        <view class="{{'mi-icon' + (' ' + m.color)}}">{{ m.glyph }}</view>
         <view class="mi-info">
           <text class="mi-label">{{ m.label }}</text>
           <text class="mi-sub">{{ m.sub }}</text>
@@ -146,6 +146,9 @@ export default {
     }
   },
   computed: {
+    avatarText() {
+      return (this.displayName || '明').slice(0, 1)
+    },
     currentTier() {
       return this.ladder.find((t) => t.tier === this.tierNum) || this.ladder[0]
     },

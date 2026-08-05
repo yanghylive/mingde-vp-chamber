@@ -24,7 +24,7 @@
     <!-- ===== 会员状态卡 ===== -->
     <view class="section px-4">
       <view class="member-card card" @tap="goMembership">
-        <view class="mc-avatar">{{ (displayName || '明')[0] }}</view>
+        <view class="mc-avatar">{{ avatarText }}</view>
         <view class="mc-info">
           <view class="mc-name-row">
             <text class="mc-name">{{ displayName }}</text>
@@ -52,14 +52,14 @@
           <view
             v-for="t in ladder"
             :key="t.tier"
-            :class="['ladder-step', t.tier === tierNum && 'ladder-step-current']"
+            class="ladder-step {{t.tier === tierNum ? 'ladder-step-current' : ''}}"
             @tap="goMembership"
           >
             <text v-if="t.tier === tierNum" class="ls-now">当前</text>
-            <view :class="['ls-dot', t.tier <= tierNum ? 'ls-dot-open' : 'ls-dot-locked']">
+            <view class="{{'ls-dot' + (t.tier <= tierNum ? ' ls-dot-open' : ' ls-dot-locked')}}">
               {{ t.short }}
             </view>
-            <text :class="['ls-name', t.tier === tierNum && 'ls-name-current']">{{ t.name }}</text>
+            <text class="{{'ls-name' + (t.tier === tierNum ? ' ls-name-current' : '')}}">{{ t.name }}</text>
           </view>
         </view>
         <view class="ladder-foot">当前 L{{ tierNum }} · 持续参与活动、贡献与学习，逐级解锁更丰富权益</view>
@@ -70,7 +70,7 @@
     <view class="section px-4">
       <view class="grids">
         <view v-for="g in grids" :key="g.label" class="grid-item card" @tap="goTo(g.to)">
-          <view :class="['gi-icon', 'gi-' + (g.icon || 'default')]">
+          <view class="{{'gi-icon gi-' + (g.icon || 'default')}}">
             <text>{{ gridGlyph(g.icon) }}</text>
           </view>
           <text class="gi-label">{{ g.label }}</text>
@@ -97,7 +97,7 @@
       <!-- 方向 chips -->
       <scroll-view scroll-x class="chips" enable-flex>
         <view
-          :class="['chip', 'glass-control', chip === null && 'glass-control-active']"
+          class="{{'chip' + 'glass-control' + (chip === null ? ' glass-control-active' : '')}}"
           @tap="chip = null; applyChip()"
         >
           全部
@@ -105,7 +105,7 @@
         <view
           v-for="c in CHIPS"
           :key="c.key"
-          :class="['chip', 'glass-control', chip === c.key && 'glass-control-active']"
+          class="{{'chip' + 'glass-control' + (chip === c.key ? ' glass-control-active' : '')}}"
           @tap="chip = chip === c.key ? null : c.key; applyChip()"
         >
           {{ c.label }}
@@ -121,7 +121,7 @@
         <view v-else-if="displayEvents.length === 0" class="empty">{{ selectedEvents.length ? '该日暂无活动' : '暂无活动' }}</view>
         <block v-else>
           <view v-for="ev in displayEvents.slice(0, 6)" :key="ev.id" class="ev-card card" @tap="goEventDetail(ev.id)">
-            <view :class="['ev-left', metaTone(ev.event_type)]">
+            <view class="{{'ev-left' + (' ' + metaTone(ev.event_type))}}">
               <text class="ev-left-icon">{{ metaGlyph(ev.event_type) }}</text>
             </view>
             <view class="ev-right">
@@ -243,6 +243,9 @@ export default {
     }
   },
   computed: {
+    avatarText() {
+      return (this.displayName || '明').slice(0, 1)
+    },
     currentTier() {
       return this.ladder.find((t) => t.tier === this.tierNum) || this.ladder[0]
     },

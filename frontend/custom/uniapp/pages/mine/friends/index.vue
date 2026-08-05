@@ -5,7 +5,7 @@
       <view
         v-for="(t, i) in tierFilters"
         :key="t"
-        :class="['chip', tierFilter === t && 'chip-active']"
+        class="{{'chip' + (tierFilter === t ? ' chip-active' : '')}}"
         @tap="tierFilter = t; applyFilter()"
       >
         {{ t }}
@@ -21,7 +21,7 @@
           <text class="f-name">{{ f.nickname || f.real_name || '明德会员' }}</text>
           <text class="f-meta">{{ f.industry || f.region || '' }}</text>
         </view>
-        <view :class="['f-status', f.status === 'accepted' ? 'f-accepted' : 'f-pending']">
+        <view class="{{'f-status' + (f.status === 'accepted' ? ' f-accepted' : ' f-pending')}}">
           {{ f.status === 'accepted' ? '已通过' : '待确认' }}
         </view>
       </view>

@@ -13,7 +13,7 @@
         class="ai-card card"
         @tap="goChat(c)"
       >
-        <view :class="['ac-icon', 'tone-' + c.key]">
+        <view class="{{'ac-icon tone-' + c.key}}">
           <text>{{ c.icon }}</text>
         </view>
         <view class="ac-info">

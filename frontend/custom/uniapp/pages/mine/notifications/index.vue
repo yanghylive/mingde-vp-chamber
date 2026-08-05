@@ -6,7 +6,7 @@
       <view
         v-for="n in list"
         :key="n.id"
-        :class="['notif card', !n.is_read && 'notif-unread']"
+        class="{{'notif card' + (!n.is_read ? ' notif-unread' : '')}}"
       >
         <view class="n-icon">{{ n.title === '活动提醒' ? '活' : '通' }}</view>
         <view class="n-info">

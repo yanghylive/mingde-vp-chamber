@@ -22,7 +22,7 @@
       <view
         v-for="c in categoryOptions"
         :key="c"
-        :class="['chip', 'glass-control', tab === c && 'glass-control-active']"
+        class="{{'chip' + 'glass-control' + (tab === c ? ' glass-control-active' : '')}}"
         @tap="tab = c"
       >
         {{ c }}
@@ -44,7 +44,7 @@
     <view v-else-if="visible.length === 0" class="empty">暂无相关商品</view>
     <view v-else class="grid">
       <view v-for="p in visible" :key="p.id" class="product card" @tap="openConfirm(p)">
-        <view :class="['p-img', catTone(p.category)]">
+        <view class="{{'p-img' + (' ' + catTone(p.category))}}">
           <text class="pi-glyph">{{ catGlyph(p.category) }}</text>
         </view>
         <view class="p-cat">{{ normalizeCategory(p.category) }}</view>
@@ -69,7 +69,7 @@
       <view class="sh-link" @tap="rulesOpen = true">规则 ></view>
     </view>
     <view class="card paths-card">
-      <view v-for="(p, i) in paths" :key="i" :class="['path-row', i < paths.length - 1 && 'path-row-border']">
+      <view v-for="(p, i) in paths" :key="i" class="{{'path-row' + (i < paths.length - 1 ? ' path-row-border' : '')}}">
         <view class="pr-icon">{{ pathGlyph(p.icon) }}</view>
         <view class="pr-info">
           <text class="pr-title">{{ p.title }}</text>
@@ -94,7 +94,7 @@
         <view v-if="needCash > 0" class="sheet-short">当前余额 {{ points }} / 需 {{ needPoints }}</view>
         <view class="sheet-btns">
           <view class="btn-secondary sb" @tap="confirmTarget = null">取消</view>
-          <view :class="['btn-primary', 'sb', exchanging && 'sb-disabled']" @tap="handleConfirm">
+          <view class="{{'btn-primary' + 'sb' + (exchanging ? ' sb-disabled' : '')}}" @tap="handleConfirm">
             {{ exchanging ? '兑换中…' : needCash > 0 ? '混合支付 · 积分 + ¥' + needCash : '积分支付' }}
           </view>
         </view>

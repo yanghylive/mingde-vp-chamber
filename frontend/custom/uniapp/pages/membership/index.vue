@@ -4,7 +4,7 @@
     <view class="tier-card glass-dark">
       <view class="tc-ring" />
       <view class="tc-row">
-        <view class="tc-avatar">{{ (displayName || '明')[0] }}</view>
+        <view class="tc-avatar">{{ avatarText }}</view>
         <view class="tc-info">
           <view class="tc-name-row">
             <text class="tc-name">{{ displayName }}</text>
@@ -37,10 +37,10 @@
       <view
         v-for="t in ladder"
         :key="t.tier"
-        :class="['ladder-item card', t.tier === tierNum && 'ladder-item-current']"
+        class="{{'ladder-item card' + (t.tier === tierNum ? ' ladder-item-current' : '')}}"
       >
         <view class="li-head" @tap="expanded = expanded === t.tier ? null : t.tier">
-          <view :class="['li-dot', 'dot-' + t.tier]">{{ t.short }}</view>
+          <view class="{{'li-dot dot-' + t.tier}}">{{ t.short }}</view>
           <view class="li-info">
             <view class="li-name-row">
               <text class="li-name">{{ t.name }}</text>
@@ -50,7 +50,7 @@
           </view>
           <view class="li-count">
             <text>{{ t.rights.length }} 项</text>
-            <text :class="['li-chevron', expanded === t.tier && 'li-chevron-open']">v</text>
+            <text class="{{'li-chevron' + (expanded === t.tier ? ' li-chevron-open' : '')}}">v</text>
           </view>
         </view>
         <view v-if="expanded === t.tier" class="li-rights">
@@ -82,7 +82,7 @@
         <view
           v-for="plan in plans"
           :key="plan.code"
-          :class="['plan-card card', planTierNum(plan) === 3 && 'plan-card-hot']"
+          class="{{'plan-card card' + (planTierNum(plan) === 3 ? ' plan-card-hot' : '')}}"
         >
           <view class="plan-head">
             <text class="plan-name">{{ plan.name }}</text>
@@ -99,7 +99,7 @@
               <text>{{ b }}</text>
             </view>
           </view>
-          <view :class="['plan-buy', planTierNum(plan) <= tierNum && 'plan-buy-owned']" @tap="onBuy(plan)">
+          <view class="{{'plan-buy' + (planTierNum(plan) <= tierNum ? ' plan-buy-owned' : '')}}" @tap="onBuy(plan)">
             {{ planTierNum(plan) <= tierNum ? '当前等级' : '立即开通' }}
           </view>
         </view>
@@ -129,6 +129,9 @@ export default {
     }
   },
   computed: {
+    avatarText() {
+      return (this.displayName || '明').slice(0, 1)
+    },
     currentTier() {
       return this.ladder.find((t) => t.tier === this.tierNum) || this.ladder[0]
     },

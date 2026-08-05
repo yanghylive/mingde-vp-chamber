@@ -1,6 +1,6 @@
 <template>
   <view class="gv-page">
-    <view v-if="status" :class="['status-card', 'status-' + status]">
+    <view v-if="status" class="{{'status-card status-' + status}}">
       <view class="st-icon">{{ statusIcon }}</view>
       <view class="st-title">{{ statusTitle }}</view>
       <view class="st-sub">{{ statusSub }}</view>

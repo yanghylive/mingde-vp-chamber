@@ -21,16 +21,11 @@
       <view
         v-for="(d, i) in days"
         :key="i"
-        :class="[
-          'cal-cell',
-          !d.inMonth && 'cal-cell-out',
-          d.isToday && 'cal-cell-today',
-          d.isSelected && 'cal-cell-selected'
-        ]"
+        class="{{'cal-cell' + (!d.inMonth ? ' cal-cell-out' : '') + (d.isToday ? ' cal-cell-today' : '') + (d.isSelected ? ' cal-cell-selected' : '')}}"
         @tap="selectDay(d)"
       >
-        <text :class="['cal-num', d.isSelected && 'cal-num-selected']">{{ d.num }}</text>
-        <view v-if="d.inMonth && d.hasEvents" :class="['cal-dot', d.isSelected && 'cal-dot-selected']" />
+        <text class="{{'cal-num' + (d.isSelected ? ' cal-num-selected' : '')}}">{{ d.num }}</text>
+        <view v-if="d.inMonth && d.hasEvents" class="{{'cal-dot' + (d.isSelected ? ' cal-dot-selected' : '')}}" />
       </view>
     </view>
   </view>
