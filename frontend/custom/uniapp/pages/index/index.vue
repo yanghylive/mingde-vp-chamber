@@ -477,7 +477,7 @@ export default {
 
 const DEFAULT_GRIDS = [
   { label: '官方活动', icon: 'event', to: '/pages/events/index' },
-  { label: '会员中心', icon: 'default', to: '/pages/membership/index' },
+  { label: '会员中心', icon: 'membership', to: '/pages/membership/index' },
   { label: '积分商城', icon: 'mall', to: '/pages/mall/index' },
   { label: '大咖主页', icon: 'expert', to: '/pages/experts/index' },
   { label: 'AI生态', icon: 'ai', to: '/pages/ai-ecosystem/index' }

@@ -9,7 +9,7 @@
           <view class="tc-name-row">
             <text class="tc-name">{{ displayName }}</text>
             <view class="tc-badge">
-              <text class="tc-badge-crown">V</text>
+              <view class="ic ic-xs ic-crown-gold" />
               <text>{{ currentTier.short }}</text>
             </view>
           </view>
@@ -21,7 +21,7 @@
         </view>
       </view>
       <view class="tc-tip">
-        <text class="tct-icon">盾</text>
+        <view class="ic ic-sm ic-shield-check-gold tct-icon" />
         <text class="tct-text">{{ currentTier.short }} 已解锁 {{ currentTier.rights.length }} 项专属权益，持续精进解锁更高等级。</text>
       </view>
     </view>
@@ -29,7 +29,7 @@
     <!-- 等级权益 -->
     <view class="sec-head">
       <view class="sh-row">
-        <text class="sh-icon">奖</text>
+        <view class="sh-icon"><view class="ic ic-sm ic-medal-gold" /></view>
         <text class="sh-title">等级权益</text>
       </view>
     </view>
@@ -50,12 +50,12 @@
           </view>
           <view class="li-count">
             <text>{{ t.rights.length }} 项</text>
-            <text class="{{'li-chevron' + (expanded === t.tier ? ' li-chevron-open' : '')}}">v</text>
+            <view class="{{'ic ic-xs ic-chevron-down-gray li-chevron' + (expanded === t.tier ? ' li-chevron-open' : '')}}" />
           </view>
         </view>
         <view v-if="expanded === t.tier" class="li-rights">
           <view v-for="r in t.rights" :key="r" class="li-right">
-            <view class="lir-check">已</view>
+            <view class="lir-check"><view class="ic ic-xs ic-check-green" /></view>
             <text class="lir-text">{{ r }}</text>
           </view>
         </view>
@@ -64,7 +64,7 @@
 
     <!-- 升级路径 -->
     <view class="upgrade card">
-      <view class="up-icon">V</view>
+      <view class="up-icon"><view class="ic ic-md ic-crown-blue" /></view>
       <view class="up-info">
         <text class="up-title">升级路径</text>
         <text class="up-sub">持续参与活动、贡献与学习，逐级解锁更丰富权益。</text>

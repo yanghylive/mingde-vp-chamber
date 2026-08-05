@@ -31,11 +31,11 @@
       >
         <view class="ac-top">
           <view class="{{'ac-icon tone-' + c.key}}">
-            <text>{{ c.icon }}</text>
+            <view class="ic ic-md {{c.icon}}" />
           </view>
           <view class="ac-title-row">
             <text class="ac-title">{{ c.title }}</text>
-            <text class="ac-caret">{{ active === c.key ? 'v' : 'v' }}</text>
+            <view class="{{'ic ic-xs ic-chevron-down-gray ac-caret' + (active === c.key ? ' ac-caret-open' : '')}}" />
           </view>
           <text class="ac-desc">{{ c.desc }}</text>
         </view>
@@ -45,6 +45,7 @@
             <text v-for="p in c.points" :key="p" class="ac-point">{{ p }}</text>
           </view>
           <view class="btn-primary ac-go" @tap.stop="goChat(c)">
+            <view class="ic ic-xs ic-message-circle-white" />
             <text>与 AI 助手对话</text>
           </view>
         </view>
@@ -75,16 +76,16 @@ import PageHeader from '@/components/PageHeader.vue'
 import { fetchSiteConfig } from '@/common/site-config'
 
 const CARDS = [
-  { key: 'consult', icon: '咨', title: '名企 AI 咨询', desc: '企业 AI 转型诊断方案', topic: '名企 AI 咨询',
+  { key: 'consult', icon: 'ic-building-2-blue', title: '名企 AI 咨询', desc: '企业 AI 转型诊断方案', topic: '名企 AI 咨询',
     detail: '面向企业的 AI 转型咨询：从战略诊断、场景盘点到落地路线图，输出可执行的 AI 应用方案，帮助企业家厘清「AI 能为我带来什么」与「第一步怎么走」。',
     points: ['AI 成熟度诊断', '业务场景盘点', '落地路线图', '行业案例对标'] },
-  { key: 'toolbox', icon: '工', title: '现有工具箱', desc: '提效工具一键调用', topic: '现有工具箱',
+  { key: 'toolbox', icon: 'ic-wrench-gold', title: '现有工具箱', desc: '提效工具一键调用', topic: '现有工具箱',
     detail: '沉淀商会内最实用的 AI 提效工具集：文案生成、PPT 制作、数据分析、会议纪要、知识库问答等，一键调用，让日常经营效率翻倍。',
     points: ['AI 文案与企划', '智能数据分析', '会议纪要助手', '知识库问答'] },
-  { key: 'coach', icon: '跑', title: '陪跑搭建', desc: '专属 AI 系统陪跑', topic: '陪跑搭建',
+  { key: 'coach', icon: 'ic-rocket-green', title: '陪跑搭建', desc: '专属 AI 系统陪跑', topic: '陪跑搭建',
     detail: '为会员企业搭建专属 AI 应用系统，并提供长期陪跑服务：从需求梳理、系统搭建到员工培训与迭代优化，确保 AI 真正用起来、见效果。',
     points: ['专属 AI 系统搭建', '场景定制开发', '团队培训赋能', '长期迭代陪跑'] },
-  { key: 'community', icon: '课', title: '圈子·课程', desc: 'AI 活动与训练营', topic: '圈子·课程',
+  { key: 'community', icon: 'ic-graduation-cap-purple', title: '圈子·课程', desc: 'AI 活动与训练营', topic: '圈子·课程',
     detail: '面向会员的 AI 学习圈子与实战课程：主题沙龙、案例拆解、训练营与认证体系，在实战中提升 AI 认知与应用能力，与同频者共同进化。',
     points: ['AI 主题沙龙', '企业案例拆解', '实战训练营', '认证与荣誉'] }
 ]
@@ -272,8 +273,10 @@ export default {
   color: #24395a;
 }
 .ac-caret {
-  font-size: 26rpx;
-  color: #a0a9b6;
+  transition: transform 0.2s;
+}
+.ac-caret-open {
+  transform: rotate(180deg);
 }
 .ac-desc {
   display: block;

@@ -13,7 +13,7 @@
     <!-- 深蓝横幅 -->
     <view class="hero glass-dark">
       <view class="hero-top">
-        <view class="hero-icon"><view class="ic ic-lg ic-users-white" /></view>
+        <view class="hero-icon"><view class="ic ic-lg ic-award-white" /></view>
         <view>
           <view class="hero-badge">专家智库</view>
           <view class="hero-title">汇聚实战智慧</view>
@@ -31,7 +31,7 @@
     <!-- 推荐大咖 -->
     <view class="sec-head">
       <view class="sh-row">
-        <view class="sh-icon"><view class="ic ic-md ic-sparkles-white" /></view>
+        <view class="sh-icon"><view class="ic ic-md ic-users-round-gold" /></view>
         <view>
           <text class="sh-title">推荐大咖</text>
           <text class="sh-sub">导师 · 教练 · 行业领袖</text>
@@ -60,7 +60,10 @@
           <view class="ex-head">
             <view>
               <text class="ex-name">{{ e.name }}</text>
+              <view class="ex-title-row">
+              <view class="ic ic-xs ic-briefcase-business-gray" />
               <text class="ex-title">{{ e.title || '明德大咖' }}{{ e.company ? ' · ' + e.company : '' }}</text>
+            </view>
             </view>
           </view>
           <view class="ex-tags">
@@ -407,6 +410,12 @@ export default {
   font-weight: 700;
   color: #1e3656;
   display: block;
+}
+.ex-title-row {
+  display: flex;
+  align-items: center;
+  gap: 6rpx;
+  margin-top: 6rpx;
 }
 .ex-title {
   font-size: 20rpx;

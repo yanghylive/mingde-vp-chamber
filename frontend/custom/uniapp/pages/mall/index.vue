@@ -12,7 +12,7 @@
 
     <!-- 积分规则提示条 -->
     <view class="rule-bar glass-control" @tap="rulesOpen = true">
-      <view class="ic ic-sm ic-shield-check-gold" />
+      <view class="ic ic-sm ic-info-gold" />
       <text class="rb-text">积分规则：1 元 = 10 积分，积分不足可用现金补差价</text>
       <text class="rb-arrow">></text>
     </view>
@@ -34,7 +34,7 @@
     <!-- 人气臻选 -->
     <view class="sec-head">
       <view class="sh-row">
-        <text class="sh-icon">商</text>
+        <view class="sh-icon"><view class="ic ic-sm ic-shopping-bag-gold" /></view>
         <view>
           <text class="sh-title">人气臻选</text>
           <text class="sh-sub">积分好礼，兑换品质生活</text>
@@ -72,7 +72,7 @@
     </view>
     <view class="card paths-card">
       <view v-for="(p, i) in paths" :key="i" class="{{'path-row' + (i < paths.length - 1 ? ' path-row-border' : '')}}">
-        <view class="{{&#39;pr-icon &#39; + pathIconCls(p.icon)}}"><view class="ic ic-sm ic-gift-gold" /></view>
+        <view class="pr-icon"><view class="{{'ic ic-sm ' + pathIconCls(p.icon)}}" /></view>
         <view class="pr-info">
           <text class="pr-title">{{ p.title }}</text>
           <text class="pr-desc">{{ p.desc }}</text>
@@ -240,7 +240,7 @@ export default {
     },
     pathIconCls(icon) {
       // 积分路径图标（lucide 金色系）
-      const map = { coach: 'ic-graduation-cap-gold', charity: 'ic-heart-handshake-gold', roadshow: 'ic-ticket-percent-gold', distribution: 'ic-link-2-gold', study: 'ic-star-gold', medal: 'ic-medal-gold' }
+      const map = { coach: 'ic-graduation-cap-gold', charity: 'ic-heart-handshake-gold', roadshow: 'ic-presentation-gold', distribution: 'ic-user-plus-gold', study: 'ic-star-gold', medal: 'ic-medal-gold' }
       return map[icon] || 'ic-medal-gold'
     },
     fmtPoints(v) {
