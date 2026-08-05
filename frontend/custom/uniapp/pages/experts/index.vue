@@ -111,6 +111,7 @@
 
 <script>
 import chamber from '@/api/chamber'
+import { formatMoney, formatPoints } from '@/common/format'
 import Skeleton from '@/components/Skeleton.vue'
 
 const CATEGORIES = ['全部', '知名导师', '知名教练', '行业领袖']
@@ -183,11 +184,10 @@ export default {
       return Number(e.online_points || 0) > 0 || Number(e.online_cash || 0) > 0 || Number(e.offline_points || 0) > 0 || Number(e.offline_cash || 0) > 0
     },
     fmtPoints(v) {
-      return Number(v || 0)
+      return formatPoints(v)
     },
     fmtMoney(v) {
-      const n = Number(v || 0)
-      return n > 0 ? '¥' + (Number.isInteger(n) ? n : n.toFixed(2)) : '¥0'
+      return formatMoney(v)
     }
   }
 }

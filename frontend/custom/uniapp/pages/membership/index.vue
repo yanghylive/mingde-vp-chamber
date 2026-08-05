@@ -171,7 +171,7 @@ export default {
     },
     priceNum(price) {
       const n = Number(price || 0)
-      return n.toFixed(2)
+      return n.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
     },
     planBenefits(plan) {
       // 对齐 H5：显示前 3 条

@@ -243,7 +243,7 @@ import chamber from '@/api/chamber'
 import { checkLogin } from '@/libs/login'
 import { fetchSiteConfig } from '@/common/site-config'
 import { TIERS, tierToNumber, applyTierConfig } from '@/common/tier'
-import { toDate, fmtZhDateTime, fmtHHmm } from '@/common/format'
+import { toDate, fmtZhDateTime, fmtHHmm, formatMoney } from '@/common/format'
 import Calendar from '@/components/Calendar.vue'
 import Skeleton from '@/components/Skeleton.vue'
 
@@ -373,7 +373,7 @@ export default {
       const t = ev.tickets && ev.tickets[0]
       if (!t) return ''
       const p = Number(t.price || 0)
-      return p > 0 ? (Number.isInteger(p) ? '¥' + p : '¥' + p.toFixed(2)) : ''
+      return p > 0 ? formatMoney(p) : ''
     },
     evReward(ev) {
       if (ev.checkin_reward_points) return '签到 +' + ev.checkin_reward_points + ' 积分'

@@ -2,12 +2,22 @@
  * 格式化工具（与 Web 端 lib/format.ts 对齐）
  */
 
-/** 金额格式化（默认带 ¥） */
+/** 金额格式化：¥1,980.00（对齐 H5 formatMoney 千分位） */
 export function formatMoney(n, withSymbol = true) {
   const num = Number(n || 0)
   if (isNaN(num)) return '0.00'
-  const fixed = num.toFixed(2)
+  // 千分位 + 2 位小数
+  const parts = num.toFixed(2).split('.')
+  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+  const fixed = parts.join('.')
   return withSymbol ? '¥' + fixed : fixed
+}
+
+/** 积分格式化：1,280（对齐 H5 formatPoints 千分位） */
+export function formatPoints(n) {
+  const num = Number(n || 0)
+  if (isNaN(num)) return '0'
+  return num.toLocaleString('zh-CN')
 }
 
 /** 时间戳 → 日期字符串 */

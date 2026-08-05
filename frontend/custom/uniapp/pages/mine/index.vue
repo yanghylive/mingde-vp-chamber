@@ -43,7 +43,7 @@
     <!-- 4 格统计 -->
     <view class="stats card">
       <view class="stat" @tap="goPointsLedger">
-        <text class="stat-num">{{ points != null ? points : '—' }}</text>
+        <text class="stat-num">{{ points != null ? fmtPoints(points) : '—' }}</text>
         <text class="stat-label">积分</text>
       </view>
       <view class="stat">
