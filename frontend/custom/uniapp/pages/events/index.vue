@@ -1,39 +1,77 @@
 <template>
   <view class="events-page">
-    <view class="chips">
-      <view
-        v-for="(c, i) in chips"
-        :key="c"
-        :class="['chip', activeChip === i && 'chip-active']"
-        @tap="activeChip = i; applyChip()"
-      >
-        {{ c }}
+    <!-- 页头 -->
+    <view class="ph">
+      <text class="ph-title">官方活动</text>
+      <text class="ph-sub">高质量相聚，让思想彼此照亮</text>
+    </view>
+
+    <!-- Banner 大卡（首个活动） -->
+    <view v-if="banner" class="banner glass-dark" @tap="goDetail(banner.id)">
+      <view class="bn-top">
+        <view>
+          <view class="bn-badge">{{ bannerType(banner) }}</view>
+          <view class="bn-title">{{ banner.title }}</view>
+          <view class="bn-summary">{{ banner.summary }}</view>
+        </view>
+        <text class="bn-deco">荐</text>
+      </view>
+      <view class="bn-foot">
+        <view class="bn-meta">
+          <text class="bn-meta-item">历 {{ bannerDate(banner) }}</text>
+          <text class="bn-meta-item">地 {{ banner.location_name || banner.address }}</text>
+        </view>
+        <view :class="['bn-btn', joined.includes(banner.id) && 'bn-btn-joined']" @tap.stop="toggle(banner.id)">
+          {{ joined.includes(banner.id) ? '已报名' : '预约席位' }}
+        </view>
       </view>
     </view>
 
-    <view v-if="loading" class="empty"><skeleton type="list" :rows="3" /></view>
-    <view v-else-if="filtered.length === 0" class="empty">暂无活动</view>
-    <view v-else class="list">
-      <view
-        v-for="ev in filtered"
-        :key="ev.id"
-        class="event-card card"
-        @tap="goDetail(ev.id)"
-      >
-        <view class="ec-head">
-          <view class="ec-date">
-            <text class="ed-day">{{ dayOf(ev) }}</text>
-            <text class="ed-month">{{ monthOf(ev) }}</text>
-          </view>
-          <view class="ec-info">
-            <text class="ec-title">{{ ev.title }}</text>
-            <text class="ec-meta">{{ timeOf(ev) }} · {{ ev.location || '明德' }}</text>
-            <text class="ec-desc">{{ (ev.description || '').slice(0, 40) }}</text>
-          </view>
+    <!-- 精选活动 -->
+    <view class="section">
+      <view class="sec-head">
+        <view class="sec-icon">历</view>
+        <view>
+          <text class="sec-title">精选活动</text>
+          <text class="sec-sub">官方策划，严选参与者</text>
         </view>
-        <view class="ec-foot">
-          <text class="ec-type">{{ ev.event_type || '活动' }}</text>
-          <text v-if="ev.checkin_reward_points" class="ec-reward">签到 +{{ ev.checkin_reward_points }}积分</text>
+      </view>
+
+      <!-- 方向 chips -->
+      <scroll-view scroll-x class="chips">
+        <view
+          v-for="f in filters"
+          :key="f"
+          :class="['chip', 'glass-control', filter === f && 'glass-control-active']"
+          @tap="filter = filter === f ? '全部' : f"
+        >
+          {{ f }}
+        </view>
+      </scroll-view>
+
+      <!-- 活动列表 -->
+      <view v-if="loading" class="empty"><skeleton type="list" :rows="3" /></view>
+      <view v-else-if="visible.length === 0" class="empty">暂无活动</view>
+      <view v-else class="list">
+        <view v-for="ev in visible" :key="ev.id" class="ev-card card" @tap="goDetail(ev.id)">
+          <view class="ev-left">
+            <text class="ev-month">{{ evMonth(ev) }}</text>
+            <text class="ev-day">{{ evDay(ev) }}</text>
+            <text class="ev-type">{{ evType(ev) }}</text>
+          </view>
+          <view class="ev-right">
+            <text class="ev-title">{{ ev.title }}</text>
+            <view class="ev-meta">
+              <text class="ev-meta-item">时 {{ evTime(ev) }}</text>
+              <text class="ev-meta-item">地 {{ ev.location_name || ev.address }}</text>
+            </view>
+            <view class="ev-foot">
+              <text class="ev-seats">席 {{ remaining(ev) }} 席可约</text>
+              <view :class="['ev-btn', joined.includes(ev.id) && 'ev-btn-joined']" @tap.stop="toggle(ev.id)">
+                {{ joined.includes(ev.id) ? '已报名' : '立即报名' }}
+              </view>
+            </view>
+          </view>
         </view>
       </view>
     </view>
@@ -42,20 +80,36 @@
 
 <script>
 import chamber from '@/api/chamber'
-import Skeleton from '@/components/Skeleton.vue'
+import { checkLogin } from '@/libs/login'
 import { toDate } from '@/common/format'
+import Skeleton from '@/components/Skeleton.vue'
 
-const CHIPS = ['全部', '大咖讲堂', '交流沙龙', '公益活动', '路演']
+const TYPE_LABEL = {
+  personal_growth: '个人成长',
+  business_industry: '事业行业',
+  charity: '公益慈善',
+  salon: '交流沙龙',
+  lecture: '大咖讲堂'
+}
 
 export default {
   components: { Skeleton },
   data() {
     return {
       events: [],
-      filtered: [],
       loading: true,
-      activeChip: 0,
-      chips: CHIPS
+      filter: '全部',
+      filters: ['全部', '大咖讲堂', '交流沙龙', '公益活动', '路演'],
+      joined: []
+    }
+  },
+  computed: {
+    banner() {
+      return this.events.length ? this.events[0] : null
+    },
+    visible() {
+      if (this.filter === '全部') return this.events
+      return this.events.filter((ev) => (ev.event_type || '').indexOf(this.filter) >= 0 || this.evType(ev) === this.filter)
     }
   },
   onShow() {
@@ -66,32 +120,55 @@ export default {
   },
   methods: {
     async loadData() {
-      this.loading = true
       try {
         this.events = await chamber.events()
+        // 已报名状态
+        const regs = await chamber.myEventRegistrations().catch(() => [])
+        if (Array.isArray(regs)) {
+          this.joined = regs.filter((r) => r.status !== 'cancelled').map((r) => r.event_id || r.id)
+        }
       } catch (e) {}
-      this.applyChip()
       this.loading = false
     },
-    applyChip() {
-      if (this.activeChip === 0) {
-        this.filtered = this.events
-      } else {
-        const c = CHIPS[this.activeChip]
-        this.filtered = this.events.filter((ev) => (ev.event_type || '').indexOf(c) >= 0)
-      }
+    bannerType(ev) {
+      return TYPE_LABEL[ev.event_type] || '年度盛会'
     },
-    dayOf(ev) {
-      return toDate(ev.start_time).slice(8, 10)
+    bannerDate(ev) {
+      return toDate(ev.start_time)
     },
-    monthOf(ev) {
+    evType(ev) {
+      return TYPE_LABEL[ev.event_type] || ev.event_type || '活动'
+    },
+    evMonth(ev) {
       return toDate(ev.start_time).slice(5, 7) + '月'
     },
-    timeOf(ev) {
+    evDay(ev) {
+      return toDate(ev.start_time).slice(8, 10)
+    },
+    evTime(ev) {
       return toDate(ev.start_time, 'datetime')
     },
+    remaining(ev) {
+      const t = ev.tickets && ev.tickets[0]
+      return t && t.remaining !== undefined ? t.remaining : (ev.remaining || 0)
+    },
+    toggle(id) {
+      if (!checkLogin()) {
+        uni.navigateTo({ url: '/pages/login/index' })
+        return
+      }
+      if (this.joined.includes(id)) return
+      // 报名
+      chamber
+        .registerEvent(id)
+        .then(() => {
+          this.joined.push(id)
+          uni.showToast({ title: '报名成功', icon: 'success' })
+        })
+        .catch(() => {})
+    },
     goDetail(id) {
-      uni.navigateTo({ url: '/pages/events/detail?id=' + id })
+      uni.navigateTo({ url: '/pages/events/detail/index?id=' + id })
     }
   }
 }
@@ -100,108 +177,229 @@ export default {
 <style lang="scss">
 .events-page {
   padding: 24rpx 32rpx 60rpx;
+  min-height: 100vh;
 }
-.chips {
+.ph {
+  padding: 16rpx 0 24rpx;
+}
+.ph-title {
+  display: block;
+  font-size: 44rpx;
+  font-weight: 800;
+  color: #17233d;
+}
+.ph-sub {
+  display: block;
+  font-size: 24rpx;
+  color: #8a94a3;
+  margin-top: 8rpx;
+}
+
+/* Banner 深蓝大卡 */
+.banner {
+  border-radius: 44rpx;
+  padding: 40rpx 36rpx;
+  color: #fff;
+}
+.bn-top {
   display: flex;
-  gap: 16rpx;
-  margin-bottom: 24rpx;
-  overflow-x: auto;
-  white-space: nowrap;
+  align-items: flex-start;
+  justify-content: space-between;
 }
-.chip {
+.bn-badge {
+  display: inline-block;
+  background: #e49a41;
+  color: #fff;
+  font-size: 20rpx;
+  font-weight: 600;
+  padding: 6rpx 16rpx;
+  border-radius: 8rpx;
+}
+.bn-title {
+  font-size: 36rpx;
+  font-weight: 700;
+  margin-top: 20rpx;
+}
+.bn-summary {
+  font-size: 22rpx;
+  color: rgba(255, 255, 255, 0.7);
+  margin-top: 16rpx;
+}
+.bn-deco {
+  font-size: 72rpx;
+  color: rgba(243, 189, 112, 0.45);
   flex-shrink: 0;
-  padding: 14rpx 30rpx;
-  border-radius: 999rpx;
-  background: #fff;
-  color: #516580;
-  font-size: 26rpx;
-  box-shadow: 0 4rpx 12rpx rgba(39, 59, 89, 0.04);
 }
-.chip-active {
+.bn-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 36rpx;
+  padding-top: 28rpx;
+  border-top: 1rpx solid rgba(255, 255, 255, 0.1);
+}
+.bn-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+.bn-meta-item {
+  font-size: 22rpx;
+  color: rgba(255, 255, 255, 0.8);
+}
+.bn-btn {
+  background: linear-gradient(90deg, #c87922, #eba94e);
+  color: #fff;
+  font-size: 24rpx;
+  font-weight: 600;
+  padding: 16rpx 36rpx;
+  border-radius: 16rpx;
+  box-shadow: 0 10rpx 24rpx rgba(185, 110, 29, 0.2);
+}
+.bn-btn-joined {
+  background: rgba(255, 255, 255, 0.15);
+  box-shadow: none;
+}
+
+/* 精选活动 */
+.section {
+  margin-top: 40rpx;
+}
+.sec-head {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  margin-bottom: 20rpx;
+}
+.sec-icon {
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: 16rpx;
   background: linear-gradient(135deg, #d98a2d, #b8751d);
   color: #fff;
+  font-size: 26rpx;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.sec-title {
+  display: block;
+  font-size: 34rpx;
+  font-weight: 700;
+  color: #17325b;
+}
+.sec-sub {
+  display: block;
+  font-size: 20rpx;
+  color: #8994a6;
+  margin-top: 4rpx;
+}
+.chips {
+  white-space: nowrap;
+  margin: 0 -32rpx;
+  padding: 0 32rpx 8rpx;
+}
+.chip {
+  display: inline-block;
+  padding: 16rpx 32rpx;
+  border-radius: 999rpx;
+  font-size: 24rpx;
   font-weight: 600;
+  color: #617087;
+  margin-right: 16rpx;
+}
+.list {
+  margin-top: 24rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 24rpx;
 }
 .empty {
   text-align: center;
-  padding: 100rpx 0;
+  padding: 60rpx 0;
   color: #c0c6d0;
   font-size: 26rpx;
 }
-.list {
+
+/* 活动卡：左侧日期块 + 右侧详情 */
+.ev-card {
   display: flex;
-  flex-direction: column;
-  gap: 20rpx;
+  overflow: hidden;
+  min-height: 240rpx;
 }
-.event-card {
-  padding: 28rpx;
-}
-.ec-head {
-  display: flex;
-  gap: 20rpx;
-}
-.ec-date {
-  width: 100rpx;
-  height: 100rpx;
-  border-radius: 20rpx;
-  background: linear-gradient(135deg, #fff0dc, #f6e2c2);
+.ev-left {
+  width: 32%;
+  background: #173c69;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  color: #fff;
   flex-shrink: 0;
 }
-.ed-day {
-  font-size: 38rpx;
-  font-weight: 800;
-  color: #b8751d;
-}
-.ed-month {
+.ev-month {
   font-size: 20rpx;
-  color: #ad6b22;
+  opacity: 0.7;
 }
-.ec-info {
-  flex: 1;
-  min-width: 0;
-}
-.ec-title {
-  font-size: 30rpx;
-  font-weight: 600;
-  color: #273b59;
-  display: block;
-}
-.ec-meta {
-  font-size: 22rpx;
-  color: #8a94a3;
-  display: block;
+.ev-day {
+  font-size: 56rpx;
+  font-weight: 300;
   margin-top: 8rpx;
 }
-.ec-desc {
-  font-size: 22rpx;
-  color: #a0a8b5;
-  display: block;
-  margin-top: 8rpx;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.ec-foot {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-top: 20rpx;
-  padding-top: 20rpx;
-  border-top: 1rpx solid #f5f2ea;
-}
-.ec-type {
-  font-size: 22rpx;
-  color: #b8751d;
-  background: #f6ead6;
+.ev-type {
+  margin-top: 16rpx;
+  background: rgba(255, 255, 255, 0.15);
+  font-size: 18rpx;
   padding: 6rpx 16rpx;
   border-radius: 999rpx;
 }
-.ec-reward {
+.ev-right {
+  flex: 1;
+  min-width: 0;
+  padding: 28rpx;
+  display: flex;
+  flex-direction: column;
+}
+.ev-title {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #203755;
+}
+.ev-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+  margin-top: 20rpx;
+}
+.ev-meta-item {
   font-size: 22rpx;
-  color: #ad6b22;
+  color: #778397;
+}
+.ev-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: auto;
+  padding-top: 20rpx;
+}
+.ev-seats {
+  font-size: 20rpx;
+  color: #a06a2d;
+}
+.ev-btn {
+  background: linear-gradient(90deg, #c87922, #eba94e);
+  color: #fff;
+  font-size: 24rpx;
+  font-weight: 600;
+  padding: 14rpx 32rpx;
+  border-radius: 16rpx;
+  box-shadow: 0 10rpx 24rpx rgba(185, 110, 29, 0.2);
+}
+.ev-btn-joined {
+  background: rgba(255, 255, 255, 0.58);
+  color: #15305b;
+  box-shadow: none;
+  border: 1rpx solid rgba(185, 201, 218, 0.4);
 }
 </style>
