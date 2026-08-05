@@ -171,7 +171,7 @@ export default {
     },
     priceNum(price) {
       const n = Number(price || 0)
-      return n.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+      return n.toFixed(2)
     },
     planBenefits(plan) {
       // 对齐 H5：显示前 3 条
@@ -570,8 +570,8 @@ export default {
   display: flex;
   align-items: center;
   gap: 10rpx;
-  font-size: 22rpx;
-  color: #4a5b72;
+  font-size: 20rpx;
+  color: #5c6b80;
 }
 .pr-check {
   width: 24rpx;
@@ -594,11 +594,11 @@ export default {
 .plan-buy {
   margin-top: 20rpx;
   text-align: center;
-  padding: 18rpx 0;
-  border-radius: 16rpx;
+  padding: 16rpx 0;
+  border-radius: 24rpx;
   background: linear-gradient(90deg, #c87922, #eba94e);
   color: #fff;
-  font-size: 26rpx;
+  font-size: 24rpx;
   font-weight: 600;
   box-shadow: 0 10rpx 24rpx rgba(185, 110, 29, 0.2);
 }

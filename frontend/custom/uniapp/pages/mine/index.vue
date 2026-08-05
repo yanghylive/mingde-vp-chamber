@@ -385,7 +385,7 @@ export default {
 
 <style lang="scss">
 .mine-page {
-  padding-top: env(safe-area-inset-top);
+  padding: env(safe-area-inset-top) 32rpx 60rpx;
 }
 .ph {
   padding: 8rpx 32rpx 24rpx;
@@ -630,7 +630,7 @@ export default {
   display: block;
   font-size: 28rpx;
   color: #273b59;
-  font-weight: 600;
+  font-weight: 700;
 }
 .mi-sub {
   display: block;

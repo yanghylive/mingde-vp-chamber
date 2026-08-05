@@ -39,6 +39,8 @@
       </view>
     </view>
     <scroll-view scroll-x class="chips">
+      <view class="chips-inner">
+
       <view
         v-for="c in categories"
         :key="c"
@@ -338,9 +340,13 @@ export default {
   margin-top: 4rpx;
 }
 .chips {
-  white-space: nowrap;
   margin: 0 -32rpx;
-  padding: 0 32rpx 8rpx;
+  padding-bottom: 8rpx;
+}
+.chips-inner {
+  display: flex;
+  gap: 16rpx;
+  padding: 0 32rpx;
 }
 .chip {
   display: inline-block;
@@ -349,7 +355,6 @@ export default {
   font-size: 24rpx;
   font-weight: 600;
   color: #617087;
-  margin-right: 16rpx;
 }
 .empty {
   text-align: center;
@@ -372,9 +377,9 @@ export default {
   padding: 28rpx;
 }
 .ex-avatar {
-  width: 128rpx;
-  height: 128rpx;
-  border-radius: 40rpx;
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: 24rpx;
   color: #fff;
   font-size: 44rpx;
   font-weight: 600;
@@ -474,7 +479,7 @@ export default {
 }
 .ex-btn-ghost {
   background: #f1f4f8;
-  color: #24507f;
+  color: #15305b;
   border: 1rpx solid #dfe6ee;
 }
 .ex-arrow {
@@ -513,7 +518,7 @@ export default {
 .ai-title {
   display: block;
   font-size: 28rpx;
-  font-weight: 600;
+  font-weight: 700;
 }
 .ai-sub {
   display: block;
@@ -546,7 +551,7 @@ export default {
 }
 .quote-text {
   display: block;
-  font-size: 26rpx;
+  font-size: 28rpx;
   font-weight: 600;
   line-height: 1.8;
   color: #30425d;

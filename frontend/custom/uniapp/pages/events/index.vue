@@ -44,6 +44,8 @@
 
       <!-- 类型 chips（动态生成，对齐 H5） -->
       <scroll-view scroll-x class="chips">
+        <view class="chips-inner">
+
         <view
           v-for="f in filters"
           :key="f"
@@ -51,6 +53,7 @@
           @tap="filter = filter === f ? '推荐' : f"
         >
           {{ f }}
+        </view>
         </view>
       </scroll-view>
 
@@ -348,9 +351,13 @@ export default {
   margin-top: 4rpx;
 }
 .chips {
-  white-space: nowrap;
   margin: 0 -32rpx;
-  padding: 0 32rpx 8rpx;
+  padding-bottom: 8rpx;
+}
+.chips-inner {
+  display: flex;
+  gap: 16rpx;
+  padding: 0 32rpx;
 }
 .chip {
   display: inline-block;
@@ -359,7 +366,6 @@ export default {
   font-size: 24rpx;
   font-weight: 600;
   color: #617087;
-  margin-right: 16rpx;
 }
 .list {
   margin-top: 24rpx;

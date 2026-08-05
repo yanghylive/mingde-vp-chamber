@@ -2,13 +2,15 @@
   <view class="calendar">
     <!-- 月份切换 -->
     <view class="cal-head">
-      <view class="cal-nav" @tap="prevMonth"><view class="ic ic-sm ic-chevron-left-gray" /></view>
       <view class="cal-title" @tap="gotoToday">
         <text>{{ viewYear }}年{{ viewMonth }}月</text>
         <text v-if="!isCurrentMonth" class="cal-today-tag">回到今天</text>
       </view>
-      <view class="cal-count">本月 {{ monthEventCount }} 场</view>
-      <view class="cal-nav" @tap="nextMonth"><view class="ic ic-sm ic-chevron-right-gray" /></view>
+      <view class="cal-right">
+        <text class="cal-count">本月 {{ monthEventCount }} 场</text>
+        <view class="cal-nav" @tap="prevMonth"><view class="ic ic-sm ic-chevron-left-gray" /></view>
+        <view class="cal-nav" @tap="nextMonth"><view class="ic ic-sm ic-chevron-right-gray" /></view>
+      </view>
     </view>
 
     <!-- 星期头 -->
@@ -184,6 +186,16 @@ export default {
   justify-content: space-between;
   margin-bottom: 20rpx;
 }
+.cal-right {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+}
+.cal-count {
+  font-size: 20rpx;
+  color: #97a1af;
+  margin-right: 8rpx;
+}
 .cal-nav {
   width: 56rpx;
   height: 56rpx;
@@ -203,11 +215,6 @@ export default {
   font-size: 26rpx;
   font-weight: 800;
   color: #203a5c;
-}
-.cal-count {
-  font-size: 20rpx;
-  color: #97a1af;
-  margin-right: 16rpx;
 }
 .cal-today-tag {
   font-size: 20rpx;

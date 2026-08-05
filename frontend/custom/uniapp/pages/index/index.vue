@@ -103,19 +103,21 @@
 
       <!-- 方向 chips -->
       <scroll-view scroll-x class="chips" enable-flex>
-        <view
-          class="{{'chip glass-control' + (chip === null ? ' glass-control-active' : '')}}"
-          @tap="chip = null; applyChip()"
-        >
-          全部
-        </view>
-        <view
-          v-for="c in CHIPS"
-          :key="c.key"
-          class="{{'chip glass-control' + (chip === c.key ? ' glass-control-active' : '')}}"
-          @tap="chip = chip === c.key ? null : c.key; applyChip()"
-        >
-          {{ c.label }}
+        <view class="chips-inner">
+          <view
+            class="{{'chip glass-control' + (chip === null ? ' glass-control-active' : '')}}"
+            @tap="chip = null; applyChip()"
+          >
+            全部
+          </view>
+          <view
+            v-for="c in CHIPS"
+            :key="c.key"
+            class="{{'chip glass-control' + (chip === c.key ? ' glass-control-active' : '')}}"
+            @tap="chip = chip === c.key ? null : c.key; applyChip()"
+          >
+            {{ c.label }}
+          </view>
         </view>
       </scroll-view>
 
@@ -809,18 +811,22 @@ const DEFAULT_GRIDS = [
   margin-left: 4rpx;
 }
 .chips {
-  white-space: nowrap;
   margin: 0 -32rpx;
-  padding: 0 32rpx 8rpx;
+  padding-bottom: 8rpx;
+}
+.chips-inner {
+  display: flex;
+  gap: 16rpx;
+  padding: 0 32rpx;
 }
 .chip {
   display: inline-block;
-  padding: 16rpx 32rpx;
+  padding: 14rpx 30rpx;
   border-radius: 999rpx;
   font-size: 24rpx;
   font-weight: 600;
   color: #617087;
-  margin-right: 16rpx;
+  flex-shrink: 0;
 }
 
 /* ===== 活动卡 ===== */
@@ -1090,9 +1096,10 @@ const DEFAULT_GRIDS = [
 }
 .footer {
   text-align: center;
-  color: #c0c6d0;
-  font-size: 22rpx;
-  padding: 60rpx 0 20rpx;
+  color: #a7afbb;
+  font-size: 20rpx;
+  margin-top: 48rpx;
+  padding: 0 0 20rpx;
 }
 .empty {
   text-align: center;

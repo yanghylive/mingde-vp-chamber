@@ -19,6 +19,8 @@
 
     <!-- 分类 chips -->
     <scroll-view scroll-x class="chips">
+      <view class="chips-inner">
+
       <view
         v-for="c in categoryOptions"
         :key="c"
@@ -392,9 +394,13 @@ export default {
 
 /* 分类 */
 .chips {
-  white-space: nowrap;
   margin: 24rpx -32rpx 0;
-  padding: 0 32rpx 8rpx;
+  padding-bottom: 8rpx;
+}
+.chips-inner {
+  display: flex;
+  gap: 16rpx;
+  padding: 0 32rpx;
 }
 .chip {
   display: inline-block;
@@ -403,7 +409,6 @@ export default {
   font-size: 24rpx;
   font-weight: 600;
   color: #617087;
-  margin-right: 16rpx;
 }
 
 /* 节标题 */
@@ -438,7 +443,7 @@ export default {
 }
 .sh-sub {
   display: block;
-  font-size: 20rpx;
+  font-size: 22rpx;
   color: #8994a6;
   margin-top: 4rpx;
 }
@@ -489,7 +494,7 @@ export default {
   width: fit-content;
 }
 .p-name {
-  font-size: 26rpx;
+  font-size: 28rpx;
   font-weight: 700;
   color: #213653;
   line-height: 1.4;
@@ -525,6 +530,7 @@ export default {
   margin-top: 20rpx;
   background: linear-gradient(90deg, #c87922, #eba94e);
   color: #fff;
+  border-radius: 24rpx;
   font-size: 24rpx;
   font-weight: 600;
   text-align: center;

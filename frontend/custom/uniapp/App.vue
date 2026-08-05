@@ -170,6 +170,14 @@ page {
   color: #c87922;
 }
 
+.px-4 {
+  padding-left: 32rpx;
+  padding-right: 32rpx;
+}
+.box-sizing {
+  box-sizing: border-box;
+}
+
 /* 安全区 */
 .safe-bottom {
   padding-bottom: constant(safe-area-inset-bottom);
