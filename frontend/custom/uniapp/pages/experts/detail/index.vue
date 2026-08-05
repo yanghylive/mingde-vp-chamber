@@ -11,12 +11,16 @@
             <text class="hero-name">{{ expert.name }}</text>
             <text v-if="expert.industry" class="hero-industry">{{ expert.industry }}</text>
           </view>
-          <text class="hero-title">{{ expert.title || expert.bio || '明德大咖' }}</text>
+          <text class="hero-title">{{ expert.title || '明德大咖' }}{{ expert.company ? ' · ' + expert.company : '' }}</text>
+          <view class="hero-ai" @tap="goAiChat">
+            <view class="ic ic-sm ic-bot-gold" />
+            <text>大咖 AI 对话</text>
+          </view>
         </view>
       </view>
-      <view v-if="expert.description" class="bio card">
+      <view v-if="expert.bio || expert.description" class="bio card">
         <text class="bio-title">简介</text>
-        <text class="bio-text">{{ expert.description }}</text>
+        <text class="bio-text">{{ expert.bio || expert.description }}</text>
       </view>
 
       <!-- 定价 -->
@@ -25,18 +29,21 @@
         <text class="section-sub">线上 L2+ / 线下 L3+</text>
       </view>
       <view class="pricing card">
-        <view class="price-item">
-          <view class="pi-icon"><view class="ic ic-sm ic-monitor-gold" /></view>
-          <text class="pi-label">线上 1v1</text>
-          <text class="pi-points">{{ expert.online_points || 0 }} 积分</text>
-          <text v-if="expert.online_cash > 0" class="pi-cash">+ ¥{{ expert.online_cash }}</text>
-        </view>
-        <view class="price-item">
-          <view class="pi-icon"><view class="ic ic-sm ic-map-pin-orange" /></view>
-          <text class="pi-label">线下 1v1</text>
-          <text class="pi-points">{{ expert.offline_points || 0 }} 积分</text>
-          <text v-if="expert.offline_cash > 0" class="pi-cash">+ ¥{{ expert.offline_cash }}</text>
-        </view>
+        <block v-if="pricingReady">
+          <view class="price-item">
+            <view class="pi-icon"><view class="ic ic-sm ic-monitor-gold" /></view>
+            <text class="pi-label">线上 1v1</text>
+            <text class="pi-points">{{ onlinePoints }} 积分</text>
+            <text v-if="onlineCash > 0" class="pi-cash">+ ¥{{ onlineCash }}</text>
+          </view>
+          <view class="price-item">
+            <view class="pi-icon"><view class="ic ic-sm ic-map-pin-orange" /></view>
+            <text class="pi-label">线下 1v1</text>
+            <text class="pi-points">{{ offlinePoints }} 积分</text>
+            <text v-if="offlineCash > 0" class="pi-cash">+ ¥{{ offlineCash }}</text>
+          </view>
+        </block>
+        <view v-else class="price-empty">收费明细定价更新中，敬请期待</view>
       </view>
 
       <!-- 档期 -->
@@ -57,7 +64,7 @@
               @tap="s.status === 'open' && selectSlot(s)"
             >
               <text class="si-time">{{ slotTime(s) }}</text>
-              <text class="si-mode">{{ s.location === 1 || s.location === 'offline' ? '线下' : '线上' }}</text>
+              <text class="si-mode">{{ Number(s.location) === 1 || s.location === 'offline' ? '线下' : '线上' }}</text>
             </view>
           </view>
         </view>
@@ -93,10 +100,35 @@ export default {
       slotsState: 'loading',
       selectedSlot: null,
       mode: 'online',
+      booked: false,
       submitting: false
     }
   },
   computed: {
+    // 定价归一化（兼容嵌套 pricing 对象）
+    pricingReady() {
+      return Number(this.onlinePoints || 0) > 0 || Number(this.onlineCash || 0) > 0 || Number(this.offlinePoints || 0) > 0 || Number(this.offlineCash || 0) > 0
+    },
+    onlinePoints() {
+      const p = this.expert && (this.expert.pricing || {})
+      const v = p && p.online ? p.online.points : (this.expert && this.expert.online_points)
+      return Number(v || 0)
+    },
+    onlineCash() {
+      const p = this.expert && (this.expert.pricing || {})
+      const v = p && p.online ? p.online.cash : (this.expert && this.expert.online_cash)
+      return Number(v || 0)
+    },
+    offlinePoints() {
+      const p = this.expert && (this.expert.pricing || {})
+      const v = p && p.offline ? p.offline.points : (this.expert && this.expert.offline_points)
+      return Number(v || 0)
+    },
+    offlineCash() {
+      const p = this.expert && (this.expert.pricing || {})
+      const v = p && p.offline ? p.offline.cash : (this.expert && this.expert.offline_cash)
+      return Number(v || 0)
+    },
     slotsByDay() {
       const map = {}
       const sorted = this.slots
@@ -112,7 +144,7 @@ export default {
     },
     selectedSlotText() {
       const s = this.slots.find((x) => x.id === this.selectedSlot)
-      return s ? toDate(s.start_time, 'datetime') + (s.location === 1 || s.location === 'offline' ? ' 线下' : ' 线上') : ''
+      return s ? toDate(s.start_time, 'datetime') + (Number(s.location) === 1 || s.location === 'offline' ? ' 线下' : ' 线上') : ''
     }
   },
   onLoad(options) {
@@ -141,7 +173,7 @@ export default {
     },
     selectSlot(s) {
       this.selectedSlot = s.id
-      this.mode = s.location === 1 || s.location === 'offline' ? 'offline' : 'online'
+      this.mode = Number(s.location) === 1 || s.location === 'offline' ? 'offline' : 'online'
     },
     submitAppointment() {
       if (!checkLogin()) {
@@ -152,7 +184,8 @@ export default {
       chamber
         .createAppointment({ expert_id: this.expertId, slot_id: this.selectedSlot, mode: this.mode })
         .then(() => {
-          uni.showToast({ title: '预约成功', icon: 'success' })
+          uni.showToast({ title: '预约成功，请按档期赴约', icon: 'success' })
+          this.booked = true
           this.selectedSlot = null
           this.loadData()
         })
@@ -163,6 +196,9 @@ export default {
           this.submitting = false
         })
     }
+  },
+  goAiChat() {
+    uni.navigateTo({ url: '/pages/chat/index?expert=' + this.expertId })
   }
 }
 </script>
@@ -219,6 +255,26 @@ export default {
   background: #f6ead6;
   padding: 6rpx 16rpx;
   border-radius: 999rpx;
+}
+.hero-ai {
+  display: inline-flex;
+  align-items: center;
+  gap: 8rpx;
+  margin-top: 14rpx;
+  font-size: 22rpx;
+  font-weight: 600;
+  color: #24507f;
+  background: #eaf0f8;
+  padding: 10rpx 22rpx;
+  border-radius: 999rpx;
+}
+.price-empty {
+  text-align: center;
+  font-size: 24rpx;
+  color: #8d97a6;
+  background: #f2f5f8;
+  border-radius: 20rpx;
+  padding: 32rpx 0;
 }
 .hero-title {
   font-size: 26rpx;

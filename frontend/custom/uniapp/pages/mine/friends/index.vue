@@ -30,8 +30,11 @@
       <view v-for="f in filtered" :key="f.id" class="friend card">
         <view class="f-avatar">{{ (f.nickname || f.real_name || '友').slice(0, 1) }}</view>
         <view class="f-info">
-          <text class="f-name">{{ f.nickname || f.real_name || '明德会员' }}</text>
-          <text class="f-meta">{{ f.industry || f.region || '' }}</text>
+          <view class="f-name-row">
+            <text class="f-name">{{ f.nickname || f.real_name || '明德会员' }}</text>
+            <text v-if="f.tier" class="f-tier">L{{ f.tier }}</text>
+          </view>
+          <text class="f-meta">{{ f.region && f.industry ? f.region + ' · ' + f.industry : (f.region || f.industry || f.company || '明德精英') }}</text>
         </view>
         <view class="{{'f-status' + (f.status === 'accepted' ? ' f-accepted' : ' f-pending')}}">
           {{ f.status === 'accepted' ? '已通过' : '待确认' }}
@@ -183,6 +186,19 @@ export default {
   display: flex;
   flex-direction: column;
   gap: 6rpx;
+}
+.f-name-row {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+}
+.f-tier {
+  font-size: 18rpx;
+  font-weight: 700;
+  color: #b8751d;
+  background: #f6ead6;
+  padding: 2rpx 12rpx;
+  border-radius: 8rpx;
 }
 .f-name {
   font-size: 28rpx;

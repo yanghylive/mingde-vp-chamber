@@ -89,9 +89,23 @@
         </view>
         <view class="sheet-product">{{ confirmTarget.name || confirmTarget.store_name }}</view>
         <view class="sheet-cost">
-          需积分 {{ needPoints }}<text v-if="needCash > 0"> · 补差价 ¥{{ needCash }}</text>
+          {{ needPoints }} 积分 · 价值 ¥{{ confirmTarget.price || 0 }}
         </view>
-        <view v-if="needCash > 0" class="sheet-short">当前余额 {{ points }} / 需 {{ needPoints }}</view>
+        <view class="sheet-detail">
+          <view class="sd-row">
+            <text class="sd-label">我的积分余额</text>
+            <text class="sd-value">{{ points }}</text>
+          </view>
+          <view class="sd-row">
+            <text class="sd-label">本次消耗积分</text>
+            <text class="sd-value">{{ needPoints }}</text>
+          </view>
+          <view class="sd-row">
+            <text class="sd-label">差价现金</text>
+            <text class="{{'sd-value' + (needCash > 0 ? ' sd-gold' : ' sd-green')}}">{{ needCash > 0 ? '¥' + needCash : '无需补差价' }}</text>
+          </view>
+        </view>
+        <view v-if="needCash > 0" class="sheet-short">积分不足，可补差价 ¥{{ needCash }}（当前余额 {{ points }} / 需 {{ needPoints }}）</view>
         <view class="sheet-btns">
           <view class="btn-secondary sb" @tap="confirmTarget = null">取消</view>
           <view class="{{'btn-primary sb' + (exchanging ? ' sb-disabled' : '')}}" @tap="handleConfirm">
@@ -115,6 +129,7 @@
           <view class="rule-item">· 参与活动、贡献、学习可获得积分</view>
           <view class="rule-item">· 兑换后不可退，请联系客服处理</view>
         </view>
+        <view class="btn-primary rule-ok" @tap="rulesOpen = false">我知道了</view>
       </view>
     </view>
   </view>
@@ -129,9 +144,7 @@ import Skeleton from '@/components/Skeleton.vue'
 const CATEGORY_ALIAS = {
   course: '课程', courses: '课程', curriculum: '课程', training: '课程', workshop: '课程', lesson: '课程',
   salon: '沙龙', salon_activity: '沙龙', meeting: '沙龙',
-  charity: '公益', public_welfare: '公益', donation: '公益', volunteer: '公益',
-  roadshow: '路演', demo: '路演', pitch: '路演', invest: '路演',
-  product: '商品', goods: '商品', material: '商品',
+  product: '实物', goods: '实物', material: '实物', physical: '实物', 实物: '实物',
   service: '服务', consulting: '服务'
 }
 
@@ -154,7 +167,7 @@ export default {
       pointsToYuan: 10,
       keyword: '',
       tab: '全部',
-      categoryOptions: ['全部'],
+      categoryOptions: ['全部', '课程', '沙龙', '实物', '服务'],
       rulesOpen: false
     }
   },
@@ -254,8 +267,11 @@ export default {
           Math.min(this.needPoints, this.points || 0),
           this.needCash > 0 ? this.needCash.toFixed(2) : '0.00'
         )
+        const orderId = (order && (order.order_no || order.id)) || ''
         this.confirmTarget = null
-        uni.showToast({ title: '兑换成功', icon: 'success' })
+        uni.navigateTo({
+          url: '/pages/mall/exchange-success/index?points=' + this.needPoints + '&cash=' + (this.needCash > 0 ? this.needCash : 0) + '&name=' + encodeURIComponent(this.confirmTarget.name || this.confirmTarget.store_name || '') + '&order=' + orderId
+        })
         this.loadData()
       } catch (e) {
       } finally {
@@ -305,6 +321,35 @@ export default {
   color: #7f8b9c;
 }
 
+.sheet-detail {
+  background: #f4f7fb;
+  border-radius: 24rpx;
+  padding: 24rpx;
+  margin-top: 20rpx;
+}
+.sd-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8rpx 0;
+  font-size: 24rpx;
+}
+.sd-label {
+  color: #617087;
+}
+.sd-value {
+  color: #17325b;
+  font-weight: 700;
+}
+.sd-gold {
+  color: #c57620;
+}
+.sd-green {
+  color: #2e7d4f;
+}
+.rule-ok {
+  margin: 24rpx 32rpx 40rpx;
+}
 /* 规则条 */
 .rule-bar {
   display: flex;

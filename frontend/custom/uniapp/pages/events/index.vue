@@ -56,6 +56,7 @@
 
       <!-- 活动列表 -->
       <view v-if="loading" class="empty"><skeleton type="list" :rows="3" /></view>
+      <view v-else-if="loadError" class="empty" style="color: #d05b3f">{{ loadError }}</view>
       <view v-else-if="visible.length === 0" class="empty">暂无活动</view>
       <view v-else class="list">
         <view v-for="ev in visible" :key="ev.id" class="ev-card card" @tap="goDetail(ev.id)">
@@ -71,7 +72,7 @@
               <view class="ev-meta-row"><view class="ic ic-xs ic-map-pin-orange" /><text>{{ ev.location_name || ev.address }}</text></view>
             </view>
             <view class="ev-foot">
-              <text class="ev-seats">席 {{ remaining(ev) }} 席可约</text>
+              <text class="ev-seats">{{ remaining(ev) }} 席可约</text>
               <view class="{{'ev-btn' + (joined.includes(ev.id) ? ' ev-btn-joined' : '')}}" @tap.stop="toggle(ev.id)">
                 {{ joined.includes(ev.id) ? '已报名' : '立即报名' }}
               </view>
@@ -106,6 +107,7 @@ export default {
     return {
       events: [],
       loading: true,
+      loadError: '',
       filter: '推荐',
       joined: []
     }
@@ -143,7 +145,9 @@ export default {
         if (Array.isArray(regs)) {
           this.joined = regs.filter((r) => r.status !== 'cancelled').map((r) => r.event_id || r.id)
         }
-      } catch (e) {}
+      } catch (e) {
+        this.loadError = (e && e.message) || '加载失败，请重试'
+      }
       this.loading = false
     },
     bannerType(ev) {

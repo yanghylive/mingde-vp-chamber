@@ -13,7 +13,7 @@
               <text>{{ currentTier.name }}</text>
             </view>
           </view>
-          <text class="pf-sub">{{ currentTier.name }} · 番号 {{ memberNo }}{{ expiresText }}</text>
+          <text class="pf-sub">{{ currentTier.short }} · 番号 {{ memberNo }}{{ expiresText }}</text>
         </view>
         <view class="pf-edit" @tap="openEditor">编辑资料</view>
       </view>

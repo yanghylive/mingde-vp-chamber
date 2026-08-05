@@ -15,7 +15,7 @@
         <view class="hero-summary">{{ event.summary || event.description }}</view>
         <view class="hero-tags">
           <text v-if="event.min_tier" class="htag htag-tier">需 L{{ event.min_tier }} 等级</text>
-          <text v-if="event.checkin_reward_points" class="htag htag-reward">积 签到 +{{ event.checkin_reward_points }} 积分</text>
+          <text v-if="event.checkin_reward_points" class="htag htag-reward">签到 +{{ event.checkin_reward_points }} 积分</text>
         </view>
       </view>
 
@@ -193,7 +193,7 @@ export default {
         .registerEvent(this.eventId, ticketId)
         .then(() => {
           this.registered = true
-          this.msg = '报名成功，活动当天出示本页签到'
+          this.msg = '报名成功，请在活动当天凭票签到'
           uni.showToast({ title: '报名成功', icon: 'success' })
         })
         .catch((e) => {

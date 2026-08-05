@@ -19,6 +19,29 @@
         <text class="stat-label">累计积分</text>
       </view>
     </view>
+    <!-- 推荐记录（对齐 H5） -->
+    <view class="sec-head">
+      <view class="sh-row">
+        <view class="sh-icon"><view class="ic ic-md ic-users-white" /></view>
+        <view>
+          <text class="sh-title">推荐记录</text>
+          <text class="sh-sub">每一份邀请，都被记住</text>
+        </view>
+      </view>
+    </view>
+    <view v-if="recordsLoading" class="empty">记录加载中…</view>
+    <view v-else-if="records.length === 0" class="empty">暂无推荐记录</view>
+    <view v-else class="card records">
+      <view v-for="(r, i) in records" :key="i" class="record">
+        <view class="rc-avatar">{{ (r.nickname || r.real_name || '友').slice(0, 1) }}</view>
+        <view class="rc-info">
+          <text class="rc-name">{{ r.nickname || r.real_name || '明德会员' }}</text>
+          <text class="rc-time">{{ r.created_at ? toDateStr(r.created_at) : '' }}</text>
+        </view>
+        <text class="{{'rc-status' + (r.status === 'accepted' || r.rewarded ? ' rc-ok' : '')}}">{{ r.status === 'accepted' || r.rewarded ? '已到账' : '待确认' }}</text>
+      </view>
+    </view>
+
   </view>
 </template>
 
@@ -32,6 +55,8 @@ export default {
       code: '',
       info: {},
       loading: true,
+      records: [],
+      recordsLoading: true,
       copied: false
     }
   },
@@ -41,8 +66,25 @@ export default {
       return
     }
     this.loadData()
+      this.loadRecords()
   },
   methods: {
+    loadRecords() {
+      chamber
+        .meDistribution()
+        .then((info) => {
+          const recs = (info && info.records) || []
+          this.records = Array.isArray(recs) ? recs : []
+        })
+        .catch(() => {})
+        .finally(() => {
+          this.recordsLoading = false
+        })
+    },
+    toDateStr(ts) {
+      const d = toDate(ts)
+      return d ? d.slice(0, 10) : ''
+    },
     async loadData() {
       try {
         this.info = (await chamber.meDistribution()) || {}
@@ -125,5 +167,88 @@ export default {
 .stat-label {
   font-size: 22rpx;
   color: #8a94a3;
+}
+</style>
+.sec-head {
+  margin: 36rpx 4rpx 20rpx;
+}
+.sh-row {
+  display: flex;
+  align-items: center;
+  gap: 14rpx;
+}
+.sh-icon {
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: 16rpx;
+  background: linear-gradient(135deg, #d98a2d, #b8751d);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.sh-title {
+  display: block;
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #17325b;
+}
+.sh-sub {
+  display: block;
+  font-size: 20rpx;
+  color: #8994a6;
+  margin-top: 4rpx;
+}
+.records {
+  padding: 8rpx 0;
+}
+.record {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  padding: 24rpx 32rpx;
+  border-bottom: 1rpx solid #edf0f4;
+}
+.record:last-child {
+  border-bottom: none;
+}
+.rc-avatar {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 20rpx;
+  background: #e9f0f9;
+  color: #285181;
+  font-size: 28rpx;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.rc-info {
+  flex: 1;
+  min-width: 0;
+}
+.rc-name {
+  display: block;
+  font-size: 26rpx;
+  font-weight: 600;
+  color: #273b59;
+}
+.rc-time {
+  display: block;
+  font-size: 20rpx;
+  color: #9aa3b0;
+  margin-top: 4rpx;
+}
+.rc-status {
+  font-size: 20rpx;
+  color: #c57620;
+  background: #f6ead6;
+  padding: 6rpx 16rpx;
+  border-radius: 999rpx;
+}
+.rc-ok {
+  color: #4c8a3f;
+  background: #f0f7ec;
 }
 </style>

@@ -19,6 +19,10 @@
         <view class="ac-info">
           <text class="ac-title">{{ c.title }}</text>
           <text class="ac-desc">{{ c.desc }}</text>
+          <view class="ac-cta">
+            <view class="ic ic-sm ic-bot-gold" />
+            <text>与 AI 助手对话</text>
+          </view>
         </view>
         <text class="ac-arrow">></text>
       </view>
@@ -129,6 +133,18 @@ export default {
   color: #8a94a3;
   display: block;
   margin-top: 8rpx;
+}
+.ac-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8rpx;
+  margin-top: 14rpx;
+  font-size: 22rpx;
+  font-weight: 600;
+  color: #24507f;
+  background: #eaf0f8;
+  padding: 10rpx 22rpx;
+  border-radius: 999rpx;
 }
 .ac-arrow {
   color: #c0c6d0;

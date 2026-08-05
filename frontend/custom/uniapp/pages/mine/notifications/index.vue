@@ -41,7 +41,16 @@ export default {
       this.loading = false
     },
     timeText(ts) {
-      return toDate(ts, 'datetime')
+      const d = toDate(ts)
+      if (!d) return ''
+      const dt = new Date(d.replace(/-/g, '/'))
+      const diff = Date.now() - dt.getTime()
+      const min = Math.floor(diff / 60000)
+      if (min < 1) return '刚刚'
+      if (min < 60) return min + '分钟前'
+      const h = Math.floor(min / 60)
+      if (h < 24) return h + '小时前'
+      return d.slice(5, 7) + '月' + d.slice(8, 10) + '日'
     }
   }
 }

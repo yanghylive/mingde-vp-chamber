@@ -4,6 +4,10 @@
       <view class="cs-icon">客</view>
       <view class="cs-title">专属客服</view>
       <view class="cs-sub">扫码添加客服微信，获取一对一服务</view>
+      <view class="cs-info">
+        <view class="csi-row"><text class="csi-dot" />1v1 专属服务</view>
+        <view class="csi-row"><text class="csi-dot" />服务时间 09:00-18:00 · 工作日在线</view>
+      </view>
 
       <!-- 二维码（配置驱动，无配置显示占位） -->
       <image
@@ -69,6 +73,25 @@ export default {
 }
 .cs-icon {
   font-size: 72rpx;
+}
+.cs-info {
+  margin-top: 16rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 10rpx;
+}
+.csi-row {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  font-size: 22rpx;
+  color: rgba(255, 255, 255, 0.8);
+}
+.csi-dot {
+  width: 12rpx;
+  height: 12rpx;
+  border-radius: 50%;
+  background: #eba94e;
 }
 .cs-title {
   font-size: 34rpx;

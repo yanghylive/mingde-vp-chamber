@@ -4,7 +4,7 @@
     <view class="brand">
       <view class="brand-logo">明</view>
       <text class="brand-name">明德恒智AI企商汇</text>
-      <text class="brand-sub">PBC 企业家事业共同体</text>
+      <text class="brand-sub">企业家事业共同体</text>
     </view>
 
     <!-- 卡片 -->

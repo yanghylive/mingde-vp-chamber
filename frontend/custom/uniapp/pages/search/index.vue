@@ -25,7 +25,7 @@
 
     <view v-else>
       <view v-if="loading" class="empty">搜索中…</view>
-      <view v-else-if="events.length === 0 && experts.length === 0" class="empty">未找到相关内容</view>
+      <view v-else-if="events.length === 0 && experts.length === 0 && products.length === 0" class="empty">未找到相关内容</view>
       <view v-else class="results">
         <view v-if="events.length" class="group">
           <text class="g-title">活动</text>
@@ -38,6 +38,14 @@
           <text class="g-title">大咖</text>
           <view v-for="e in experts" :key="e.id" class="item card" @tap="goExpert(e.id)">
             <text class="item-name">{{ e.name }} {{ e.industry ? '· ' + e.industry : '' }}</text>
+            <text class="item-arrow">></text>
+          </view>
+        </view>
+        <view v-if="products.length" class="group">
+          <text class="g-title">商品</text>
+          <view v-for="p in products" :key="p.id" class="item card" @tap="goMall(p)">
+            <text class="item-name">{{ p.name || p.store_name }}</text>
+            <text class="item-meta">{{ p.integral_price || 0 }} 积分</text>
             <text class="item-arrow">></text>
           </view>
         </view>
@@ -57,7 +65,14 @@ export default {
       loading: false,
       events: [],
       experts: [],
+      products: [],
       hot: ['大咖讲堂', '路演', '陈明远']
+    }
+  },
+  onLoad(options) {
+    if (options && options.q) {
+      this.keyword = decodeURIComponent(options.q)
+      this.doSearch()
     }
   },
   methods: {
@@ -66,14 +81,20 @@ export default {
       if (!kw) return
       this.searched = true
       this.loading = true
-      const results = await Promise.allSettled([chamber.events(), chamber.experts()])
+      const results = await Promise.allSettled([chamber.events(), chamber.experts(), chamber.products()])
       if (results[0].status === 'fulfilled') {
-        this.events = (results[0].value || []).filter((ev) => (ev.title || '').indexOf(kw) >= 0)
+        this.events = (results[0].value || []).filter((ev) =>
+          (ev.title || '').indexOf(kw) >= 0 || (ev.summary || '').indexOf(kw) >= 0 ||
+          (ev.location_name || ev.address || '').indexOf(kw) >= 0 || (ev.event_type || '').indexOf(kw) >= 0
+        )
       }
       if (results[1].status === 'fulfilled') {
         this.experts = (results[1].value || []).filter(
-          (e) => (e.name || '').indexOf(kw) >= 0 || (e.industry || '').indexOf(kw) >= 0
+          (e) => (e.name || '').indexOf(kw) >= 0 || (e.industry || '').indexOf(kw) >= 0 || (e.title || '').indexOf(kw) >= 0
         )
+      }
+      if (results[2].status === 'fulfilled') {
+        this.products = (results[2].value || []).filter((p) => (p.name || p.store_name || '').indexOf(kw) >= 0)
       }
       this.loading = false
     },
@@ -82,6 +103,9 @@ export default {
     },
     goEvent(id) {
       uni.navigateTo({ url: '/pages/events/detail/index?id=' + id })
+    },
+    goMall(p) {
+      uni.switchTab({ url: '/pages/mall/index' })
     },
     goExpert(id) {
       uni.navigateTo({ url: '/pages/experts/detail/index?id=' + id })

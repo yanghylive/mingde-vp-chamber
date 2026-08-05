@@ -48,12 +48,14 @@ export default {
     },
     handleScan(scanned) {
       // 兼容两种二维码内容：纯 eventId 或 URL 带 id
-      let eventId = null
-      if (/^\d+$/.test(String(scanned).trim())) {
+            let eventId = null
+      try {
         eventId = Number(scanned.trim())
-      } else {
-        const m = String(scanned).match(/[?&]id=(\d+)/)
-        if (m) eventId = Number(m[1])
+      } catch (e) {}
+      if (!eventId) {
+        // 兼容：?id= / ?event= / /events/数字 三种二维码
+        const m = String(scanned).match(/[?&](?:id|event)=?(\d+)|\/events\/(\d+)/)
+        if (m) eventId = Number(m[1] || m[2])
       }
       if (!eventId) {
         this.result = 'error'

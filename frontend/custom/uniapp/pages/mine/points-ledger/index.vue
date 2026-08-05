@@ -11,7 +11,10 @@
       <view v-for="item in list" :key="item.id" class="entry card">
         <view class="en-icon">{{ (item.points || 0) >= 0 ? '➕' : '➖' }}</view>
         <view class="en-info">
-          <text class="en-reason">{{ item.reason || item.type || '积分变动' }}</text>
+          <view class="en-head">
+          <text class="en-reason">{{ reasonText(item) }}</text>
+          <text v-if="item.balance_after != null" class="en-balance">余额 {{ item.balance_after }}</text>
+        </view>
           <text class="en-time">{{ timeText(item.created_at) }}</text>
         </view>
         <text class="{{'en-points' + ((item.points || 0) >= 0 ? ' en-plus' : ' en-minus')}}">
@@ -43,6 +46,11 @@ export default {
       if (results[0].status === 'fulfilled') this.balance = results[0].value
       if (results[1].status === 'fulfilled') this.list = results[1].value || []
       this.loading = false
+    },
+    reasonText(item) {
+      const typeMap = { checkin: '签到', exchange: '兑换', distribution: '分销', charity: '公益', study: '学习', reward: '奖励', admin: '系统调整' }
+      const key = String(item.type || item.source || '').toLowerCase()
+      return typeMap[key] || item.reason || item.type || '积分变动'
     },
     timeText(ts) {
       return toDate(ts, 'datetime')
@@ -99,6 +107,17 @@ export default {
   display: flex;
   flex-direction: column;
   gap: 6rpx;
+}
+.en-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+}
+.en-balance {
+  font-size: 20rpx;
+  color: #9aa3b0;
+  flex-shrink: 0;
 }
 .en-reason {
   font-size: 26rpx;

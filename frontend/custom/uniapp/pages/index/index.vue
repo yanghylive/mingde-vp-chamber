@@ -15,9 +15,16 @@
           <view v-if="hasUnread" class="bell-dot" />
         </view>
       </view>
-      <view class="search-box glass-control" @tap="goSearch">
+      <view class="search-box glass-control">
         <view class="ic ic-sm ic-search-gold" />
-        <text class="s-ph">搜索活动 / 大咖 / 商品</text>
+        <input
+          v-model="searchKw"
+          class="s-input"
+          placeholder="搜索活动 / 大咖 / 商品"
+          placeholder-class="ph"
+          confirm-type="search"
+          @confirm="goSearchKw"
+        />
       </view>
     </view>
 
@@ -212,6 +219,7 @@
         </view>
       </view>
       <view v-if="loading" class="empty"><skeleton type="list" :rows="2" /></view>
+      <view v-else-if="events.length === 0" class="empty">暂无活动</view>
       <view v-else class="week-grid">
         <view v-for="ev in events.slice(0, 4)" :key="ev.id" class="week-card card" @tap="goEventDetail(ev.id)">
           <view class="{{'week-thumb ' + metaTone(ev.event_type)}}">
@@ -266,6 +274,7 @@ export default {
       profile: null,
       loading: true,
       chip: null,
+      searchKw: '',
       hasUnread: false,
       tierNum: 1,
       grids: [],
@@ -437,6 +446,10 @@ export default {
     },
     goSearch() {
       uni.navigateTo({ url: '/pages/search/index' })
+    },
+    goSearchKw() {
+      const kw = (this.searchKw || '').trim()
+      uni.navigateTo({ url: '/pages/search/index' + (kw ? '?q=' + encodeURIComponent(kw) : '') })
     },
     goNotifications() {
       uni.navigateTo({ url: '/pages/mine/notifications' })

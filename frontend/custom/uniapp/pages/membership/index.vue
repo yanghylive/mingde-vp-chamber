@@ -100,7 +100,7 @@
             </view>
           </view>
           <view class="{{'plan-buy' + (planTierNum(plan) <= tierNum ? ' plan-buy-owned' : '')}}" @tap="onBuy(plan)">
-            {{ planTierNum(plan) <= tierNum ? '当前等级' : '立即开通' }}
+            {{ planTierNum(plan) <= tierNum ? '当前等级' : '开通 ' + plan.name + '（¥' + priceNum(plan.price) + '/年）' }}
           </view>
         </view>
       </view>
