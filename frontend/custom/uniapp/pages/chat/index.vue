@@ -23,7 +23,7 @@
       </view>
     </scroll-view>
 
-    <scroll-view v-if="messages.length <= 2 && !sending" scroll-x class="suggest-bar">
+    <scroll-view v-if="messages.length <= 2 && !sending" scroll-x enable-flex class="suggest-bar">
       <view v-for="s in suggestions" :key="s" class="suggest-chip" @tap="sendSuggestion(s)">{{ s }}</view>
     </scroll-view>
 

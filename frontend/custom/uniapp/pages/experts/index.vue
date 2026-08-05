@@ -38,7 +38,7 @@
         </view>
       </view>
     </view>
-    <scroll-view scroll-x class="chips">
+    <scroll-view scroll-x enable-flex class="chips">
       <view class="chips-inner">
         <view
           v-for="c in categories"

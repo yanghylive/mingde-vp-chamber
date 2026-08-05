@@ -43,7 +43,7 @@
       </view>
 
       <!-- 类型 chips（动态生成，对齐 H5） -->
-      <scroll-view scroll-x class="chips">
+      <scroll-view scroll-x enable-flex class="chips">
         <view class="chips-inner">
 
         <view
