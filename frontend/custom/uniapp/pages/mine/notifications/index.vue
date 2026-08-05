@@ -8,7 +8,7 @@
         :key="n.id"
         :class="['notif card', !n.is_read && 'notif-unread']"
       >
-        <view class="n-icon">{{ n.title === '活动提醒' ? '🎯' : '📣' }}</view>
+        <view class="n-icon">{{ n.title === '活动提醒' ? '活' : '通' }}</view>
         <view class="n-info">
           <text class="n-title">{{ n.title }}</text>
           <text v-if="n.content" class="n-content">{{ n.content }}</text>

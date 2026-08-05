@@ -37,33 +37,33 @@
     <!-- 功能菜单 -->
     <view class="menu card">
       <view class="menu-item" @tap="goDistribution">
-        <text class="mi-icon">📢</text>
+        <text class="mi-icon">推</text>
         <text class="mi-label">我的分销码</text>
         <text class="mi-arrow">></text>
       </view>
       <view class="menu-item" @tap="goFriends">
-        <text class="mi-icon">👥</text>
+        <text class="mi-icon">友</text>
         <text class="mi-label">我的好友</text>
         <text class="mi-arrow">></text>
       </view>
       <view class="menu-item" @tap="goPointsLedger">
-        <text class="mi-icon">💰</text>
+        <text class="mi-icon">积</text>
         <text class="mi-label">积分记录</text>
         <text class="mi-arrow">></text>
       </view>
       <view class="menu-item" @tap="goGraduateVerification">
-        <text class="mi-icon">🎓</text>
+        <text class="mi-icon">认</text>
         <text class="mi-label">毕业认证</text>
         <text class="mi-arrow">></text>
       </view>
       <view class="menu-item" @tap="goNotifications">
-        <text class="mi-icon">🔔</text>
+        <text class="mi-icon">!</text>
         <text class="mi-label">通知</text>
         <text v-if="hasUnread" class="mi-badge" />
         <text class="mi-arrow">></text>
       </view>
       <view class="menu-item" @tap="goCustomerService">
-        <text class="mi-icon">💬</text>
+        <text class="mi-icon">客</text>
         <text class="mi-label">客服微信</text>
         <text class="mi-arrow">></text>
       </view>

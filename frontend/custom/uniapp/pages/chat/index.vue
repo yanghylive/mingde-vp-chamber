@@ -2,7 +2,7 @@
   <view class="chat-page">
     <scroll-view scroll-y class="msg-list" :scroll-into-view="scrollInto">
       <view v-if="messages.length === 0" class="chat-empty">
-        <text class="ce-icon">🤖</text>
+        <text class="ce-icon">AI</text>
         <text class="ce-text">{{ topic ? '我是' + topic + '，有什么可以帮你？' : '你好，我是明德 AI 助手' }}</text>
       </view>
       <view

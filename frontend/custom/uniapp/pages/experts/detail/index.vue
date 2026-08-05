@@ -26,13 +26,13 @@
       </view>
       <view class="pricing card">
         <view class="price-item">
-          <text class="pi-icon">💻</text>
+          <text class="pi-icon">线</text>
           <text class="pi-label">线上 1v1</text>
           <text class="pi-points">{{ expert.online_points || 0 }} 积分</text>
           <text v-if="expert.online_cash > 0" class="pi-cash">+ ¥{{ expert.online_cash }}</text>
         </view>
         <view class="price-item">
-          <text class="pi-icon">📍</text>
+          <text class="pi-icon">地</text>
           <text class="pi-label">线下 1v1</text>
           <text class="pi-points">{{ expert.offline_points || 0 }} 积分</text>
           <text v-if="expert.offline_cash > 0" class="pi-cash">+ ¥{{ expert.offline_cash }}</text>

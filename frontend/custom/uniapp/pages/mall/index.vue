@@ -13,7 +13,7 @@
 
     <!-- 搜索框 -->
     <view class="search-box">
-      <text class="s-icon">🔍</text>
+      <text class="s-icon">搜</text>
       <input
         v-model="keyword"
         class="s-input"

@@ -5,7 +5,7 @@
       <view class="dc-code">{{ code || (loading ? '···' : '——') }}</view>
       <view class="dc-hint">{{ code ? '分享该码，好友注册时填写即可绑定推荐关系' : '分销码生成中，请稍后再试' }}</view>
       <view class="dc-copy" :class="{ 'dc-copy-disabled': !code || loading }" @tap="copyCode">
-        {{ copied ? '已复制 ✅' : '复制分销码' }}
+        {{ copied ? '已复制 OK' : '复制分销码' }}
       </view>
     </view>
 

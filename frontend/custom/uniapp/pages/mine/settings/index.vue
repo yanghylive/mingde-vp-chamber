@@ -2,7 +2,7 @@
   <view class="settings-page">
     <view class="card group">
       <view class="item" @tap="clearCache">
-        <text class="it-icon">🧹</text>
+        <text class="it-icon">清</text>
         <text class="it-label">清除缓存</text>
         <text class="it-arrow">></text>
       </view>

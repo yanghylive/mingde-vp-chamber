@@ -15,7 +15,7 @@
           <view class="hero-actions">
             <text class="hero-type">{{ event.event_type || '活动' }}</text>
             <view v-if="locationText" class="nav-btn" @tap="navigate">
-              <text class="nb-icon">📍</text>
+              <text class="nb-icon">地</text>
               <text class="nb-text">导航</text>
             </view>
           </view>
@@ -24,7 +24,7 @@
 
       <!-- 签到奖励 -->
       <view v-if="event.checkin_reward_points || event.checkin_reward_contribution" class="reward card">
-        <text class="rw-icon">🎁</text>
+        <text class="rw-icon">礼</text>
         <text class="rw-text">
           现场签到奖励
           <text v-if="event.checkin_reward_points" class="rw-gold">+{{ event.checkin_reward_points }} 积分</text>
@@ -57,7 +57,7 @@
         </view>
       </view>
 
-      <view v-if="registered" class="registered-tip">✅ 你已报名，活动当天出示本页签到</view>
+      <view v-if="registered" class="registered-tip">OK 你已报名，活动当天出示本页签到</view>
     </view>
   </view>
 </template>

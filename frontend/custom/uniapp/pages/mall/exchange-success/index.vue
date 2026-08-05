@@ -1,6 +1,6 @@
 <template>
   <view class="success-page">
-    <view class="s-icon">🎉</view>
+    <view class="s-icon">!!</view>
     <view class="s-title">兑换成功</view>
     <view class="s-sub">商品兑换已受理，详情可在积分记录中查看</view>
     <view class="s-btns">

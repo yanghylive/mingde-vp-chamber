@@ -1,7 +1,7 @@
 <template>
   <view class="ai-page">
     <view class="head glass-dark">
-      <text class="h-icon">🤖</text>
+      <text class="h-icon">AI</text>
       <text class="h-title">AI 生态</text>
       <text class="h-sub">明德 AI 智能生态，为企业家赋能</text>
     </view>
@@ -32,10 +32,10 @@
 import { fetchSiteConfig } from '@/common/site-config'
 
 const CARDS = [
-  { key: 'mentor', icon: '🧑‍🏫', title: 'AI 导师', desc: '创业答疑、企业管理建议', topic: '你是一位资深创业导师' },
-  { key: 'company', icon: '🏢', title: '名企咨询', desc: '对标名企，AI 给出经营策略', topic: '你是一位名企战略顾问' },
-  { key: 'toolbox', icon: '🧰', title: 'AI 工具箱', desc: '常用 AI 工具使用指南', topic: '你是 AI 工具使用专家' },
-  { key: 'companion', icon: '🚀', title: 'AI 陪跑', desc: '项目陪跑，全程伴飞', topic: '你是企业家成长陪跑教练' }
+  { key: 'mentor', icon: '师‍学', title: 'AI 导师', desc: '创业答疑、企业管理建议', topic: '你是一位资深创业导师' },
+  { key: 'company', icon: '企', title: '名企咨询', desc: '对标名企，AI 给出经营策略', topic: '你是一位名企战略顾问' },
+  { key: 'toolbox', icon: '具', title: 'AI 工具箱', desc: '常用 AI 工具使用指南', topic: '你是 AI 工具使用专家' },
+  { key: 'companion', icon: '陪', title: 'AI 陪跑', desc: '项目陪跑，全程伴飞', topic: '你是企业家成长陪跑教练' }
 ]
 
 export default {

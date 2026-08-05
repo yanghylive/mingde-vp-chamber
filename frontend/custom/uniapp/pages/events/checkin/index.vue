@@ -1,13 +1,13 @@
 <template>
   <view class="checkin-page">
     <view class="card tip-card">
-      <view class="tip-icon">📷</view>
+      <view class="tip-icon">拍</view>
       <view class="tip-title">活动签到</view>
       <view class="tip-sub">点击下方按钮，扫描活动现场二维码完成签到</view>
     </view>
 
     <view class="scan-btn" @tap="scan">
-      <text class="sb-icon">🔍</text>
+      <text class="sb-icon">搜</text>
       <text class="sb-text">扫码签到</text>
     </view>
 

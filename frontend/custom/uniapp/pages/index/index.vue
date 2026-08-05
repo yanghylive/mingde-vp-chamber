@@ -7,16 +7,16 @@
           <view class="hd-logo">明</view>
           <view class="hd-name">
             <text>明德恒智</text>
-            <text class="hd-crown">👑</text>
+            <text class="hd-crown">V</text>
           </view>
         </view>
         <view class="bell glass-control" @tap="goNotifications">
-          <text class="bell-icon">🔔</text>
+          <text class="bell-icon">!</text>
           <view v-if="hasUnread" class="bell-dot" />
         </view>
       </view>
       <view class="search-box glass-control" @tap="goSearch">
-        <text class="s-icon">🔍</text>
+        <text class="s-icon">搜</text>
         <text class="s-ph">搜索活动 / 大咖 / 商品</text>
       </view>
     </view>
@@ -29,7 +29,7 @@
           <view class="mc-name-row">
             <text class="mc-name">{{ displayName }}</text>
             <view class="mc-badge">
-              <text class="mb-crown">👑</text>
+              <text class="mb-crown">V</text>
               <text>L{{ tierNum }}</text>
             </view>
           </view>
@@ -83,7 +83,7 @@
       <view class="ev-head">
         <view>
           <view class="ev-title-row">
-            <text class="ev-title-icon">📅</text>
+            <text class="ev-title-icon">历</text>
             <text class="ev-title">官方活动</text>
           </view>
           <text class="ev-sub">高质量相聚，让思想彼此照亮</text>
@@ -130,14 +130,14 @@
                 <text v-if="ev.min_tier" class="ev-tier-badge">需 L{{ ev.min_tier }} 等级</text>
               </view>
               <view class="ev-r-line">
-                <text class="ev-r-icon">🕐</text>
+                <text class="ev-r-icon">时</text>
                 <text class="ev-r-text">{{ evTime(ev) }}</text>
               </view>
               <view class="ev-r-line">
-                <text class="ev-r-icon">📍</text>
+                <text class="ev-r-icon">地</text>
                 <text class="ev-r-addr">{{ ev.location_name || ev.address || '地址待定' }}</text>
                 <view class="ev-nav" @tap.stop="openMap(ev)">
-                  <text>🧭</text>
+                  <text>导</text>
                   <text>导航</text>
                 </view>
               </view>
@@ -148,7 +148,7 @@
               </view>
               <view class="ev-actions">
                 <view class="btn-primary ev-scan" @tap.stop="goCheckin(ev)">
-                  <text>📷</text>
+                  <text>签</text>
                   <text>扫码签到</text>
                 </view>
                 <view class="ev-detail" @tap.stop="goEventDetail(ev.id)">
@@ -168,7 +168,7 @@
       <view class="ev-head">
         <view>
           <view class="ev-title-row">
-            <text class="ev-title-icon">✨</text>
+            <text class="ev-title-icon">荐</text>
             <text class="ev-title">精选活动</text>
           </view>
           <text class="ev-sub">本周值得参与的高质量连接</text>
@@ -186,7 +186,7 @@
           <text class="fd-summary">{{ featured.summary || '暂无简介' }}</text>
           <view class="fd-foot">
             <view class="fd-rec">
-              <text>📅</text>
+              <text>周</text>
               <text>本周推荐</text>
             </view>
             <view class="fd-btn" @tap.stop="goEventDetail(featured.id)">报名</view>
@@ -209,11 +209,11 @@ import Calendar from '@/components/Calendar.vue'
 import Skeleton from '@/components/Skeleton.vue'
 
 const EVENT_META = {
-  personal_growth: { label: '个人成长', glyph: '🎓', tone: 'tone-growth' },
-  business_industry: { label: '事业行业', glyph: '🏢', tone: 'tone-industry' },
-  charity: { label: '公益慈善', glyph: '🤝', tone: 'tone-charity' }
+  personal_growth: { label: '个人成长', glyph: '成', tone: 'tone-growth' },
+  business_industry: { label: '事业行业', glyph: '事', tone: 'tone-industry' },
+  charity: { label: '公益慈善', glyph: '益', tone: 'tone-charity' }
 }
-const DEFAULT_META = { label: '官方活动', glyph: '📅', tone: 'tone-default' }
+const DEFAULT_META = { label: '官方活动', glyph: '活', tone: 'tone-default' }
 
 const CHIPS = [
   { key: 'personal_growth', label: '个人成长' },
@@ -337,7 +337,7 @@ export default {
       return toDate(ev.start_time)
     },
     gridGlyph(icon) {
-      const map = { event: '📅', expert: '✨', mall: '🛍', ai: '🤖', graduate: '🎓', default: '⭐' }
+      const map = { event: '活', expert: '咖', mall: '商', ai: 'AI', graduate: '认', default: '·' }
       return map[icon] || map.default
     },
     // ---- 导航 ----

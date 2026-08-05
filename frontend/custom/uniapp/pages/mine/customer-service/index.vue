@@ -1,7 +1,7 @@
 <template>
   <view class="cs-page">
     <view class="card main-card">
-      <view class="cs-icon">💬</view>
+      <view class="cs-icon">客</view>
       <view class="cs-title">专属客服</view>
       <view class="cs-sub">扫码添加客服微信，获取一对一服务</view>
 

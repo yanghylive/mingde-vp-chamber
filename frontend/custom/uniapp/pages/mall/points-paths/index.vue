@@ -40,7 +40,7 @@ export default {
       this.loading = false
     },
     pathGlyph(icon) {
-      const map = { coach: '🎓', charity: '🤝', roadshow: '🎤', distribution: '📢', study: '📚', medal: '🏅' }
+      const map = { coach: '认', charity: '益', roadshow: '演', distribution: '推', study: '习', medal: '奖' }
       return map[icon] || '⭐'
     },
     pathUnit(icon) {
