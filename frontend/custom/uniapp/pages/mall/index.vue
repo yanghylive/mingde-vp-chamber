@@ -11,10 +11,34 @@
       </view>
     </view>
 
+    <!-- 搜索框 -->
+    <view class="search-box">
+      <text class="s-icon">⌕</text>
+      <input
+        v-model="keyword"
+        class="s-input"
+        placeholder="搜索商品"
+        placeholder-class="ph"
+        confirm-type="search"
+      />
+    </view>
+
+    <!-- 分类 chip -->
+    <scroll-view scroll-x class="chips">
+      <view
+        v-for="(c, i) in categoryOptions"
+        :key="c"
+        :class="['chip', activeChip === i && 'chip-active']"
+        @tap="activeChip = i"
+      >
+        {{ c }}
+      </view>
+    </scroll-view>
+
     <view v-if="loading" class="empty">加载中…</view>
-    <view v-else-if="list.length === 0" class="empty">暂无商品</view>
+    <view v-else-if="visible.length === 0" class="empty">暂无商品</view>
     <view v-else class="grid">
-      <view v-for="p in list" :key="p.id" class="product card" @tap="openConfirm(p)">
+      <view v-for="p in visible" :key="p.id" class="product card" @tap="openConfirm(p)">
         <view class="p-img">
           <text>{{ (p.store_name || '商品').slice(0, 1) }}</text>
         </view>
@@ -57,6 +81,21 @@ import { checkLogin } from '@/libs/login'
 import { formatMoney } from '@/common/format'
 import { fetchSiteConfig } from '@/common/site-config'
 
+const CATEGORY_ALIAS = {
+  course: '课程', courses: '课程', curriculum: '课程', training: '课程', workshop: '课程', lesson: '课程',
+  salon: '沙龙', salon_activity: '沙龙', meeting: '沙龙',
+  charity: '公益', public_welfare: '公益', donation: '公益', volunteer: '公益',
+  roadshow: '路演', demo: '路演', pitch: '路演', invest: '路演',
+  product: '商品', goods: '商品', material: '商品',
+  service: '服务', consulting: '服务'
+}
+
+function normalizeCategory(cat) {
+  if (!cat) return '其他'
+  const key = String(cat).toLowerCase().trim()
+  return CATEGORY_ALIAS[key] || String(cat)
+}
+
 export default {
   data() {
     return {
@@ -65,7 +104,10 @@ export default {
       loading: true,
       confirmTarget: null,
       exchanging: false,
-      pointsToYuan: 10
+      pointsToYuan: 10,
+      keyword: '',
+      activeChip: 0,
+      categoryOptions: ['全部']
     }
   },
   computed: {
@@ -75,6 +117,15 @@ export default {
     needCash() {
       const short = Math.max(0, this.needPoints - this.points)
       return Math.ceil(short / (this.pointsToYuan || 10))
+    },
+    visible() {
+      const kw = this.keyword.trim().toLowerCase()
+      const cat = this.categoryOptions[this.activeChip]
+      return this.list.filter((p) => {
+        const catOk = this.activeChip === 0 || normalizeCategory(p.category) === cat
+        const nameOk = !kw || ((p.store_name || '') + ' ' + (p.name || '')).toLowerCase().indexOf(kw) >= 0
+        return catOk && nameOk
+      })
     }
   },
   onShow() {
@@ -89,7 +140,16 @@ export default {
       })
       const jobs = [chamber.products(), chamber.points()]
       const results = await Promise.allSettled(jobs)
-      if (results[0].status === 'fulfilled') this.list = results[0].value || []
+      if (results[0].status === 'fulfilled') {
+        this.list = results[0].value || []
+        // 提取分类（去重）
+        const cats = ['全部']
+        for (const p of this.list) {
+          const c = normalizeCategory(p.category)
+          if (c !== '其他' && cats.indexOf(c) === -1) cats.push(c)
+        }
+        this.categoryOptions = cats
+      }
       if (results[1].status === 'fulfilled') this.points = results[1].value
       this.loading = false
     },
@@ -165,6 +225,48 @@ export default {
 .pb-link {
   font-size: 24rpx;
   color: #ad6b22;
+}
+.search-box {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  background: #fff;
+  border-radius: 999rpx;
+  padding: 20rpx 28rpx;
+  margin-bottom: 20rpx;
+  box-shadow: 0 4rpx 16rpx rgba(39, 59, 89, 0.04);
+}
+.s-icon {
+  color: #b8751d;
+  font-size: 32rpx;
+}
+.s-input {
+  flex: 1;
+  font-size: 28rpx;
+  color: #273b59;
+}
+.ph {
+  color: #c0c6d0;
+}
+.chips {
+  display: flex;
+  gap: 16rpx;
+  margin-bottom: 24rpx;
+  white-space: nowrap;
+}
+.chip {
+  flex-shrink: 0;
+  padding: 12rpx 28rpx;
+  border-radius: 999rpx;
+  background: #fff;
+  color: #516580;
+  font-size: 24rpx;
+  box-shadow: 0 4rpx 12rpx rgba(39, 59, 89, 0.04);
+}
+.chip-active {
+  background: linear-gradient(135deg, #d98a2d, #b8751d);
+  color: #fff;
+  font-weight: 600;
 }
 .empty {
   text-align: center;
