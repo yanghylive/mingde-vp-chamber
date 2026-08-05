@@ -135,7 +135,7 @@ export default {
       if (p.tier === this.tierNum) return
       uni.showModal({
         title: p.name,
-        content: `支付通道开通中。开通后自动升级为 ${p.name}（${priceText(p)}/年）。`,
+        content: '支付通道开通中。开通后自动升级为 ' + (p.name) + '（' + (priceText(p)) + '/年）。',
         confirmText: '知道了',
         showCancel: false
       })

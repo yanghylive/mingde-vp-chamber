@@ -8,7 +8,7 @@ export const auth = {
   /** 获取短信验证码 key */
   verifyCode: () => request('/verify_code', { auth: false }),
   /** 图形验证码地址（uni-app image 直接加载） */
-  captchaUrl: (key) => `${HTTP_REQUEST_URL}/sms_captcha?key=${encodeURIComponent(key)}&t=${Date.now()}`,
+  captchaUrl: (key) => HTTP_REQUEST_URL + '/sms_captcha?key=' + encodeURIComponent(key) + '&t=' + Date.now(),
   /** 发送短信验证码 */
   sendSmsCode: (data) =>
     request('/register/verify', {

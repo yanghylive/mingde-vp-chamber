@@ -102,13 +102,13 @@ export default {
         if (cellNum <= 0) {
           num = prevDays + cellNum
           inMonth = false
-          key = `${y}-${pad(m - 1)}-${pad(num)}`
+          key = (y) + '-' + (pad(m - 1)) + '-' + (pad(num))
         } else if (cellNum > daysInMonth) {
           num = cellNum - daysInMonth
           inMonth = false
-          key = `${y}-${pad(m + 1)}-${pad(num)}`
+          key = (y) + '-' + (pad(m + 1)) + '-' + (pad(num))
         } else {
-          key = `${y}-${pad(m)}-${pad(num)}`
+          key = (y) + '-' + (pad(m)) + '-' + (pad(num))
         }
         list.push({
           num,

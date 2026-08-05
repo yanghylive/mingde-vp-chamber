@@ -67,7 +67,7 @@
             :class="['btn-primary', 'mbtn', exchanging && 'mbtn-disabled']"
             @tap="handleConfirm"
           >
-            {{ exchanging ? '兑换中…' : needCash > 0 ? `混合支付 · 积分 + ${formatMoney(needCash)}` : '积分支付' }}
+            {{ exchanging ? '兑换中…' : needCash > 0 ? '混合支付 · 积分 + ' + (formatMoney(needCash)) : '积分支付' }}
           </view>
         </view>
       </view>

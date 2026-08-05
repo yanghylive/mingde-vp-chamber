@@ -20,9 +20,9 @@ export function toDate(ts, fmt) {
   const day = String(d.getDate()).padStart(2, '0')
   const h = String(d.getHours()).padStart(2, '0')
   const min = String(d.getMinutes()).padStart(2, '0')
-  if (fmt === 'datetime') return `${y}-${m}-${day} ${h}:${min}`
-  if (fmt === 'month') return `${y}-${m}`
-  return `${y}-${m}-${day}`
+  if (fmt === 'datetime') return y + '-' + m + '-' + day + ' ' + h + ':' + min
+  if (fmt === 'month') return y + '-' + m
+  return y + '-' + m + '-' + day
 }
 
 /** 数字千分位 */

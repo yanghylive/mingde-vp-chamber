@@ -38,16 +38,16 @@ export const chamber = {
 
   // ---- 活动 ----
   events: () => request('/chamber/v1/events').then(pickList),
-  eventDetail: (id) => request(`/chamber/v1/events/${id}`),
+  eventDetail: (id) => request('/chamber/v1/events/' + (id)),
   myEventRegistrations: () => request('/chamber/v1/me/event-registrations').then(pickList),
   registerEvent: (eventId, ticketId) =>
-    request(`/chamber/v1/events/${eventId}/register`, {
+    request('/chamber/v1/events/' + (eventId) + '/register', {
       method: 'POST',
       idempotencyKey: uuid(),
       data: ticketId ? { ticket_id: ticketId } : {}
     }),
   checkinEvent: (eventId) =>
-    request(`/chamber/v1/events/${eventId}/checkin`, {
+    request('/chamber/v1/events/' + (eventId) + '/checkin', {
       method: 'POST',
       idempotencyKey: uuid(),
       data: {}
@@ -55,10 +55,10 @@ export const chamber = {
 
   // ---- 大咖 ----
   experts: () => request('/chamber/v1/experts').then(pickList),
-  expertDetail: (id) => request(`/chamber/v1/experts/${id}`),
-  expertSlots: (id) => request(`/chamber/v1/experts/${id}/slots`).then(pickList),
+  expertDetail: (id) => request('/chamber/v1/experts/' + (id)),
+  expertSlots: (id) => request('/chamber/v1/experts/' + (id) + '/slots').then(pickList),
   createAppointment: (data) =>
-    request(`/chamber/v1/experts/${data.expert_id}/appointments`, {
+    request('/chamber/v1/experts/' + (data.expert_id) + '/appointments', {
       method: 'POST',
       idempotencyKey: uuid(),
       data: { slot_id: data.slot_id, mode: data.mode, topic: data.topic || '', message: data.message || '' }
@@ -68,7 +68,7 @@ export const chamber = {
   products: () => request('/chamber/v1/products').then(pickList),
   pointsPaths: () => request('/chamber/v1/points/paths').then((b) => (b && b.items) || []),
   exchangeProduct: (id, pointsCost, cashCost) =>
-    request(`/chamber/v1/products/${id}/exchange`, {
+    request('/chamber/v1/products/' + (id) + '/exchange', {
       method: 'POST',
       idempotencyKey: uuid(),
       data: { points_cost: Number(pointsCost || 0), cash_cost: String(cashCost || '0.00') }

@@ -141,9 +141,7 @@
     "navigationBarTitleText": "明德恒智",
     "navigationBarBackgroundColor": "#FFFDF8",
     "backgroundColor": "#F7F5F0",
-    "backgroundTextStyle": "light",
-    "animationType": "slide-in-right",
-    "animationDuration": 200
+    "backgroundTextStyle": "light"
   },
   "tabBar": {
     "color": "#8A94A3",
