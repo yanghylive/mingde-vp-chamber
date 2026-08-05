@@ -1,6 +1,6 @@
 <template>
   <view class="ai-page">
-    <view class="head card">
+    <view class="head glass-dark">
       <text class="h-icon">🤖</text>
       <text class="h-title">AI 生态</text>
       <text class="h-sub">明德 AI 智能生态，为企业家赋能</text>
@@ -75,7 +75,7 @@ export default {
   flex-direction: column;
   align-items: center;
   padding: 60rpx 40rpx;
-  background: linear-gradient(135deg, #2c3e50, #273b59);
+  
 }
 .h-icon {
   font-size: 80rpx;

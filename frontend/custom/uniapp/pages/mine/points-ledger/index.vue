@@ -1,6 +1,6 @@
 <template>
   <view class="ledger-page">
-    <view class="balance card">
+    <view class="balance glass-dark">
       <text class="bal-label">当前积分</text>
       <text class="bal-num">{{ balance != null ? balance : '—' }}</text>
     </view>
@@ -60,7 +60,7 @@ export default {
   flex-direction: column;
   align-items: center;
   padding: 40rpx;
-  background: linear-gradient(135deg, #2c3e50, #273b59);
+  
   margin-bottom: 24rpx;
 }
 .bal-label {

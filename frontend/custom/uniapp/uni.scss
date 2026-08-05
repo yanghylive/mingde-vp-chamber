@@ -1,11 +1,29 @@
-/* uni.scss - 全局样式变量 */
-$md-bg: #f7f5f0;
-$md-card: #ffffff;
-$md-primary: #b8751d;
-$md-primary-light: #d98a2d;
-$md-text: #273b59;
-$md-text-sub: #516580;
-$md-text-muted: #8a94a3;
-$md-border: #f0ddc2;
+/* ============ 明德恒智设计系统（对齐 H5） ============ */
 
-$md-radius: 24rpx;
+/* 品牌色 */
+$md-gold-1: #d98a2d;      /* 主金 */
+$md-gold-2: #b8751d;      /* 深金 */
+$md-gold-light: #eba94e;  /* 亮金 */
+$md-gold-deep: #c87922;   /* 金渐变起 */
+$md-blue-1: #273b59;      /* 主深蓝 */
+$md-blue-2: #183d6d;      /* 选中深蓝 */
+$md-blue-3: #17233d;      /* 文字主色 */
+$md-blue-glass: #1d4a75;  /* 玻璃深蓝 */
+
+/* 文字 */
+$md-text: #17233d;
+$md-text-sub: #516580;
+$md-text-dim: #8a94a3;
+$md-text-faint: #c0c6d0;
+
+/* 背景 */
+$md-bg-top: #e9eef6;
+$md-bg-mid: #f8f9fb;
+$md-bg-bottom: #e7edf5;
+
+/* 卡片 */
+$md-card-radius: 44rpx; /* 22px */
+
+/* 阴影 */
+$md-shadow-card: 0 40rpx 92rpx rgba(16, 43, 80, 0.1), 0 8rpx 24rpx rgba(16, 43, 80, 0.045), inset 0 2rpx 0 rgba(255, 255, 255, 0.72), inset 0 -2rpx 0 rgba(82, 112, 146, 0.07);
+$md-shadow-dark: 0 48rpx 108rpx rgba(8, 29, 60, 0.27), 0 6rpx 20rpx rgba(8, 29, 60, 0.1), inset 0 2rpx 0 rgba(255, 255, 255, 0.12), inset 0 -2rpx 0 rgba(0, 0, 0, 0.14);

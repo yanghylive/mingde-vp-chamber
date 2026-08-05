@@ -170,7 +170,6 @@ export default {
 .login-page {
   min-height: 100vh;
   padding: 160rpx 64rpx 60rpx;
-  background: linear-gradient(180deg, #fffaf2 0%, #f7f5f0 100%);
   box-sizing: border-box;
 }
 .brand {

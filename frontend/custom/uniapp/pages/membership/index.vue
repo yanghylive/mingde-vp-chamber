@@ -1,7 +1,7 @@
 <template>
   <view class="membership-page">
     <!-- 当前等级卡 -->
-    <view class="tier-card">
+    <view class="tier-card glass-dark">
       <view class="tc-top">
         <view>
           <view class="tc-name">{{ currentTier.name }}</view>
@@ -156,7 +156,7 @@ function priceText(p) {
 .tier-card {
   border-radius: 28rpx;
   padding: 40rpx 36rpx;
-  background: linear-gradient(135deg, #2c3e50, #273b59);
+  
   color: #fff;
   box-shadow: 0 12rpx 32rpx rgba(39, 59, 89, 0.25);
 }

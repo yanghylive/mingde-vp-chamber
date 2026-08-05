@@ -2,18 +2,18 @@
   <view class="home-page">
     <!-- 搜索 + 通知 -->
     <view class="top-bar">
-      <view class="search-box" @tap="goSearch">
+      <view class="search-box glass-control" @tap="goSearch">
         <text class="search-icon">⌕</text>
         <text class="search-ph">搜索活动 / 大咖</text>
       </view>
-      <view class="bell" @tap="goNotifications">
+      <view class="bell glass-control" @tap="goNotifications">
         <text class="bell-icon">🔔</text>
         <view v-if="hasUnread" class="dot" />
       </view>
     </view>
 
     <!-- 会员卡 -->
-    <view class="member-card card" @tap="goMembership">
+    <view class="member-card glass-dark" @tap="goMembership">
       <view class="mc-left">
         <view class="mc-tier">
           <text class="tier-badge">{{ currentTier.short }}</text>
@@ -30,7 +30,7 @@
     </view>
 
     <!-- 5 宫格 -->
-    <view class="grids card">
+    <view class="grids glass-control">
       <view v-for="g in grids" :key="g.label" class="grid-item" @tap="goTo(g.to)">
         <view :class="['grid-icon', 'grid-icon-' + (g.icon || 'default')]">
           <text>{{ gridGlyph(g.icon) }}</text>
@@ -44,7 +44,7 @@
       <view
         v-for="(d, i) in DIRECTIONS"
         :key="d"
-        :class="['chip', chip === i && 'chip-active']"
+        :class="['chip', 'glass-control', chip === i && 'glass-control-active']"
         @tap="chip = chip === i ? null : i"
       >
         {{ d }}
@@ -254,10 +254,8 @@ export default {
   display: flex;
   align-items: center;
   gap: 12rpx;
-  background: #fff;
-  border-radius: 999rpx;
+  border-radius: 28rpx;
   padding: 20rpx 28rpx;
-  box-shadow: 0 4rpx 16rpx rgba(39, 59, 89, 0.04);
 }
 .search-icon {
   color: #b8751d;
@@ -271,12 +269,10 @@ export default {
   position: relative;
   width: 80rpx;
   height: 80rpx;
-  background: #fff;
-  border-radius: 50%;
+  border-radius: 28rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4rpx 16rpx rgba(39, 59, 89, 0.04);
 }
 .bell-icon {
   font-size: 32rpx;
@@ -295,8 +291,7 @@ export default {
   align-items: center;
   justify-content: space-between;
   padding: 36rpx;
-  background: linear-gradient(135deg, #2c3e50, #273b59);
-  box-shadow: 0 12rpx 32rpx rgba(39, 59, 89, 0.25);
+  border-radius: 44rpx;
 }
 .mc-left {
   display: flex;
@@ -374,12 +369,14 @@ export default {
 .chip {
   display: inline-block;
   padding: 14rpx 32rpx;
-  border-radius: 999rpx;
-  background: #fff;
+  border-radius: 28rpx;
   color: #516580;
   font-size: 26rpx;
   margin-right: 16rpx;
-  box-shadow: 0 4rpx 12rpx rgba(39, 59, 89, 0.04);
+}
+.chip.glass-control-active {
+  color: #fff;
+  font-weight: 600;
 }
 .chip-active {
   background: linear-gradient(135deg, #d98a2d, #b8751d);

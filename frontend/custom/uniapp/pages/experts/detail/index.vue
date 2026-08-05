@@ -190,7 +190,7 @@ export default {
   width: 140rpx;
   height: 140rpx;
   border-radius: 32rpx;
-  background: linear-gradient(135deg, #2c3e50, #273b59);
+  
   color: #ffd78f;
   font-size: 56rpx;
   font-weight: 700;

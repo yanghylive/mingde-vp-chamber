@@ -1,6 +1,6 @@
 <template>
   <view class="distribution-page">
-    <view class="code-card">
+    <view class="code-card glass-dark">
       <view class="dc-label">我的分销码</view>
       <view class="dc-code">{{ code || (loading ? '···' : '——') }}</view>
       <view class="dc-hint">{{ code ? '分享该码，好友注册时填写即可绑定推荐关系' : '分销码生成中，请稍后再试' }}</view>
@@ -71,7 +71,7 @@ export default {
 .code-card {
   border-radius: 32rpx;
   padding: 60rpx 40rpx;
-  background: linear-gradient(135deg, #2c3e50, #273b59);
+  
   display: flex;
   flex-direction: column;
   align-items: center;

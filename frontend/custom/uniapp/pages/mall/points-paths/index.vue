@@ -1,6 +1,6 @@
 <template>
   <view class="paths-page">
-    <view class="head card">
+    <view class="head glass-dark">
       <text class="h-title">如何获得积分</text>
       <text class="h-sub">参与活动、贡献与学习，积分可兑换好礼</text>
     </view>
@@ -56,7 +56,7 @@ export default {
 }
 .head {
   padding: 40rpx 36rpx;
-  background: linear-gradient(135deg, #2c3e50, #273b59);
+  
   margin-bottom: 24rpx;
 }
 .h-title {
