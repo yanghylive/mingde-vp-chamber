@@ -1,26 +1,43 @@
 <template>
   <view class="gv-page">
-    <page-header title="毕业认证" />
-    <view v-if="status" class="{{'status-card status-' + status}}">
-      <view class="st-icon">{{ statusIcon }}</view>
-      <view class="st-title">{{ statusTitle }}</view>
-      <view class="st-sub">{{ statusSub }}</view>
-    </view>
+    <page-header title="毕业验证" eyebrow="学历 / 身份认证" />
+    <view v-if="loading" class="empty">加载中…</view>
+    <template v-else>
+      <view v-if="status" class="{{'status-card status-' + status}}">
+        <view class="st-left">
+          <view class="st-icon-box">
+            <text class="st-icon-text">{{ statusIcon }}</text>
+          </view>
+        </view>
+        <view class="st-right">
+          <text class="st-title">{{ statusTitle }}</text>
+          <text class="st-sub">{{ statusSub }}</text>
+        </view>
+      </view>
 
-    <view class="card form">
-      <view class="form-title">毕业认证</view>
-      <view class="field">
-        <text class="field-label">学校 / 班级</text>
-        <input v-model="form.class_name" class="input" placeholder="填写学校或班级名称" placeholder-class="ph" />
+      <view class="card form">
+        <view class="form-title-row">
+          <view class="ic ic-sm ic-shield-check-gold" />
+          <text class="form-title">{{ canSubmit ? '提交验证申请' : '当前申请处理中' }}</text>
+        </view>
+        <view v-if="!canSubmit" class="form-hint">
+          你的申请已提交，管理员审核通过后将自动解锁对应会员等级。
+        </view>
+        <template v-if="canSubmit">
+          <view class="field">
+            <text class="field-label">班级名称</text>
+            <input v-model="form.class_name" class="input" placeholder="如：沈阳总部 · 一期" placeholder-class="ph" />
+          </view>
+          <view class="field">
+            <text class="field-label">毕业年份</text>
+            <input v-model="form.graduation_year" class="input" type="number" placeholder="" placeholder-class="ph" />
+          </view>
+          <view class="submit-btn" :disabled="submitting" @tap="submit">
+            {{ submitting ? '提交中…' : '提交验证' }}
+          </view>
+        </template>
       </view>
-      <view class="field">
-        <text class="field-label">毕业年份</text>
-        <input v-model="form.graduation_year" class="input" type="number" placeholder="如 2020" placeholder-class="ph" />
-      </view>
-      <view class="submit-btn" :disabled="submitting" @tap="submit">
-        {{ submitting ? '提交中…' : '提交认证' }}
-      </view>
-    </view>
+    </template>
   </view>
 </template>
 
@@ -33,22 +50,31 @@ export default {
   components: { PageHeader },
   data() {
     return {
-      form: { class_name: '', graduation_year: '', graduation_at: 0 },
+      form: { class_name: '', graduation_year: String(new Date().getFullYear()), graduation_at: 0 },
       status: '',
-      submitting: false
+      canSubmit: true,
+      loading: true,
+      submitting: false,
+      approvedSub: ''
     }
   },
   computed: {
     statusIcon() {
-      return { pending: '审核中', approved: 'OK', rejected: '已驳回' }[this.status] || ''
+      return { pending: '?', approved: 'OK', rejected: '!', returned: '!' }[this.status] || ''
     },
     statusTitle() {
-      return { pending: '认证审核中', approved: '认证通过', rejected: '认证未通过' }[this.status] || ''
+      return {
+        pending: '审核中',
+        approved: '已验证',
+        rejected: '未通过',
+        returned: '待补充'
+      }[this.status] || ''
     },
     statusSub() {
-      if (this.status === 'pending') return '提交成功，等待管理员审核'
-      if (this.status === 'approved') return '恭喜！你已成为认证校友'
-      if (this.status === 'rejected') return '资料未通过审核，请重新提交'
+      if (this.status === 'pending') return '完成毕业验证后解锁会员等级与专属权益'
+      if (this.status === 'approved') return this.approvedSub
+      if (this.status === 'rejected') return '请修改资料后重新提交'
+      if (this.status === 'returned') return '请补充相关材料后重新提交'
       return ''
     }
   },
@@ -62,31 +88,42 @@ export default {
   methods: {
     async loadData() {
       try {
-        const g = await chamber.myGraduateVerification()
+        var g = await chamber.myGraduateVerification()
         if (g && g.status) {
           this.status = g.status
+          this.canSubmit = g.can_submit !== false
           if (g.status === 'pending' || g.status === 'approved') {
             this.form.class_name = g.class_name || ''
-            this.form.graduation_year = g.graduation_year || ''
+            this.form.graduation_year = g.graduation_year ? String(g.graduation_year) : ''
+          }
+          if (g.status === 'approved' && g.class_name) {
+            this.approvedSub = (g.class_name || '') + ' · ' + (g.graduation_year || '') + ' 届'
           }
         }
       } catch (e) {}
+      this.loading = false
     },
     submit() {
-      if (!this.form.class_name || !this.form.graduation_year) {
-        uni.showToast({ title: '请填写学校和年份', icon: 'none' })
+      var year = Number(this.form.graduation_year)
+      if (!this.form.class_name || !year) {
+        uni.showToast({ title: '请填写有效的毕业年份', icon: 'none' })
+        return
+      }
+      if (year < 1990 || year > new Date().getFullYear() + 1) {
+        uni.showToast({ title: '请填写有效的毕业年份', icon: 'none' })
         return
       }
       this.submitting = true
       chamber
         .submitGraduateVerification({
           class_name: this.form.class_name,
-          graduation_year: Number(this.form.graduation_year),
-          graduation_at: Number(new Date(String(this.form.graduation_year)) / 1000)
+          graduation_year: year,
+          graduation_at: Math.floor(Date.now() / 1000)
         })
         .then(() => {
-          this.status = 'pending'
-          uni.showToast({ title: '提交成功', icon: 'success' })
+          this.form.class_name = ''
+          this.form.graduation_year = ''
+          this.loadData()
         })
         .catch((e) => {
           uni.showToast({ title: (e && e.msg) || '提交失败', icon: 'none' })
@@ -103,45 +140,99 @@ export default {
 .gv-page {
   padding: 32rpx;
 }
+.empty {
+  text-align: center;
+  padding: 120rpx 0;
+  color: #c0c6d0;
+  font-size: 26rpx;
+}
+
+/* Status card */
 .status-card {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  padding: 48rpx 40rpx;
-  border-radius: 28rpx;
+  gap: 24rpx;
+  padding: 40rpx;
+  border-radius: 36rpx;
   margin-bottom: 24rpx;
+  background: #e9f3ef;
 }
 .status-pending {
-  background: #f6ead6;
+  background: #e9f3ef;
 }
 .status-approved {
-  background: #f0f7ec;
+  background: #e9f3ef;
 }
 .status-rejected {
   background: #fdeeee;
 }
-.st-icon {
-  font-size: 72rpx;
+.status-returned {
+  background: #fef6ec;
+}
+.st-icon-box {
+  width: 112rpx;
+  height: 112rpx;
+  border-radius: 28rpx;
+  background: #e9f3ef;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.status-rejected .st-icon-box {
+  background: #fdeeee;
+}
+.status-returned .st-icon-box {
+  background: #fef6ec;
+}
+.st-icon-text {
+  font-size: 56rpx;
+  font-weight: 700;
+  color: #42705f;
+}
+.status-rejected .st-icon-text {
+  color: #c23b3b;
+}
+.status-returned .st-icon-text {
+  color: #d05b4e;
+}
+.st-right {
+  flex: 1;
+  min-width: 0;
 }
 .st-title {
+  display: block;
   font-size: 32rpx;
-  font-weight: 800;
-  color: #273b59;
-  margin-top: 16rpx;
+  font-weight: 700;
+  color: #17325b;
 }
 .st-sub {
-  font-size: 24rpx;
+  display: block;
+  font-size: 22rpx;
   color: #8a94a3;
   margin-top: 8rpx;
 }
+
+/* Form */
 .form {
   padding: 36rpx 32rpx;
+}
+.form-title-row {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  margin-bottom: 28rpx;
 }
 .form-title {
   font-size: 30rpx;
   font-weight: 700;
-  color: #273b59;
-  margin-bottom: 28rpx;
+  color: #17325b;
+}
+.form-hint {
+  font-size: 24rpx;
+  color: #8a94a3;
+  line-height: 1.6;
+  padding: 16rpx 0;
 }
 .field {
   margin-bottom: 24rpx;
@@ -154,7 +245,7 @@ export default {
 }
 .input {
   background: #f7f5f0;
-  border-radius: 16rpx;
+  border-radius: 24rpx;
   padding: 20rpx 24rpx;
   font-size: 28rpx;
   color: #273b59;
@@ -166,8 +257,8 @@ export default {
   margin-top: 12rpx;
   text-align: center;
   padding: 24rpx 0;
-  border-radius: 999rpx;
-  background: linear-gradient(135deg, #d98a2d, #b8751d);
+  border-radius: 24rpx;
+  background: linear-gradient(135deg, #c87922, #eba94e);
   color: #fff;
   font-size: 28rpx;
   font-weight: 700;

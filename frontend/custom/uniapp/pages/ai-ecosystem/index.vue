@@ -1,10 +1,25 @@
 <template>
   <view class="ai-page">
-    <page-header title="AI 生态" eyebrow="让 AI 成为企业第二增长引擎" />
-    <view class="head glass-dark">
-      <text class="h-icon">AI</text>
-      <text class="h-title">AI 生态</text>
-      <text class="h-sub">明德 AI 智能生态，为企业家赋能</text>
+    <page-header title="AI 生态" eyebrow="让 AI 成为企业第二增长引擎">
+      <view class="hdr-badge">
+        <view class="ic ic-xs ic-sparkles-blue" />
+        <text>AI 时代</text>
+      </view>
+    </page-header>
+
+    <view class="hero glass-dark">
+      <view class="hero-deco1" />
+      <view class="hero-deco2" />
+      <view class="hero-row">
+        <view class="hero-icon-box">
+          <view class="ic ic-md ic-bot-white" />
+        </view>
+        <view class="hero-text">
+          <view class="hero-badge"><text>明德 AI 生态</text></view>
+          <text class="hero-title">拥抱 AI，重塑增长</text>
+          <text class="hero-sub">咨询 · 工具 · 陪跑 · 课程，一站式 AI 落地路径</text>
+        </view>
+      </view>
     </view>
 
     <view class="grid">
@@ -14,15 +29,15 @@
         class="{{'ai-card card' + (active === c.key ? ' ai-card-open' : '')}}"
         @tap="toggle(c.key)"
       >
-        <view class="ac-head">
+        <view class="ac-top">
           <view class="{{'ac-icon tone-' + c.key}}">
             <text>{{ c.icon }}</text>
           </view>
-          <view class="ac-info">
+          <view class="ac-title-row">
             <text class="ac-title">{{ c.title }}</text>
-            <text class="ac-desc">{{ c.desc }}</text>
+            <text class="ac-caret">{{ active === c.key ? 'v' : 'v' }}</text>
           </view>
-          <text class="ac-caret">{{ active === c.key ? '^' : 'v' }}</text>
+          <text class="ac-desc">{{ c.desc }}</text>
         </view>
         <view v-if="active === c.key" class="ac-open">
           <text class="ac-detail">{{ c.detail }}</text>
@@ -30,14 +45,28 @@
             <text v-for="p in c.points" :key="p" class="ac-point">{{ p }}</text>
           </view>
           <view class="btn-primary ac-go" @tap.stop="goChat(c)">
-            <view class="ic ic-sm ic-message-circle-white" />
             <text>与 AI 助手对话</text>
           </view>
         </view>
       </view>
     </view>
 
-    <view class="foot-note">AI 助手基于大模型生成，内容仅供参考</view>
+    <view class="cta-card card">
+      <view class="cta-row">
+        <view class="cta-icon">
+          <view class="ic ic-md ic-bot-gray" />
+        </view>
+        <view class="cta-text">
+          <text class="cta-title">有任何问题？</text>
+          <text class="cta-desc">24h 在线的明德 AI 助手，问答 / 预约 / 课程推荐</text>
+        </view>
+        <view class="btn-primary cta-btn" @tap="goChatDirect">
+          <text>立即对话</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="foot-note">明德恒智AI企商汇 · PBC 企业家事业共同体 · AI 生态</view>
   </view>
 </template>
 
@@ -46,14 +75,18 @@ import PageHeader from '@/components/PageHeader.vue'
 import { fetchSiteConfig } from '@/common/site-config'
 
 const CARDS = [
-  { key: 'mentor', icon: '师', title: 'AI 导师', desc: '创业答疑、企业管理建议', topic: '你是一位资深创业导师',
-    detail: '聚焦创业难题与经营决策，从战略到执行给出可落地的建议。', points: ['战略诊断', '经营复盘', '决策推演'] },
-  { key: 'company', icon: '企', title: '名企咨询', desc: '对标名企，AI 给出经营策略', topic: '你是一位名企战略顾问',
-    detail: '借鉴标杆企业打法，输出适合你企业阶段的经营策略与方法论。', points: ['标杆对标', '增长策略', '组织建设'] },
-  { key: 'toolbox', icon: '具', title: 'AI 工具箱', desc: '常用 AI 工具使用指南', topic: '你是 AI 工具使用专家',
-    detail: '文案生成、PPT 制作、数据分析，常用 AI 工具一键调用指南。', points: ['文案生成', 'PPT 制作', '数据分析'] },
-  { key: 'companion', icon: '陪', title: 'AI 陪跑', desc: '项目陪跑，全程伴飞', topic: '你是企业家成长陪跑教练',
-    detail: '把你的项目目标交给 AI 陪跑，分阶段跟进、复盘、迭代。', points: ['目标拆解', '阶段跟进', '复盘迭代'] }
+  { key: 'consult', icon: '咨', title: '名企 AI 咨询', desc: '企业 AI 转型诊断方案', topic: '名企 AI 咨询',
+    detail: '面向企业的 AI 转型咨询：从战略诊断、场景盘点到落地路线图，输出可执行的 AI 应用方案，帮助企业家厘清「AI 能为我带来什么」与「第一步怎么走」。',
+    points: ['AI 成熟度诊断', '业务场景盘点', '落地路线图', '行业案例对标'] },
+  { key: 'toolbox', icon: '工', title: '现有工具箱', desc: '提效工具一键调用', topic: '现有工具箱',
+    detail: '沉淀商会内最实用的 AI 提效工具集：文案生成、PPT 制作、数据分析、会议纪要、知识库问答等，一键调用，让日常经营效率翻倍。',
+    points: ['AI 文案与企划', '智能数据分析', '会议纪要助手', '知识库问答'] },
+  { key: 'coach', icon: '跑', title: '陪跑搭建', desc: '专属 AI 系统陪跑', topic: '陪跑搭建',
+    detail: '为会员企业搭建专属 AI 应用系统，并提供长期陪跑服务：从需求梳理、系统搭建到员工培训与迭代优化，确保 AI 真正用起来、见效果。',
+    points: ['专属 AI 系统搭建', '场景定制开发', '团队培训赋能', '长期迭代陪跑'] },
+  { key: 'community', icon: '课', title: '圈子·课程', desc: 'AI 活动与训练营', topic: '圈子·课程',
+    detail: '面向会员的 AI 学习圈子与实战课程：主题沙龙、案例拆解、训练营与认证体系，在实战中提升 AI 认知与应用能力，与同频者共同进化。',
+    points: ['AI 主题沙龙', '企业案例拆解', '实战训练营', '认证与荣誉'] }
 ]
 
 export default {
@@ -69,11 +102,9 @@ export default {
       if (!cfg) return
       const entries = cfg.ai_entries || []
       if (Array.isArray(entries) && entries.length) {
-        const byKey = {}
-        for (const e of entries) if (e && e.key) byKey[e.key] = e
-        this.cards = CARDS.map((c) => {
-          const cfgEntry = byKey[c.key]
-          return cfgEntry && cfgEntry.title ? Object.assign({}, c, { title: cfgEntry.title }) : c
+        this.cards = CARDS.map((c, i) => {
+          const e = entries[i]
+          return e && typeof e.title === 'string' && e.title.trim() ? Object.assign({}, c, { title: e.title.trim() }) : c
         })
       }
     })
@@ -84,6 +115,9 @@ export default {
     },
     goChat(c) {
       uni.navigateTo({ url: '/pages/chat/index?topic=' + encodeURIComponent(c.topic || c.title || '') })
+    },
+    goChatDirect() {
+      uni.navigateTo({ url: '/pages/chat/index' })
     }
   }
 }
@@ -93,114 +127,163 @@ export default {
 .ai-page {
   padding: 32rpx;
 }
-.head {
+
+/* Header badge */
+.hdr-badge {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  padding: 60rpx 40rpx;
-  
+  gap: 4rpx;
+  background: #e9f0fb;
+  color: #28517f;
+  font-size: 20rpx;
+  font-weight: 600;
+  padding: 6rpx 16rpx;
+  border-radius: 999rpx;
 }
-.h-icon {
-  font-size: 80rpx;
+
+/* Hero */
+.hero {
+  position: relative;
+  overflow: hidden;
+  border-radius: 56rpx;
+  padding: 40rpx;
 }
-.h-title {
-  font-size: 36rpx;
-  font-weight: 800;
-  color: #fff;
-  margin-top: 16rpx;
+.hero-deco1 {
+  position: absolute;
+  right: -56rpx;
+  top: -72rpx;
+  width: 288rpx;
+  height: 288rpx;
+  border-radius: 50%;
+  border: 2rpx solid rgba(243, 188, 106, 0.25);
 }
-.h-sub {
-  font-size: 24rpx;
-  color: rgba(255, 255, 255, 0.6);
-  margin-top: 10rpx;
+.hero-deco2 {
+  position: absolute;
+  right: 48rpx;
+  top: 40rpx;
+  width: 160rpx;
+  height: 160rpx;
+  border-radius: 50%;
+  border: 2rpx solid rgba(243, 188, 106, 0.15);
 }
-.list {
-  margin-top: 24rpx;
-  display: flex;
-  flex-direction: column;
-  gap: 20rpx;
-}
-.ai-card {
+.hero-row {
+  position: relative;
+  z-index: 2;
   display: flex;
   align-items: center;
   gap: 24rpx;
-  padding: 28rpx;
 }
-.ac-icon {
+.hero-icon-box {
   width: 96rpx;
   height: 96rpx;
-  border-radius: 26rpx;
+  border-radius: 28rpx;
+  background: rgba(255, 255, 255, 0.12);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 44rpx;
   flex-shrink: 0;
-  background: #fff0dc;
 }
-.ac-info {
+.hero-text {
   flex: 1;
   min-width: 0;
 }
-.ac-title {
-  font-size: 30rpx;
-  font-weight: 700;
-  color: #273b59;
-  display: block;
+.hero-badge {
+  display: inline-flex;
+  background: rgba(255, 255, 255, 0.1);
+  color: #f6c77e;
+  font-size: 20rpx;
+  font-weight: 600;
+  padding: 4rpx 16rpx;
+  border-radius: 999rpx;
+  border: 1rpx solid rgba(255, 255, 255, 0.15);
 }
-.ac-desc {
-  font-size: 24rpx;
-  color: #8a94a3;
+.hero-title {
   display: block;
+  font-size: 40rpx;
+  font-weight: 600;
+  color: #fff;
+  margin-top: 16rpx;
+}
+.hero-sub {
+  display: block;
+  font-size: 22rpx;
+  line-height: 40rpx;
+  color: rgba(191, 219, 254, 0.7);
   margin-top: 8rpx;
 }
-.ac-cta {
-  display: inline-flex;
-  align-items: center;
-  gap: 8rpx;
-  margin-top: 14rpx;
-  font-size: 22rpx;
-  font-weight: 600;
-  color: #24507f;
-  background: #eaf0f8;
-  padding: 10rpx 22rpx;
-  border-radius: 999rpx;
-}
-.ac-arrow {
-  color: #c0c6d0;
-  font-size: 36rpx;
-}
-.foot-note {
-  text-align: center;
-  font-size: 22rpx;
-  color: #c0c6d0;
-  padding: 48rpx 0 20rpx;
-}
-</style>
+
+/* Grid */
 .grid {
   display: flex;
   flex-wrap: wrap;
-  gap: 20rpx;
-  margin-top: 8rpx;
+  gap: 24rpx;
+  margin-top: 40rpx;
 }
 .ai-card {
-  width: calc(50% - 10rpx);
-  padding: 28rpx;
+  width: calc(50% - 12rpx);
+  padding: 32rpx;
   box-sizing: border-box;
 }
 .ai-card-open {
   width: 100%;
 }
-.ac-head {
+
+/* Card top section */
+.ac-top {
+  display: flex;
+  flex-direction: column;
+}
+.ac-icon {
+  width: 88rpx;
+  height: 88rpx;
+  border-radius: 28rpx;
   display: flex;
   align-items: center;
-  gap: 16rpx;
+  justify-content: center;
+  font-size: 40rpx;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.tone-consult {
+  background: #e9f0fb;
+  color: #28517f;
+}
+.tone-toolbox {
+  background: #fff0dc;
+  color: #bd7627;
+}
+.tone-coach {
+  background: #e8f3ef;
+  color: #3f715f;
+}
+.tone-community {
+  background: #f4ebf6;
+  color: #76517e;
+}
+.ac-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 24rpx;
+}
+.ac-title {
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #24395a;
 }
 .ac-caret {
   font-size: 26rpx;
   color: #a0a9b6;
-  margin-left: auto;
-  font-weight: 700;
 }
+.ac-desc {
+  display: block;
+  font-size: 20rpx;
+  line-height: 32rpx;
+  color: #8a94a3;
+  margin-top: 8rpx;
+}
+
+/* Card expanded section */
 .ac-open {
   margin-top: 24rpx;
   padding-top: 24rpx;
@@ -209,14 +292,14 @@ export default {
 .ac-detail {
   display: block;
   font-size: 22rpx;
-  line-height: 1.7;
+  line-height: 40rpx;
   color: #5a6b80;
 }
 .ac-points {
   display: flex;
   flex-wrap: wrap;
   gap: 12rpx;
-  margin-top: 20rpx;
+  margin-top: 24rpx;
 }
 .ac-point {
   font-size: 20rpx;
@@ -226,10 +309,64 @@ export default {
   border-radius: 999rpx;
 }
 .ac-go {
-  margin-top: 24rpx;
+  margin-top: 32rpx;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 10rpx;
+}
+
+/* Bottom CTA */
+.cta-card {
+  margin-top: 48rpx;
+  border: 1rpx solid #f0ddc2;
+  background: linear-gradient(135deg, #fffaf2, #fff);
+  padding: 32rpx;
+}
+.cta-row {
+  display: flex;
+  align-items: center;
+  gap: 24rpx;
+}
+.cta-icon {
+  width: 88rpx;
+  height: 88rpx;
+  border-radius: 28rpx;
+  background: #e9f0fb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.cta-text {
+  flex: 1;
+  min-width: 0;
+}
+.cta-title {
+  display: block;
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #273b59;
+}
+.cta-desc {
+  display: block;
+  font-size: 20rpx;
+  line-height: 32rpx;
+  color: #8a94a3;
+  margin-top: 4rpx;
+}
+.cta-btn {
+  flex-shrink: 0;
+  padding: 16rpx 32rpx;
+  border-radius: 24rpx;
+  font-size: 24rpx;
+}
+
+/* Footer */
+.foot-note {
+  text-align: center;
+  font-size: 20rpx;
+  color: #a7afbb;
+  padding: 48rpx 0 20rpx;
 }
 </style>

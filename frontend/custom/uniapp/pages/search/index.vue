@@ -8,7 +8,7 @@
           v-model="keyword"
           class="s-input"
           focus
-          placeholder="搜索活动 / 大咖"
+          placeholder="搜索活动 / 大咖 / 商品"
           placeholder-class="ph"
           confirm-type="search"
           @confirm="doSearch"
@@ -26,28 +26,71 @@
 
     <view v-else>
       <view v-if="loading" class="empty">搜索中…</view>
-      <view v-else-if="events.length === 0 && experts.length === 0 && products.length === 0" class="empty">未找到相关内容</view>
+      <view v-else-if="events.length === 0 && experts.length === 0 && products.length === 0" class="empty">
+        <view class="ic ic-lg ic-search-gold empty-icon" />
+        <text class="empty-text">未找到与「{{ keyword }}」相关的内容</text>
+        <view class="btn-secondary empty-btn" @tap="goHome"><text>返回首页</text></view>
+      </view>
       <view v-else class="results">
+        <text v-if="total > 0" class="result-count">共找到 <text class="rc-num">{{ total }}</text> 条与「{{ keyword }}」相关的结果</text>
+
         <view v-if="events.length" class="group">
-          <text class="g-title">活动</text>
+          <view class="g-title-row">
+            <view class="ic ic-sm ic-graduation-cap-gold" />
+            <text class="g-title">活动（{{ events.length }}）</text>
+          </view>
           <view v-for="ev in events" :key="ev.id" class="item card" @tap="goEvent(ev.id)">
-            <text class="item-name">{{ ev.title }}</text>
-            <text class="item-arrow">></text>
+            <view class="ev-icon">
+              <view class="ic ic-sm ic-graduation-cap-white" />
+            </view>
+            <view class="ev-info">
+              <text class="ev-name">{{ ev.title }}</text>
+              <view class="ev-meta">
+                <view class="ic ic-xs ic-clock-3-orange" />
+                <text class="ev-meta-text">{{ ev.start_time ? formatTime(ev.start_time) : '时间待定' }}</text>
+              </view>
+              <view class="ev-meta">
+                <view class="ic ic-xs ic-map-pin-orange" />
+                <text class="ev-meta-text">{{ ev.location_name || ev.address || '地址待定' }}</text>
+              </view>
+              <view v-if="ev.event_type" class="ev-badge">{{ typeLabel(ev.event_type) }}</view>
+            </view>
           </view>
         </view>
+
         <view v-if="experts.length" class="group">
-          <text class="g-title">大咖</text>
+          <view class="g-title-row">
+            <view class="ic ic-sm ic-users-blue" />
+            <text class="g-title">大咖（{{ experts.length }}）</text>
+          </view>
           <view v-for="e in experts" :key="e.id" class="item card" @tap="goExpert(e.id)">
-            <text class="item-name">{{ e.name }} {{ e.industry ? '· ' + e.industry : '' }}</text>
-            <text class="item-arrow">></text>
+            <view class="ex-avatar">
+              <text class="ex-initial">{{ (e.name || '?').charAt(0) }}</text>
+            </view>
+            <view class="ex-info">
+              <text class="ex-name">{{ e.name }}</text>
+              <view v-if="e.title" class="ex-meta">
+                <view class="ic ic-xs ic-link-2-gold" />
+                <text class="ex-meta-text">{{ e.title }}</text>
+              </view>
+              <text v-if="e.company || e.industry || e.bio" class="ex-sub">{{ [e.company, e.industry, e.bio].filter(function(x) { return x }).join(' · ') }}</text>
+            </view>
           </view>
         </view>
+
         <view v-if="products.length" class="group">
-          <text class="g-title">商品</text>
-          <view v-for="p in products" :key="p.id" class="item card" @tap="goMall(p)">
-            <text class="item-name">{{ p.name || p.store_name }}</text>
-            <text class="item-meta">{{ p.integral_price || 0 }} 积分</text>
-            <text class="item-arrow">></text>
+          <view class="g-title-row">
+            <view class="ic ic-sm ic-gift-gold" />
+            <text class="g-title">商品（{{ products.length }}）</text>
+          </view>
+          <view class="prod-grid">
+            <view v-for="p in products" :key="p.id" class="prod-card card" @tap="goMall(p)">
+              <view class="prod-img">
+                <view class="ic ic-md ic-gift-gold" />
+              </view>
+              <text class="prod-name">{{ p.name || p.store_name }}</text>
+              <text class="prod-price">¥{{ p.cash_price || p.cash || 0 }}</text>
+            </view>
           </view>
         </view>
       </view>
@@ -58,6 +101,7 @@
 <script>
 import PageHeader from '@/components/PageHeader.vue'
 import chamber from '@/api/chamber'
+import { toDate } from '@/common/format'
 
 export default {
   components: { PageHeader },
@@ -72,6 +116,11 @@ export default {
       hot: ['大咖讲堂', '路演', '陈明远']
     }
   },
+  computed: {
+    total() {
+      return this.events.length + this.experts.length + this.products.length
+    }
+  },
   onLoad(options) {
     if (options && options.q) {
       this.keyword = decodeURIComponent(options.q)
@@ -79,30 +128,47 @@ export default {
     }
   },
   methods: {
+    formatTime(ts) {
+      return toDate(ts, 'datetime')
+    },
+    typeLabel(t) {
+      var map = { personal_growth: '个人成长', industry: '事业行业', charity: '公益慈善' }
+      return map[t] || '官方活动'
+    },
     async doSearch() {
-      const kw = this.keyword.trim()
+      var kw = this.keyword.trim().toLowerCase()
       if (!kw) return
       this.searched = true
       this.loading = true
-      const results = await Promise.allSettled([chamber.events(), chamber.experts(), chamber.products()])
+      var results = await Promise.allSettled([chamber.events(), chamber.experts(), chamber.products()])
       if (results[0].status === 'fulfilled') {
-        this.events = (results[0].value || []).filter((ev) =>
-          (ev.title || '').indexOf(kw) >= 0 || (ev.summary || '').indexOf(kw) >= 0 ||
-          (ev.location_name || ev.address || '').indexOf(kw) >= 0 || (ev.event_type || '').indexOf(kw) >= 0
-        )
+        this.events = (results[0].value || []).filter(function(ev) {
+          return [ev.title, ev.summary, ev.location_name, ev.address, ev.tags].some(function(f) {
+            return f && String(f).toLowerCase().indexOf(kw) >= 0
+          })
+        }).slice(0, 5)
       }
       if (results[1].status === 'fulfilled') {
-        this.experts = (results[1].value || []).filter(
-          (e) => (e.name || '').indexOf(kw) >= 0 || (e.industry || '').indexOf(kw) >= 0 || (e.title || '').indexOf(kw) >= 0
-        )
+        this.experts = (results[1].value || []).filter(function(e) {
+          return [e.name, e.title, e.company, e.industry, e.bio, e.tags].some(function(f) {
+            return f && String(f).toLowerCase().indexOf(kw) >= 0
+          })
+        }).slice(0, 5)
       }
       if (results[2].status === 'fulfilled') {
-        this.products = (results[2].value || []).filter((p) => (p.name || p.store_name || '').indexOf(kw) >= 0)
+        this.products = (results[2].value || []).filter(function(p) {
+          return [p.name, p.store_name, p.title, p.description, p.category].some(function(f) {
+            return f && String(f).toLowerCase().indexOf(kw) >= 0
+          })
+        }).slice(0, 4)
       }
       this.loading = false
     },
     goBack() {
-      uni.navigateBack({ fail: () => uni.switchTab({ url: '/pages/index/index' }) })
+      uni.navigateBack({ fail: function() { uni.switchTab({ url: '/pages/index/index' }) } })
+    },
+    goHome() {
+      uni.switchTab({ url: '/pages/index/index' })
     },
     goEvent(id) {
       uni.navigateTo({ url: '/pages/events/detail/index?id=' + id })
@@ -132,13 +198,9 @@ export default {
   align-items: center;
   gap: 12rpx;
   background: #fff;
-  border-radius: 999rpx;
+  border-radius: 32rpx;
   padding: 20rpx 28rpx;
   box-shadow: 0 4rpx 16rpx rgba(39, 59, 89, 0.04);
-}
-.s-icon {
-  color: #b8751d;
-  font-size: 32rpx;
 }
 .s-input {
   flex: 1;
@@ -152,6 +214,8 @@ export default {
   font-size: 26rpx;
   color: #516580;
 }
+
+/* Suggestions */
 .suggestions {
   margin-top: 40rpx;
 }
@@ -172,38 +236,189 @@ export default {
   color: #516580;
   font-size: 26rpx;
 }
+
+/* Empty results */
 .empty {
-  text-align: center;
-  padding: 100rpx 0;
-  color: #c0c6d0;
-  font-size: 26rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 80rpx 0;
 }
+.empty-icon {
+  margin-bottom: 24rpx;
+  opacity: 0.4;
+}
+.empty-text {
+  font-size: 26rpx;
+  color: #c2cbd6;
+  text-align: center;
+}
+.empty-btn {
+  margin-top: 32rpx;
+  padding: 16rpx 40rpx;
+  border-radius: 24rpx;
+  font-size: 26rpx;
+  font-weight: 600;
+}
+
+/* Results */
 .results {
   margin-top: 32rpx;
 }
-.group {
-  margin-bottom: 32rpx;
-}
-.g-title {
-  font-size: 28rpx;
-  font-weight: 700;
-  color: #273b59;
+.result-count {
   display: block;
-  margin-bottom: 16rpx;
+  font-size: 24rpx;
+  color: #8a94a3;
+  margin-bottom: 24rpx;
 }
-.item {
+.rc-num {
+  font-weight: 700;
+  color: #a9651e;
+}
+.group {
+  margin-bottom: 40rpx;
+}
+.g-title-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 26rpx 28rpx;
+  gap: 8rpx;
   margin-bottom: 16rpx;
 }
-.item-name {
-  font-size: 28rpx;
-  color: #273b59;
+.g-title {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #17325b;
 }
-.item-arrow {
-  color: #c0c6d0;
-  font-size: 32rpx;
+
+/* Event items */
+.item {
+  display: flex;
+  align-items: flex-start;
+  gap: 24rpx;
+  padding: 28rpx;
+  margin-bottom: 16rpx;
+}
+.ev-icon {
+  width: 88rpx;
+  height: 88rpx;
+  border-radius: 32rpx;
+  background: linear-gradient(135deg, #1a4778, #102b50);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.ev-info {
+  flex: 1;
+  min-width: 0;
+}
+.ev-name {
+  display: block;
+  font-size: 26rpx;
+  font-weight: 700;
+  color: #17325b;
+}
+.ev-meta {
+  display: flex;
+  align-items: center;
+  gap: 6rpx;
+  margin-top: 8rpx;
+}
+.ev-meta-text {
+  font-size: 20rpx;
+  color: #8a94a3;
+}
+.ev-badge {
+  display: inline-flex;
+  margin-top: 8rpx;
+  background: #eef0f3;
+  color: #6b7889;
+  font-size: 20rpx;
+  padding: 4rpx 16rpx;
+  border-radius: 999rpx;
+}
+
+/* Expert items */
+.ex-avatar {
+  width: 88rpx;
+  height: 88rpx;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #b77a34, #82531f);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.ex-initial {
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #fff;
+}
+.ex-info {
+  flex: 1;
+  min-width: 0;
+}
+.ex-name {
+  display: block;
+  font-size: 26rpx;
+  font-weight: 700;
+  color: #17325b;
+}
+.ex-meta {
+  display: flex;
+  align-items: center;
+  gap: 6rpx;
+  margin-top: 6rpx;
+}
+.ex-meta-text {
+  font-size: 20rpx;
+  color: #a56d2c;
+}
+.ex-sub {
+  display: block;
+  font-size: 20rpx;
+  color: #8a94a3;
+  margin-top: 6rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Product grid */
+.prod-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24rpx;
+}
+.prod-card {
+  width: calc(50% - 12rpx);
+  padding: 24rpx;
+  box-sizing: border-box;
+}
+.prod-img {
+  width: 100%;
+  height: 128rpx;
+  border-radius: 24rpx;
+  background: linear-gradient(135deg, #e7eef8, #d3e0ef);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12rpx;
+}
+.prod-name {
+  display: block;
+  font-size: 24rpx;
+  font-weight: 700;
+  color: #17325b;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.prod-price {
+  display: block;
+  font-size: 22rpx;
+  font-weight: 700;
+  color: #c57620;
+  margin-top: 4rpx;
 }
 </style>

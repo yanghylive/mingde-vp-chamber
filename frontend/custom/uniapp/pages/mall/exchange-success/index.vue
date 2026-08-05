@@ -1,18 +1,36 @@
 <template>
   <view class="success-page">
     <page-header title="兑换成功" />
-    <view class="s-icon">!!</view>
-    <view class="s-title">兑换成功</view>
-    <view class="s-sub">商品兑换已受理，详情可在积分记录中查看</view>
-    <view v-if="order" class="s-order card">
-      <view class="so-row"><text class="so-label">商品</text><text class="so-value">{{ order.name }}</text></view>
-      <view v-if="order.orderNo" class="so-row"><text class="so-label">订单号</text><text class="so-value">{{ order.orderNo }}</text></view>
-      <view class="so-row"><text class="so-label">消耗积分</text><text class="so-value">{{ order.points }}</text></view>
-      <view v-if="Number(order.cash) > 0" class="so-row"><text class="so-label">现金支付</text><text class="so-value">¥{{ order.cash }}</text></view>
+    <view class="s-icon-box">
+      <text class="s-icon-text">OK</text>
     </view>
+    <view class="s-title">兑换成功</view>
+    <view class="s-sub">积分已扣减，兑换订单已生成</view>
+
+    <view v-if="order" class="s-order card">
+      <view class="so-head">
+        <view class="so-head-icon">
+          <view class="ic ic-md ic-store-gold" />
+        </view>
+        <view class="so-head-info">
+          <text class="so-name">{{ order.name }}</text>
+          <text class="so-cost">消耗 {{ order.points }} 积分<span v-if="Number(order.cash) > 0"> · 价值 ¥{{ order.cash }}</span></text>
+        </view>
+      </view>
+      <view class="so-detail">
+        <view class="so-row"><text class="so-label">消耗积分</text><text class="so-value so-points">{{ order.points }}</text></view>
+        <view v-if="order.orderNo" class="so-row"><text class="so-label">订单号</text><text class="so-value">#{{ order.orderNo }}</text></view>
+        <view v-if="Number(order.cash) > 0" class="so-row"><text class="so-label">现金支付</text><text class="so-value">¥{{ order.cash }}</text></view>
+      </view>
+    </view>
+
     <view class="s-btns">
-      <view class="btn-secondary s-btn" @tap="goMall">继续逛逛</view>
-      <view class="btn-primary s-btn" @tap="goHome">返回首页</view>
+      <view class="btn-primary s-btn" @tap="goMall">
+        <text>返回商城</text>
+      </view>
+      <view class="btn-secondary s-btn" @tap="goMine">
+        <text>去「我的」查看记录</text>
+      </view>
     </view>
   </view>
 </template>
@@ -39,8 +57,8 @@ export default {
     goMall() {
       uni.switchTab({ url: '/pages/mall/index' })
     },
-    goHome() {
-      uni.switchTab({ url: '/pages/index/index' })
+    goMine() {
+      uni.switchTab({ url: '/pages/mine/index' })
     }
   }
 }
@@ -48,19 +66,32 @@ export default {
 
 <style lang="scss">
 .success-page {
-  padding: 140rpx 60rpx;
+  padding: 112rpx 32rpx 60rpx;
   display: flex;
   flex-direction: column;
   align-items: center;
 }
-.s-icon {
-  font-size: 120rpx;
+
+/* Success icon */
+.s-icon-box {
+  width: 160rpx;
+  height: 160rpx;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #e6f4ec, #cde9da);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 32rpx;
+}
+.s-icon-text {
+  font-size: 60rpx;
+  font-weight: 700;
+  color: #059669;
 }
 .s-title {
-  font-size: 40rpx;
-  font-weight: 800;
-  color: #273b59;
-  margin-top: 32rpx;
+  font-size: 48rpx;
+  font-weight: 700;
+  color: #17325b;
 }
 .s-sub {
   font-size: 26rpx;
@@ -68,34 +99,83 @@ export default {
   margin-top: 16rpx;
   text-align: center;
 }
+
+/* Order card */
 .s-order {
   width: 100%;
-  padding: 32rpx;
   margin-top: 40rpx;
+  padding: 0;
+  overflow: hidden;
+}
+.so-head {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  padding: 32rpx;
+  border-bottom: 1rpx solid #edf0f4;
+}
+.so-head-icon {
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: 24rpx;
+  background: #fff0dc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.so-head-info {
+  flex: 1;
+  min-width: 0;
+}
+.so-name {
+  display: block;
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #203755;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.so-cost {
+  display: block;
+  font-size: 24rpx;
+  color: #8a94a3;
+  margin-top: 6rpx;
+}
+.so-detail {
+  padding: 32rpx;
 }
 .so-row {
   display: flex;
   justify-content: space-between;
-  padding: 12rpx 0;
+  padding: 10rpx 0;
   font-size: 26rpx;
 }
 .so-label {
   color: #8a94a3;
 }
 .so-value {
-  color: #273b59;
+  color: #17325b;
   font-weight: 600;
-  max-width: 60%;
-  text-align: right;
 }
+.so-points {
+  color: #c57620;
+}
+
+/* Buttons */
 .s-btns {
   display: flex;
+  flex-direction: column;
   gap: 24rpx;
-  margin-top: 64rpx;
+  margin-top: 48rpx;
   width: 100%;
 }
 .s-btn {
-  flex: 1;
   text-align: center;
+  padding: 26rpx 0;
+  font-size: 28rpx;
+  font-weight: 600;
+  border-radius: 24rpx;
 }
 </style>
