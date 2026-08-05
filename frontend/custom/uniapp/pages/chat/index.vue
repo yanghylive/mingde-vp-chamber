@@ -32,7 +32,7 @@
 </template>
 
 <script>
-import { request } from '@/common/request'
+import { HTTP_REQUEST_URL } from '@/config/app'
 
 let idSeq = 1
 
@@ -60,25 +60,78 @@ export default {
       this.sending = true
       this.pushMsg('assistant', '', true)
 
-      request('/chamber/v1/chat', {
+      const token = uni.getStorageSync('token') || ''
+      const headers = { 'Content-Type': 'application/json', Accept: 'text/event-stream' }
+      if (token) headers['Authori-zation'] = 'Bearer ' + token
+
+      const task = wx.request({
+        url: HTTP_REQUEST_URL + '/chamber/v1/chat',
         method: 'POST',
-        data: { message: content, expert_id: this.expertId || undefined }
-      })
-        .then((body) => {
-          const text = extractAnswer(body)
-          this.finishAssistant(text)
-        })
-        .catch(() => {
+        header: headers,
+        data: { message: content, expert_id: this.expertId || undefined },
+        enableChunked: true,
+        success: (res) => {
+          // 流式结束时（或非流式完整响应）
+          if (res.statusCode >= 400) {
+            this.finishAssistant('请求失败（' + res.statusCode + '），请稍后再试')
+          } else if (!this.streamReceived) {
+            // 未收到分块 → 一次性响应
+            this.finishAssistant(extractAnswer(res.data))
+          } else {
+            this.finishAssistant(this.assistantText)
+          }
+        },
+        fail: () => {
           this.finishAssistant('抱歉，服务暂时不可用，请稍后再试。')
-        })
-        .finally(() => {
+        },
+        complete: () => {
           this.sending = false
-        })
+        }
+      })
+
+      this.streamReceived = false
+      this.assistantText = ''
+      let buf = ''
+      task.onChunkReceived((res) => {
+        let text = ''
+        if (typeof res.data === 'string') {
+          text = res.data
+        } else if (res.data && res.data.byteLength !== undefined) {
+          text = utf8Decode(res.data)
+        }
+        buf += text
+        let idx
+        while ((idx = buf.indexOf('\n')) !== -1) {
+          const line = buf.slice(0, idx).trim()
+          buf = buf.slice(idx + 1)
+          if (!line || !line.startsWith('data:')) continue
+          const payload = line.slice(5).trim()
+          if (!payload) continue
+          try {
+            const obj = JSON.parse(payload)
+            const delta = typeof obj === 'string' ? obj : obj.content || obj.text || (obj.type === 'text' && obj.content)
+            if (typeof delta === 'string' && delta) {
+              this.streamReceived = true
+              this.assistantText += delta
+              this.renderAssistant(this.assistantText)
+            }
+          } catch (e) {
+            // 非 JSON 分块忽略
+          }
+        }
+      })
     },
     pushMsg(role, content, streaming) {
       const msg = { id: idSeq++, role, content, streaming: !!streaming }
       this.messages.push(msg)
       this.scrollTo(msg.id)
+    },
+    renderAssistant(text) {
+      const last = this.messages[this.messages.length - 1]
+      if (last && last.role === 'assistant') {
+        last.content = text
+        this.scrollTo(last.id)
+      }
     },
     finishAssistant(text) {
       const last = this.messages[this.messages.length - 1]
@@ -94,6 +147,29 @@ export default {
       })
     }
   }
+}
+
+/** UTF-8 ArrayBuffer → 字符串（兼容小程序无 TextDecoder） */
+function utf8Decode(buf) {
+  const bytes = new Uint8Array(buf)
+  let out = ''
+  let i = 0
+  while (i < bytes.length) {
+    const b = bytes[i]
+    if (b < 0x80) {
+      out += String.fromCharCode(b)
+      i += 1
+    } else if (b >= 0xc0 && b < 0xe0) {
+      out += String.fromCharCode(((b & 0x1f) << 6) | (bytes[i + 1] & 0x3f))
+      i += 2
+    } else if (b >= 0xe0 && b < 0xf0) {
+      out += String.fromCharCode(((b & 0x0f) << 12) | ((bytes[i + 1] & 0x3f) << 6) | (bytes[i + 2] & 0x3f))
+      i += 3
+    } else {
+      i += 4
+    }
+  }
+  return out
 }
 
 /** 从统一响应提取 AI 文本（兼容 content/answer/reply/message/text/data） */
