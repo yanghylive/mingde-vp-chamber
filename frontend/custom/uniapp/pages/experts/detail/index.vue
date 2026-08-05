@@ -5,7 +5,7 @@
     <view v-else-if="error" class="empty">{{ error }}</view>
     <view v-else-if="expert">
       <!-- 大咖信息 -->
-      <view class="hero card">
+      <view class="hero glass-dark">
         <view class="hero-avatar">{{ (expert.name || '大咖').slice(0, 1) }}</view>
         <view class="hero-info">
           <view class="hero-name-row">
@@ -226,9 +226,9 @@ export default {
   padding: 36rpx;
 }
 .hero-avatar {
-  width: 140rpx;
-  height: 140rpx;
-  border-radius: 32rpx;
+  width: 160rpx;
+  height: 160rpx;
+  border-radius: 48rpx;
   
   color: #ffd78f;
   font-size: 56rpx;
@@ -250,12 +250,13 @@ export default {
 .hero-name {
   font-size: 38rpx;
   font-weight: 800;
+  color: #ffffff;
   color: #273b59;
 }
 .hero-industry {
   font-size: 22rpx;
-  color: #b8751d;
-  background: #f6ead6;
+  color: #f6c982;
+  background: rgba(255, 255, 255, 0.1);
   padding: 6rpx 16rpx;
   border-radius: 999rpx;
 }
@@ -266,8 +267,8 @@ export default {
   margin-top: 14rpx;
   font-size: 22rpx;
   font-weight: 600;
-  color: #24507f;
-  background: #eaf0f8;
+  color: #f5c276;
+  background: rgba(255, 255, 255, 0.1);
   padding: 10rpx 22rpx;
   border-radius: 999rpx;
 }
@@ -280,8 +281,8 @@ export default {
   padding: 32rpx 0;
 }
 .hero-title {
-  font-size: 26rpx;
-  color: #516580;
+  font-size: 22rpx;
+  color: #f5c276;
   display: block;
   margin-top: 10rpx;
 }

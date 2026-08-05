@@ -238,8 +238,8 @@ export default {
   margin-bottom: 24rpx;
 }
 .brand-name {
-  font-size: 44rpx;
-  font-weight: 700;
+  font-size: 48rpx;
+  font-weight: 800;
   color: #fff;
 }
 .brand-sub {
