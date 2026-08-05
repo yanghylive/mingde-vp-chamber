@@ -53,92 +53,107 @@
     {
       "path": "pages/events/detail/index",
       "style": {
-        "navigationBarTitleText": "活动详情"
+        "navigationBarTitleText": "活动详情",
+        "navigationStyle": "custom"
       }
     },
     {
       "path": "pages/experts/detail/index",
       "style": {
-        "navigationBarTitleText": "大咖详情"
+        "navigationBarTitleText": "大咖详情",
+        "navigationStyle": "custom"
       }
     },
     {
       "path": "pages/mine/notifications/index",
       "style": {
-        "navigationBarTitleText": "通知"
+        "navigationBarTitleText": "通知",
+        "navigationStyle": "custom"
       }
     },
     {
       "path": "pages/mine/points-ledger/index",
       "style": {
-        "navigationBarTitleText": "积分记录"
+        "navigationBarTitleText": "积分记录",
+        "navigationStyle": "custom"
       }
     },
     {
       "path": "pages/mine/friends/index",
       "style": {
-        "navigationBarTitleText": "好友"
+        "navigationBarTitleText": "好友",
+        "navigationStyle": "custom"
       }
     },
     {
       "path": "pages/mine/distribution/index",
       "style": {
-        "navigationBarTitleText": "分销码"
+        "navigationBarTitleText": "分销码",
+        "navigationStyle": "custom"
       }
     },
     {
       "path": "pages/mine/customer-service/index",
       "style": {
-        "navigationBarTitleText": "客服微信"
+        "navigationBarTitleText": "客服微信",
+        "navigationStyle": "custom"
       }
     },
     {
       "path": "pages/mine/settings/index",
       "style": {
-        "navigationBarTitleText": "设置"
+        "navigationBarTitleText": "设置",
+        "navigationStyle": "custom"
       }
     },
     {
       "path": "pages/mine/graduate-verification/index",
       "style": {
         "navigationBarTitleText": "毕业认证",
-        "enablePullDownRefresh": true
+        "enablePullDownRefresh": true,
+        "navigationStyle": "custom"
       }
     },
     {
       "path": "pages/mall/exchange-success/index",
       "style": {
-        "navigationBarTitleText": "兑换成功"
+        "navigationBarTitleText": "兑换成功",
+        "navigationStyle": "custom"
       }
     },
     {
       "path": "pages/mall/points-paths/index",
       "style": {
-        "navigationBarTitleText": "积分获取"
+        "navigationBarTitleText": "积分获取",
+        "navigationStyle": "custom"
       }
     },
     {
       "path": "pages/events/checkin/index",
       "style": {
-        "navigationBarTitleText": "扫码签到"
+        "navigationBarTitleText": "扫码签到",
+        "navigationStyle": "custom"
       }
     },
     {
       "path": "pages/search/index",
       "style": {
-        "navigationBarTitleText": "搜索"
+        "navigationBarTitleText": "搜索",
+        "navigationStyle": "custom"
       }
     },
     {
       "path": "pages/ai-ecosystem/index",
       "style": {
-        "navigationBarTitleText": "AI 生态"
+        "navigationBarTitleText": "AI 生态",
+        "navigationStyle": "custom"
       }
     },
     {
       "path": "pages/chat/index",
       "style": {
-        "navigationBarTitleText": "AI 对话"
+        "navigationBarTitleText": "AI 对话",
+        "navigationStyle": "custom"
       }
     }
   ],

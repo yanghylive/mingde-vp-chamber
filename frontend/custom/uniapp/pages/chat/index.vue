@@ -1,7 +1,10 @@
 <template>
   <view class="chat-page">
     <view class="chat-top">
-      <text class="ct-title">{{ expertId ? '大咖 AI 对话' : (topic || 'AI 助手') }}</text>
+      <view class="ct-left">
+        <text class="ct-title">{{ expertId ? '大咖 AI 对话' : (topic || 'AI 助手') }}</text>
+        <text class="ct-sub">24h 在线 · 问答 / 课程推荐 / 一键预约</text>
+      </view>
       <view v-if="messages.length > 0" class="ct-clear" @tap="clearChat">清空</view>
     </view>
 
@@ -324,11 +327,21 @@ function extractAnswer(body) {
   opacity: 0.5;
 }
 </style>
+.ct-left {
+  flex: 1;
+  min-width: 0;
+}
+.ct-sub {
+  display: block;
+  font-size: 20rpx;
+  color: #97a1af;
+  margin-top: 4rpx;
+}
 .chat-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20rpx 32rpx 4rpx;
+  padding: env(safe-area-inset-top) 32rpx 4rpx;
 }
 .ct-title {
   font-size: 32rpx;
