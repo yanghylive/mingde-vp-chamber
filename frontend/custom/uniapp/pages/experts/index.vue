@@ -11,7 +11,7 @@
       </view>
     </view>
 
-    <view v-if="loading" class="empty">加载中…</view>
+    <view v-if="loading" class="empty"><skeleton type="list" :rows="3" /></view>
     <view v-else-if="filtered.length === 0" class="empty">暂无大咖</view>
     <view v-else class="list">
       <view
@@ -37,10 +37,12 @@
 
 <script>
 import chamber from '@/api/chamber'
+import Skeleton from '@/components/Skeleton.vue'
 
 const CHIPS = ['全部', 'AI 科技', '企业管理', '投资金融', '教育文化']
 
 export default {
+  components: { Skeleton },
   data() {
     return {
       experts: [],

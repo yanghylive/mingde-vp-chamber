@@ -11,7 +11,7 @@
       </view>
     </view>
 
-    <view v-if="loading" class="empty">加载中…</view>
+    <view v-if="loading" class="empty"><skeleton type="list" :rows="3" /></view>
     <view v-else-if="filtered.length === 0" class="empty">暂无活动</view>
     <view v-else class="list">
       <view
@@ -42,11 +42,13 @@
 
 <script>
 import chamber from '@/api/chamber'
+import Skeleton from '@/components/Skeleton.vue'
 import { toDate } from '@/common/format'
 
 const CHIPS = ['全部', '大咖讲堂', '交流沙龙', '公益活动', '路演']
 
 export default {
+  components: { Skeleton },
   data() {
     return {
       events: [],

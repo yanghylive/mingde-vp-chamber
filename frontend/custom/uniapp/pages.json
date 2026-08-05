@@ -141,7 +141,9 @@
     "navigationBarTitleText": "明德恒智",
     "navigationBarBackgroundColor": "#FFFDF8",
     "backgroundColor": "#F7F5F0",
-    "backgroundTextStyle": "light"
+    "backgroundTextStyle": "light",
+    "animationType": "slide-in-right",
+    "animationDuration": 200
   },
   "tabBar": {
     "color": "#8A94A3",
@@ -151,23 +153,33 @@
     "list": [
       {
         "pagePath": "pages/index/index",
-        "text": "首页"
+        "text": "首页",
+        "iconPath": "static/tabbar/home.png",
+        "selectedIconPath": "static/tabbar/home-active.png"
       },
       {
         "pagePath": "pages/events/index",
-        "text": "活动"
+        "text": "活动",
+        "iconPath": "static/tabbar/events.png",
+        "selectedIconPath": "static/tabbar/events-active.png"
       },
       {
         "pagePath": "pages/mall/index",
-        "text": "商城"
+        "text": "商城",
+        "iconPath": "static/tabbar/mall.png",
+        "selectedIconPath": "static/tabbar/mall-active.png"
       },
       {
         "pagePath": "pages/experts/index",
-        "text": "大咖"
+        "text": "大咖",
+        "iconPath": "static/tabbar/experts.png",
+        "selectedIconPath": "static/tabbar/experts-active.png"
       },
       {
         "pagePath": "pages/mine/index",
-        "text": "我的"
+        "text": "我的",
+        "iconPath": "static/tabbar/mine.png",
+        "selectedIconPath": "static/tabbar/mine-active.png"
       }
     ]
   }

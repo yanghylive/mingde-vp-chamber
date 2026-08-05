@@ -29,11 +29,12 @@ page {
   line-height: 1.5;
 }
 
-/* 通用卡片 */
+/* 通用卡片（精致版：细边框 + 柔和分层阴影） */
 .card {
   background: #ffffff;
-  border-radius: 24rpx;
-  box-shadow: 0 4rpx 24rpx rgba(39, 59, 89, 0.05);
+  border-radius: 28rpx;
+  border: 1rpx solid rgba(39, 59, 89, 0.05);
+  box-shadow: 0 2rpx 8rpx rgba(39, 59, 89, 0.04), 0 8rpx 32rpx rgba(39, 59, 89, 0.06);
 }
 
 /* 主按钮 */

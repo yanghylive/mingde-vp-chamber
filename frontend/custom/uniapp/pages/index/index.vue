@@ -62,7 +62,7 @@
       <text class="section-title">{{ selectedEvents.length ? '当日活动' : '近期活动' }}</text>
       <text v-if="!selectedEvents.length" class="section-more" @tap="goEvents">全部 ›</text>
     </view>
-    <view v-if="loading" class="empty">加载中…</view>
+    <view v-if="loading" class="empty"><skeleton type="list" :rows="3" /></view>
     <view v-else-if="displayEvents.length === 0" class="empty">{{ selectedEvents.length ? '该日暂无活动' : '暂无活动' }}</view>
     <view v-else class="event-list">
       <view
@@ -105,6 +105,7 @@ import { fetchSiteConfig } from '@/common/site-config'
 import { TIERS, tierToNumber, applyTierConfig } from '@/common/tier'
 import { toDate } from '@/common/format'
 import Calendar from '@/components/Calendar.vue'
+import Skeleton from '@/components/Skeleton.vue'
 
 const GRIDS = [
   { label: '官方活动', icon: 'event', to: '/pages/events/index' },
@@ -117,7 +118,7 @@ const GRIDS = [
 const DIRECTIONS = ['全部', '个人成长', '事业行业', '公益慈善']
 
 export default {
-  components: { Calendar },
+  components: { Calendar, Skeleton },
   data() {
     return {
       events: [],

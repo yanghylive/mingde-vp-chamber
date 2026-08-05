@@ -35,7 +35,7 @@
       </view>
     </scroll-view>
 
-    <view v-if="loading" class="empty">加载中…</view>
+    <view v-if="loading" class="empty"><skeleton type="list" :rows="3" /></view>
     <view v-else-if="visible.length === 0" class="empty">暂无商品</view>
     <view v-else class="grid">
       <view v-for="p in visible" :key="p.id" class="product card" @tap="openConfirm(p)">
@@ -77,6 +77,7 @@
 
 <script>
 import chamber from '@/api/chamber'
+import Skeleton from '@/components/Skeleton.vue'
 import { checkLogin } from '@/libs/login'
 import { formatMoney } from '@/common/format'
 import { fetchSiteConfig } from '@/common/site-config'
@@ -97,6 +98,7 @@ function normalizeCategory(cat) {
 }
 
 export default {
+  components: { Skeleton },
   data() {
     return {
       list: [],
