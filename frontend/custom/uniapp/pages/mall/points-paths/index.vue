@@ -41,7 +41,7 @@ export default {
     },
     pathGlyph(icon) {
       const map = { coach: '🎓', charity: '🤝', roadshow: '🎤', distribution: '📢', study: '📚', medal: '🏅' }
-      return map[icon] || '✦'
+      return map[icon] || '⭐'
     },
     pathUnit(icon) {
       return icon === 'distribution' ? '/人' : '/次'

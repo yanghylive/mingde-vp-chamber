@@ -20,7 +20,7 @@
           <text class="ac-title">{{ c.title }}</text>
           <text class="ac-desc">{{ c.desc }}</text>
         </view>
-        <text class="ac-arrow">›</text>
+        <text class="ac-arrow">></text>
       </view>
     </view>
 

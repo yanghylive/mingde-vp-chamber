@@ -14,7 +14,7 @@
       </view>
       <view class="tc-rights">
         <view v-for="r in currentTier.rights" :key="r" class="tc-right">
-          <text class="tr-check">✓</text>
+          <text class="tr-check">✅</text>
           <text>{{ r }}</text>
         </view>
       </view>
@@ -40,7 +40,7 @@
         </view>
         <view class="plan-rights">
           <view v-for="b in planBenefits(p)" :key="b" class="pr-item">
-            <text class="pr-check">✓</text>
+            <text class="pr-check">✅</text>
             <text>{{ b }}</text>
           </view>
         </view>
@@ -62,7 +62,7 @@
       </view>
       <view class="lc-rights">
         <view v-for="r in t.rights" :key="r" class="lc-right">
-          <text class="lc-check">✓</text>
+          <text class="lc-check">✅</text>
           <text>{{ r }}</text>
         </view>
       </view>

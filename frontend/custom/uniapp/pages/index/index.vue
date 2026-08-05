@@ -16,7 +16,7 @@
         </view>
       </view>
       <view class="search-box glass-control" @tap="goSearch">
-        <text class="s-icon">⌕</text>
+        <text class="s-icon">🔍</text>
         <text class="s-ph">搜索活动 / 大咖 / 商品</text>
       </view>
     </view>
@@ -90,7 +90,7 @@
         </view>
         <view class="ev-more" @tap="goEvents">
           <text>全部活动</text>
-          <text class="ev-arrow">›</text>
+          <text class="ev-arrow">></text>
         </view>
       </view>
 
@@ -153,7 +153,7 @@
                 </view>
                 <view class="ev-detail" @tap.stop="goEventDetail(ev.id)">
                   <text>查看详情</text>
-                  <text class="ev-arrow">›</text>
+                  <text class="ev-arrow">></text>
                 </view>
               </view>
             </view>
@@ -337,7 +337,7 @@ export default {
       return toDate(ev.start_time)
     },
     gridGlyph(icon) {
-      const map = { event: '📅', expert: '✨', mall: '🛍', ai: '🤖', graduate: '🎓', default: '✦' }
+      const map = { event: '📅', expert: '✨', mall: '🛍', ai: '🤖', graduate: '🎓', default: '⭐' }
       return map[icon] || map.default
     },
     // ---- 导航 ----

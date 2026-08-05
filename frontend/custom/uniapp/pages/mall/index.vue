@@ -6,14 +6,14 @@
         <text class="pb-num gold">{{ points }}</text>
       </view>
       <view class="pb-right">
-        <text class="pb-link" @tap="goPointsPaths">积分获取 ›</text>
-        <text class="pb-link" @tap="goLedger">明细 ›</text>
+        <text class="pb-link" @tap="goPointsPaths">积分获取 ></text>
+        <text class="pb-link" @tap="goLedger">明细 ></text>
       </view>
     </view>
 
     <!-- 搜索框 -->
     <view class="search-box">
-      <text class="s-icon">⌕</text>
+      <text class="s-icon">🔍</text>
       <input
         v-model="keyword"
         class="s-input"

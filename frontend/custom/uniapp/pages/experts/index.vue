@@ -29,7 +29,7 @@
           <text class="ec-title">{{ e.title || e.bio || '明德大咖' }}</text>
           <text class="ec-desc">{{ (e.description || '').slice(0, 30) }}</text>
         </view>
-        <view class="ec-arrow">›</view>
+        <view class="ec-arrow">></view>
       </view>
     </view>
   </view>

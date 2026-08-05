@@ -2,7 +2,7 @@
   <view class="search-page">
     <view class="search-bar">
       <view class="search-box">
-        <text class="s-icon">⌕</text>
+        <text class="s-icon">🔍</text>
         <input
           v-model="keyword"
           class="s-input"
@@ -31,14 +31,14 @@
           <text class="g-title">活动</text>
           <view v-for="ev in events" :key="ev.id" class="item card" @tap="goEvent(ev.id)">
             <text class="item-name">{{ ev.title }}</text>
-            <text class="item-arrow">›</text>
+            <text class="item-arrow">></text>
           </view>
         </view>
         <view v-if="experts.length" class="group">
           <text class="g-title">大咖</text>
           <view v-for="e in experts" :key="e.id" class="item card" @tap="goExpert(e.id)">
             <text class="item-name">{{ e.name }} {{ e.industry ? '· ' + e.industry : '' }}</text>
-            <text class="item-arrow">›</text>
+            <text class="item-arrow">></text>
           </view>
         </view>
       </view>

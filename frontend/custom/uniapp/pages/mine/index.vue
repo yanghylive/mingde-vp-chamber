@@ -11,7 +11,7 @@
           <text v-if="expiresText" class="tier-expire">{{ expiresText }}</text>
         </view>
       </view>
-      <view class="arrow">›</view>
+      <view class="arrow">></view>
     </view>
 
     <!-- 4 格统计 -->
@@ -39,38 +39,38 @@
       <view class="menu-item" @tap="goDistribution">
         <text class="mi-icon">📢</text>
         <text class="mi-label">我的分销码</text>
-        <text class="mi-arrow">›</text>
+        <text class="mi-arrow">></text>
       </view>
       <view class="menu-item" @tap="goFriends">
         <text class="mi-icon">👥</text>
         <text class="mi-label">我的好友</text>
-        <text class="mi-arrow">›</text>
+        <text class="mi-arrow">></text>
       </view>
       <view class="menu-item" @tap="goPointsLedger">
         <text class="mi-icon">💰</text>
         <text class="mi-label">积分记录</text>
-        <text class="mi-arrow">›</text>
+        <text class="mi-arrow">></text>
       </view>
       <view class="menu-item" @tap="goGraduateVerification">
         <text class="mi-icon">🎓</text>
         <text class="mi-label">毕业认证</text>
-        <text class="mi-arrow">›</text>
+        <text class="mi-arrow">></text>
       </view>
       <view class="menu-item" @tap="goNotifications">
         <text class="mi-icon">🔔</text>
         <text class="mi-label">通知</text>
         <text v-if="hasUnread" class="mi-badge" />
-        <text class="mi-arrow">›</text>
+        <text class="mi-arrow">></text>
       </view>
       <view class="menu-item" @tap="goCustomerService">
         <text class="mi-icon">💬</text>
         <text class="mi-label">客服微信</text>
-        <text class="mi-arrow">›</text>
+        <text class="mi-arrow">></text>
       </view>
       <view class="menu-item" @tap="goSettings">
         <text class="mi-icon">⚙️</text>
         <text class="mi-label">设置</text>
-        <text class="mi-arrow">›</text>
+        <text class="mi-arrow">></text>
       </view>
     </view>
 

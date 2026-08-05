@@ -4,12 +4,12 @@
       <view class="item" @tap="clearCache">
         <text class="it-icon">🧹</text>
         <text class="it-label">清除缓存</text>
-        <text class="it-arrow">›</text>
+        <text class="it-arrow">></text>
       </view>
       <view class="item" @tap="about">
         <text class="it-icon">ℹ️</text>
         <text class="it-label">关于明德恒智</text>
-        <text class="it-arrow">›</text>
+        <text class="it-arrow">></text>
       </view>
     </view>
 

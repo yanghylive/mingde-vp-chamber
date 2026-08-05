@@ -120,7 +120,7 @@
           >
             <view class="privacy-value">
               <text>{{ privacyLabel(form.privacy[item.key]) }}</text>
-              <text class="chevron">›</text>
+              <text class="chevron">></text>
             </view>
           </picker>
         </view>
