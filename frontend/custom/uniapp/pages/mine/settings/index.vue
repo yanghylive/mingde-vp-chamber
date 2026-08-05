@@ -8,7 +8,7 @@
       </view>
       <view class="item" @tap="about">
         <text class="it-icon">ℹ️</text>
-        <text class="it-label">关于明德恒智</text>
+        <text class="it-label">关于明德恒智AI企商汇</text>
         <text class="it-arrow">></text>
       </view>
     </view>
@@ -37,8 +37,8 @@ export default {
     },
     about() {
       uni.showModal({
-        title: '明德恒智',
-        content: '明德恒智 · PBC 企业家事业共同体\nv1.0.0',
+        title: '明德恒智AI企商汇',
+        content: '明德恒智AI企商汇 · PBC 企业家事业共同体\nv1.0.0',
         showCancel: false
       })
     },

@@ -3,7 +3,7 @@
     {
       "path": "pages/index/index",
       "style": {
-        "navigationBarTitleText": "明德恒智",
+        "navigationBarTitleText": "明德恒智AI企商汇",
         "enablePullDownRefresh": true
       }
     },
@@ -138,7 +138,7 @@
   ],
   "globalStyle": {
     "navigationBarTextStyle": "black",
-    "navigationBarTitleText": "明德恒智",
+    "navigationBarTitleText": "明德恒智AI企商汇",
     "navigationBarBackgroundColor": "#FFFDF8",
     "backgroundColor": "#F7F5F0",
     "backgroundTextStyle": "light"

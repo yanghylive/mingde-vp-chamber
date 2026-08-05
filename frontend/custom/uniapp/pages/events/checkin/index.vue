@@ -7,7 +7,7 @@
     </view>
 
     <view class="scan-btn" @tap="scan">
-      <text class="sb-icon">搜</text>
+      <view class="ic ic-sm ic-scan-line-white" />
       <text class="sb-text">扫码签到</text>
     </view>
 

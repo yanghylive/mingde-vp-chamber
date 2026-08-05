@@ -2,7 +2,7 @@
   <view class="search-page">
     <view class="search-bar">
       <view class="search-box">
-        <text class="s-icon">搜</text>
+        <view class="ic ic-sm ic-search-gold" />
         <input
           v-model="keyword"
           class="s-input"

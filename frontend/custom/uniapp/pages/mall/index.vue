@@ -5,7 +5,7 @@
       <text class="ph-title">积分商城</text>
       <text class="ph-sub">我的积分 {{ points == null ? '—' : points }}</text>
       <view class="search-box glass-control">
-        <text class="s-icon">搜</text>
+        <view class="ic ic-sm ic-search-gold" />
         <input v-model="keyword" class="s-input" placeholder="搜索课程 / 沙龙 / 实物" placeholder-class="ph" />
       </view>
     </view>
@@ -22,7 +22,7 @@
       <view
         v-for="c in categoryOptions"
         :key="c"
-        class="{{'chip' + 'glass-control' + (tab === c ? ' glass-control-active' : '')}}"
+        class="{{'chip glass-control' + (tab === c ? ' glass-control-active' : '')}}"
         @tap="tab = c"
       >
         {{ c }}
@@ -45,7 +45,7 @@
     <view v-else class="grid">
       <view v-for="p in visible" :key="p.id" class="product card" @tap="openConfirm(p)">
         <view class="{{'p-img' + (' ' + catTone(p.category))}}">
-          <text class="pi-glyph">{{ catGlyph(p.category) }}</text>
+          <view class="{{&#39;ic ic-md &#39; + catIcon(p.category)}}" />
         </view>
         <view class="p-cat">{{ normalizeCategory(p.category) }}</view>
         <text class="p-name">{{ p.name || p.store_name || '未命名商品' }}</text>
@@ -60,7 +60,7 @@
     <!-- 积分获取路径 -->
     <view class="sec-head">
       <view class="sh-row">
-        <text class="sh-icon">荐</text>
+        <view class="sh-icon"><view class="ic ic-md ic-medal-white" /></view>
         <view>
           <text class="sh-title">积分获取路径</text>
           <text class="sh-sub">贡献越多，收获越多</text>
@@ -70,7 +70,7 @@
     </view>
     <view class="card paths-card">
       <view v-for="(p, i) in paths" :key="i" class="{{'path-row' + (i < paths.length - 1 ? ' path-row-border' : '')}}">
-        <view class="pr-icon">{{ pathGlyph(p.icon) }}</view>
+        <view class="{{&#39;pr-icon &#39; + pathIconCls(p.icon)}}"><view class="ic ic-sm ic-gift-gold" /></view>
         <view class="pr-info">
           <text class="pr-title">{{ p.title }}</text>
           <text class="pr-desc">{{ p.desc }}</text>
@@ -94,7 +94,7 @@
         <view v-if="needCash > 0" class="sheet-short">当前余额 {{ points }} / 需 {{ needPoints }}</view>
         <view class="sheet-btns">
           <view class="btn-secondary sb" @tap="confirmTarget = null">取消</view>
-          <view class="{{'btn-primary' + 'sb' + (exchanging ? ' sb-disabled' : '')}}" @tap="handleConfirm">
+          <view class="{{'btn-primary sb' + (exchanging ? ' sb-disabled' : '')}}" @tap="handleConfirm">
             {{ exchanging ? '兑换中…' : needCash > 0 ? '混合支付 · 积分 + ¥' + needCash : '积分支付' }}
           </view>
         </view>
@@ -208,6 +208,24 @@ export default {
     catTone(cat) {
       const map = { 课程: 'tone-course', 沙龙: 'tone-salon', 公益: 'tone-charity', 路演: 'tone-roadshow', 商品: 'tone-product', 服务: 'tone-service' }
       return map[normalizeCategory(cat)] || 'tone-product'
+    },
+    catIcon(cat) {
+      // 商品分类图标（lucide，色随 tone：课程蓝/沙龙金/公益绿/服务紫）
+      const map = {
+        课程: 'ic-graduation-cap-blue',
+        沙龙: 'ic-ticket-percent-gold',
+        公益: 'ic-heart-handshake-green',
+        路演: 'ic-sparkles-gold',
+        商品: 'ic-gift-gold',
+        服务: 'ic-handshake-blue',
+        全部: 'ic-sparkles-blue'
+      }
+      return map[normalizeCategory(cat)] || 'ic-gift-gold'
+    },
+    pathIconCls(icon) {
+      // 积分路径图标（lucide 金色系）
+      const map = { coach: 'ic-graduation-cap-gold', charity: 'ic-heart-handshake-gold', roadshow: 'ic-ticket-percent-gold', distribution: 'ic-link-2-gold', study: 'ic-star-gold', medal: 'ic-medal-gold' }
+      return map[icon] || 'ic-medal-gold'
     },
     cashOf(p) {
       const n = Number(p.price || 0)

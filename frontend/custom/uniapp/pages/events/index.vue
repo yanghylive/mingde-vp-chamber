@@ -1,9 +1,15 @@
 <template>
   <view class="events-page">
-    <!-- 页头 -->
+    <!-- 页头（对齐 H5 PageHeader：眉题 + 大标题 + 铃铛） -->
     <view class="ph">
-      <text class="ph-title">官方活动</text>
-      <text class="ph-sub">高质量相聚，让思想彼此照亮</text>
+      <view class="ph-row">
+        <view>
+          <view class="ph-eyebrow">♛ 明德恒智AI企商汇</view>
+          <text class="ph-title">官方活动</text>
+          <text class="ph-sub">高质量相聚，让思想彼此照亮</text>
+        </view>
+        <view class="ph-bell glass-control" @tap="goNotifications"><view class="ic ic-sm ic-bell-dark" /></view>
+      </view>
     </view>
 
     <!-- Banner 大卡（首个活动） -->
@@ -14,12 +20,11 @@
           <view class="bn-title">{{ banner.title }}</view>
           <view class="bn-summary">{{ banner.summary }}</view>
         </view>
-        <text class="bn-deco">荐</text>
       </view>
       <view class="bn-foot">
         <view class="bn-meta">
-          <text class="bn-meta-item">历 {{ bannerDate(banner) }}</text>
-          <text class="bn-meta-item">地 {{ banner.location_name || banner.address }}</text>
+          <view class="bn-meta-row"><view class="ic ic-xs ic-calendar-days-white" /><text>{{ bannerDate(banner) }}</text></view>
+          <view class="bn-meta-row"><view class="ic ic-xs ic-map-pin-white" /><text>{{ banner.location_name || banner.address }}</text></view>
         </view>
         <view class="{{'bn-btn' + (joined.includes(banner.id) ? ' bn-btn-joined' : '')}}" @tap.stop="toggle(banner.id)">
           {{ joined.includes(banner.id) ? '已报名' : '预约席位' }}
@@ -30,20 +35,20 @@
     <!-- 精选活动 -->
     <view class="section">
       <view class="sec-head">
-        <view class="sec-icon">历</view>
+        <view class="sec-icon"><view class="ic ic-md ic-calendar-days-white" /></view>
         <view>
           <text class="sec-title">精选活动</text>
           <text class="sec-sub">官方策划，严选参与者</text>
         </view>
       </view>
 
-      <!-- 方向 chips -->
+      <!-- 类型 chips（动态生成，对齐 H5） -->
       <scroll-view scroll-x class="chips">
         <view
           v-for="f in filters"
           :key="f"
-          class="{{'chip' + 'glass-control' + (filter === f ? ' glass-control-active' : '')}}"
-          @tap="filter = filter === f ? '全部' : f"
+          class="{{'chip glass-control' + (filter === f ? ' glass-control-active' : '')}}"
+          @tap="filter = filter === f ? '推荐' : f"
         >
           {{ f }}
         </view>
@@ -62,8 +67,8 @@
           <view class="ev-right">
             <text class="ev-title">{{ ev.title }}</text>
             <view class="ev-meta">
-              <text class="ev-meta-item">时 {{ evTime(ev) }}</text>
-              <text class="ev-meta-item">地 {{ ev.location_name || ev.address }}</text>
+              <view class="ev-meta-row"><view class="ic ic-xs ic-clock-3-orange" /><text>{{ evTime(ev) }}</text></view>
+              <view class="ev-meta-row"><view class="ic ic-xs ic-map-pin-orange" /><text>{{ ev.location_name || ev.address }}</text></view>
             </view>
             <view class="ev-foot">
               <text class="ev-seats">席 {{ remaining(ev) }} 席可约</text>
@@ -85,11 +90,14 @@ import { toDate } from '@/common/format'
 import Skeleton from '@/components/Skeleton.vue'
 
 const TYPE_LABEL = {
-  personal_growth: '个人成长',
-  business_industry: '事业行业',
-  charity: '公益慈善',
-  salon: '交流沙龙',
-  lecture: '大咖讲堂'
+  workshop: '工作坊',
+  summit: '峰会',
+  salon: '私享会',
+  closed_meeting: '闭门会',
+  training: '研学',
+  forum: '论坛',
+  charity: '公益',
+  default: '活动'
 }
 
 export default {
@@ -98,8 +106,7 @@ export default {
     return {
       events: [],
       loading: true,
-      filter: '全部',
-      filters: ['全部', '大咖讲堂', '交流沙龙', '公益活动', '路演'],
+      filter: '推荐',
       joined: []
     }
   },
@@ -107,9 +114,18 @@ export default {
     banner() {
       return this.events.length ? this.events[0] : null
     },
+    // 动态 chips：推荐 + 从活动数据提取类型（对齐 H5）
+    filters() {
+      const set = {}
+      this.events.forEach((e) => {
+        const label = TYPE_LABEL[e.event_type] || TYPE_LABEL.default
+        set[label] = true
+      })
+      return ['推荐'].concat(Object.keys(set))
+    },
     visible() {
-      if (this.filter === '全部') return this.events
-      return this.events.filter((ev) => (ev.event_type || '').indexOf(this.filter) >= 0 || this.evType(ev) === this.filter)
+      if (this.filter === '推荐') return this.events
+      return this.events.filter((ev) => (TYPE_LABEL[ev.event_type] || TYPE_LABEL.default) === this.filter)
     }
   },
   onShow() {
@@ -169,6 +185,9 @@ export default {
     },
     goDetail(id) {
       uni.navigateTo({ url: '/pages/events/detail/index?id=' + id })
+    },
+    goNotifications() {
+      uni.navigateTo({ url: '/pages/mine/notifications/index' })
     }
   }
 }
@@ -180,7 +199,19 @@ export default {
   min-height: 100vh;
 }
 .ph {
-  padding: 16rpx 0 24rpx;
+  padding: 8rpx 0 24rpx;
+}
+.ph-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+.ph-eyebrow {
+  font-size: 18rpx;
+  font-weight: 700;
+  letter-spacing: 4rpx;
+  color: #a9671f;
+  margin-bottom: 8rpx;
 }
 .ph-title {
   display: block;
@@ -192,6 +223,19 @@ export default {
   display: block;
   font-size: 24rpx;
   color: #8a94a3;
+  margin-top: 8rpx;
+}
+.ph-bell {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 50%;
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #16335d;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
   margin-top: 8rpx;
 }
 
@@ -243,7 +287,10 @@ export default {
   flex-direction: column;
   gap: 8rpx;
 }
-.bn-meta-item {
+.bn-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
   font-size: 22rpx;
   color: rgba(255, 255, 255, 0.8);
 }
@@ -372,7 +419,10 @@ export default {
   gap: 12rpx;
   margin-top: 20rpx;
 }
-.ev-meta-item {
+.ev-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
   font-size: 22rpx;
   color: #778397;
 }

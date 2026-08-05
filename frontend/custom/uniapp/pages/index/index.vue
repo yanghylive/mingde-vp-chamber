@@ -6,17 +6,17 @@
         <view class="hd-brand">
           <view class="hd-logo">明</view>
           <view class="hd-name">
-            <text>明德恒智</text>
-            <text class="hd-crown">V</text>
+            <text>明德恒智AI企商汇</text>
+            <view class="ic ic-xs ic-crown-gold" />
           </view>
         </view>
         <view class="bell glass-control" @tap="goNotifications">
-          <text class="bell-icon">!</text>
+          <view class="ic ic-sm ic-bell-dark" />
           <view v-if="hasUnread" class="bell-dot" />
         </view>
       </view>
       <view class="search-box glass-control" @tap="goSearch">
-        <text class="s-icon">搜</text>
+        <view class="ic ic-sm ic-search-gold" />
         <text class="s-ph">搜索活动 / 大咖 / 商品</text>
       </view>
     </view>
@@ -29,7 +29,7 @@
           <view class="mc-name-row">
             <text class="mc-name">{{ displayName }}</text>
             <view class="mc-badge">
-              <text class="mb-crown">V</text>
+              <view class="ic ic-xs ic-crown-gold" />
               <text>L{{ tierNum }}</text>
             </view>
           </view>
@@ -71,7 +71,7 @@
       <view class="grids">
         <view v-for="g in grids" :key="g.label" class="grid-item card" @tap="goTo(g.to)">
           <view class="{{'gi-icon gi-' + (g.icon || 'default')}}">
-            <text>{{ gridGlyph(g.icon) }}</text>
+            <view class="{{'ic ic-md ' + gridIcon(g.icon)}}" />
           </view>
           <text class="gi-label">{{ g.label }}</text>
         </view>
@@ -83,7 +83,7 @@
       <view class="ev-head">
         <view>
           <view class="ev-title-row">
-            <text class="ev-title-icon">历</text>
+            <view class="ic ic-md ic-calendar-days-gold" />
             <text class="ev-title">官方活动</text>
           </view>
           <text class="ev-sub">高质量相聚，让思想彼此照亮</text>
@@ -97,7 +97,7 @@
       <!-- 方向 chips -->
       <scroll-view scroll-x class="chips" enable-flex>
         <view
-          class="{{'chip' + 'glass-control' + (chip === null ? ' glass-control-active' : '')}}"
+          class="{{'chip glass-control' + (chip === null ? ' glass-control-active' : '')}}"
           @tap="chip = null; applyChip()"
         >
           全部
@@ -105,7 +105,7 @@
         <view
           v-for="c in CHIPS"
           :key="c.key"
-          class="{{'chip' + 'glass-control' + (chip === c.key ? ' glass-control-active' : '')}}"
+          class="{{'chip glass-control' + (chip === c.key ? ' glass-control-active' : '')}}"
           @tap="chip = chip === c.key ? null : c.key; applyChip()"
         >
           {{ c.label }}
@@ -122,7 +122,7 @@
         <block v-else>
           <view v-for="ev in displayEvents.slice(0, 6)" :key="ev.id" class="ev-card card" @tap="goEventDetail(ev.id)">
             <view class="{{'ev-left' + (' ' + metaTone(ev.event_type))}}">
-              <text class="ev-left-icon">{{ metaGlyph(ev.event_type) }}</text>
+              <view class="{{&#39;ic ic-md &#39; + metaIcon(ev.event_type)}}" />
             </view>
             <view class="ev-right">
               <view class="ev-r-head">
@@ -130,14 +130,14 @@
                 <text v-if="ev.min_tier" class="ev-tier-badge">需 L{{ ev.min_tier }} 等级</text>
               </view>
               <view class="ev-r-line">
-                <text class="ev-r-icon">时</text>
+                <view class="ic ic-sm ic-clock-3-orange" />
                 <text class="ev-r-text">{{ evTime(ev) }}</text>
               </view>
               <view class="ev-r-line">
-                <text class="ev-r-icon">地</text>
+                <view class="ic ic-sm ic-map-pin-orange" />
                 <text class="ev-r-addr">{{ ev.location_name || ev.address || '地址待定' }}</text>
                 <view class="ev-nav" @tap.stop="openMap(ev)">
-                  <text>导</text>
+                  <view class="ic ic-xs ic-navigation-blue" />
                   <text>导航</text>
                 </view>
               </view>
@@ -148,7 +148,7 @@
               </view>
               <view class="ev-actions">
                 <view class="btn-primary ev-scan" @tap.stop="goCheckin(ev)">
-                  <text>签</text>
+                  <view class="ic ic-sm ic-scan-line-white" />
                   <text>扫码签到</text>
                 </view>
                 <view class="ev-detail" @tap.stop="goEventDetail(ev.id)">
@@ -168,7 +168,7 @@
       <view class="ev-head">
         <view>
           <view class="ev-title-row">
-            <text class="ev-title-icon">荐</text>
+            <view class="ic ic-md ic-sparkles-gold" />
             <text class="ev-title">精选活动</text>
           </view>
           <text class="ev-sub">本周值得参与的高质量连接</text>
@@ -186,7 +186,7 @@
           <text class="fd-summary">{{ featured.summary || '暂无简介' }}</text>
           <view class="fd-foot">
             <view class="fd-rec">
-              <text>周</text>
+              <view class="ic ic-xs ic-calendar-check-gold" />
               <text>本周推荐</text>
             </view>
             <view class="fd-btn" @tap.stop="goEventDetail(featured.id)">报名</view>
@@ -195,7 +195,7 @@
       </view>
     </view>
 
-    <view class="footer">明德恒智 · PBC 企业家事业共同体</view>
+    <view class="footer">明德恒智AI企商汇 · PBC 企业家事业共同体</view>
   </view>
 </template>
 
@@ -209,11 +209,11 @@ import Calendar from '@/components/Calendar.vue'
 import Skeleton from '@/components/Skeleton.vue'
 
 const EVENT_META = {
-  personal_growth: { label: '个人成长', glyph: '成', tone: 'tone-growth' },
-  business_industry: { label: '事业行业', glyph: '事', tone: 'tone-industry' },
-  charity: { label: '公益慈善', glyph: '益', tone: 'tone-charity' }
+  personal_growth: { label: '个人成长', glyph: '成', tone: 'tone-growth', icon: 'graduation-cap' },
+  business_industry: { label: '事业行业', glyph: '事', tone: 'tone-industry', icon: 'building-2' },
+  charity: { label: '公益慈善', glyph: '益', tone: 'tone-charity', icon: 'heart-handshake' }
 }
-const DEFAULT_META = { label: '官方活动', glyph: '活', tone: 'tone-default' }
+const DEFAULT_META = { label: '官方活动', glyph: '活', tone: 'tone-default', icon: 'calendar-check' }
 
 const CHIPS = [
   { key: 'personal_growth', label: '个人成长' },
@@ -266,7 +266,11 @@ export default {
         this.ladder = applyTierConfig(cfg)
         const hg = cfg.home_grids
         if (Array.isArray(hg) && hg.length > 0) {
-          this.grids = hg.map((g) => Object.assign({ icon: 'default', to: '/pages/index/index' }, g))
+          // config 只有 label/to，icon 从 DEFAULT_GRIDS 按 to 合并补齐（否则宫格图标全空）
+          this.grids = hg.map((g) => {
+            const def = DEFAULT_GRIDS.find((d) => d.to === g.to) || DEFAULT_GRIDS[0]
+            return { label: (g.label || def.label), to: (g.to || def.to), icon: def.icon }
+          })
         } else {
           this.grids = DEFAULT_GRIDS
         }
@@ -342,6 +346,29 @@ export default {
     gridGlyph(icon) {
       const map = { event: '活', expert: '咖', mall: '商', ai: 'AI', graduate: '认', default: '·' }
       return map[icon] || map.default
+    },
+    gridIcon(icon) {
+      // 宫格图标 → lucide 图标类（配色随 tone：金色块/蓝色块/灰块）
+      const map = {
+        event: 'ic-calendar-check-gold',
+        membership: 'ic-users-blue',
+        mall: 'ic-store-gold',
+        expert: 'ic-sparkles-blue',
+        ai: 'ic-bot-gray',
+        graduate: 'ic-graduation-cap-blue',
+        default: 'ic-star-gold'
+      }
+      return map[icon] || map.default
+    },
+    metaIcon(t) {
+      // 活动类型 → lucide 图标类（白字，用在深色色块上）
+      const map = {
+        personal_growth: 'ic-graduation-cap-white',
+        business_industry: 'ic-building-2-white',
+        charity: 'ic-heart-handshake-white',
+        default: 'ic-calendar-check-white'
+      }
+      return map[t] || map.default
     },
     // ---- 导航 ----
     openMap(ev) {

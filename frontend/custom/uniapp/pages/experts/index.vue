@@ -5,7 +5,7 @@
       <text class="ph-title">明德大咖</text>
       <text class="ph-sub">与时代的先行者，深度同行</text>
       <view class="search-box glass-control">
-        <text class="s-icon">搜</text>
+        <view class="ic ic-sm ic-search-gold" />
         <input v-model="search" class="s-input" placeholder="搜索大咖姓名 / 行业 / 领域" placeholder-class="ph" />
       </view>
     </view>
@@ -13,7 +13,7 @@
     <!-- 深蓝横幅 -->
     <view class="hero glass-dark">
       <view class="hero-top">
-        <view class="hero-icon">师</view>
+        <view class="hero-icon"><view class="ic ic-lg ic-users-white" /></view>
         <view>
           <view class="hero-badge">专家智库</view>
           <view class="hero-title">汇聚实战智慧</view>
@@ -31,7 +31,7 @@
     <!-- 推荐大咖 -->
     <view class="sec-head">
       <view class="sh-row">
-        <text class="sh-icon">咖</text>
+        <view class="sh-icon"><view class="ic ic-md ic-sparkles-white" /></view>
         <view>
           <text class="sh-title">推荐大咖</text>
           <text class="sh-sub">导师 · 教练 · 行业领袖</text>
@@ -42,7 +42,7 @@
       <view
         v-for="c in categories"
         :key="c"
-        class="{{'chip' + 'glass-control' + (category === c ? ' glass-control-active' : '')}}"
+        class="{{'chip glass-control' + (category === c ? ' glass-control-active' : '')}}"
         @tap="category = c"
       >
         {{ c }}
@@ -68,6 +68,27 @@
           <text v-if="e.bio || e.description" class="ex-bio">{{ (e.bio || e.description || '').slice(0, 40) }}</text>
         </view>
         <text class="ex-arrow">></text>
+      </view>
+    </view>
+
+    <!-- 与平台 AI 助手对话（对齐 H5） -->
+    <view class="ai-card glass-dark" @tap="goChat">
+      <view class="ai-icon"><view class="ic ic-md ic-bot-white" /></view>
+      <view class="ai-info">
+        <text class="ai-title">与平台 AI 助手对话</text>
+        <text class="ai-sub">24h 在线 · 商会问答 / 活动咨询 / 使用指引</text>
+      </view>
+    </view>
+
+    <!-- 金句卡（对齐 H5） -->
+    <view class="quote-card">
+      <view class="quote-mark">“</view>
+      <view class="quote-body">
+        <text class="quote-text">真正的成长，是让认知成为行动，让行动沉淀为长期价值。</text>
+        <view class="quote-by">
+          <view class="ic ic-xs ic-graduation-cap-blue" />
+          <text>明德大咖智库</text>
+        </view>
       </view>
     </view>
   </view>
@@ -122,6 +143,9 @@ export default {
     },
     goDetail(id) {
       uni.navigateTo({ url: '/pages/experts/detail/index?id=' + id })
+    },
+    goChat() {
+      uni.navigateTo({ url: '/pages/chat/index' })
     }
   }
 }
@@ -372,5 +396,95 @@ export default {
   color: #c0c6d0;
   font-size: 32rpx;
   flex-shrink: 0;
+}
+
+/* AI 助手卡（深蓝玻璃） */
+.ai-card {
+  display: flex;
+  align-items: center;
+  gap: 24rpx;
+  border-radius: 36rpx;
+  padding: 32rpx;
+  color: #fff;
+  margin-top: 32rpx;
+}
+.ai-icon {
+  width: 88rpx;
+  height: 88rpx;
+  border-radius: 24rpx;
+  background: rgba(255, 255, 255, 0.15);
+  color: #f3bd70;
+  font-size: 30rpx;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.ai-info {
+  flex: 1;
+  min-width: 0;
+}
+.ai-title {
+  display: block;
+  font-size: 28rpx;
+  font-weight: 600;
+}
+.ai-sub {
+  display: block;
+  font-size: 20rpx;
+  color: rgba(255, 255, 255, 0.7);
+  margin-top: 8rpx;
+  line-height: 1.6;
+}
+
+/* 金句卡 */
+.quote-card {
+  display: flex;
+  gap: 20rpx;
+  border-radius: 32rpx;
+  margin-top: 24rpx;
+  padding: 36rpx;
+  background: linear-gradient(135deg, #fffaf2, #ffffff);
+  border: 1rpx solid #f0ddc2;
+}
+.quote-mark {
+  font-size: 56rpx;
+  font-weight: 700;
+  color: #d18a35;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.quote-body {
+  flex: 1;
+  min-width: 0;
+}
+.quote-text {
+  display: block;
+  font-size: 26rpx;
+  font-weight: 600;
+  line-height: 1.8;
+  color: #30425d;
+}
+.quote-by {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  margin-top: 16rpx;
+}
+.quote-by text:first-child {
+  width: 36rpx;
+  height: 36rpx;
+  border-radius: 10rpx;
+  background: #e9f0f9;
+  color: #285181;
+  font-size: 20rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.quote-by text:last-child {
+  font-size: 18rpx;
+  color: #9a7a50;
 }
 </style>

@@ -21,6 +21,7 @@ export default {
 </script>
 
 <style>
+@import './common/icons.scss';
 /* ============ 全局基础（对齐 H5 设计系统） ============ */
 page {
   /* H5 同款：金色光晕 + 蓝色光晕 + 蓝灰渐变 */

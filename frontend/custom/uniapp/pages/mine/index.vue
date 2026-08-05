@@ -9,7 +9,7 @@
           <view class="pf-name-row">
             <text class="pf-name">{{ displayName }}</text>
             <view class="pf-badge">
-              <text class="pf-badge-crown">V</text>
+              <view class="ic ic-xs ic-crown-gold" />
               <text>{{ currentTier.name }}</text>
             </view>
           </view>
@@ -52,7 +52,7 @@
     <!-- 我的服务 -->
     <view class="sec-head">
       <view class="sh-row">
-        <text class="sh-icon">荐</text>
+        <view class="sh-icon"><view class="ic ic-md ic-medal-white" /></view>
         <view>
           <text class="sh-title">我的服务</text>
           <text class="sh-sub">专属记录与权益中心</text>
@@ -111,7 +111,32 @@
       </view>
     </view>
 
-    <view class="footer">明德恒智 · PBC 企业家事业共同体</view>
+    <!-- 会员等级 grid（对齐 H5） -->
+    <view class="sec-head" style="margin-top: 36rpx">
+      <view class="sh-row">
+        <view class="sh-icon">皇</view>
+        <view>
+          <text class="sh-title">会员等级</text>
+          <text class="sh-sub">见证每一次持续成长</text>
+        </view>
+      </view>
+    </view>
+    <view class="tier-grid">
+      <view
+        v-for="t in ladder"
+        :key="t.tier"
+        class="{{'tier-cell glass-control' + (t.tier === tierNum ? ' tier-cell-current' : '')}}"
+        @tap="goMembership"
+      >
+        <view class="{{'tier-dot' + (t.tier === tierNum ? ' tier-dot-current' : '')}}">
+          <view class="ic ic-sm ic-crown-gold" />
+        </view>
+        <text class="tier-name">{{ t.short }}</text>
+        <text class="tier-label">{{ t.name }}</text>
+      </view>
+    </view>
+
+    <view class="footer">明德恒智AI企商汇 · PBC 企业家事业共同体</view>
   </view>
 </template>
 
@@ -478,6 +503,49 @@ export default {
 .mi-arrow {
   color: #bdc3cd;
   font-size: 30rpx;
+}
+
+/* 会员等级 grid */
+.tier-grid {
+  display: flex;
+  gap: 20rpx;
+}
+.tier-cell {
+  flex: 1;
+  border-radius: 28rpx;
+  padding: 28rpx 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8rpx;
+}
+.tier-cell-current {
+  border: 2rpx solid #d98a2d;
+}
+.tier-dot {
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: 50%;
+  background: #eef0f3;
+  color: #8a94a3;
+  font-size: 26rpx;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.tier-dot-current {
+  background: #fff1dc;
+  color: #bd7726;
+}
+.tier-name {
+  font-size: 24rpx;
+  font-weight: 700;
+  color: #34455f;
+}
+.tier-label {
+  font-size: 18rpx;
+  color: #9aa3b0;
 }
 .footer {
   text-align: center;
