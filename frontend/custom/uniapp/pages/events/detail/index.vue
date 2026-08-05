@@ -11,8 +11,14 @@
         </view>
         <view class="hero-info">
           <text class="hero-title">{{ event.title }}</text>
-          <text class="hero-meta">{{ timeOf }} · {{ event.location || '明德' }}</text>
-          <text class="hero-type">{{ event.event_type || '活动' }}</text>
+          <text class="hero-meta">{{ timeOf }} · {{ locationText }}</text>
+          <view class="hero-actions">
+            <text class="hero-type">{{ event.event_type || '活动' }}</text>
+            <view v-if="locationText" class="nav-btn" @tap="navigate">
+              <text class="nb-icon">📍</text>
+              <text class="nb-text">导航</text>
+            </view>
+          </view>
         </view>
       </view>
 
@@ -87,6 +93,11 @@ export default {
       if (!ev) return []
       if (ev.tickets && ev.tickets.length) return ev.tickets
       return [{ id: ev.id, name: '标准票', price: 0, integral_price: 0 }]
+    },
+    locationText() {
+      const ev = this.event
+      if (!ev) return ''
+      return ev.location_name || ev.location || ev.address || '明德'
     }
   },
   onLoad(options) {
@@ -106,6 +117,39 @@ export default {
     priceOf(t) {
       const n = Number(t.price || 0)
       return n > 0 ? (Number.isInteger(n) ? n : n.toFixed(2)) : '免费'
+    },
+    navigate() {
+      const ev = this.event
+      const lat = Number(ev.latitude || 0)
+      const lng = Number(ev.longitude || 0)
+      const name = ev.location_name || ev.location || '活动地点'
+      const address = ev.address || name
+      if (lat && lng) {
+        // 原生地图导航
+        uni.openLocation({
+          latitude: lat,
+          longitude: lng,
+          name: name,
+          address: address,
+          scale: 16,
+          fail: () => {
+            uni.showToast({ title: '打开地图失败', icon: 'none' })
+          }
+        })
+      } else {
+        // 无坐标：提示地址 + 复制
+        uni.showModal({
+          title: '活动地点',
+          content: address + '\n\n（暂未配置导航坐标，可复制地址自行搜索）',
+          confirmText: '复制地址',
+          cancelText: '知道了',
+          success: (res) => {
+            if (res.confirm) {
+              uni.setClipboardData({ data: address })
+            }
+          }
+        })
+      }
     },
     onRegister(ticketId) {
       if (this.registered || this.registering) return
@@ -190,6 +234,29 @@ export default {
   padding: 6rpx 16rpx;
   border-radius: 999rpx;
   margin-top: 12rpx;
+}
+.hero-actions {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  margin-top: 12rpx;
+}
+.nav-btn {
+  display: flex;
+  align-items: center;
+  gap: 6rpx;
+  padding: 6rpx 20rpx;
+  border-radius: 999rpx;
+  background: linear-gradient(135deg, #d98a2d, #b8751d);
+  color: #fff;
+  font-size: 22rpx;
+  font-weight: 600;
+}
+.nb-icon {
+  font-size: 22rpx;
+}
+.nb-text {
+  font-size: 22rpx;
 }
 .reward {
   display: flex;
