@@ -1,48 +1,70 @@
 <template>
   <view class="login-page">
+    <!-- 品牌 -->
     <view class="brand">
       <view class="brand-logo">明</view>
-      <view class="brand-name gradient-text">明德恒智</view>
-      <view class="brand-sub">PBC 企业家事业共同体</view>
+      <text class="brand-name">明德恒智</text>
+      <text class="brand-sub">PBC 企业家事业共同体</text>
     </view>
 
-    <view class="tabs">
-      <view :class="['tab', mode === 'password' && 'tab-active']" @tap="mode = 'password'">密码登录</view>
-      <view :class="['tab', mode === 'sms' && 'tab-active']" @tap="mode = 'sms'">验证码登录</view>
-    </view>
-
-    <!-- 密码登录 -->
-    <view v-if="mode === 'password'" class="form">
-      <view class="field">
-        <input v-model="account" class="input" placeholder="手机号 / 账号" placeholder-class="ph" />
-      </view>
-      <view class="field">
-        <input v-model="password" class="input" password placeholder="密码" placeholder-class="ph" />
-      </view>
-      <button class="btn-primary submit" :disabled="loading" @tap="doPasswordLogin">
-        {{ loading ? '登录中…' : '登 录' }}
-      </button>
-    </view>
-
-    <!-- 验证码登录 -->
-    <view v-else class="form">
-      <view class="field">
-        <input v-model="phone" class="input" type="number" maxlength="11" placeholder="手机号" placeholder-class="ph" />
-      </view>
-      <view class="field row">
-        <input v-model="captcha" class="input flex1" type="number" maxlength="6" placeholder="图形验证码" placeholder-class="ph" />
-        <image v-if="captchaKey" :src="captchaImg" class="captcha-img" mode="aspectFill" @tap="refreshCaptcha" />
-        <view v-else class="captcha-placeholder" @tap="refreshCaptcha">获取验证码</view>
-      </view>
-      <view class="field row">
-        <input v-model="smsCode" class="input flex1" type="number" maxlength="6" placeholder="短信验证码" placeholder-class="ph" />
-        <view :class="['send-btn', sending && 'send-btn-disabled']" @tap="sendSms">
-          {{ countdown > 0 ? countdown + 's' : '发送验证码' }}
+    <!-- 卡片 -->
+    <view class="login-card">
+      <!-- tab 切换 -->
+      <view class="tabs">
+        <view
+          :class="['tab', mode === 'sms' && 'tab-active']"
+          @tap="switchMode('sms')"
+        >
+          验证码登录
+        </view>
+        <view
+          :class="['tab', mode === 'password' && 'tab-active']"
+          @tap="switchMode('password')"
+        >
+          密码登录
         </view>
       </view>
-      <button class="btn-primary submit" :disabled="loading" @tap="doSmsLogin">
+
+      <!-- 手机号 -->
+      <view class="field">
+        <text class="f-icon">话</text>
+        <input v-model="phone" class="input" type="number" maxlength="11" placeholder="请输入手机号" placeholder-class="ph" />
+      </view>
+
+      <!-- 验证码模式 -->
+      <block v-if="mode === 'sms'">
+        <view class="field-row">
+          <view class="field flex1">
+            <text class="f-icon">图</text>
+            <input v-model="imgCode" class="input" type="number" maxlength="6" placeholder="图片验证码" placeholder-class="ph" />
+          </view>
+          <image v-if="captchaImg" :src="captchaImg" class="captcha-img" mode="aspectFill" @tap="refreshCaptcha" />
+          <view v-else class="captcha-placeholder" @tap="refreshCaptcha">获取</view>
+        </view>
+        <view class="field-row">
+          <view class="field flex1">
+            <text class="f-icon">码</text>
+            <input v-model="smsCode" class="input" type="number" maxlength="6" placeholder="短信验证码" placeholder-class="ph" />
+          </view>
+          <view :class="['send-btn', (countdown > 0 || loading) && 'send-btn-disabled']" @tap="sendSms">
+            {{ countdown > 0 ? countdown + 's' : '获取验证码' }}
+          </view>
+        </view>
+      </block>
+
+      <!-- 密码模式 -->
+      <view v-else class="field">
+        <text class="f-icon">密</text>
+        <input v-model="password" class="input" password placeholder="请输入密码" placeholder-class="ph" />
+      </view>
+
+      <!-- 错误提示 -->
+      <view v-if="error" class="error-tip">{{ error }}</view>
+
+      <!-- 登录按钮 -->
+      <view :class="['submit', loading && 'submit-disabled']" @tap="submit">
         {{ loading ? '登录中…' : '登 录' }}
-      </button>
+      </view>
     </view>
 
     <view class="agreement">登录即代表同意《用户协议》与《隐私政策》</view>
@@ -56,47 +78,49 @@ import { setLogin } from '@/libs/login'
 export default {
   data() {
     return {
-      mode: 'password',
-      account: '',
-      password: '',
+      mode: 'sms',
       phone: '',
-      captcha: '',
+      password: '',
+      imgCode: '',
       smsCode: '',
       captchaKey: '',
       captchaImg: '',
       countdown: 0,
-      sending: false,
-      loading: false
+      loading: false,
+      error: ''
     }
   },
   onLoad() {
     this.refreshCaptcha()
   },
   methods: {
+    switchMode(m) {
+      this.mode = m
+      this.error = ''
+    },
     refreshCaptcha() {
       auth
         .verifyCode()
         .then((body) => {
           const data = body && body.data ? body.data : body
-          const key = data.key
-          this.captchaKey = key
-          this.captchaImg = auth.captchaUrl(key)
+          this.captchaKey = data.key
+          this.captchaImg = auth.captchaUrl(data.key)
         })
         .catch(() => {})
     },
     sendSms() {
-      if (this.sending || this.countdown > 0) return
+      if (this.countdown > 0 || this.loading) return
       if (!/^1\d{10}$/.test(this.phone)) {
-        uni.showToast({ title: '请输入正确手机号', icon: 'none' })
+        this.error = '请输入正确的手机号'
         return
       }
-      if (!this.captcha) {
-        uni.showToast({ title: '请输入图形验证码', icon: 'none' })
+      if (!this.imgCode) {
+        this.error = '请输入图片验证码'
         return
       }
-      this.sending = true
+      this.loading = true
       auth
-        .sendSmsCode({ phone: this.phone, key: this.captchaKey, captchaVerification: this.captcha })
+        .sendSmsCode({ phone: this.phone, key: this.captchaKey, captchaVerification: this.imgCode, type: 'login' })
         .then(() => {
           uni.showToast({ title: '验证码已发送', icon: 'success' })
           this.countdown = 60
@@ -109,12 +133,11 @@ export default {
           this.refreshCaptcha()
         })
         .finally(() => {
-          this.sending = false
+          this.loading = false
         })
     },
     async finishLogin(token, userInfo) {
       setLogin(token, userInfo || null)
-      // 自动建档（会员 bootstrap）
       try {
         const { chamber } = require('@/api/chamber')
         await chamber.meBootstrap()
@@ -124,31 +147,24 @@ export default {
         uni.navigateBack({ delta: 1, fail: () => uni.switchTab({ url: '/pages/index/index' }) })
       }, 600)
     },
-    doPasswordLogin() {
-      if (!this.account || !this.password) {
-        uni.showToast({ title: '请输入账号和密码', icon: 'none' })
-        return
+    submit() {
+      if (this.mode === 'sms') {
+        this.submitSms()
+      } else {
+        this.submitPassword()
       }
-      this.loading = true
-      auth
-        .loginByPassword({ account: this.account, password: this.password })
-        .then((body) => {
-          const d = body && body.data ? body.data : body
-          const token = d.token || d.access_token
-          if (!token) throw new Error('登录响应缺少 token')
-          this.finishLogin(token, d.userInfo)
-        })
-        .catch(() => {})
-        .finally(() => {
-          this.loading = false
-        })
     },
-    doSmsLogin() {
-      if (!/^1\d{10}$/.test(this.phone) || !this.smsCode) {
-        uni.showToast({ title: '请输入手机号和验证码', icon: 'none' })
+    submitSms() {
+      if (!/^1\d{10}$/.test(this.phone)) {
+        this.error = '请输入正确的手机号'
+        return
+      }
+      if (!this.smsCode) {
+        this.error = '请输入短信验证码'
         return
       }
       this.loading = true
+      this.error = ''
       auth
         .loginMobile({ phone: this.phone, captcha: this.smsCode })
         .then((body) => {
@@ -157,7 +173,35 @@ export default {
           if (!token) throw new Error('登录响应缺少 token')
           this.finishLogin(token, d.userInfo)
         })
-        .catch(() => {})
+        .catch((e) => {
+          this.error = (e && e.msg) || '登录失败，请稍后重试'
+        })
+        .finally(() => {
+          this.loading = false
+        })
+    },
+    submitPassword() {
+      if (!/^1\d{10}$/.test(this.phone)) {
+        this.error = '请输入正确的手机号'
+        return
+      }
+      if (!this.password) {
+        this.error = '请输入密码'
+        return
+      }
+      this.loading = true
+      this.error = ''
+      auth
+        .loginByPassword({ account: this.phone, password: this.password })
+        .then((body) => {
+          const d = body && body.data ? body.data : body
+          const token = d.token || d.access_token
+          if (!token) throw new Error('登录响应缺少 token')
+          this.finishLogin(token, d.userInfo)
+        })
+        .catch((e) => {
+          this.error = (e && e.msg) || '登录失败，请稍后重试'
+        })
         .finally(() => {
           this.loading = false
         })
@@ -169,7 +213,8 @@ export default {
 <style lang="scss">
 .login-page {
   min-height: 100vh;
-  padding: 160rpx 64rpx 60rpx;
+  padding: 128rpx 48rpx 48rpx;
+  background: linear-gradient(180deg, #1b2a4a, #0e1830);
   box-sizing: border-box;
 }
 .brand {
@@ -182,109 +227,151 @@ export default {
   width: 128rpx;
   height: 128rpx;
   border-radius: 32rpx;
-  background: linear-gradient(135deg, #d98a2d, #b8751d);
+  background: rgba(255, 255, 255, 0.1);
   color: #fff;
-  font-size: 64rpx;
+  font-size: 56rpx;
   font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 12rpx 32rpx rgba(184, 117, 29, 0.35);
+  box-shadow: 0 12rpx 32rpx rgba(0, 0, 0, 0.2);
   margin-bottom: 24rpx;
 }
 .brand-name {
   font-size: 44rpx;
   font-weight: 700;
+  color: #fff;
 }
 .brand-sub {
-  font-size: 24rpx;
-  color: #8a94a3;
-  margin-top: 8rpx;
+  font-size: 26rpx;
+  color: rgba(255, 255, 255, 0.6);
+  margin-top: 12rpx;
+}
+.login-card {
+  background: #fff;
+  border-radius: 44rpx;
+  padding: 40rpx 36rpx;
+  box-shadow: 0 24rpx 64rpx rgba(0, 0, 0, 0.25);
 }
 .tabs {
   display: flex;
-  background: #f1ede4;
-  border-radius: 999rpx;
+  background: #f1f3f7;
+  border-radius: 20rpx;
   padding: 8rpx;
-  margin-bottom: 48rpx;
+  margin-bottom: 40rpx;
 }
 .tab {
   flex: 1;
   text-align: center;
-  padding: 18rpx 0;
+  padding: 20rpx 0;
   font-size: 28rpx;
-  color: #516580;
-  border-radius: 999rpx;
+  color: #8a94a3;
+  border-radius: 16rpx;
   transition: all 0.2s;
+  font-weight: 500;
 }
 .tab-active {
   background: #fff;
-  color: #b8751d;
+  color: #1b2a4a;
   font-weight: 600;
-  box-shadow: 0 4rpx 12rpx rgba(39, 59, 89, 0.08);
-}
-.form {
-  display: flex;
-  flex-direction: column;
-  gap: 28rpx;
+  box-shadow: 0 4rpx 12rpx rgba(27, 42, 74, 0.1);
 }
 .field {
-  background: #fff;
-  border-radius: 20rpx;
-  padding: 24rpx 28rpx;
   display: flex;
   align-items: center;
-  box-shadow: 0 4rpx 16rpx rgba(39, 59, 89, 0.04);
-}
-.field.row {
   gap: 20rpx;
+  border: 2rpx solid #e8ecf1;
+  border-radius: 20rpx;
+  padding: 24rpx 28rpx;
+  margin-bottom: 28rpx;
+}
+.field:focus-within {
+  border-color: #1b2a4a;
+}
+.f-icon {
+  font-size: 28rpx;
+  color: #a0a8b5;
 }
 .input {
   flex: 1;
-  font-size: 30rpx;
-  color: #273b59;
-}
-.flex1 {
-  flex: 1;
+  font-size: 28rpx;
+  color: #1b2a4a;
 }
 .ph {
   color: #c0c6d0;
 }
+.field-row {
+  display: flex;
+  gap: 16rpx;
+  margin-bottom: 28rpx;
+}
+.field-row .field {
+  margin-bottom: 0;
+}
+.flex1 {
+  flex: 1;
+}
 .captcha-img {
   width: 200rpx;
-  height: 72rpx;
-  border-radius: 12rpx;
+  height: 96rpx;
+  border-radius: 16rpx;
+  border: 2rpx solid #e8ecf1;
+  flex-shrink: 0;
 }
 .captcha-placeholder {
   width: 200rpx;
-  height: 72rpx;
-  border-radius: 12rpx;
-  background: #f1ede4;
-  color: #516580;
+  height: 96rpx;
+  border-radius: 16rpx;
+  background: #f1f3f7;
+  color: #8a94a3;
   font-size: 24rpx;
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 .send-btn {
-  padding: 16rpx 24rpx;
-  border-radius: 12rpx;
-  background: #f6ead6;
-  color: #b8751d;
-  font-size: 26rpx;
+  width: 200rpx;
+  height: 96rpx;
+  border-radius: 16rpx;
+  background: #1b2a4a;
+  color: #fff;
+  font-size: 24rpx;
   font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 .send-btn-disabled {
-  color: #c0c6d0;
-  background: #f1ede4;
+  background: #f1f3f7;
+  color: #a0a8b5;
+}
+.error-tip {
+  background: #fdeeee;
+  color: #b44444;
+  font-size: 26rpx;
+  padding: 20rpx 28rpx;
+  border-radius: 16rpx;
+  margin-bottom: 28rpx;
 }
 .submit {
-  margin-top: 16rpx;
+  background: linear-gradient(90deg, #1b2a4a, #0e1830);
+  color: #fff;
+  font-size: 30rpx;
+  font-weight: 600;
+  text-align: center;
+  padding: 24rpx 0;
+  border-radius: 20rpx;
+  box-shadow: 0 12rpx 32rpx rgba(27, 42, 74, 0.3);
+}
+.submit-disabled {
+  opacity: 0.6;
 }
 .agreement {
   text-align: center;
   font-size: 22rpx;
-  color: #c0c6d0;
+  color: rgba(255, 255, 255, 0.4);
   margin-top: 48rpx;
 }
 </style>
