@@ -113,7 +113,7 @@
       </scroll-view>
 
       <!-- 月历 -->
-      <calendar :events="events" :month-count="events.length" @select="onSelectDay" />
+      <calendar :events="events" @select="onSelectDay" />
 
       <!-- 活动列表 -->
       <view class="ev-list">

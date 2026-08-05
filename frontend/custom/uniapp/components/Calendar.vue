@@ -2,13 +2,13 @@
   <view class="calendar">
     <!-- 月份切换 -->
     <view class="cal-head">
-      <view class="cal-nav" @tap="prevMonth"></view>
+      <view class="cal-nav" @tap="prevMonth"><view class="ic ic-sm ic-chevron-left-gray" /></view>
       <view class="cal-title" @tap="gotoToday">
         <text>{{ viewYear }}年{{ viewMonth }}月</text>
         <text v-if="!isCurrentMonth" class="cal-today-tag">回到今天</text>
       </view>
-      <view class="cal-count">本月 {{ monthCount }} 场</view>
-      <view class="cal-nav" @tap="nextMonth">></view>
+      <view class="cal-count">本月 {{ monthEventCount }} 场</view>
+      <view class="cal-nav" @tap="nextMonth"><view class="ic ic-sm ic-chevron-right-gray" /></view>
     </view>
 
     <!-- 星期头 -->
@@ -50,10 +50,6 @@ export default {
     events: {
       type: Array,
       default: () => []
-    },
-    monthCount: {
-      type: Number,
-      default: 0
     }
   },
   data() {
@@ -69,6 +65,18 @@ export default {
     isCurrentMonth() {
       const now = new Date()
       return this.viewYear === now.getFullYear() && this.viewMonth === now.getMonth() + 1
+    },
+    // 当前视图月份的场次（对齐 H5：按 viewDate 过滤，而非全量）
+    monthEventCount() {
+      const list = this.events || []
+      let n = 0
+      for (const ev of list) {
+        const d = toDate(ev.start_time)
+        if (!d) continue
+        const dt = new Date(d.replace(/-/g, '/'))
+        if (dt.getFullYear() === this.viewYear && dt.getMonth() + 1 === this.viewMonth) n++
+      }
+      return n
     },
     eventsByDate() {
       const map = {}
