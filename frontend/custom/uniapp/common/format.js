@@ -25,6 +25,36 @@ export function toDate(ts, fmt) {
   return y + '-' + m + '-' + day
 }
 
+/** 中文日期时间：2026/8/12 23:00（对齐 H5 formatDateTime zh-CN） */
+export function fmtZhDateTime(ts) {
+  const d = new Date(Number(ts || 0) * 1000)
+  if (isNaN(d.getTime())) return ''
+  const y = d.getFullYear()
+  const m = d.getMonth() + 1
+  const day = d.getDate()
+  const h = String(d.getHours()).padStart(2, '0')
+  const min = String(d.getMinutes()).padStart(2, '0')
+  return y + '/' + m + '/' + day + ' ' + h + ':' + min
+}
+
+/** 中文月日时：8月12日 23:00（对齐 H5 EventsPage.fmtDate.date） */
+export function fmtZhMonthDay(ts) {
+  const d = new Date(Number(ts || 0) * 1000)
+  if (isNaN(d.getTime())) return ''
+  const m = d.getMonth() + 1
+  const day = d.getDate()
+  const h = String(d.getHours()).padStart(2, '0')
+  const min = String(d.getMinutes()).padStart(2, '0')
+  return m + '月' + day + '日 ' + h + ':' + min
+}
+
+/** 仅时分：HH:mm（对齐 H5 format(end,'HH:mm')） */
+export function fmtHHmm(ts) {
+  const d = new Date(Number(ts || 0) * 1000)
+  if (isNaN(d.getTime())) return ''
+  return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0')
+}
+
 /** 数字千分位 */
 export function formatNumber(n) {
   const num = Number(n || 0)

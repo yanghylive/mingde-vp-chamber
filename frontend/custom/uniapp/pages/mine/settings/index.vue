@@ -68,7 +68,7 @@
         <text class="it-arrow">></text>
       </view>
       <view class="item" @tap="about">
-        <text class="it-icon">ℹ️</text>
+        <text class="it-icon">关</text>
         <text class="it-label">关于明德恒智AI企商汇</text>
         <text class="it-arrow">></text>
       </view>

@@ -89,7 +89,7 @@
 <script>
 import chamber from '@/api/chamber'
 import { checkLogin } from '@/libs/login'
-import { toDate } from '@/common/format'
+import { toDate, fmtZhDateTime } from '@/common/format'
 import Skeleton from '@/components/Skeleton.vue'
 
 const TYPE_META = {
@@ -123,8 +123,8 @@ export default {
     },
     timeText() {
       const ev = this.event
-      const s = toDate(ev.start_time, 'datetime')
-      const e = toDate(ev.end_time, 'datetime')
+      const s = fmtZhDateTime(ev.start_time)
+      const e = fmtZhDateTime(ev.end_time)
       if (!s) return '时间待定'
       return e ? s + ' — ' + e : s
     }

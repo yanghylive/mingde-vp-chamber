@@ -117,7 +117,7 @@ export default {
           if (res.statusCode >= 400) {
             this.finishAssistant('请求失败（' + res.statusCode + '），请稍后再试')
           } else if (!this.streamReceived) {
-            // 未收到分块 → 一次性响应
+            // 未收到分块 -> 一次性响应
             this.finishAssistant(extractAnswer(res.data))
           } else {
             this.finishAssistant(this.assistantText)
@@ -192,7 +192,7 @@ export default {
   }
 }
 
-/** UTF-8 ArrayBuffer → 字符串（兼容小程序无 TextDecoder） */
+/** UTF-8 ArrayBuffer -> 字符串（兼容小程序无 TextDecoder） */
 function utf8Decode(buf) {
   const bytes = new Uint8Array(buf)
   let out = ''

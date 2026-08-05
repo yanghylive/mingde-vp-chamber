@@ -37,7 +37,7 @@ export default {
   },
   computed: {
     statusIcon() {
-      return { pending: '⏳', approved: 'OK', rejected: '❌' }[this.status] || ''
+      return { pending: '审核中', approved: 'OK', rejected: '已驳回' }[this.status] || ''
     },
     statusTitle() {
       return { pending: '认证审核中', approved: '认证通过', rejected: '认证未通过' }[this.status] || ''

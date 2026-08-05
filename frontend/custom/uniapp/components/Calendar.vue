@@ -155,7 +155,7 @@ export default {
     },
     selectDay(d) {
       if (!d.inMonth) {
-        // 点击补位日期 → 跳到对应月
+        // 点击补位日期 -> 跳到对应月
         this.viewMonth = Number(d.key.slice(5, 7))
         this.viewYear = Number(d.key.slice(0, 4))
       }

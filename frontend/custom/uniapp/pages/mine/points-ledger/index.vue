@@ -9,7 +9,7 @@
     <view v-else-if="list.length === 0" class="empty">暂无积分记录</view>
     <view v-else class="list">
       <view v-for="item in list" :key="item.id" class="entry card">
-        <view class="en-icon">{{ (item.points || 0) >= 0 ? '➕' : '➖' }}</view>
+        <view class="en-icon">{{ (item.points || 0) >= 0 ? '+' : '-' }}</view>
         <view class="en-info">
           <view class="en-head">
           <text class="en-reason">{{ reasonText(item) }}</text>

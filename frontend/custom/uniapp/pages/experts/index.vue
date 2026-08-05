@@ -140,20 +140,13 @@ export default {
         return catOk && qOk
       })
     },
-    matchCategory(e) {
-      if (this.category === '全部') return true
-      const role = String(e.role || '').toLowerCase()
-      if (this.category === '知名导师' && role === 'mentor') return true
-      if (this.category === '知名教练' && role === 'coach') return true
-      if (this.category === '行业领袖' && role === 'industry_leader') return true
-      const haystack = (e.title || '') + ' ' + (e.company || '') + ' ' + (e.industry || '') + ' ' + (e.bio || '') + ' ' + (e.category || '')
-      return ROLE_KEYWORDS[this.category].test(haystack)
-    },
     stats() {
+      // 对齐 H5：用 matchCategory 计算（title/company/industry/bio/category 关键词）
+      const self = this
       return [
         { label: '签约大咖', value: this.experts.length, border: false },
-        { label: '知名导师', value: this.experts.filter((e) => (e.category || '').indexOf('导师') >= 0).length, border: true },
-        { label: '行业领袖', value: this.experts.filter((e) => (e.category || '').indexOf('领袖') >= 0).length, border: true }
+        { label: '知名导师', value: this.experts.filter((e) => self.matchCategory(e, '知名导师')).length, border: true },
+        { label: '行业领袖', value: this.experts.filter((e) => self.matchCategory(e, '行业领袖')).length, border: true }
       ]
     }
   },
@@ -164,6 +157,16 @@ export default {
     this.loadData().finally(() => uni.stopPullDownRefresh())
   },
   methods: {
+    matchCategory(e, cat) {
+      const c = cat || this.category
+      if (c === '全部') return true
+      const role = String(e.role || '').toLowerCase()
+      if (c === '知名导师' && role === 'mentor') return true
+      if (c === '知名教练' && role === 'coach') return true
+      if (c === '行业领袖' && role === 'industry_leader') return true
+      const haystack = (e.title || '') + ' ' + (e.company || '') + ' ' + (e.industry || '') + ' ' + (e.bio || '') + ' ' + (e.category || '')
+      return ROLE_KEYWORDS[c].test(haystack)
+    },
     async loadData() {
       try {
         this.experts = (await chamber.experts()).map(function(e){ e.first = (e.name || '明').slice(0, 1); return e })

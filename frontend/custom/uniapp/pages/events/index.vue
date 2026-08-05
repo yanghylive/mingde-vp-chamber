@@ -4,7 +4,7 @@
     <view class="ph">
       <view class="ph-row">
         <view>
-          <view class="ph-eyebrow">♛ 明德恒智AI企商汇</view>
+          <view class="ph-eyebrow"><view class="ic ic-xs ic-crown-gold" />明德恒智AI企商汇</view>
           <text class="ph-title">官方活动</text>
           <text class="ph-sub">高质量相聚，让思想彼此照亮</text>
         </view>
@@ -87,7 +87,7 @@
 <script>
 import chamber from '@/api/chamber'
 import { checkLogin } from '@/libs/login'
-import { toDate } from '@/common/format'
+import { toDate, fmtZhMonthDay } from '@/common/format'
 import Skeleton from '@/components/Skeleton.vue'
 
 const TYPE_LABEL = {
@@ -154,7 +154,7 @@ export default {
       return TYPE_LABEL[ev.event_type] || '年度盛会'
     },
     bannerDate(ev) {
-      return toDate(ev.start_time)
+      return fmtZhMonthDay(ev.start_time)
     },
     evType(ev) {
       return TYPE_LABEL[ev.event_type] || ev.event_type || '活动'
@@ -166,7 +166,7 @@ export default {
       return toDate(ev.start_time).slice(8, 10)
     },
     evTime(ev) {
-      return toDate(ev.start_time, 'datetime')
+      return fmtZhMonthDay(ev.start_time)
     },
     remaining(ev) {
       const t = ev.tickets && ev.tickets[0]

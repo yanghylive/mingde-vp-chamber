@@ -1,5 +1,16 @@
 <template>
   <view class="mine-page">
+    <!-- 页头（对齐 H5 PageHeader：眉题 + 标题 + 副标题） -->
+    <view class="ph">
+      <view class="ph-row">
+        <view>
+          <view class="ph-eyebrow"><view class="ic ic-xs ic-crown-gold" />明德恒智AI企商汇</view>
+          <text class="ph-title">我的</text>
+          <text class="ph-sub">精进每一步，成就更好的自己</text>
+        </view>
+      </view>
+    </view>
+
     <!-- profile 深色卡 -->
     <view class="profile glass-dark">
       <view class="pf-ring" />
@@ -375,6 +386,33 @@ export default {
 <style lang="scss">
 .mine-page {
   padding-top: env(safe-area-inset-top);
+}
+.ph {
+  padding: 8rpx 32rpx 24rpx;
+}
+.ph-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  font-size: 20rpx;
+  color: #a06a2d;
+  font-weight: 600;
+  letter-spacing: 2rpx;
+  text-transform: uppercase;
+}
+.ph-title {
+  display: block;
+  font-size: 44rpx;
+  font-weight: 800;
+  color: #17233d;
+  margin-top: 6rpx;
+}
+.ph-sub {
+  display: block;
+  font-size: 24rpx;
+  color: #8a94a3;
+  margin-top: 6rpx;
+}
   padding: 24rpx 32rpx 60rpx;
   min-height: 100vh;
 }

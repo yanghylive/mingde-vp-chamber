@@ -243,7 +243,7 @@ import chamber from '@/api/chamber'
 import { checkLogin } from '@/libs/login'
 import { fetchSiteConfig } from '@/common/site-config'
 import { TIERS, tierToNumber, applyTierConfig } from '@/common/tier'
-import { toDate } from '@/common/format'
+import { toDate, fmtZhDateTime, fmtHHmm } from '@/common/format'
 import Calendar from '@/components/Calendar.vue'
 import Skeleton from '@/components/Skeleton.vue'
 
@@ -364,10 +364,10 @@ export default {
       return (EVENT_META[t] || DEFAULT_META).tone
     },
     evTime(ev) {
-      const s = toDate(ev.start_time, 'datetime')
-      const e = toDate(ev.end_time, 'datetime')
+      const s = fmtZhDateTime(ev.start_time)
+      const e = fmtHHmm(ev.end_time)
       if (!s) return '时间待定'
-      return e ? s + ' — ' + e.slice(11) : s
+      return e ? s + ' — ' + e : s
     },
     evPrice(ev) {
       const t = ev.tickets && ev.tickets[0]
@@ -393,7 +393,7 @@ export default {
       return map[icon] || map.default
     },
     gridIcon(icon) {
-      // 宫格图标 → lucide 图标类（配色随 tone：金色块/蓝色块/灰块）
+      // 宫格图标 -> lucide 图标类（配色随 tone：金色块/蓝色块/灰块）
       const map = {
         event: 'ic-calendar-check-gold',
         membership: 'ic-users-blue',
@@ -406,7 +406,7 @@ export default {
       return map[icon] || map.default
     },
     metaIcon(t) {
-      // 活动类型 → lucide 图标类（白字，用在深色色块上）
+      // 活动类型 -> lucide 图标类（白字，用在深色色块上）
       const map = {
         personal_growth: 'ic-graduation-cap-white',
         business_industry: 'ic-building-2-white',

@@ -95,7 +95,7 @@
           </view>
           <view class="plan-rights">
             <view v-for="b in planBenefits(plan)" :key="b" class="pr-item">
-              <view class="pr-check">已</view>
+              <view class="pr-check" />
               <text>{{ b }}</text>
             </view>
           </view>
@@ -171,13 +171,14 @@ export default {
     },
     priceNum(price) {
       const n = Number(price || 0)
-      return Number.isInteger(n) ? String(n) : n.toFixed(2)
+      return n.toFixed(2)
     },
     planBenefits(plan) {
-      if (plan && Array.isArray(plan.benefits) && plan.benefits.length > 0) return plan.benefits
-      if (plan && Array.isArray(plan.benefits_list) && plan.benefits_list.length > 0) return plan.benefits_list
+      // 对齐 H5：显示前 3 条
+      if (plan && Array.isArray(plan.benefits) && plan.benefits.length > 0) return plan.benefits.slice(0, 3)
+      if (plan && Array.isArray(plan.benefits_list) && plan.benefits_list.length > 0) return plan.benefits_list.slice(0, 3)
       const t = this.ladder.find((x) => x.tier === this.planTierNum(plan))
-      return t ? t.rights : []
+      return t ? t.rights.slice(0, 3) : []
     },
     onBuy(plan) {
       const pt = this.planTierNum(plan)
@@ -573,16 +574,22 @@ export default {
   color: #4a5b72;
 }
 .pr-check {
-  width: 32rpx;
-  height: 32rpx;
-  border-radius: 50%;
-  background: #e9f3ef;
-  color: #3f715f;
-  font-size: 16rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  width: 24rpx;
+  height: 24rpx;
+  position: relative;
   flex-shrink: 0;
+  margin-top: 4rpx;
+}
+.pr-check::after {
+  content: '';
+  position: absolute;
+  left: 4rpx;
+  top: 2rpx;
+  width: 12rpx;
+  height: 6rpx;
+  border-left: 3rpx solid #d18a35;
+  border-bottom: 3rpx solid #d18a35;
+  transform: rotate(-45deg);
 }
 .plan-buy {
   margin-top: 20rpx;
