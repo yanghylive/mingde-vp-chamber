@@ -112,7 +112,7 @@ function extractAnswer(body) {
 }
 </script>
 
-<style scoped lang="scss">
+<style lang="scss">
 .chat-page {
   display: flex;
   flex-direction: column;

@@ -23,7 +23,7 @@ export default {
 }
 </script>
 
-<style scoped lang="scss">
+<style lang="scss">
 .success-page {
   padding: 140rpx 60rpx;
   display: flex;

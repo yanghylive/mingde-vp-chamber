@@ -167,7 +167,7 @@ export default {
 }
 </script>
 
-<style scoped lang="scss">
+<style lang="scss">
 .expert-detail-page {
   padding: 32rpx 32rpx 140rpx;
 }

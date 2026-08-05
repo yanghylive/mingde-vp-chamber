@@ -166,7 +166,7 @@ export default {
 }
 </script>
 
-<style scoped lang="scss">
+<style lang="scss">
 .login-page {
   min-height: 100vh;
   padding: 160rpx 64rpx 60rpx;

@@ -47,7 +47,7 @@ export default {
 }
 </script>
 
-<style scoped lang="scss">
+<style lang="scss">
 .notifications-page {
   padding: 24rpx 32rpx 60rpx;
 }

@@ -149,7 +149,7 @@ function priceText(p) {
 }
 </script>
 
-<style scoped lang="scss">
+<style lang="scss">
 .membership-page {
   padding: 32rpx 32rpx 60rpx;
 }

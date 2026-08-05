@@ -62,7 +62,7 @@ export default {
 }
 </script>
 
-<style scoped lang="scss">
+<style lang="scss">
 .settings-page {
   padding: 32rpx;
 }

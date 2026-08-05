@@ -220,7 +220,7 @@ export default {
 }
 </script>
 
-<style scoped lang="scss">
+<style lang="scss">
 .home-page {
   padding: 24rpx 32rpx 60rpx;
 }

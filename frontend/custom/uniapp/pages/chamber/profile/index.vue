@@ -243,7 +243,7 @@ export default {
 };
 </script>
 
-<style lang="scss" scoped>
+<style lang="scss">
 .profile-page {
   min-height: 100vh;
   background: #f4f6f5;

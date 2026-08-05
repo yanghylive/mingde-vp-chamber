@@ -131,7 +131,7 @@ export default {
 }
 </script>
 
-<style scoped lang="scss">
+<style lang="scss">
 .event-detail-page {
   padding: 32rpx 32rpx 80rpx;
 }

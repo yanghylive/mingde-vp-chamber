@@ -50,7 +50,7 @@ export default {
 }
 </script>
 
-<style scoped lang="scss">
+<style lang="scss">
 .paths-page {
   padding: 32rpx;
 }

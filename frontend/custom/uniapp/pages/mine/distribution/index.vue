@@ -64,7 +64,7 @@ export default {
 }
 </script>
 
-<style scoped lang="scss">
+<style lang="scss">
 .distribution-page {
   padding: 48rpx 40rpx 60rpx;
 }

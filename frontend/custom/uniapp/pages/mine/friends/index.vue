@@ -70,7 +70,7 @@ export default {
 }
 </script>
 
-<style scoped lang="scss">
+<style lang="scss">
 .friends-page {
   padding: 24rpx 32rpx 60rpx;
 }

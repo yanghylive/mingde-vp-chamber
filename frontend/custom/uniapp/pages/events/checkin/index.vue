@@ -78,7 +78,7 @@ export default {
 }
 </script>
 
-<style scoped lang="scss">
+<style lang="scss">
 .checkin-page {
   padding: 80rpx 48rpx;
   display: flex;

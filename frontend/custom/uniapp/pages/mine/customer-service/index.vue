@@ -57,7 +57,7 @@ export default {
 }
 </script>
 
-<style scoped lang="scss">
+<style lang="scss">
 .cs-page {
   padding: 60rpx 40rpx;
 }

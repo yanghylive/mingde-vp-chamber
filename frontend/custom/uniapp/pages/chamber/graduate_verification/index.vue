@@ -283,7 +283,7 @@ export default {
 };
 </script>
 
-<style lang="scss" scoped>
+<style lang="scss">
 .verification-page {
   min-height: 100vh;
   padding-bottom: calc(148rpx + env(safe-area-inset-bottom));

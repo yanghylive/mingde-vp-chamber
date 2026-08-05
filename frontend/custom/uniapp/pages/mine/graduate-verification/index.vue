@@ -96,7 +96,7 @@ export default {
 }
 </script>
 
-<style scoped lang="scss">
+<style lang="scss">
 .gv-page {
   padding: 32rpx;
 }
