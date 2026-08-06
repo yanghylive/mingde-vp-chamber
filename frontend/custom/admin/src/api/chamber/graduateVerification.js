@@ -5,6 +5,7 @@ import { getCookies, removeCookies } from '@/libs/util';
 import memberUi from '@/chamber/shared/member-ui';
 
 const VERIFICATION_PATH = '/chamber/admin/v1/graduate-verifications';
+const MEMBER_ASSET_PATH = '/chamber/admin/v1/member-assets';
 
 function logoutAdmin() {
   localStorage.clear();
@@ -65,5 +66,30 @@ export function reviewGraduateVerification(applicationId, data, idempotencyKey) 
     method: 'post',
     data,
     headers: { 'Idempotency-Key': idempotencyKey },
+  });
+}
+
+export function graduateVerificationAssetContent(assetId, applicationId) {
+  const fallbackOrigin = typeof window !== 'undefined' ? window.location.origin : '';
+  const baseURL = memberUi.resolveServiceOrigin(Setting.apiBaseURL, fallbackOrigin);
+  const token = getCookies('token');
+  const headers = {};
+  if (token) headers.Authorization = 'Bearer ' + token;
+
+  return axios({
+    baseURL,
+    url: `${MEMBER_ASSET_PATH}/${assetId}/content`,
+    method: 'get',
+    params: { application_id: applicationId },
+    headers,
+    timeout: 100000,
+    withCredentials: true,
+    responseType: 'blob',
+  }).catch((error) => {
+    if (error.response && error.response.status === 401) logoutAdmin();
+    return Promise.reject({
+      status: error.response ? error.response.status : 0,
+      msg: error.message || '文件打开失败',
+    });
   });
 }

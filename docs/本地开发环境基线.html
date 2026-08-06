@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>本地开发环境基线 · mingde-vp-chamber</title><link rel="stylesheet" href="project-docs.css"></head>
-<body><header class="doc-head"><div class="wrap"><p class="eyebrow">ENVIRONMENT BASELINE · 2026-07-23</p><h1>本地开发环境基线</h1><p>记录当前机器能直接跑什么、缺什么，以及推荐的本地 CRMEB 启动方式。</p></div></header>
+<body><header class="doc-head"><div class="wrap"><p class="eyebrow">ENVIRONMENT BASELINE · 2026-07-28</p><h1>本地开发环境基线</h1><p>记录当前机器能直接跑什么、缺什么，以及 CRMEB、商会 Overlay、私有材料和前端的已验证本地启动方式。</p></div></header>
 <main class="doc-main"><div class="wrap"><nav class="doc-nav"><a href="../index.html">项目首页</a><a href="开工基线与首轮任务.html">开工基线</a><a href="../deployment/local/README.html">Docker 环境</a></nav>
 <section><h2>1. 当前探测结果</h2><div class="table-wrap"><table><thead><tr><th>工具</th><th>当前状态</th><th>影响</th></tr></thead><tbody>
 <tr><td>Docker / Docker Compose</td><td>可用，CRMEB 本地容器已启动</td><td>推荐用容器跑 CRMEB 后端、MySQL、Redis、Nginx</td></tr>
@@ -16,16 +16,24 @@
 # 日常启动
 ./scripts/prepare-local-crmeb-runtime.sh start</pre><p>访问地址：<code>http://localhost:8011</code>。运行源码位于 <code>.build-workspace/crmeb-runtime</code>，本地数据位于 <code>deployment/local/.data</code>。</p></section>
 <section><h2>3. 已验证结果</h2><div class="table-wrap"><table><thead><tr><th>检查项</th><th>结果</th></tr></thead><tbody>
-<tr><td>容器</td><td><code>mingde_crmeb_nginx</code>、<code>mingde_crmeb_php</code>、<code>mingde_crmeb_mysql</code>、<code>mingde_crmeb_redis</code> 均已启动</td></tr>
-<tr><td>CRMEB 数据库</td><td>157 张官方表 + 21 张商会领域/可靠性表 + 1 张迁移记录表，共 179 张</td></tr>
-<tr><td>HTTP 入口</td><td><code>/</code>、<code>/adminapi/login/info</code>、<code>/chamber/health</code>、可信租户 <code>/chamber/v1/bootstrap</code> 和受保护 <code>POST /chamber/v1/me/bootstrap</code> 已进入自动门禁</td></tr>
+<tr><td>容器</td><td><code>mingde_crmeb_nginx</code>、<code>mingde_crmeb_php</code>、<code>mingde_crmeb_timer</code>、<code>mingde_crmeb_mysql</code>、<code>mingde_crmeb_redis</code> 均已启动</td></tr>
+<tr><td>CRMEB 数据库</td><td>157 张官方表 + 29 张 Chamber 领域/可靠性表 + 1 张迁移登记表，共 187 张；全部迁移 463 项结构复验通过</td></tr>
+<tr><td>HTTP 入口</td><td>G0/G1 保持 16 个 implemented 操作；G2 活动列表/详情、我的报名列表/详情和扫码签到新增 5 个 implemented，契约另有 7 个 planned</td></tr>
 <tr><td>PHP 容器</td><td>PHP 7.4.33</td></tr>
-<tr><td>Admin 前端</td><td>隔离 <code>npm ci</code> 和生产构建成功；上游保留 11 个 CSS/体积告警</td></tr>
+<tr><td>Admin 前端</td><td>隔离 <code>npm ci</code> 和生产构建成功，毕业认证审核页已装配；上游 CSS/体积告警仍保留</td></tr>
+<tr><td>UniApp 前端</td><td>会员入口、资料页和毕业认证页已装配；会员 UI 18 项与租户品牌 6 项测试通过</td></tr>
+<tr><td>私有材料</td><td>新上传只接受 JPEG/PNG；历史 PDF 仅允许受控读取，用户和管理员鉴权读取已逐字节通过；文件不进入 Git</td></tr>
 <tr><td>CRMEB 子模块</td><td>保持干净，无业务改动</td></tr>
 </tbody></table></div></section>
-<section><h2>4. 当前验证与下一步</h2><pre># G1 总门禁（包含下列会员初始化门禁）
+<section><h2>4. 当前验证与下一步</h2><pre># 当前 G2 活动核心门禁
+./scripts/check-g2-activity-core.sh
+
+# G1 历史基线
 ./scripts/check-g1-membership-baseline.sh
 
 # 仅验证 G1-01B 真实 HTTP 链路
-./scripts/check-g1-member-bootstrap.sh</pre><ul class="checklist"><li>总门禁完整包含 G0、003/004 迁移、37 项会员领域测试、33 项认证上下文测试、28 项请求/协议领域测试和 OpenAPI 0.3.0。</li><li>HTTP 门禁使用写入 CRMEB Redis 的真实 <code>api</code> Token；受保护路由按 Auth → Tenant 顺序执行，不接受请求正文伪造身份或租户。</li><li>门禁同时发起同 Key 20 路与不同 Key 20 路并发，断言每租户仅一个 member、每会员仅一个 profile、同协议仅一次接受事件，并验证跨租户隔离。</li><li>主租户会员设为 withdrawn 后，旧成功 Key 重放和新 Key 请求都必须返回 HTTP 403，且数据库状态不得被自动恢复。</li><li>G1-01B 已完成，下一步是 G1-01C 个人资料接口；本机 PHP/Composer/Redis 仍不必单独安装，继续使用隔离容器环境。</li></ul></section>
+./scripts/check-g1-member-bootstrap.sh
+
+# 仅验证 G1-01C 资料/附件/认证/审核真实 HTTP 链路
+./scripts/check-g1-profile-verification.sh</pre><ul class="checklist"><li>G2 门禁固定数据库 187 张表、463 项迁移复验与 OpenAPI 0.6.0（26 paths / 30 operations / 24 implemented / 6 planned / 113 schemas）。</li><li>G2 活动领域 12 个用例；数据库断言为活动 72、报名 96、奖励冲正 41、管理读 24 和并发 13；前端测试为 UniApp 11 + Admin 8。</li><li>免费、纯积分、现金和混合报名已覆盖持久化幂等、行锁名额、CRMEB OrderContext、积分冻结、支付/退款投影、积分/席位/奖励冲正、超时释放和真实 HTTP 门禁。</li><li>G1-01C 分层测试为资料 16、附件 10 + DB 44、认证 12 + DB 119、会员 UI 18、租户品牌 6，均已通过。</li><li>G1-01D/E 另覆盖会籍计划/结算 15、网关 11、权益与数据库 85 条断言、原生 CRMEB 入口拦截、支付重放/并发/退款和 timer 自动补绑。</li><li>HTTP 门禁使用真实 CRMEB 用户/Admin Token；受保护路由按 Auth → Tenant 顺序执行，不接受请求正文伪造身份或租户。</li></ul><div class="callout warn"><strong>边界：</strong>G2 退款发起/渠道对账、余额不足人工处理、候补/通知、活动回顾、管理写门禁和真机验收仍未完成。当前私有材料仍使用本地文件系统。</div></section>
 </div></main><footer><div class="wrap">mingde-vp-chamber · 本地开发环境基线</div></footer></body></html>

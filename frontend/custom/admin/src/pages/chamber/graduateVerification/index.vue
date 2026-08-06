@@ -162,7 +162,23 @@
           <section class="detail-section">
             <h3>证明材料</h3>
             <div v-if="proofCount(selected)" class="proof-list">
-              <code v-for="key in selected.proof_object_keys" :key="key">{{ key }}</code>
+              <div v-for="asset in proofAssets(selected)" :key="asset.object_key" class="proof-item">
+                <div>
+                  <strong>{{ asset.original_name }}</strong>
+                  <span>{{ asset.mime_type || '未知类型' }}<template v-if="asset.size"> · {{ humanFileSize(asset.size) }}</template></span>
+                </div>
+                <el-button
+                  v-if="asset.id && asset.available"
+                  type="text"
+                  icon="el-icon-document"
+                  :loading="openingAssetId === asset.id"
+                  :disabled="openingAssetId === asset.id"
+                  @click="openProofAsset(asset)"
+                >
+                  打开
+                </el-button>
+                <span v-else class="proof-unavailable">无可用预览</span>
+              </div>
             </div>
             <el-empty v-else :image-size="64" description="暂无证明材料" />
           </section>
@@ -190,6 +206,7 @@
       :visible.sync="reviewVisible"
       :title="reviewDefinition ? reviewDefinition.label : '审核'"
       width="520px"
+      custom-class="review-dialog"
       :close-on-click-modal="false"
       @closed="resetReview"
     >
@@ -225,6 +242,7 @@
 
 <script>
 import {
+  graduateVerificationAssetContent,
   graduateVerificationDetail,
   graduateVerificationList,
   reviewGraduateVerification,
@@ -261,11 +279,12 @@ export default {
       reviewTarget: null,
       pendingReviewKey: '',
       pendingReviewFingerprint: '',
+      openingAssetId: 0,
     };
   },
   computed: {
     drawerSize() {
-      return document.documentElement.clientWidth < 768 ? '100%' : '620px';
+      return typeof document !== 'undefined' && document.documentElement.clientWidth < 768 ? '100%' : '620px';
     },
     reviewDefinition() {
       return memberUi.REVIEW_ACTIONS[this.reviewAction] || null;
@@ -316,10 +335,18 @@ export default {
       return memberUi.verificationStatusMeta(status);
     },
     rowActions(row) {
-      return memberUi.reviewActionsForStatus(row && row.status);
+      const actions = memberUi.reviewActionsForStatus(row && row.status);
+      const hasUnavailableProof = this.proofAssets(row).some((asset) => !asset.available);
+      return hasUnavailableProof ? actions.filter((action) => action.value !== 'approve') : actions;
     },
     proofCount(row) {
-      return row && Array.isArray(row.proof_object_keys) ? row.proof_object_keys.length : 0;
+      return this.proofAssets(row).length;
+    },
+    proofAssets(row) {
+      return memberUi.proofAssetsFromApplication(row || {});
+    },
+    humanFileSize(size) {
+      return memberUi.humanFileSize(size);
     },
     memberName(row) {
       if (!row) return '-';
@@ -350,6 +377,34 @@ export default {
     closeDetail() {
       this.selected = null;
       this.detailError = '';
+    },
+    openProofAsset(asset) {
+      const applicationId = this.selected && this.selected.id;
+      if (!asset || !asset.id || !asset.available || !applicationId || this.openingAssetId) return;
+      const popup = window.open('', '_blank');
+      this.openingAssetId = asset.id;
+      graduateVerificationAssetContent(asset.id, applicationId)
+        .then((response) => {
+          const objectUrl = window.URL.createObjectURL(response.data);
+          if (popup) {
+            popup.location.replace(objectUrl);
+          } else {
+            const link = document.createElement('a');
+            link.href = objectUrl;
+            link.download = asset.original_name || 'member-asset';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+          }
+          window.setTimeout(() => window.URL.revokeObjectURL(objectUrl), 300000);
+        })
+        .catch((error) => {
+          if (popup) popup.close();
+          this.$message.error(this.errorMessage(error, '文件打开失败'));
+        })
+        .finally(() => {
+          this.openingAssetId = 0;
+        });
     },
     openReview(row, action) {
       this.reviewTarget = row;
@@ -412,13 +467,13 @@ export default {
     formatDate(timestamp) {
       if (!timestamp) return '-';
       const date = new Date(Number(timestamp) * 1000);
-      const pad = (value) => String(value).padStart(2, '0');
-      return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+      const pad = (value) => (Number(value) < 10 ? '0' : '') + Number(value);
+      return `${date.getUTCFullYear()}-${pad(date.getUTCMonth() + 1)}-${pad(date.getUTCDate())}`;
     },
     formatTime(timestamp) {
       if (!timestamp) return '-';
       const date = new Date(Number(timestamp) * 1000);
-      const pad = (value) => String(value).padStart(2, '0');
+      const pad = (value) => (Number(value) < 10 ? '0' : '') + Number(value);
       return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(
         date.getMinutes(),
       )}`;
@@ -584,17 +639,42 @@ export default {
   gap: 10px;
 }
 
-.proof-list code {
-  display: block;
+.proof-item {
+  display: flex;
   padding: 11px 12px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
   border: 1px solid #dfe5e2;
   border-radius: 4px;
   background: #f7f9f8;
-  color: #34413b;
-  font-family: Menlo, Consolas, monospace;
-  font-size: 12px;
-  line-height: 1.5;
+}
+
+.proof-item > div {
+  min-width: 0;
+}
+
+.proof-item strong,
+.proof-item span {
+  display: block;
   overflow-wrap: anywhere;
+}
+
+.proof-item strong {
+  color: #34413b;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.proof-item span {
+  margin-top: 4px;
+  color: #7b8580;
+  font-size: 12px;
+}
+
+.proof-unavailable {
+  flex: 0 0 auto;
 }
 
 .review-note {
@@ -616,6 +696,37 @@ export default {
   gap: 10px;
   border-top: 1px solid #e6ebe8;
   background: #ffffff;
+}
+
+::v-deep .review-dialog {
+  width: calc(100% - 32px) !important;
+  max-width: 520px;
+}
+
+@media (max-width: 767px) {
+  .detail-drawer {
+    padding-right: 16px;
+    padding-left: 16px;
+  }
+
+  .detail-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .drawer-actions {
+    padding-right: 16px;
+    padding-left: 16px;
+    flex-wrap: wrap;
+  }
+
+  ::v-deep .review-dialog .el-dialog__body {
+    padding: 20px 16px;
+  }
+
+  ::v-deep .review-dialog .el-dialog__footer {
+    padding-right: 16px;
+    padding-left: 16px;
+  }
 }
 
 @media (max-width: 767px) {

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use app\chamber\exceptions\MemberTransactionException;
 use app\chamber\membership\BootstrapIdempotency;
+use app\chamber\membership\EncryptedIdempotencyResult;
 use app\chamber\membership\MemberContext;
 use app\chamber\membership\MemberProfilePatch;
 use app\chamber\membership\MemberProfilePrivacy;
@@ -122,11 +123,30 @@ $tests['privacy uses a closed field and scope vocabulary'] = function (): void {
 };
 
 $tests['stored privacy rejects malformed or expanded data'] = function (): void {
-    foreach (['not-json', '{"phone":"public"}', '{"real_name":"tenant"}'] as $encoded) {
+    foreach (['not-json', '[]', '{"phone":"public"}', '{"real_name":"tenant"}'] as $encoded) {
         expectException(InvalidArgumentException::class, function () use ($encoded): void {
             MemberProfilePrivacy::fromStoredJson($encoded);
         });
     }
+};
+
+$tests['stored list fields reject JSON objects even when empty'] = function (): void {
+    expectException(InvalidArgumentException::class, function (): void {
+        snapshot(profileRow(['resources_json' => '{}']));
+    });
+};
+
+$tests['encrypted idempotency result authenticates payload and context'] = function (): void {
+    putenv('CHAMBER_IDEMPOTENCY_ENCRYPTION_KEY=test-only-idempotency-encryption-key-32-bytes');
+    $data = ['real_name' => 'Ada', 'proof_object_keys' => ['private/proof.png']];
+    $sealed = EncryptedIdempotencyResult::seal($data, 'profile:42');
+
+    $canonicalData = json_decode(BootstrapIdempotency::canonicalJson($data), true);
+    assertSame($canonicalData, EncryptedIdempotencyResult::open($sealed, 'profile:42'));
+    assertSame(false, strpos(json_encode($sealed), 'Ada') !== false);
+    expectException(RuntimeException::class, function () use ($sealed): void {
+        EncryptedIdempotencyResult::open($sealed, 'profile:43');
+    });
 };
 
 $tests['profile snapshot exposes API fields without database identities'] = function (): void {

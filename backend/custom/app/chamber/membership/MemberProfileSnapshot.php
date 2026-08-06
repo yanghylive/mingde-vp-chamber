@@ -265,6 +265,10 @@ final class MemberProfileSnapshot
             throw new InvalidArgumentException(sprintf('Stored member profile field %s is invalid JSON', $field));
         }
 
+        $container = json_decode($encoded);
+        if (!is_array($container) || json_last_error() !== JSON_ERROR_NONE) {
+            throw new InvalidArgumentException(sprintf('Stored member profile field %s is invalid', $field));
+        }
         $decoded = json_decode($encoded, true);
         if (!is_array($decoded)
             || json_last_error() !== JSON_ERROR_NONE

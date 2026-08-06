@@ -1,15 +1,25 @@
 <!DOCTYPE html>
 <html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>前端二开入口</title><link rel="stylesheet" href="../../docs/project-docs.css"></head>
-<body><header class="doc-head"><div class="wrap"><p class="eyebrow">FRONTEND OVERLAY</p><h1>前端二开入口</h1><p>CRMEB v6.0.0 的 UniApp 用户端与 Vue2 管理端 overlay。双品牌使用同一代码和租户配置，不复制两份应用。</p></div></header>
-<main class="doc-main"><div class="wrap"><nav class="doc-nav"><a href="../../index.html">项目首页</a><a href="../../docs/CRMEB-二次开发说明书-v1.0.html#frontend">前端规则</a><a href="../../docs/PRD-v2.0.html">PRD</a></nav>
+<body><header class="doc-head"><div class="wrap"><p class="eyebrow">FRONTEND OVERLAY · G1/G2 UI BASELINE · 2026-07-28</p><h1>前端二开入口</h1><p>CRMEB v6.0.0 的 UniApp 用户端与 Vue2 管理端 overlay。当前真实页面范围包括会员资料、毕业认证、活动用户主旅程和活动运营工作台；会籍购买及后续业务页面仍待开发。</p></div></header>
+<main class="doc-main"><div class="wrap"><nav class="doc-nav"><a href="../../index.html">项目首页</a><a href="../../docs/G1-个人资料与毕业认证开发基线.html">G1-01C 基线</a><a href="../../docs/CRMEB-二次开发说明书-v1.0.html#frontend">前端规则</a><a href="../../docs/PRD-v2.0.html">PRD</a></nav>
 <section><h2>目录</h2><pre>frontend/custom/
-├── uniapp/        # H5 / 微信小程序 / App overlay（镜像 UniApp 工程根目录）
-├── admin/         # Vue 2 + Vuex 3 + Element UI overlay（镜像 admin 工程根目录）
+├── uniapp/        # 会员资料/认证、活动列表/详情/报名/签到与 Chamber API
+├── admin/         # 毕业认证审核、活动运营工作台、API 和 CRMEB 路由模块
 └── shared/        # 双端共享的租户品牌配置与 Vue2 薄适配器</pre></section>
 <section><h2>隔离工作区</h2><p>上游 <code>backend/crmeb</code> 保持只读。准备脚本将 CRMEB v6.0.0 两套前端复制到被 Git 忽略的 <code>.build-workspace/frontend</code>，再叠加本目录代码。</p><pre>./scripts/prepare-local-frontend.sh prepare
 ./scripts/prepare-local-frontend.sh check
 ./scripts/prepare-local-frontend.sh test
-./scripts/prepare-local-frontend.sh build-admin</pre><p><code>build-admin</code> 固定执行“准备隔离副本 → <code>npm ci</code> → 生产构建”，并校验构建前后 <code>package-lock.json</code> 与 CRMEB 上游一致。依赖安装在 <code>.build-workspace/frontend/admin/node_modules</code>，产物位于 <code>.build-workspace/frontend/admin/dist</code>；两者均被 Git 忽略。</p><p>管理端声明 Vue <code>^2.5.10</code>，CRMEB v6.0.0 锁文件实际解析为 Vue/Vue Template Compiler <code>2.7.16</code>、Vuex <code>3.6.2</code>、Vue CLI Service <code>3.12.1</code>；Node 要求为 <code>&gt;14 &lt;23</code>。UniApp 当前没有 npm scripts/依赖声明，其旧锁文件也与 package 元数据不一致，按 HBuilderX/UniApp 工程构建。</p></section>
+./scripts/prepare-local-frontend.sh build-admin</pre><p><code>build-admin</code> 固定执行“准备隔离副本 → <code>npm ci</code> → 生产构建”，并校验构建前后 <code>package-lock.json</code> 与 CRMEB 上游一致。依赖和产物都位于被 Git 忽略的隔离工作区。</p><p>UniApp API 默认指向 <code>http://127.0.0.1:8011</code>，可用 <code>MINGDE_UNIAPP_API_ORIGIN</code> 覆盖。准备脚本只接受无凭据、无业务路径的绝对 HTTP(S) Origin，并拒绝公开 <code>demo.crmeb.com</code>，防止本地构建误连上游演示数据。</p><p>管理端锁定 Vue/Vue Template Compiler 2.7.16、Vuex 3.6.2 和 Vue CLI Service 3.12.1，Node 要求 <code>&gt;14 &lt;23</code>。UniApp 按 HBuilderX/UniApp 工程构建。</p></section>
 <section><h2>实施规则</h2><ul class="checklist"><li>先读取 TenantContext 和品牌配置，页面不硬编码渠道名、主色、客服码和协议。</li><li>遵循上游 Vue2 Options API；不引入仅支持 Vue3 的组件、Pinia 或构建配置。</li><li>所有业务状态以后端权限与状态机为准，前端隐藏按钮不代替服务端鉴权。</li><li>小程序不使用 iframe；外部工具使用白名单 web-view，H5 支持发布会降级。</li><li>新增管理页同步提交菜单、路由、API 权限、空/加载/错误/无权状态。</li><li>会员长列表分页，隐私字段只渲染服务端已过滤结果。</li></ul></section>
-<section><h2>首发页面组</h2><div class="table-wrap"><table><thead><tr><th>用户端</th><th>管理端</th></tr></thead><tbody><tr><td>双品牌首页、认证/会籍、活动、同学/好友、商城/创作者、大咖/预约、AI 生态、我的</td><td>租户品牌、会员审核、活动运营、商品审核、预约履约、结算台账、AI 配额/审计</td></tr></tbody></table></div></section>
-</div></main><footer><div class="wrap">mingde-vp-chamber · Frontend Overlay</div></footer></body></html>
+<section><h2>G1-01C 已实现界面</h2><div class="table-wrap"><table><thead><tr><th>界面</th><th>当前能力</th><th>状态</th></tr></thead><tbody>
+<tr><td>UniApp 会员中心入口</td><td>资料/认证入口叠加，入口与深链均先幂等初始化会员；支持可信邀请码暂存</td><td>已实现</td></tr>
+<tr><td>UniApp 个人资料</td><td>资料加载、白名单编辑、资源/需求/兴趣/专长和逐字段隐私；完整加载/错误/保存状态</td><td>已实现，头像编辑后续补齐</td></tr>
+<tr><td>UniApp 毕业认证</td><td>状态、最近申请、JPEG/PNG 上传/重试/读取、提交与退回/拒绝后重新提交</td><td>已实现；新上传拒绝 PDF，历史 PDF 仅受控读取；<code>available=false</code> 时禁止打开材料</td></tr>
+<tr><td>Admin 认证审核</td><td>筛选/分页、详情抽屉、私有材料读取、通过/退回/拒绝/撤销</td><td>失效材料禁止打开并隐藏 approve；后端权限最终裁决</td></tr>
+</tbody></table></div></section>
+<section><h2>G1 会籍页面缺口</h2><p>会籍计划、下单和权益摘要 API 已有后端契约，但 <code>frontend/custom</code> 尚无会籍购买、支付结果和会籍状态页。实施时必须使用 Chamber API 和 CRMEB Token，不得绕过业务中心直调原生商城购物车。</p></section>
+<section><h2>G2 活动已实现界面</h2><p>UniApp 已实现活动列表、详情、报名提交、我的活动、报名详情、收银台衔接和扫码签到；Admin 已实现活动列表/详情、草稿创建编辑、发布/取消、签到码和人工补签工作台。管理员读取使用专用 Admin Token 接口。用户退款入口在真实退款 API 完成前保持禁用，6 个管理写操作在 HTTP 门禁完成前仍按 planned 管理。</p></section>
+<section><h2>验证结果</h2><pre>./scripts/prepare-local-frontend.sh test
+./scripts/prepare-local-frontend.sh build-admin</pre><ul class="checklist"><li>会员 UI 18 项、租户品牌 6 项、活动 UniApp 11 项、活动 Admin 8 项测试通过。</li><li>准备后的 UniApp/Admin 导入、6 个活动页面/入口注册和本地 API Origin 校验通过。</li><li>Admin 生产构建通过；上游既有 CSS/体积告警保留，未被误写成构建失败。</li><li>上传、审核和活动操作的最终权限与状态机全部由后端执行，前端状态只改善交互。</li></ul></section>
+<section><h2>首发待开发页面组</h2><div class="table-wrap"><table><thead><tr><th>用户端</th><th>管理端</th></tr></thead><tbody><tr><td>双品牌首页、微信登录/绑手机、会籍、同学/好友、商城/创作者、大咖/预约、AI 生态、我的完整状态页</td><td>租户品牌、商品审核、预约履约、结算台账、AI 配额/审计；活动写操作继续补 HTTP 门禁</td></tr></tbody></table></div></section>
+</div></main><footer><div class="wrap">mingde-vp-chamber · Frontend Overlay · 2026-07-28</div></footer></body></html>

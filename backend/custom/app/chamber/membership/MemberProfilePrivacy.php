@@ -55,6 +55,10 @@ final class MemberProfilePrivacy
             throw new InvalidArgumentException('Stored member profile privacy must be a JSON object');
         }
 
+        $object = json_decode($encoded);
+        if (!$object instanceof \stdClass || json_last_error() !== JSON_ERROR_NONE) {
+            throw new InvalidArgumentException('Stored member profile privacy must be a JSON object');
+        }
         $decoded = json_decode($encoded, true);
         if (!is_array($decoded) || json_last_error() !== JSON_ERROR_NONE) {
             throw new InvalidArgumentException('Stored member profile privacy must be a JSON object');

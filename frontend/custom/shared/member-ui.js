@@ -77,8 +77,24 @@
       revoke: { label: '撤销认证', tone: 'danger', noteRequired: true },
     };
 
+    var FIELD_ERROR_MESSAGES = {
+      required: '请填写此项',
+      min_properties: '请至少填写一项',
+      invalid_type: '数据类型不正确',
+      invalid_format: '格式不正确',
+      invalid_value: '内容不正确',
+      invalid_encoding: '内容编码不正确',
+      unknown_field: '不支持此字段',
+      too_long: '内容过长',
+      too_many_items: '项目数量过多',
+      out_of_range: '超出允许范围',
+      duplicate: '内容重复',
+    };
+
     var OBJECT_KEY_PATTERN =
       /^(?!https?:\/\/)(?!\/)(?!.*\/\/)(?!.*(?:^|\/)\.{1,2}(?:\/|$))(?!.*\/$)[A-Za-z0-9][A-Za-z0-9._/-]*$/;
+    var PROOF_UPLOAD_MIME_TYPES = ['image/jpeg', 'image/png'];
+    var PROOF_UPLOAD_EXTENSIONS = ['jpg', 'jpeg', 'png'];
 
     function isObject(value) {
       return value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -134,6 +150,119 @@
     function isValidObjectKey(value) {
       var normalized = cleanText(value);
       return normalized.length > 0 && normalized.length <= 255 && OBJECT_KEY_PATTERN.test(normalized);
+    }
+
+    function fieldErrorsToMap(input) {
+      var errors = Array.isArray(input) ? input : [];
+      var result = {};
+
+      errors.forEach(function (item) {
+        if (!isObject(item)) return;
+        var field = cleanText(item.field);
+        var code = cleanText(item.code);
+        if (!field || hasOwn(result, field)) return;
+
+        var message = FIELD_ERROR_MESSAGES[code] || '请检查此项';
+        result[field] = message;
+
+        var rootField = field.split(/[.\[]/, 1)[0];
+        if (rootField && !hasOwn(result, rootField)) result[rootField] = message;
+      });
+
+      return result;
+    }
+
+    function fileNameFromObjectKey(objectKey) {
+      var normalized = cleanText(objectKey);
+      if (!normalized) return '';
+      var parts = normalized.split('/');
+      return parts[parts.length - 1] || normalized;
+    }
+
+    function validateProofUploadCandidate(input) {
+      var file = isObject(input) ? input : {};
+      var filePath = cleanText(file.path || file.tempFilePath);
+      var pathForExtension = filePath.split(/[?#]/, 1)[0];
+      var originalName = cleanText(file.name) || fileNameFromObjectKey(pathForExtension);
+      var suppliedType = cleanText(file.type || file.mime_type).toLowerCase().split(';', 1)[0];
+      var mimeType = suppliedType.indexOf('/') >= 0 ? suppliedType : '';
+      var extensionMatch = /\.([A-Za-z0-9]+)$/.exec(originalName) || /\.([A-Za-z0-9]+)$/.exec(pathForExtension);
+      var extension = extensionMatch ? extensionMatch[1].toLowerCase() : '';
+      var formatError = '证明材料仅支持 JPEG 或 PNG 图片';
+
+      if (!filePath) return { valid: false, error: '无法读取所选图片' };
+      if (mimeType && PROOF_UPLOAD_MIME_TYPES.indexOf(mimeType) < 0) {
+        return { valid: false, error: formatError };
+      }
+      if (extension && PROOF_UPLOAD_EXTENSIONS.indexOf(extension) < 0) {
+        return { valid: false, error: formatError };
+      }
+      if (!mimeType && !extension) return { valid: false, error: formatError };
+
+      return {
+        valid: true,
+        error: '',
+        value: {
+          file_path: filePath,
+          original_name: originalName || '证明材料.' + extension,
+          mime_type: mimeType || (extension === 'png' ? 'image/png' : 'image/jpeg'),
+        },
+      };
+    }
+
+    function normalizeMemberAsset(input) {
+      var data = unwrapData(input);
+      var id = Number(data.id || 0);
+      var objectKey = cleanText(data.object_key);
+      if (!objectKey) return null;
+      var validId = Number.isInteger(id) && id > 0;
+
+      return {
+        id: validId ? id : 0,
+        object_key: objectKey,
+        original_name: cleanText(data.original_name) || fileNameFromObjectKey(objectKey),
+        mime_type: cleanText(data.mime_type),
+        size: Math.max(0, Number(data.size) || 0),
+        available: typeof data.available === 'boolean' ? data.available : validId,
+      };
+    }
+
+    function proofAssetsFromApplication(input) {
+      var application = isObject(input) ? input : {};
+      var assets = [];
+      var seen = {};
+
+      if (Array.isArray(application.proof_assets)) {
+        application.proof_assets.forEach(function (item) {
+          var asset = normalizeMemberAsset(item);
+          if (!asset || hasOwn(seen, asset.object_key)) return;
+          seen[asset.object_key] = true;
+          assets.push(asset);
+        });
+      }
+
+      normalizeList(application.proof_object_keys).forEach(function (objectKey) {
+        if (hasOwn(seen, objectKey)) return;
+        seen[objectKey] = true;
+        assets.push({
+          id: 0,
+          object_key: objectKey,
+          original_name: fileNameFromObjectKey(objectKey),
+          mime_type: '',
+          size: 0,
+          available: false,
+        });
+      });
+
+      return assets;
+    }
+
+    function humanFileSize(value) {
+      var size = Math.max(0, Number(value) || 0);
+      if (!size) return '';
+      if (size < 1024) return Math.round(size) + ' B';
+      if (size < 1024 * 1024) return (size / 1024).toFixed(size < 10 * 1024 ? 1 : 0) + ' KB';
+      return (size / (1024 * 1024)).toFixed(size < 10 * 1024 * 1024 ? 1 : 0) + ' MB';
     }
 
     function profileFormFromData(input) {
@@ -220,8 +349,24 @@
     function dateToUnixSeconds(value) {
       var normalized = cleanText(value);
       if (!normalized) return 0;
-      var timestamp = new Date(normalized + 'T00:00:00').getTime();
-      return Number.isFinite(timestamp) ? Math.floor(timestamp / 1000) : 0;
+      var parts = /^(\d{4})-(\d{2})-(\d{2})$/.exec(normalized);
+      if (!parts) return 0;
+
+      var year = Number(parts[1]);
+      var month = Number(parts[2]);
+      var day = Number(parts[3]);
+      var timestamp = Date.UTC(year, month - 1, day);
+      var date = new Date(timestamp);
+      if (
+        !Number.isFinite(timestamp) ||
+        date.getUTCFullYear() !== year ||
+        date.getUTCMonth() !== month - 1 ||
+        date.getUTCDate() !== day
+      ) {
+        return 0;
+      }
+
+      return Math.floor(timestamp / 1000);
     }
 
     function buildVerificationSubmission(input, latestApplication) {
@@ -373,8 +518,14 @@
       PROFILE_FIELDS: PROFILE_FIELDS,
       STATUS_META: STATUS_META,
       REVIEW_ACTIONS: REVIEW_ACTIONS,
+      FIELD_ERROR_MESSAGES: FIELD_ERROR_MESSAGES,
       normalizeList: normalizeList,
       isValidObjectKey: isValidObjectKey,
+      fieldErrorsToMap: fieldErrorsToMap,
+      validateProofUploadCandidate: validateProofUploadCandidate,
+      normalizeMemberAsset: normalizeMemberAsset,
+      proofAssetsFromApplication: proofAssetsFromApplication,
+      humanFileSize: humanFileSize,
       createPrivacy: createPrivacy,
       profileFormFromData: profileFormFromData,
       buildProfilePatch: buildProfilePatch,

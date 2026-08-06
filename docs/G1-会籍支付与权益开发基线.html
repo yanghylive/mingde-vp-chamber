@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>G1 会籍支付与权益开发基线 · mingde-vp-chamber</title>
+  <link rel="stylesheet" href="project-docs.css">
+</head>
+<body>
+  <header class="doc-head"><div class="wrap">
+    <p class="eyebrow">G1-01E · IMPLEMENTED · 2026-07-26</p>
+    <h1>G1 会籍支付与权益开发基线</h1>
+    <p>记录 CRMEB 会籍订单支付完成、商业事件入箱、期限与效果创建、等级投影、续费排期、到期回落、全额退款回收和我的会籍查询的实现事实。</p>
+  </div></header>
+  <main class="doc-main"><div class="wrap">
+    <nav class="doc-nav">
+      <a href="../index.html">项目首页</a>
+      <a href="开发任务板.html">开发任务板</a>
+      <a href="G1-会籍计划与下单开发基线.html">G1-01D 下单基线</a>
+      <a href="G1-会员交易开发基线.html">会员交易总基线</a>
+      <a href="../backend/custom/openapi/README.html">API 契约</a>
+    </nav>
+
+    <section>
+      <h2>1. 验收结论</h2>
+      <div class="callout good"><strong>方向未漂移，G1-01E 本地闭环已完成：</strong>毕业认证通过的会员可创建 CRMEB 会籍订单；可信支付成功后，订单、OrderContext、inbox、term、grant effect 与会员等级在同库事务中一致提交；到期或全额退款后从期限事实重算并回落到 L2。</div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>能力</th><th>实现状态</th><th>约束</th></tr></thead>
+        <tbody>
+          <tr><td>支付完成接入</td><td><code>StoreOrderSuccessServices</code> 在根应用与 API 应用中绑定可信会籍适配器</td><td>普通商品继续执行 CRMEB 原实现；会籍单先重读订单和 OrderContext，任一事实不一致即失败关闭</td></tr>
+          <tr><td>事件与权益</td><td>原子写入 <code>ch_commerce_event_inbox</code>，创建唯一 term 与 grant effect</td><td>同源事件同 hash 可重放，异 hash 冲突；事件、期限、效果和投影同事务提交</td></tr>
+          <tr><td>续费与升级</td><td>同等级续费从该等级最后结束时间继续；更高等级立即生效</td><td>会员行锁串行并发购买；期限采用半开区间 <code>[start,end)</code></td></tr>
+          <tr><td>等级与到期</td><td>从批准认证和有效 L3/L4 term 重算 <code>tier</code>、到期时间及 current term</td><td>投影不是财务事实源；定时补扫只重算，不改写期限事实状态</td></tr>
+          <tr><td>全额退款</td><td>可信完成事件追加 full-refund effect，term 转为 fully-refunded 并重算等级</td><td>完成 ID 和效果键幂等；累计退款不得倒退或超过实付</td></tr>
+          <tr><td>我的会籍</td><td><code>GET /chamber/v1/me/membership</code> 已实现</td><td>只返回当前认证用户在可信 tenant/channel 下的等级、期限和购买能力</td></tr>
+        </tbody>
+      </table></div>
+    </section>
+
+    <section>
+      <h2>2. 运行链路</h2>
+      <pre>CRMEB 支付回调 / 余额支付 / 零元完成
+  -> GuardedStoreOrderSuccessServices
+  -> 锁 eb_store_order + ch_order_context
+  -> 校验 uid / order_no / unique / 金额 / 币种 / 虚拟类型 / 状态
+  -> 更新 CRMEB paid 与 OrderContext payment fact
+  -> 写唯一 commerce.order.completed.v1 inbox
+  -> 锁会员行，创建唯一 membership term + grant effect
+  -> 从全部有效期限重算 member projection
+  -> inbox 标记 processed
+  -> 同一 MySQL 事务提交</pre>
+      <p>定时任务 <code>MembershipOrderContextRepairJob</code> 继续修复下单绑定缺口，并补消费可重试 inbox、重算到期或待生效期限。根 provider 对 HTTP、队列、timer 和 CLI 一致生效；API provider 显式重复关键绑定，避免多应用覆盖导致旁路。</p>
+    </section>
+
+    <section>
+      <h2>3. 关键不变量</h2>
+      <ul class="checklist">
+        <li>会籍支付只能处理已绑定的单商品 CRMEB 虚拟订单；订单 unique 必须等于 OrderContext context number。</li>
+        <li>订单实付、上下文应付/实付、事件金额和币种必须完全一致；支付完成后不得再接受取消或关闭状态。</li>
+        <li>一个 OrderContext 只能创建一个 term；一个支付 event 只能创建一个 grant effect。</li>
+        <li>同等级并发续费在会员行锁后重新查询最后期限，不依赖请求到达顺序，也不覆盖旧期限。</li>
+        <li>L4 全额退款或到期后，若仍有有效 L3 自动回落到 L3；否则批准认证会员回落 L2，认证撤销则回落 L1。</li>
+        <li>原生管理端、客服和 OutAPI 发货/收货入口由 delivery 与 OutAPI 服务守卫拒绝会籍订单，防止虚拟会籍被原生履约状态机改写。</li>
+        <li>事件载荷只保留最小商业事实，不写姓名、手机号、地址、OpenID 或证件信息。</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>4. 自动化证据</h2>
+      <div class="table-wrap"><table>
+        <thead><tr><th>证据</th><th>结果</th><th>覆盖</th></tr></thead>
+        <tbody>
+          <tr><td><code>check-g1-membership-entitlement.sh</code></td><td>通过</td><td>真实 Nginx、CRMEB、MySQL、Redis 和 Chamber Overlay</td></tr>
+          <tr><td>支付重放</td><td>10 次重放仍为 1 term + 1 grant effect + 1 inbox</td><td>支付回调幂等和事件 hash 冲突保护</td></tr>
+          <tr><td>并发续费</td><td>2 笔待支付续费并发完成，3 段年度期限连续且不重叠</td><td>会员行锁、重新计算开始时间和事务提交</td></tr>
+          <tr><td>异常路径</td><td>订单/Context 不匹配失败；消费中断后 order/context/event/term 均无半成品</td><td>失败关闭与整事务回滚后可重试</td></tr>
+          <tr><td>投影</td><td>期限到期回落 L2；全额退款 effect 重放仍仅 1 条</td><td>到期、退款和会籍摘要</td></tr>
+          <tr><td>原生旁路</td><td>Delivery 与 OutAPI receive 均拒绝且订单状态零变化</td><td>管理、客服、OutAPI 统一服务边界</td></tr>
+          <tr><td>OpenAPI</td><td>14 paths / 16 operations / 16 implemented / 0 planned / 85 schemas</td><td>重复键、引用、鉴权、租户与响应契约治理</td></tr>
+        </tbody>
+      </table></div>
+    </section>
+
+    <section>
+      <h2>5. 仍未完成的生产边界</h2>
+      <div class="callout warn"><strong>本地权益闭环不等于真实资金联调：</strong>当前门禁通过服务层可信支付适配器验证，尚未配置正式微信 AppID、商户号、API v3 密钥、平台证书和公网回调域名。</div>
+      <ul class="checklist">
+        <li>真实微信支付与退款通知的签名、重放、对账和异常补单仍需正式商户环境联调。</li>
+        <li>原生会籍退款入口当前保持拒绝；全额退款消费者已验证，但正式退款申请、审核和 provider 完成事件生产器尚未交付。</li>
+        <li>部分退款期限折算、按天补差价、自动续费、推荐奖励和退款冲正继续暂缓，等待财务规则确认。</li>
+        <li>会员端会籍信息 API 已完成，正式视觉页面和支付结果页仍需后续前端切片。</li>
+        <li>专业恶意软件扫描、生产对象存储、监控、告警、备份恢复和安全测试仍是上线硬门槛。</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>6. 下一开发批次</h2>
+      <ol>
+        <li>进入 G2 活动最小闭环：活动发布、票种、资格、报名、支付、签到与激励。</li>
+        <li>并行补会员端会籍页和支付结果页；正式微信联调资料到联调节点再提供。</li>
+        <li>保持商城、大咖和 AI 最小真链路并行，避免只在会员模块纵向推进。</li>
+      </ol>
+    </section>
+  </div></main>
+  <footer><div class="wrap">mingde-vp-chamber · G1-01E 会籍支付与权益开发基线 · 2026-07-26</div></footer>
+</body>
+</html>

@@ -2,17 +2,17 @@ openapi: 3.1.0
 jsonSchemaDialect: https://json-schema.org/draft/2020-12/schema
 info:
   title: Mingde VP Chamber API
-  version: 0.4.0
-  summary: Chamber overlay G0 runtime and G1 profile and graduate-verification vertical
+  version: 0.6.0
+  summary: Chamber overlay G0/G1 runtime and G2 activity vertical
   description: |
     This document is the source-controlled contract for the independently developed
     Chamber API overlay. Runtime behavior is defined by the locked CRMEB v6.0.0
     source plus `backend/custom/app/chamber`.
 
-    Every operation declares `x-implementation-status`. G0 routes, authenticated
-    member bootstrap, profile, and graduate-verification operations marked
-    `implemented` are live. Remaining G1 routes marked `planned` freeze the next
-    implementation contract and MUST NOT be represented as runtime-delivered yet.
+    Every operation declares `x-implementation-status`. G0/G1 member operations
+    and the implemented G2 activity reads, registration, and check-in operations
+    are live. Administration write routes remain outside the delivered contract
+    until their HTTP acceptance gate is complete.
 
     All response envelopes contain `status`, `msg`, `data`, and `request_id`.
     The G0 request tracing middleware returns independent request/correlation IDs
@@ -33,6 +33,8 @@ tags:
     description: Authenticated tenant member, profile, and graduate verification.
   - name: Membership
     description: Tenant/channel membership plans and effective entitlement summary.
+  - name: Activity
+    description: Tenant/channel event discovery, registration, payment, and check-in.
   - name: Administration
     description: Tenant-scoped operator review commands guarded by CRMEB admin authentication.
 x-contract-policy:
@@ -189,6 +191,8 @@ paths:
           $ref: '#/components/responses/ChamberRequestError'
         '404':
           $ref: '#/components/responses/MemberTransactionError'
+        '409':
+          $ref: '#/components/responses/MemberTransactionError'
         '500':
           $ref: '#/components/responses/InternalServerError'
         '503':
@@ -222,6 +226,105 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/MemberProfileSuccess'
+        '400':
+          $ref: '#/components/responses/ChamberRequestError'
+        '401':
+          $ref: '#/components/responses/ChamberRequestError'
+        '403':
+          $ref: '#/components/responses/ChamberRequestError'
+        '404':
+          $ref: '#/components/responses/MemberTransactionError'
+        '409':
+          $ref: '#/components/responses/MemberTransactionError'
+        '422':
+          $ref: '#/components/responses/MemberTransactionError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/TenantServiceUnavailable'
+  /chamber/v1/me/assets:
+    post:
+      tags:
+        - Member
+      summary: Upload one new JPEG or PNG private member asset for a declared Chamber purpose
+      operationId: uploadChamberMemberAsset
+      security:
+        - CrmebBearerAuth: []
+      x-implementation-status: implemented
+      x-requirement-id: MEM-002
+      x-tenant-context: required
+      x-signed-headers-all-or-none: true
+      parameters:
+        - $ref: '#/components/parameters/RequestIdHeader'
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+        - $ref: '#/components/parameters/ChamberTenantHeader'
+        - $ref: '#/components/parameters/ChamberChannelHeader'
+        - $ref: '#/components/parameters/ChamberTimestampHeader'
+        - $ref: '#/components/parameters/ChamberNonceHeader'
+        - $ref: '#/components/parameters/ChamberSignatureHeader'
+        - $ref: '#/components/parameters/IdempotencyKeyHeader'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/MemberAssetUploadRequest'
+            encoding:
+              file:
+                contentType: image/jpeg, image/png
+      responses:
+        '201':
+          $ref: '#/components/responses/MemberAssetCreated'
+        '400':
+          $ref: '#/components/responses/ChamberRequestError'
+        '401':
+          $ref: '#/components/responses/ChamberRequestError'
+        '403':
+          $ref: '#/components/responses/ChamberRequestError'
+        '404':
+          $ref: '#/components/responses/MemberTransactionError'
+        '409':
+          $ref: '#/components/responses/MemberTransactionError'
+        '413':
+          $ref: '#/components/responses/MemberTransactionError'
+        '415':
+          $ref: '#/components/responses/MemberTransactionError'
+        '422':
+          $ref: '#/components/responses/MemberTransactionError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/TenantServiceUnavailable'
+  /chamber/v1/me/assets/{asset_id}/content:
+    get:
+      tags:
+        - Member
+      summary: Read private asset content owned by the authenticated member
+      operationId: getChamberMemberAssetContent
+      security:
+        - CrmebBearerAuth: []
+      x-implementation-status: implemented
+      x-requirement-id: MEM-002
+      x-tenant-context: required
+      x-signed-headers-all-or-none: true
+      x-binary-response: true
+      parameters:
+        - name: asset_id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/PositiveId'
+        - $ref: '#/components/parameters/DownloadQuery'
+        - $ref: '#/components/parameters/RequestIdHeader'
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+        - $ref: '#/components/parameters/ChamberTenantHeader'
+        - $ref: '#/components/parameters/ChamberChannelHeader'
+        - $ref: '#/components/parameters/ChamberTimestampHeader'
+        - $ref: '#/components/parameters/ChamberNonceHeader'
+        - $ref: '#/components/parameters/ChamberSignatureHeader'
+      responses:
+        '200':
+          $ref: '#/components/responses/MemberAssetContent'
         '400':
           $ref: '#/components/responses/ChamberRequestError'
         '401':
@@ -308,6 +411,8 @@ paths:
           $ref: '#/components/responses/ChamberRequestError'
         '403':
           $ref: '#/components/responses/ChamberRequestError'
+        '404':
+          $ref: '#/components/responses/MemberTransactionError'
         '409':
           $ref: '#/components/responses/MemberTransactionError'
         '422':
@@ -329,6 +434,7 @@ paths:
       x-tenant-context: required
       x-signed-headers-all-or-none: true
       x-admin-permission: chamber.graduate_verification.review
+      x-admin-scope: level-0-super-administrator-only
       parameters:
         - name: status
           in: query
@@ -359,6 +465,57 @@ paths:
           $ref: '#/components/responses/ChamberRequestError'
         '403':
           $ref: '#/components/responses/ChamberRequestError'
+        '422':
+          $ref: '#/components/responses/MemberTransactionError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/TenantServiceUnavailable'
+  /chamber/admin/v1/member-assets/{asset_id}/content:
+    get:
+      tags:
+        - Administration
+      summary: Read one private member asset in the trusted tenant and channel
+      operationId: getChamberMemberAssetContentForAdmin
+      security:
+        - CrmebAdminBearerAuth: []
+      x-implementation-status: implemented
+      x-requirement-id: MEM-002
+      x-tenant-context: required
+      x-signed-headers-all-or-none: true
+      x-admin-permission: chamber.graduate_verification.review
+      x-admin-scope: level-0-super-administrator-only
+      x-binary-response: true
+      parameters:
+        - name: asset_id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/PositiveId'
+        - $ref: '#/components/parameters/AdminAssetApplicationIdQuery'
+        - $ref: '#/components/parameters/DownloadQuery'
+        - $ref: '#/components/parameters/RequestIdHeader'
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+        - $ref: '#/components/parameters/ChamberTenantHeader'
+        - $ref: '#/components/parameters/ChamberChannelHeader'
+        - $ref: '#/components/parameters/ChamberTimestampHeader'
+        - $ref: '#/components/parameters/ChamberNonceHeader'
+        - $ref: '#/components/parameters/ChamberSignatureHeader'
+      responses:
+        '200':
+          $ref: '#/components/responses/MemberAssetContent'
+        '400':
+          $ref: '#/components/responses/ChamberRequestError'
+        '401':
+          $ref: '#/components/responses/ChamberRequestError'
+        '403':
+          $ref: '#/components/responses/ChamberRequestError'
+        '404':
+          $ref: '#/components/responses/MemberTransactionError'
+        '409':
+          $ref: '#/components/responses/MemberTransactionError'
+        '422':
+          $ref: '#/components/responses/MemberTransactionError'
         '500':
           $ref: '#/components/responses/InternalServerError'
         '503':
@@ -376,6 +533,7 @@ paths:
       x-tenant-context: required
       x-signed-headers-all-or-none: true
       x-admin-permission: chamber.graduate_verification.review
+      x-admin-scope: level-0-super-administrator-only
       parameters:
         - name: application_id
           in: path
@@ -400,6 +558,8 @@ paths:
           $ref: '#/components/responses/ChamberRequestError'
         '404':
           $ref: '#/components/responses/MemberTransactionError'
+        '422':
+          $ref: '#/components/responses/MemberTransactionError'
         '500':
           $ref: '#/components/responses/InternalServerError'
         '503':
@@ -417,6 +577,7 @@ paths:
       x-tenant-context: required
       x-signed-headers-all-or-none: true
       x-admin-permission: chamber.graduate_verification.review
+      x-admin-scope: level-0-super-administrator-only
       parameters:
         - name: application_id
           in: path
@@ -461,10 +622,11 @@ paths:
       tags:
         - Membership
       summary: List purchasable membership plans for the trusted tenant and channel
+      description: Returns only effective tenant/channel plans and member-specific eligibility; CRMEB product and SKU mappings are never exposed.
       operationId: listMembershipPlans
       security:
         - CrmebBearerAuth: []
-      x-implementation-status: planned
+      x-implementation-status: implemented
       x-requirement-id: MEM-006
       x-tenant-context: required
       x-signed-headers-all-or-none: true
@@ -494,10 +656,11 @@ paths:
       tags:
         - Membership
       summary: Create or replay a single-plan CRMEB membership order and OrderContext
+      description: Strictly validates one plan/version/amount/currency request, derives identity from the authenticated CRMEB user, and replays the original order for the same idempotency key and request.
       operationId: createMembershipCheckout
       security:
         - CrmebBearerAuth: []
-      x-implementation-status: planned
+      x-implementation-status: implemented
       x-requirement-id: MEM-006
       x-tenant-context: required
       x-signed-headers-all-or-none: true
@@ -532,7 +695,7 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
         '503':
-          $ref: '#/components/responses/TenantServiceUnavailable'
+          $ref: '#/components/responses/MemberTransactionError'
   /chamber/v1/me/membership:
     get:
       tags:
@@ -541,7 +704,7 @@ paths:
       operationId: getMembershipSummary
       security:
         - CrmebBearerAuth: []
-      x-implementation-status: planned
+      x-implementation-status: implemented
       x-requirement-id: MEM-006
       x-tenant-context: required
       x-signed-headers-all-or-none: true
@@ -563,6 +726,656 @@ paths:
         '403':
           $ref: '#/components/responses/ChamberRequestError'
         '404':
+          $ref: '#/components/responses/MemberTransactionError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/TenantServiceUnavailable'
+  /chamber/v1/events:
+    get:
+      tags:
+        - Activity
+      summary: List published events visible in the trusted tenant and channel
+      description: Returns only published, not-ended events and includes member-specific qualification reasons when authenticated.
+      operationId: listEvents
+      security:
+        - CrmebBearerAuth: []
+      x-implementation-status: implemented
+      x-requirement-id: ACT-002,ACT-003,ACT-006
+      x-tenant-context: required
+      x-signed-headers-all-or-none: true
+      parameters:
+        - $ref: '#/components/parameters/EventTypeQuery'
+        - $ref: '#/components/parameters/EventStatusQuery'
+        - $ref: '#/components/parameters/EventTagQuery'
+        - $ref: '#/components/parameters/PageQuery'
+        - $ref: '#/components/parameters/LimitQuery'
+        - $ref: '#/components/parameters/RequestIdHeader'
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+        - $ref: '#/components/parameters/ChamberTenantHeader'
+        - $ref: '#/components/parameters/ChamberChannelHeader'
+        - $ref: '#/components/parameters/ChamberTimestampHeader'
+        - $ref: '#/components/parameters/ChamberNonceHeader'
+        - $ref: '#/components/parameters/ChamberSignatureHeader'
+      responses:
+        '200':
+          $ref: '#/components/responses/EventListSuccess'
+        '400':
+          $ref: '#/components/responses/ChamberRequestError'
+        '401':
+          $ref: '#/components/responses/ChamberRequestError'
+        '403':
+          $ref: '#/components/responses/ChamberRequestError'
+        '422':
+          $ref: '#/components/responses/MemberTransactionError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/TenantServiceUnavailable'
+  /chamber/v1/events/{event_id}:
+    get:
+      tags:
+        - Activity
+      summary: Get one tenant-scoped event and its ticket/qualification details
+      operationId: showEvent
+      security:
+        - CrmebBearerAuth: []
+      x-implementation-status: implemented
+      x-requirement-id: ACT-001,ACT-002,ACT-003,ACT-006
+      x-tenant-context: required
+      x-signed-headers-all-or-none: true
+      parameters:
+        - name: event_id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/PositiveId'
+        - $ref: '#/components/parameters/RequestIdHeader'
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+        - $ref: '#/components/parameters/ChamberTenantHeader'
+        - $ref: '#/components/parameters/ChamberChannelHeader'
+        - $ref: '#/components/parameters/ChamberTimestampHeader'
+        - $ref: '#/components/parameters/ChamberNonceHeader'
+        - $ref: '#/components/parameters/ChamberSignatureHeader'
+      responses:
+        '200':
+          $ref: '#/components/responses/EventDetailSuccess'
+        '400':
+          $ref: '#/components/responses/ChamberRequestError'
+        '401':
+          $ref: '#/components/responses/ChamberRequestError'
+        '403':
+          $ref: '#/components/responses/ChamberRequestError'
+        '404':
+          $ref: '#/components/responses/MemberTransactionError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/TenantServiceUnavailable'
+  /chamber/v1/events/{event_id}/registrations:
+    post:
+      tags:
+        - Activity
+      summary: Register the authenticated member for an event ticket
+      description: Creates a free/points registration immediately or creates a pending CRMEB cash order through the unified OrderContext boundary.
+      operationId: createEventRegistration
+      security:
+        - CrmebBearerAuth: []
+      x-implementation-status: implemented
+      x-requirement-id: ACT-004,ACT-005
+      x-tenant-context: required
+      x-signed-headers-all-or-none: true
+      parameters:
+        - name: event_id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/PositiveId'
+        - $ref: '#/components/parameters/RequestIdHeader'
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+        - $ref: '#/components/parameters/ChamberTenantHeader'
+        - $ref: '#/components/parameters/ChamberChannelHeader'
+        - $ref: '#/components/parameters/ChamberTimestampHeader'
+        - $ref: '#/components/parameters/ChamberNonceHeader'
+        - $ref: '#/components/parameters/ChamberSignatureHeader'
+        - $ref: '#/components/parameters/IdempotencyKeyHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EventRegistrationRequest'
+      responses:
+        '201':
+          $ref: '#/components/responses/EventRegistrationCreated'
+        '400':
+          $ref: '#/components/responses/ChamberRequestError'
+        '401':
+          $ref: '#/components/responses/ChamberRequestError'
+        '403':
+          $ref: '#/components/responses/ChamberRequestError'
+        '404':
+          $ref: '#/components/responses/MemberTransactionError'
+        '409':
+          $ref: '#/components/responses/MemberTransactionError'
+        '422':
+          $ref: '#/components/responses/MemberTransactionError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/TenantServiceUnavailable'
+  /chamber/v1/me/event-registrations:
+    get:
+      tags:
+        - Activity
+      summary: List the authenticated member's event registrations
+      operationId: listMyEventRegistrations
+      security:
+        - CrmebBearerAuth: []
+      x-implementation-status: implemented
+      x-requirement-id: ACT-005,ACT-008
+      x-tenant-context: required
+      x-signed-headers-all-or-none: true
+      parameters:
+        - $ref: '#/components/parameters/EventRegistrationStatusQuery'
+        - $ref: '#/components/parameters/PageQuery'
+        - $ref: '#/components/parameters/LimitQuery'
+        - $ref: '#/components/parameters/RequestIdHeader'
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+        - $ref: '#/components/parameters/ChamberTenantHeader'
+        - $ref: '#/components/parameters/ChamberChannelHeader'
+        - $ref: '#/components/parameters/ChamberTimestampHeader'
+        - $ref: '#/components/parameters/ChamberNonceHeader'
+        - $ref: '#/components/parameters/ChamberSignatureHeader'
+      responses:
+        '200':
+          $ref: '#/components/responses/EventRegistrationListSuccess'
+        '400':
+          $ref: '#/components/responses/ChamberRequestError'
+        '401':
+          $ref: '#/components/responses/ChamberRequestError'
+        '403':
+          $ref: '#/components/responses/ChamberRequestError'
+        '422':
+          $ref: '#/components/responses/MemberTransactionError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/TenantServiceUnavailable'
+  /chamber/v1/me/event-registrations/{registration_id}:
+    get:
+      tags:
+        - Activity
+      summary: Get one event registration owned by the authenticated member
+      operationId: showMyEventRegistration
+      security:
+        - CrmebBearerAuth: []
+      x-implementation-status: implemented
+      x-requirement-id: ACT-005,ACT-008
+      x-tenant-context: required
+      x-signed-headers-all-or-none: true
+      parameters:
+        - name: registration_id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/PositiveId'
+        - $ref: '#/components/parameters/RequestIdHeader'
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+        - $ref: '#/components/parameters/ChamberTenantHeader'
+        - $ref: '#/components/parameters/ChamberChannelHeader'
+        - $ref: '#/components/parameters/ChamberTimestampHeader'
+        - $ref: '#/components/parameters/ChamberNonceHeader'
+        - $ref: '#/components/parameters/ChamberSignatureHeader'
+      responses:
+        '200':
+          $ref: '#/components/responses/EventRegistrationSuccess'
+        '400':
+          $ref: '#/components/responses/ChamberRequestError'
+        '401':
+          $ref: '#/components/responses/ChamberRequestError'
+        '403':
+          $ref: '#/components/responses/ChamberRequestError'
+        '404':
+          $ref: '#/components/responses/MemberTransactionError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/TenantServiceUnavailable'
+  /chamber/v1/events/{event_id}/checkins:
+    post:
+      tags:
+        - Activity
+      summary: Check in the authenticated member with a signed event token
+      operationId: createEventCheckin
+      security:
+        - CrmebBearerAuth: []
+      x-implementation-status: implemented
+      x-requirement-id: ACT-007,ACT-008
+      x-tenant-context: required
+      x-signed-headers-all-or-none: true
+      parameters:
+        - name: event_id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/PositiveId'
+        - $ref: '#/components/parameters/RequestIdHeader'
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+        - $ref: '#/components/parameters/ChamberTenantHeader'
+        - $ref: '#/components/parameters/ChamberChannelHeader'
+        - $ref: '#/components/parameters/ChamberTimestampHeader'
+        - $ref: '#/components/parameters/ChamberNonceHeader'
+        - $ref: '#/components/parameters/ChamberSignatureHeader'
+        - $ref: '#/components/parameters/IdempotencyKeyHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EventCheckinRequest'
+      responses:
+        '201':
+          $ref: '#/components/responses/EventCheckinCreated'
+        '400':
+          $ref: '#/components/responses/ChamberRequestError'
+        '401':
+          $ref: '#/components/responses/ChamberRequestError'
+        '403':
+          $ref: '#/components/responses/ChamberRequestError'
+        '404':
+          $ref: '#/components/responses/MemberTransactionError'
+        '409':
+          $ref: '#/components/responses/MemberTransactionError'
+        '422':
+          $ref: '#/components/responses/MemberTransactionError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/TenantServiceUnavailable'
+  /chamber/admin/v1/events:
+    get:
+      tags:
+        - Administration
+      summary: List tenant/channel-scoped events for administration
+      description: Returns draft and non-draft events in the trusted tenant and channel for the activity workbench.
+      operationId: listEventsForAdmin
+      security:
+        - CrmebAdminBearerAuth: []
+      x-implementation-status: implemented
+      x-requirement-id: ACT-001
+      x-tenant-context: required
+      x-signed-headers-all-or-none: true
+      x-admin-permission: chamber.event.manage
+      x-admin-scope: level-0-super-administrator-only
+      parameters:
+        - $ref: '#/components/parameters/EventTypeQuery'
+        - $ref: '#/components/parameters/EventStatusQuery'
+        - $ref: '#/components/parameters/EventTagQuery'
+        - $ref: '#/components/parameters/PageQuery'
+        - $ref: '#/components/parameters/LimitQuery'
+        - $ref: '#/components/parameters/RequestIdHeader'
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+        - $ref: '#/components/parameters/ChamberTenantHeader'
+        - $ref: '#/components/parameters/ChamberChannelHeader'
+        - $ref: '#/components/parameters/ChamberTimestampHeader'
+        - $ref: '#/components/parameters/ChamberNonceHeader'
+        - $ref: '#/components/parameters/ChamberSignatureHeader'
+      responses:
+        '200':
+          $ref: '#/components/responses/AdminEventListSuccess'
+        '400':
+          $ref: '#/components/responses/ChamberRequestError'
+        '401':
+          $ref: '#/components/responses/ChamberRequestError'
+        '403':
+          $ref: '#/components/responses/ChamberRequestError'
+        '422':
+          $ref: '#/components/responses/MemberTransactionError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/TenantServiceUnavailable'
+    post:
+      tags:
+        - Administration
+      summary: Create a draft event and its ticket definitions
+      operationId: createEventForAdmin
+      security:
+        - CrmebAdminBearerAuth: []
+      x-implementation-status: planned
+      x-requirement-id: ACT-001
+      x-tenant-context: required
+      x-signed-headers-all-or-none: true
+      x-admin-permission: chamber.event.manage
+      x-admin-scope: level-0-super-administrator-only
+      parameters:
+        - $ref: '#/components/parameters/RequestIdHeader'
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+        - $ref: '#/components/parameters/ChamberTenantHeader'
+        - $ref: '#/components/parameters/ChamberChannelHeader'
+        - $ref: '#/components/parameters/ChamberTimestampHeader'
+        - $ref: '#/components/parameters/ChamberNonceHeader'
+        - $ref: '#/components/parameters/ChamberSignatureHeader'
+        - $ref: '#/components/parameters/IdempotencyKeyHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminEventCreateRequest'
+      responses:
+        '201':
+          $ref: '#/components/responses/AdminEventCreated'
+        '400':
+          $ref: '#/components/responses/ChamberRequestError'
+        '401':
+          $ref: '#/components/responses/ChamberRequestError'
+        '403':
+          $ref: '#/components/responses/ChamberRequestError'
+        '409':
+          $ref: '#/components/responses/MemberTransactionError'
+        '422':
+          $ref: '#/components/responses/MemberTransactionError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/TenantServiceUnavailable'
+  /chamber/admin/v1/events/{event_id}:
+    get:
+      tags:
+        - Administration
+      summary: Get one tenant/channel-scoped event for administration
+      operationId: showEventForAdmin
+      security:
+        - CrmebAdminBearerAuth: []
+      x-implementation-status: implemented
+      x-requirement-id: ACT-001
+      x-tenant-context: required
+      x-signed-headers-all-or-none: true
+      x-admin-permission: chamber.event.manage
+      x-admin-scope: level-0-super-administrator-only
+      parameters:
+        - name: event_id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/PositiveId'
+        - $ref: '#/components/parameters/RequestIdHeader'
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+        - $ref: '#/components/parameters/ChamberTenantHeader'
+        - $ref: '#/components/parameters/ChamberChannelHeader'
+        - $ref: '#/components/parameters/ChamberTimestampHeader'
+        - $ref: '#/components/parameters/ChamberNonceHeader'
+        - $ref: '#/components/parameters/ChamberSignatureHeader'
+      responses:
+        '200':
+          $ref: '#/components/responses/AdminEventDetailSuccess'
+        '400':
+          $ref: '#/components/responses/ChamberRequestError'
+        '401':
+          $ref: '#/components/responses/ChamberRequestError'
+        '403':
+          $ref: '#/components/responses/ChamberRequestError'
+        '404':
+          $ref: '#/components/responses/MemberTransactionError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/TenantServiceUnavailable'
+    patch:
+      tags:
+        - Administration
+      summary: Update a draft event and its ticket definitions
+      operationId: updateEventForAdmin
+      security:
+        - CrmebAdminBearerAuth: []
+      x-implementation-status: planned
+      x-requirement-id: ACT-001
+      x-tenant-context: required
+      x-signed-headers-all-or-none: true
+      x-admin-permission: chamber.event.manage
+      x-admin-scope: level-0-super-administrator-only
+      parameters:
+        - name: event_id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/PositiveId'
+        - $ref: '#/components/parameters/RequestIdHeader'
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+        - $ref: '#/components/parameters/ChamberTenantHeader'
+        - $ref: '#/components/parameters/ChamberChannelHeader'
+        - $ref: '#/components/parameters/ChamberTimestampHeader'
+        - $ref: '#/components/parameters/ChamberNonceHeader'
+        - $ref: '#/components/parameters/ChamberSignatureHeader'
+        - $ref: '#/components/parameters/IdempotencyKeyHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminEventUpdateRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/AdminEventUpdated'
+        '400':
+          $ref: '#/components/responses/ChamberRequestError'
+        '401':
+          $ref: '#/components/responses/ChamberRequestError'
+        '403':
+          $ref: '#/components/responses/ChamberRequestError'
+        '404':
+          $ref: '#/components/responses/MemberTransactionError'
+        '409':
+          $ref: '#/components/responses/MemberTransactionError'
+        '422':
+          $ref: '#/components/responses/MemberTransactionError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/TenantServiceUnavailable'
+  /chamber/admin/v1/events/{event_id}/publish:
+    post:
+      tags:
+        - Administration
+      summary: Publish an event after ticket, timing, and eligibility validation
+      operationId: publishEventForAdmin
+      security:
+        - CrmebAdminBearerAuth: []
+      x-implementation-status: planned
+      x-requirement-id: ACT-001,ACT-003
+      x-tenant-context: required
+      x-signed-headers-all-or-none: true
+      x-admin-permission: chamber.event.manage
+      x-admin-scope: level-0-super-administrator-only
+      parameters:
+        - name: event_id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/PositiveId'
+        - $ref: '#/components/parameters/RequestIdHeader'
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+        - $ref: '#/components/parameters/ChamberTenantHeader'
+        - $ref: '#/components/parameters/ChamberChannelHeader'
+        - $ref: '#/components/parameters/ChamberTimestampHeader'
+        - $ref: '#/components/parameters/ChamberNonceHeader'
+        - $ref: '#/components/parameters/ChamberSignatureHeader'
+        - $ref: '#/components/parameters/IdempotencyKeyHeader'
+      responses:
+        '200':
+          $ref: '#/components/responses/AdminEventActionSuccess'
+        '400':
+          $ref: '#/components/responses/ChamberRequestError'
+        '401':
+          $ref: '#/components/responses/ChamberRequestError'
+        '403':
+          $ref: '#/components/responses/ChamberRequestError'
+        '404':
+          $ref: '#/components/responses/MemberTransactionError'
+        '409':
+          $ref: '#/components/responses/MemberTransactionError'
+        '422':
+          $ref: '#/components/responses/MemberTransactionError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/TenantServiceUnavailable'
+  /chamber/admin/v1/events/{event_id}/cancel:
+    post:
+      tags:
+        - Administration
+      summary: Cancel an event and freeze new registrations
+      operationId: cancelEventForAdmin
+      security:
+        - CrmebAdminBearerAuth: []
+      x-implementation-status: planned
+      x-requirement-id: ACT-001,ACT-005
+      x-tenant-context: required
+      x-signed-headers-all-or-none: true
+      x-admin-permission: chamber.event.manage
+      x-admin-scope: level-0-super-administrator-only
+      parameters:
+        - name: event_id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/PositiveId'
+        - $ref: '#/components/parameters/RequestIdHeader'
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+        - $ref: '#/components/parameters/ChamberTenantHeader'
+        - $ref: '#/components/parameters/ChamberChannelHeader'
+        - $ref: '#/components/parameters/ChamberTimestampHeader'
+        - $ref: '#/components/parameters/ChamberNonceHeader'
+        - $ref: '#/components/parameters/ChamberSignatureHeader'
+        - $ref: '#/components/parameters/IdempotencyKeyHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminEventCancelRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/AdminEventActionSuccess'
+        '400':
+          $ref: '#/components/responses/ChamberRequestError'
+        '401':
+          $ref: '#/components/responses/ChamberRequestError'
+        '403':
+          $ref: '#/components/responses/ChamberRequestError'
+        '404':
+          $ref: '#/components/responses/MemberTransactionError'
+        '409':
+          $ref: '#/components/responses/MemberTransactionError'
+        '422':
+          $ref: '#/components/responses/MemberTransactionError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/TenantServiceUnavailable'
+  /chamber/admin/v1/events/{event_id}/checkin-token:
+    post:
+      tags:
+        - Administration
+      summary: Issue a short-lived signed token for one event check-in session
+      operationId: issueEventCheckinTokenForAdmin
+      security:
+        - CrmebAdminBearerAuth: []
+      x-implementation-status: planned
+      x-requirement-id: ACT-007
+      x-tenant-context: required
+      x-signed-headers-all-or-none: true
+      x-admin-permission: chamber.event.checkin
+      x-admin-scope: level-0-super-administrator-only
+      parameters:
+        - name: event_id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/PositiveId'
+        - $ref: '#/components/parameters/RequestIdHeader'
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+        - $ref: '#/components/parameters/ChamberTenantHeader'
+        - $ref: '#/components/parameters/ChamberChannelHeader'
+        - $ref: '#/components/parameters/ChamberTimestampHeader'
+        - $ref: '#/components/parameters/ChamberNonceHeader'
+        - $ref: '#/components/parameters/ChamberSignatureHeader'
+        - $ref: '#/components/parameters/IdempotencyKeyHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EventCheckinTokenRequest'
+      responses:
+        '201':
+          $ref: '#/components/responses/EventCheckinTokenCreated'
+        '400':
+          $ref: '#/components/responses/ChamberRequestError'
+        '401':
+          $ref: '#/components/responses/ChamberRequestError'
+        '403':
+          $ref: '#/components/responses/ChamberRequestError'
+        '404':
+          $ref: '#/components/responses/MemberTransactionError'
+        '409':
+          $ref: '#/components/responses/MemberTransactionError'
+        '422':
+          $ref: '#/components/responses/MemberTransactionError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/TenantServiceUnavailable'
+  /chamber/admin/v1/events/{event_id}/checkins/manual:
+    post:
+      tags:
+        - Administration
+      summary: Record a manual event check-in with an operator reason
+      operationId: createManualEventCheckinForAdmin
+      security:
+        - CrmebAdminBearerAuth: []
+      x-implementation-status: planned
+      x-requirement-id: ACT-007,ACT-008
+      x-tenant-context: required
+      x-signed-headers-all-or-none: true
+      x-admin-permission: chamber.event.checkin
+      x-admin-scope: level-0-super-administrator-only
+      parameters:
+        - name: event_id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/PositiveId'
+        - $ref: '#/components/parameters/RequestIdHeader'
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+        - $ref: '#/components/parameters/ChamberTenantHeader'
+        - $ref: '#/components/parameters/ChamberChannelHeader'
+        - $ref: '#/components/parameters/ChamberTimestampHeader'
+        - $ref: '#/components/parameters/ChamberNonceHeader'
+        - $ref: '#/components/parameters/ChamberSignatureHeader'
+        - $ref: '#/components/parameters/IdempotencyKeyHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminManualEventCheckinRequest'
+      responses:
+        '201':
+          $ref: '#/components/responses/AdminEventManualCheckinCreated'
+        '400':
+          $ref: '#/components/responses/ChamberRequestError'
+        '401':
+          $ref: '#/components/responses/ChamberRequestError'
+        '403':
+          $ref: '#/components/responses/ChamberRequestError'
+        '404':
+          $ref: '#/components/responses/MemberTransactionError'
+        '409':
+          $ref: '#/components/responses/MemberTransactionError'
+        '422':
           $ref: '#/components/responses/MemberTransactionError'
         '500':
           $ref: '#/components/responses/InternalServerError'
@@ -682,6 +1495,54 @@ components:
         minimum: 1
         maximum: 100
         default: 20
+    DownloadQuery:
+      name: download
+      in: query
+      required: false
+      description: Set to 1 to request attachment disposition; 0 keeps inline disposition.
+      schema:
+        type: integer
+        enum:
+          - 0
+          - 1
+        default: 0
+    AdminAssetApplicationIdQuery:
+      name: application_id
+      in: query
+      required: true
+      description: Graduate-verification application that owns this proof access and receives the read audit.
+      schema:
+        $ref: '#/components/schemas/PositiveId'
+    EventTypeQuery:
+      name: event_type
+      in: query
+      required: false
+      description: Filter by one activity category.
+      schema:
+        $ref: '#/components/schemas/EventType'
+    EventStatusQuery:
+      name: status
+      in: query
+      required: false
+      description: Filter by one activity lifecycle status.
+      schema:
+        $ref: '#/components/schemas/EventStatus'
+    EventTagQuery:
+      name: tag
+      in: query
+      required: false
+      description: Filter by a controlled event tag.
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 40
+    EventRegistrationStatusQuery:
+      name: status
+      in: query
+      required: false
+      description: Filter by one registration lifecycle status.
+      schema:
+        $ref: '#/components/schemas/EventRegistrationStatus'
   headers:
     RequestIdResponseHeader:
       description: |
@@ -893,6 +1754,41 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/MemberProfileEnvelope'
+    MemberAssetCreated:
+      description: A private member asset was validated, persisted, and registered.
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestIdResponseHeader'
+        X-Correlation-Id:
+          $ref: '#/components/headers/CorrelationIdResponseHeader'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/MemberAssetEnvelope'
+    MemberAssetContent:
+      description: Authorized private asset bytes. Physical storage paths and public URLs are never returned.
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestIdResponseHeader'
+        X-Correlation-Id:
+          $ref: '#/components/headers/CorrelationIdResponseHeader'
+        Content-Disposition:
+          description: Safe inline filename derived from registered metadata.
+          schema:
+            type: string
+      content:
+        image/jpeg:
+          schema:
+            type: string
+            format: binary
+        image/png:
+          schema:
+            type: string
+            format: binary
+        application/pdf:
+          schema:
+            type: string
+            format: binary
     GraduateVerificationSuccess:
       description: Current graduate-verification summary returned.
       headers:
@@ -981,8 +1877,151 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/MembershipCheckoutEnvelope'
+    EventListSuccess:
+      description: Published tenant/channel activities returned.
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestIdResponseHeader'
+        X-Correlation-Id:
+          $ref: '#/components/headers/CorrelationIdResponseHeader'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/EventListEnvelope'
+    EventDetailSuccess:
+      description: One tenant/channel activity returned with ticket definitions.
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestIdResponseHeader'
+        X-Correlation-Id:
+          $ref: '#/components/headers/CorrelationIdResponseHeader'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/EventDetailEnvelope'
+    EventRegistrationCreated:
+      description: A registration was created, or a pending CRMEB payment order was reserved.
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestIdResponseHeader'
+        X-Correlation-Id:
+          $ref: '#/components/headers/CorrelationIdResponseHeader'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/EventRegistrationEnvelope'
+    EventRegistrationListSuccess:
+      description: Authenticated member event registrations returned.
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestIdResponseHeader'
+        X-Correlation-Id:
+          $ref: '#/components/headers/CorrelationIdResponseHeader'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/EventRegistrationListEnvelope'
+    EventRegistrationSuccess:
+      description: One authenticated member event registration returned.
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestIdResponseHeader'
+        X-Correlation-Id:
+          $ref: '#/components/headers/CorrelationIdResponseHeader'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/EventRegistrationEnvelope'
+    EventCheckinCreated:
+      description: Activity attendance was recorded or safely replayed.
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestIdResponseHeader'
+        X-Correlation-Id:
+          $ref: '#/components/headers/CorrelationIdResponseHeader'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/EventCheckinEnvelope'
+    AdminEventListSuccess:
+      description: Tenant/channel-scoped activities, including drafts, returned for administration.
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestIdResponseHeader'
+        X-Correlation-Id:
+          $ref: '#/components/headers/CorrelationIdResponseHeader'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/EventListEnvelope'
+    AdminEventDetailSuccess:
+      description: One tenant/channel-scoped activity returned for administration.
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestIdResponseHeader'
+        X-Correlation-Id:
+          $ref: '#/components/headers/CorrelationIdResponseHeader'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/EventDetailEnvelope'
+    AdminEventCreated:
+      description: A draft activity was created.
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestIdResponseHeader'
+        X-Correlation-Id:
+          $ref: '#/components/headers/CorrelationIdResponseHeader'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/AdminEventEnvelopeCreated'
+    AdminEventUpdated:
+      description: A draft activity was updated.
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestIdResponseHeader'
+        X-Correlation-Id:
+          $ref: '#/components/headers/CorrelationIdResponseHeader'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/AdminEventEnvelope'
+    AdminEventActionSuccess:
+      description: An activity lifecycle action was committed.
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestIdResponseHeader'
+        X-Correlation-Id:
+          $ref: '#/components/headers/CorrelationIdResponseHeader'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/AdminEventEnvelope'
+    EventCheckinTokenCreated:
+      description: A short-lived activity check-in token was issued.
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestIdResponseHeader'
+        X-Correlation-Id:
+          $ref: '#/components/headers/CorrelationIdResponseHeader'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/EventCheckinTokenEnvelope'
+    AdminEventManualCheckinCreated:
+      description: A manual operator check-in was recorded.
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestIdResponseHeader'
+        X-Correlation-Id:
+          $ref: '#/components/headers/CorrelationIdResponseHeader'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/EventCheckinEnvelope'
     MemberTransactionError:
-      description: Stable authentication, validation, state, or idempotency error.
+      description: Stable authentication, validation, state, idempotency, or downstream dependency error.
       headers:
         X-Request-Id:
           $ref: '#/components/headers/RequestIdResponseHeader'
@@ -1350,6 +2389,772 @@ components:
           $ref: '#/components/schemas/UnixTimestampSeconds'
         end_at:
           $ref: '#/components/schemas/UnixTimestampSeconds'
+    EventEligibilityRules:
+      type: object
+      additionalProperties: false
+      required:
+        - allowed_channel_ids
+        - min_points
+        - required_roles
+      properties:
+        allowed_channel_ids:
+          type: array
+          maxItems: 100
+          uniqueItems: true
+          items:
+            $ref: '#/components/schemas/PositiveId'
+        min_points:
+          type: integer
+          minimum: 0
+        required_roles:
+          type: array
+          maxItems: 50
+          uniqueItems: true
+          items:
+            type: string
+            minLength: 2
+            maxLength: 32
+            pattern: '^[a-z][a-z0-9_]{1,31}$'
+    EventRefundPolicy:
+      type: object
+      additionalProperties: false
+      required:
+        - mode
+        - deadline_time
+        - percent
+        - description
+      properties:
+        mode:
+          type: string
+          enum:
+            - none
+            - full_before_deadline
+            - partial_before_deadline
+        deadline_time:
+          $ref: '#/components/schemas/UnixTimestampSeconds'
+        percent:
+          type: integer
+          minimum: 0
+          maximum: 100
+        description:
+          type: string
+          maxLength: 500
+    EventSpeaker:
+      type: object
+      additionalProperties: false
+      required:
+        - name
+        - title
+        - organization
+        - avatar
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 80
+        title:
+          type: string
+          maxLength: 80
+        organization:
+          type: string
+          maxLength: 120
+        avatar:
+          type: string
+          maxLength: 255
+    EventQualificationReason:
+      type: string
+      enum:
+        - event_not_open
+        - signup_not_open
+        - signup_closed
+        - event_started
+        - event_full
+        - membership_tier_required
+        - membership_verification_required
+        - channel_not_eligible
+        - points_required
+        - role_required
+    EventLocation:
+      type: object
+      additionalProperties: false
+      required:
+        - name
+        - address
+        - longitude
+        - latitude
+      properties:
+        name:
+          type: string
+          maxLength: 120
+        address:
+          type: string
+          maxLength: 255
+        longitude:
+          type: string
+          pattern: '^-?(0|[1-9][0-9]{0,2})\.[0-9]{6}$'
+        latitude:
+          type: string
+          pattern: '^-?(0|[1-9][0-9]{0,1})\.[0-9]{6}$'
+    EventTicket:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - name
+        - price
+        - integral_price
+        - capacity
+        - reserved_count
+        - paid_count
+        - remaining
+        - min_tier
+        - eligibility
+        - refund_policy
+        - sale_start_time
+        - sale_end_time
+        - status
+        - sort
+      properties:
+        id:
+          $ref: '#/components/schemas/PositiveId'
+        name:
+          type: string
+          minLength: 1
+          maxLength: 80
+        price:
+          $ref: '#/components/schemas/MoneyAmount'
+        integral_price:
+          type: integer
+          minimum: 0
+        capacity:
+          type: integer
+          minimum: 0
+        reserved_count:
+          type: integer
+          minimum: 0
+        paid_count:
+          type: integer
+          minimum: 0
+        remaining:
+          oneOf:
+            - type: integer
+              minimum: 0
+            - type: 'null'
+        min_tier:
+          type: integer
+          minimum: 1
+          maximum: 4
+        eligibility:
+          $ref: '#/components/schemas/EventEligibilityRules'
+        refund_policy:
+          $ref: '#/components/schemas/EventRefundPolicy'
+        sale_start_time:
+          $ref: '#/components/schemas/UnixTimestampSeconds'
+        sale_end_time:
+          $ref: '#/components/schemas/UnixTimestampSeconds'
+        status:
+          type: integer
+          enum:
+            - 0
+            - 1
+        sort:
+          type: integer
+          minimum: 0
+        eligible:
+          type: boolean
+        ineligible_reason:
+          oneOf:
+            - $ref: '#/components/schemas/EventQualificationReason'
+            - type: 'null'
+    EventDetail:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - event_no
+        - event_type
+        - title
+        - cover_image
+        - summary
+        - detail
+        - tags
+        - speakers
+        - start_time
+        - end_time
+        - signup_start_time
+        - signup_end_time
+        - location
+        - min_tier
+        - eligibility
+        - refund_policy
+        - status
+        - publish_time
+        - tickets
+      properties:
+        id:
+          $ref: '#/components/schemas/PositiveId'
+        event_no:
+          type: string
+          minLength: 1
+          maxLength: 32
+        event_type:
+          $ref: '#/components/schemas/EventType'
+        title:
+          type: string
+          minLength: 1
+          maxLength: 160
+        cover_image:
+          type: string
+          maxLength: 255
+        summary:
+          type: string
+          maxLength: 500
+        detail:
+          type: string
+          maxLength: 200000
+        tags:
+          type: array
+          maxItems: 20
+          uniqueItems: true
+          items:
+            type: string
+            minLength: 1
+            maxLength: 40
+        speakers:
+          type: array
+          maxItems: 50
+          items:
+            $ref: '#/components/schemas/EventSpeaker'
+        start_time:
+          $ref: '#/components/schemas/UnixTimestampSeconds'
+        end_time:
+          $ref: '#/components/schemas/UnixTimestampSeconds'
+        signup_start_time:
+          $ref: '#/components/schemas/UnixTimestampSeconds'
+        signup_end_time:
+          $ref: '#/components/schemas/UnixTimestampSeconds'
+        location:
+          $ref: '#/components/schemas/EventLocation'
+        min_tier:
+          type: integer
+          minimum: 1
+          maximum: 4
+        eligibility:
+          $ref: '#/components/schemas/EventEligibilityRules'
+        refund_policy:
+          $ref: '#/components/schemas/EventRefundPolicy'
+        checkin_reward_points:
+          type: integer
+          minimum: 0
+        checkin_reward_contribution:
+          type: integer
+          minimum: 0
+        status:
+          type: integer
+          enum:
+            - 0
+            - 1
+            - 2
+            - 3
+            - 4
+        publish_time:
+          $ref: '#/components/schemas/UnixTimestampSeconds'
+        registered:
+          type: boolean
+          description: True when the current member has a pending, confirmed, waitlisted, or completed registration.
+        registration_status:
+          oneOf:
+            - $ref: '#/components/schemas/EventRegistrationStatus'
+            - type: 'null'
+        tickets:
+          type: array
+          maxItems: 50
+          items:
+            $ref: '#/components/schemas/EventTicket'
+    EventListData:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+        - page
+      properties:
+        items:
+          type: array
+          maxItems: 100
+          items:
+            $ref: '#/components/schemas/EventDetail'
+        page:
+          $ref: '#/components/schemas/PageMeta'
+    EventRegistrationRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - ticket_id
+      properties:
+        ticket_id:
+          $ref: '#/components/schemas/PositiveId'
+        expected_amount:
+          $ref: '#/components/schemas/MoneyAmount'
+        expected_integral:
+          type: integer
+          minimum: 0
+    EventRegistration:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - registration_no
+        - event_id
+        - ticket_id
+        - status
+        - amount
+        - integral_amount
+        - order_no
+        - order_status
+        - payment_required
+        - checked_in
+        - created_at
+      properties:
+        id:
+          $ref: '#/components/schemas/PositiveId'
+        registration_no:
+          type: string
+          minLength: 1
+          maxLength: 32
+        event_id:
+          $ref: '#/components/schemas/PositiveId'
+        ticket_id:
+          $ref: '#/components/schemas/PositiveId'
+        status:
+          $ref: '#/components/schemas/EventRegistrationStatus'
+        amount:
+          $ref: '#/components/schemas/MoneyAmount'
+        integral_amount:
+          type: integer
+          minimum: 0
+        order_no:
+          type: string
+          maxLength: 64
+        order_status:
+          oneOf:
+            - $ref: '#/components/schemas/OrderLifecycleStatus'
+            - type: 'null'
+        payment_required:
+          type: boolean
+        checked_in:
+          type: boolean
+        created_at:
+          $ref: '#/components/schemas/UnixTimestampSeconds'
+        paid_at:
+          $ref: '#/components/schemas/UnixTimestampSeconds'
+    EventRegistrationListData:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+        - page
+      properties:
+        items:
+          type: array
+          maxItems: 100
+          items:
+            $ref: '#/components/schemas/EventRegistration'
+        page:
+          $ref: '#/components/schemas/PageMeta'
+    EventCheckinRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - token
+      properties:
+        token:
+          type: string
+          minLength: 24
+          maxLength: 256
+        registration_id:
+          $ref: '#/components/schemas/PositiveId'
+    EventCheckin:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - event_id
+        - registration_id
+        - checked_at
+        - checkin_type
+        - replayed
+      properties:
+        id:
+          $ref: '#/components/schemas/PositiveId'
+        event_id:
+          $ref: '#/components/schemas/PositiveId'
+        registration_id:
+          $ref: '#/components/schemas/PositiveId'
+        checked_at:
+          $ref: '#/components/schemas/UnixTimestampSeconds'
+        checkin_type:
+          type: string
+          enum:
+            - scan
+            - manual
+        replayed:
+          type: boolean
+    EventCheckinTokenRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        ttl_seconds:
+          type: integer
+          minimum: 30
+          maximum: 3600
+          default: 300
+    EventCheckinToken:
+      type: object
+      additionalProperties: false
+      required:
+        - token_id
+        - token
+        - valid_from
+        - expires_time
+      properties:
+        token_id:
+          $ref: '#/components/schemas/PositiveId'
+        token:
+          type: string
+          minLength: 24
+          maxLength: 256
+        valid_from:
+          $ref: '#/components/schemas/UnixTimestampSeconds'
+        expires_time:
+          $ref: '#/components/schemas/UnixTimestampSeconds'
+    AdminEventTicketInput:
+      type: object
+      additionalProperties: false
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 80
+        price:
+          $ref: '#/components/schemas/MoneyAmount'
+        integral_price:
+          type: integer
+          minimum: 0
+        product_id:
+          type: integer
+          minimum: 0
+        product_attr_unique:
+          type: string
+          maxLength: 20
+        capacity:
+          type: integer
+          minimum: 0
+        min_tier:
+          type: integer
+          minimum: 1
+          maximum: 4
+        eligibility:
+          $ref: '#/components/schemas/EventEligibilityRules'
+        refund_policy:
+          $ref: '#/components/schemas/EventRefundPolicy'
+        sale_start_time:
+          $ref: '#/components/schemas/UnixTimestampSeconds'
+        sale_end_time:
+          $ref: '#/components/schemas/UnixTimestampSeconds'
+        status:
+          type: integer
+          enum:
+            - 0
+            - 1
+        sort:
+          type: integer
+          minimum: 0
+    AdminEventCreateRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - title
+        - start_time
+        - end_time
+        - signup_start_time
+        - signup_end_time
+        - tickets
+      properties:
+        event_type:
+          $ref: '#/components/schemas/EventType'
+        title:
+          type: string
+          minLength: 1
+          maxLength: 160
+        cover_image:
+          type: string
+          maxLength: 255
+        summary:
+          type: string
+          maxLength: 500
+        detail:
+          type: string
+          maxLength: 200000
+        tags:
+          type: array
+          maxItems: 20
+          uniqueItems: true
+          items:
+            type: string
+            minLength: 1
+            maxLength: 40
+        speakers:
+          type: array
+          maxItems: 50
+          items:
+            $ref: '#/components/schemas/EventSpeaker'
+        start_time:
+          $ref: '#/components/schemas/UnixTimestampSeconds'
+        end_time:
+          $ref: '#/components/schemas/UnixTimestampSeconds'
+        signup_start_time:
+          $ref: '#/components/schemas/UnixTimestampSeconds'
+        signup_end_time:
+          $ref: '#/components/schemas/UnixTimestampSeconds'
+        location_name:
+          type: string
+          maxLength: 120
+        address:
+          type: string
+          maxLength: 255
+        longitude:
+          type: string
+          pattern: '^-?(0|[1-9][0-9]{0,2})(\.[0-9]{1,6})?$'
+        latitude:
+          type: string
+          pattern: '^-?(0|[1-9][0-9]{0,1})(\.[0-9]{1,6})?$'
+        min_tier:
+          type: integer
+          minimum: 1
+          maximum: 4
+        eligibility:
+          $ref: '#/components/schemas/EventEligibilityRules'
+        refund_policy:
+          $ref: '#/components/schemas/EventRefundPolicy'
+        checkin_reward_points:
+          type: integer
+          minimum: 0
+        checkin_reward_contribution:
+          type: integer
+          minimum: 0
+        tickets:
+          type: array
+          minItems: 1
+          maxItems: 50
+          items:
+            $ref: '#/components/schemas/AdminEventTicketInput'
+    AdminEventUpdateRequest:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        event_type:
+          $ref: '#/components/schemas/EventType'
+        title:
+          type: string
+          minLength: 1
+          maxLength: 160
+        cover_image:
+          type: string
+          maxLength: 255
+        summary:
+          type: string
+          maxLength: 500
+        detail:
+          type: string
+          maxLength: 200000
+        tags:
+          type: array
+          maxItems: 20
+          uniqueItems: true
+          items:
+            type: string
+            minLength: 1
+            maxLength: 40
+        speakers:
+          type: array
+          maxItems: 50
+          items:
+            $ref: '#/components/schemas/EventSpeaker'
+        start_time:
+          $ref: '#/components/schemas/UnixTimestampSeconds'
+        end_time:
+          $ref: '#/components/schemas/UnixTimestampSeconds'
+        signup_start_time:
+          $ref: '#/components/schemas/UnixTimestampSeconds'
+        signup_end_time:
+          $ref: '#/components/schemas/UnixTimestampSeconds'
+        location_name:
+          type: string
+          maxLength: 120
+        address:
+          type: string
+          maxLength: 255
+        longitude:
+          type: string
+          pattern: '^-?(0|[1-9][0-9]{0,2})(\.[0-9]{1,6})?$'
+        latitude:
+          type: string
+          pattern: '^-?(0|[1-9][0-9]{0,1})(\.[0-9]{1,6})?$'
+        min_tier:
+          type: integer
+          minimum: 1
+          maximum: 4
+        eligibility:
+          $ref: '#/components/schemas/EventEligibilityRules'
+        refund_policy:
+          $ref: '#/components/schemas/EventRefundPolicy'
+        checkin_reward_points:
+          type: integer
+          minimum: 0
+        checkin_reward_contribution:
+          type: integer
+          minimum: 0
+        tickets:
+          type: array
+          minItems: 1
+          maxItems: 50
+          items:
+            $ref: '#/components/schemas/AdminEventTicketInput'
+    AdminEventCancelRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        reason:
+          type: string
+          maxLength: 500
+    AdminManualEventCheckinRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - registration_id
+        - reason
+      properties:
+        registration_id:
+          $ref: '#/components/schemas/PositiveId'
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 500
+    EventListEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelopeBase'
+        - type: object
+          required:
+            - data
+          properties:
+            status:
+              const: 200
+            msg:
+              const: ok
+            data:
+              $ref: '#/components/schemas/EventListData'
+    EventDetailEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelopeBase'
+        - type: object
+          required:
+            - data
+          properties:
+            status:
+              const: 200
+            msg:
+              const: ok
+            data:
+              $ref: '#/components/schemas/EventDetail'
+    EventRegistrationEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelopeBase'
+        - type: object
+          required:
+            - data
+          properties:
+            status:
+              enum:
+                - 200
+                - 201
+            msg:
+              enum:
+                - ok
+                - created
+            data:
+              $ref: '#/components/schemas/EventRegistration'
+    EventRegistrationListEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelopeBase'
+        - type: object
+          required:
+            - data
+          properties:
+            status:
+              const: 200
+            msg:
+              const: ok
+            data:
+              $ref: '#/components/schemas/EventRegistrationListData'
+    EventCheckinEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelopeBase'
+        - type: object
+          required:
+            - data
+          properties:
+            status:
+              enum:
+                - 200
+                - 201
+            msg:
+              enum:
+                - ok
+                - created
+            data:
+              $ref: '#/components/schemas/EventCheckin'
+    AdminEventEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelopeBase'
+        - type: object
+          required:
+            - data
+          properties:
+            status:
+              const: 200
+            msg:
+              const: ok
+            data:
+              $ref: '#/components/schemas/EventDetail'
+    AdminEventEnvelopeCreated:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelopeBase'
+        - type: object
+          required:
+            - data
+          properties:
+            status:
+              const: 201
+            msg:
+              const: created
+            data:
+              $ref: '#/components/schemas/EventDetail'
+    EventCheckinTokenEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelopeBase'
+        - type: object
+          required:
+            - data
+          properties:
+            status:
+              const: 201
+            msg:
+              const: created
+            data:
+              $ref: '#/components/schemas/EventCheckinToken'
     OrderLifecycleStatus:
       type: string
       enum:
@@ -1970,6 +3775,69 @@ components:
               const: ok
             data:
               $ref: '#/components/schemas/MemberProfile'
+    MemberAssetPurpose:
+      type: string
+      enum:
+        - graduate_verification_proof
+    MemberAssetUploadRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - purpose
+        - file
+      properties:
+        purpose:
+          $ref: '#/components/schemas/MemberAssetPurpose'
+        file:
+          type: string
+          format: binary
+          description: New uploads accept JPEG and PNG images only; authorized reads of previously stored PDF assets remain supported.
+    MemberAsset:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - object_key
+        - original_name
+        - mime_type
+        - size
+        - available
+      properties:
+        id:
+          $ref: '#/components/schemas/PositiveId'
+        object_key:
+          $ref: '#/components/schemas/ObjectStorageKey'
+        original_name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        mime_type:
+          type: string
+          enum:
+            - image/jpeg
+            - image/png
+            - application/pdf
+        size:
+          type: integer
+          format: int64
+          minimum: 1
+          maximum: 10485760
+        available:
+          type: boolean
+          description: False when immutable application metadata remains visible but the private object cannot be opened or approved.
+    MemberAssetEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelopeBase'
+        - type: object
+          required:
+            - data
+          properties:
+            status:
+              const: 201
+            msg:
+              const: created
+            data:
+              $ref: '#/components/schemas/MemberAsset'
     GraduateVerificationSubmission:
       type: object
       additionalProperties: false
@@ -2007,6 +3875,7 @@ components:
         - class_name
         - graduation_year
         - proof_object_keys
+        - proof_assets
         - submitted_at
         - reviewed_at
         - review_note
@@ -2034,6 +3903,11 @@ components:
           maxItems: 10
           items:
             $ref: '#/components/schemas/ObjectStorageKey'
+        proof_assets:
+          type: array
+          maxItems: 10
+          items:
+            $ref: '#/components/schemas/MemberAsset'
         submitted_at:
           $ref: '#/components/schemas/UnixTimestampSeconds'
         reviewed_at:
@@ -2053,6 +3927,7 @@ components:
         - class_name
         - graduation_year
         - proof_object_keys
+        - proof_assets
         - submitted_at
         - reviewed_at
         - review_note
@@ -2087,6 +3962,11 @@ components:
           maxItems: 10
           items:
             $ref: '#/components/schemas/ObjectStorageKey'
+        proof_assets:
+          type: array
+          maxItems: 10
+          items:
+            $ref: '#/components/schemas/MemberAsset'
         submitted_at:
           $ref: '#/components/schemas/UnixTimestampSeconds'
         reviewed_at:
@@ -2497,14 +4377,52 @@ components:
         - member_attribution_locked
         - invite_code_invalid
         - profile_invalid
+        - unsupported_media_type
+        - asset_upload_invalid
+        - asset_quota_exceeded
+        - proof_asset_invalid
+        - asset_already_consumed
+        - asset_not_found
+        - asset_integrity_failed
+        - tenant_scope_denied
         - consent_document_stale
         - verification_already_pending
         - verification_application_not_found
         - verification_transition_invalid
         - verification_supersedes_mismatch
+        - membership_tier_required
         - membership_verification_required
         - membership_plan_unavailable
         - membership_downgrade_not_allowed
+        - membership_order_inconsistent
+        - membership_order_unavailable
+        - event_not_found
+        - event_not_open
+        - signup_not_open
+        - signup_closed
+        - event_started
+        - event_full
+        - channel_not_eligible
+        - points_required
+        - role_required
+        - event_create_failed
+        - event_update_failed
+        - event_edit_locked
+        - event_publish_locked
+        - event_publish_failed
+        - event_cancel_locked
+        - event_cancel_has_registrations
+        - event_ticket_create_failed
+        - event_serialization_failed
+        - event_ticket_not_found
+        - event_payment_unavailable
+        - event_registration_failed
+        - registration_already_exists
+        - registration_not_found
+        - event_reward_failed
+        - checkin_token_unavailable
+        - checkin_token_invalid
+        - checkin_already_completed
     FieldError:
       type: object
       additionalProperties: false

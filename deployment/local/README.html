@@ -8,9 +8,9 @@
 </head>
 <body>
   <header class="doc-head"><div class="wrap">
-    <p class="eyebrow">LOCAL DEVELOPMENT · G0 VERIFIED</p>
+    <p class="eyebrow">LOCAL DEVELOPMENT · G1-01D VERIFIED · 2026-07-25</p>
     <h1>本地 CRMEB Docker 环境</h1>
-    <p>用于在 Mac 上运行 CRMEB 后端、Nginx、MySQL 和 Redis。源码与商会 overlay 同步到隔离运行副本，安装配置和运行数据都不进入 Git。</p>
+    <p>用于在 Mac 上运行 CRMEB 后端、原生 timer、Nginx、MySQL 和 Redis。源码与商会 overlay 同步到隔离运行副本，安装配置和运行数据都不进入 Git。</p>
   </div></header>
   <main class="doc-main"><div class="wrap">
     <nav class="doc-nav">
@@ -23,14 +23,14 @@
       <h2>首次准备</h2>
       <pre>./scripts/prepare-local-crmeb-runtime.sh install
 ./scripts/manage-local-database.sh setup</pre>
-      <p>第一条命令准备运行副本、启动容器、等待 MySQL/Redis、安装 CRMEB、同步商会 overlay 并锁定安装器；第二条命令执行商会迁移、本地通用种子和数据校验。默认后台账号为 <code>admin</code>，密码为 <code>Admin@123456</code>，仅供本机开发。</p>
+      <p>第一条命令准备运行副本、启动五个容器（MySQL、Redis、PHP-FPM、CRMEB timer、Nginx）、等待 MySQL/Redis、完整导入 CRMEB 157 张基线表、同步商会 overlay 并锁定安装器；第二条命令执行商会迁移、本地通用种子和数据校验。当前结果为 187 张表、463 项迁移复验。默认后台账号为 <code>admin</code>，密码为 <code>Admin@123456</code>，仅供本机开发。</p>
     </section>
     <section>
       <h2>日常启动</h2>
       <pre>./scripts/prepare-local-crmeb-runtime.sh start
 ./scripts/prepare-local-crmeb-runtime.sh status
 ./scripts/manage-local-database.sh status</pre>
-      <p>应用入口为 <code>http://localhost:8011</code>，MySQL 端口为 <code>33061</code>，Redis 端口为 <code>63791</code>；三者只绑定本机回环地址。PHP-FPM 和 40001/40002 WebSocket 端口仅在 Docker 内网可达。每次启动都会把当前上游源码和 <code>backend/custom/app/chamber</code> 同步到隔离运行副本。</p>
+      <p>应用入口为 <code>http://localhost:8011</code>，MySQL 端口为 <code>33061</code>，Redis 端口为 <code>63791</code>；公开端口只绑定本机回环地址。PHP-FPM、timer 和 40001/40002 WebSocket 端口仅在 Docker 内网可达。timer 使用 CRMEB 原生调度器，每分钟批量补绑未完成的会籍 OrderContext；数据库 setup 会重启本地 timer，使新注册任务重新加载。公开 API 与根进程的 CRMEB 订单/商品行/退款/收货服务均经过 Chamber 守卫，可信会籍网关使用受控 DAO。每次启动都会把当前上游源码和 <code>backend/custom/app/chamber</code> 同步到隔离运行副本。</p>
     </section>
     <section>
       <h2>商会接口</h2>
@@ -39,22 +39,34 @@
         <tbody>
           <tr><td><code>http://localhost:8011/chamber/health</code></td><td>运行探针与链路标识</td><td>无</td></tr>
           <tr><td><code>http://localhost:8011/chamber/v1/bootstrap</code></td><td>返回可信的租户、渠道和解析来源</td><td>本地默认映射到 <code>local-primary/default</code></td></tr>
+          <tr><td><code>http://localhost:8011/chamber/v1/me/*</code></td><td>会员初始化、资料、附件和毕业认证</td><td>CRMEB 用户 Token + TenantContext；写操作另需 Idempotency-Key</td></tr>
+          <tr><td><code>http://localhost:8011/chamber/v1/membership/*</code></td><td>会籍计划查询、幂等结算与 CRMEB 订单上下文绑定</td><td>CRMEB 用户 Token + TenantContext；必须使用会籍中心入口</td></tr>
+          <tr><td><code>http://localhost:8011/chamber/admin/v1/*</code></td><td>毕业认证列表、详情、材料读取与审核</td><td>CRMEB Admin Token + TenantContext + <code>chamber.graduate_verification.review</code></td></tr>
         </tbody>
       </table></div>
     </section>
     <section>
       <h2>完整验收</h2>
-      <pre>./scripts/check-g0-baseline.sh</pre>
-      <p>门禁覆盖项目结构、Compose 配置、CRMEB 安装、迁移校验和、种子数据、PHP 测试、前端共享逻辑、OpenAPI 以及真实 HTTP 的 Host/HMAC 租户解析、重放拒绝和 CORS。</p>
+      <pre># 当前 G1 总门禁
+./scripts/check-g1-membership-baseline.sh
+
+# G1-01C 真实用户/Admin HTTP 链路
+./scripts/check-g1-profile-verification.sh
+
+# 前端隔离测试与 Admin 生产构建
+./scripts/prepare-local-frontend.sh test
+./scripts/prepare-local-frontend.sh build-admin</pre>
+      <p>门禁覆盖项目结构、Compose、完整 CRMEB 安装、187 张表、463 项迁移复验、PHP/数据库测试、前端共享/会员 UI、OpenAPI 0.5.0，以及真实 Token 下的会员初始化、资料、私有附件、认证提交、管理员审核、会籍下单和四类活动报名；还验证原生 CRMEB 购物车/订单/退款入口隔离、支付与退款投影、积分/席位冲正、timer 补偿和并发名额。超过 Chamber 上传限制时 Nginx 返回统一 413 JSON envelope。Admin 构建通过，上游 CSS/体积告警仍保留。</p>
     </section>
     <section>
       <h2>覆盖本地参数</h2>
       <pre>CRMEB_LOCAL_ADMIN_PASSWORD='你的本地密码' \
 CHAMBER_TENANT_SIGNING_SECRET='至少32字节的本地密钥' \
+CHAMBER_IDEMPOTENCY_ENCRYPTION_KEY='至少32字节的本地密封密钥' \
 CHAMBER_CORS_ALLOWED_ORIGINS='http://localhost:5173' \
 CRMEB_HTTP_PORT=8011 \
 ./scripts/prepare-local-crmeb-runtime.sh install</pre>
-      <p>还可设置 <code>CRMEB_DB_USER</code>、<code>CRMEB_DB_PASSWORD</code>、<code>CRMEB_DB_NAME</code>、<code>CRMEB_REDIS_PASSWORD</code>、<code>CHAMBER_DEV_TENANT_SLUG</code> 和 <code>CHAMBER_DEV_CHANNEL_CODE</code>。CORS 只接受 <code>CHAMBER_CORS_ALLOWED_ORIGINS</code> 中以逗号分隔的精确 Origin，不支持通配符。同一套参数应贯穿首次安装和后续启动；签名密钥默认值只允许本机使用。</p>
+      <p>还可设置 <code>CRMEB_DB_USER</code>、<code>CRMEB_DB_PASSWORD</code>、<code>CRMEB_DB_NAME</code>、<code>CRMEB_REDIS_PASSWORD</code>、<code>CHAMBER_DEV_TENANT_SLUG</code> 和 <code>CHAMBER_DEV_CHANNEL_CODE</code>。CORS 只接受精确 Origin，不支持通配符。同一套参数应贯穿首次安装和后续启动；签名与幂等密封默认值只允许本机使用。</p>
     </section>
     <section>
       <h2>停止命令</h2>
@@ -66,10 +78,11 @@ CRMEB_HTTP_PORT=8011 \
       <ul class="checklist">
         <li>上游源码固定在 <code>backend/crmeb</code> 子模块，容器不会直接挂载它。</li>
         <li>可执行副本位于 <code>.build-workspace/crmeb-runtime</code>；重新同步时会保留 <code>.env</code>、<code>.constant</code> 和 <code>public/install.lock</code>。</li>
-        <li>数据库、Redis、日志、运行时和上传文件位于 <code>deployment/local/.data</code>。</li>
+        <li>数据库、Redis、日志、运行时和上传文件位于 <code>deployment/local/.data</code>；私有材料权限受限，不提供 Nginx 静态公开目录。</li>
         <li>数据库初始化只对空库执行，发现已有表时不会覆盖数据。</li>
         <li>默认密码仅用于本地开发；生产环境必须使用独立密钥与部署配置。</li>
       </ul>
+      <div class="callout warn"><strong>生产边界：</strong>本地驱动已有配额、JPEG/PNG 内容级限制、历史 PDF 只读、完整性校验和读取审计，但专业恶意软件扫描仍是生产硬门槛。生产必须切换私有对象存储并完成 KMS/加密、生命周期、审计告警/检索、容量监控、备份恢复和密钥轮换。</div>
     </section>
   </div></main>
   <footer><div class="wrap">mingde-vp-chamber · Local Development</div></footer>

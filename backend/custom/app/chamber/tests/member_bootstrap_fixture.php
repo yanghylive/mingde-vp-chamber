@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 use crmeb\services\CacheService;
 use crmeb\utils\JwtAuth;
+use app\chamber\assets\LocalPrivateAssetStorage;
+use app\chamber\membership\BootstrapIdempotency;
 use think\App;
 use think\facade\Db;
 
@@ -24,11 +26,25 @@ try {
         case 'withdraw':
             fixtureWithdraw(positiveArgument($argv, 2, 'uid'));
             break;
+        case 'asset-access':
+            fixtureAssetAccess(positiveArgument($argv, 2, 'asset_id'));
+            break;
         case 'cleanup':
             fixtureCleanup(array_slice($argv, 2));
             break;
+        case 'cleanup-idempotency':
+            fixtureCleanupIdempotency(
+                positiveArgument($argv, 2, 'tenant_id'),
+                stringArgument($argv, 3, 'operation'),
+                stringArgument($argv, 4, 'principal_type'),
+                positiveArgument($argv, 5, 'principal_id'),
+                stringArgument($argv, 6, 'caller_key')
+            );
+            break;
         default:
-            throw new InvalidArgumentException('Expected setup, inspect, withdraw, or cleanup action');
+            throw new InvalidArgumentException(
+                'Expected setup, inspect, withdraw, asset-access, cleanup, or cleanup-idempotency action'
+            );
     }
 } catch (Throwable $exception) {
     fwrite(STDERR, sprintf("fixture failure: %s\n", $exception->getMessage()));
@@ -145,6 +161,33 @@ function fixtureWithdraw(int $uid): void
     outputJson(['withdrawn' => true]);
 }
 
+function fixtureAssetAccess(int $assetId): void
+{
+    $asset = Db::table('ch_member_asset')
+        ->where('id', $assetId)
+        ->field('id,used_business_id,last_access_time,update_time')
+        ->find();
+    if (!is_array($asset)) {
+        throw new RuntimeException('Private member asset fixture was not found');
+    }
+    $auditCount = Db::table('ch_audit_record')
+        ->where('action', 'read_asset')
+        ->whereRaw(
+            'JSON_VALID(`extra_json`) = 1 '
+            . 'AND CAST(JSON_UNQUOTE(JSON_EXTRACT(`extra_json`, \'$.asset_id\')) AS UNSIGNED) = ?',
+            [$assetId]
+        )
+        ->count();
+
+    outputJson([
+        'asset_id' => (int) $asset['id'],
+        'application_id' => (int) $asset['used_business_id'],
+        'last_access_time' => (int) $asset['last_access_time'],
+        'update_time' => (int) $asset['update_time'],
+        'read_audit_count' => (int) $auditCount,
+    ]);
+}
+
 function fixtureCleanup(array $tokens): void
 {
     foreach ($tokens as $token) {
@@ -155,6 +198,28 @@ function fixtureCleanup(array $tokens): void
     $uids = testUserIds();
     cleanupUsers($uids);
     outputJson(['cleaned_uids' => $uids]);
+}
+
+function fixtureCleanupIdempotency(
+    int $tenantId,
+    string $operation,
+    string $principalType,
+    int $principalId,
+    string $callerKey
+): void {
+    $internalKey = BootstrapIdempotency::deriveInternalKey(
+        $tenantId,
+        $operation,
+        $principalType,
+        $principalId,
+        $callerKey
+    );
+    $deleted = Db::table('ch_idempotency_record')
+        ->where('tenant_id', $tenantId)
+        ->where('idempotency_key', $internalKey)
+        ->where('operation', $operation)
+        ->delete();
+    outputJson(['deleted' => (int) $deleted]);
 }
 
 function testUserIds(): array
@@ -177,6 +242,32 @@ function cleanupUsers(array $uids): void
     }
     if ($uids === []) {
         return;
+    }
+
+    $applicationIds = array_map('intval', Db::table('ch_graduate_verification')
+        ->whereIn('uid', $uids)
+        ->column('id'));
+    $assetRows = Db::table('ch_member_asset')
+        ->whereIn('uid', $uids)
+        ->field('object_key')
+        ->select()
+        ->toArray();
+
+    if ($applicationIds !== []) {
+        Db::table('ch_audit_record')
+            ->where('business_type', 'graduate_verification')
+            ->whereIn('business_id', $applicationIds)
+            ->delete();
+    }
+    Db::table('ch_graduate_verification')->whereIn('uid', $uids)->delete();
+    Db::table('ch_member_asset')->whereIn('uid', $uids)->delete();
+
+    $storage = new LocalPrivateAssetStorage();
+    foreach ($assetRows as $assetRow) {
+        $objectKey = is_array($assetRow) ? ($assetRow['object_key'] ?? null) : null;
+        if (is_string($objectKey) && $objectKey !== '') {
+            $storage->delete($objectKey);
+        }
     }
 
     Db::table('ch_member_consent')->whereIn('uid', $uids)->delete();
@@ -271,6 +362,16 @@ function positiveArgument(array $arguments, int $offset, string $name): int
     }
 
     return (int) $value;
+}
+
+function stringArgument(array $arguments, int $offset, string $name): string
+{
+    $value = $arguments[$offset] ?? null;
+    if (!is_string($value) || $value === '') {
+        throw new InvalidArgumentException($name . ' must be a non-empty string');
+    }
+
+    return $value;
 }
 
 function outputJson(array $data): void

@@ -14,6 +14,7 @@ UNIAPP_TARGET="$WORKSPACE_ROOT/uni-app"
 EXPECTED_TAG="v6.0.0"
 EXPECTED_COMMIT="7dcddffff73ec542d689f159724296351f29ea9a"
 MODE="${1:-prepare}"
+UNIAPP_API_ORIGIN="${MINGDE_UNIAPP_API_ORIGIN:-http://127.0.0.1:8011}"
 
 fail() {
   printf 'ERROR: %s\n' "$*" >&2
@@ -132,8 +133,35 @@ copy_workspace() {
     "$UNIAPP_SOURCE/" "$UNIAPP_TARGET/"
 
   rsync -a --exclude .gitkeep --exclude README.html "$CUSTOM_ROOT/admin/" "$ADMIN_TARGET/"
-  rsync -a --exclude .gitkeep --exclude README.html --exclude chamber-pages.json \
+  rsync -a --exclude .gitkeep --exclude README.html --exclude chamber-pages.json --exclude overlays \
     "$CUSTOM_ROOT/uniapp/" "$UNIAPP_TARGET/"
+
+  node - "$UNIAPP_TARGET/config/app.js" "$UNIAPP_API_ORIGIN" <<'NODE'
+const fs = require('fs');
+const [file, configuredOrigin] = process.argv.slice(2);
+const origin = new URL(configuredOrigin);
+if (!['http:', 'https:'].includes(origin.protocol)
+  || origin.username || origin.password || origin.pathname !== '/'
+  || origin.search || origin.hash) {
+  throw new Error('MINGDE_UNIAPP_API_ORIGIN must be an absolute HTTP(S) origin without credentials or a path');
+}
+if (origin.hostname === 'demo.crmeb.com') {
+  throw new Error('MINGDE_UNIAPP_API_ORIGIN must never target the public CRMEB demo');
+}
+
+let source = fs.readFileSync(file, 'utf8');
+const pattern = /HTTP_REQUEST_URL:\s*`https:\/\/demo\.crmeb\.com`,/g;
+if ((source.match(pattern) || []).length !== 1) {
+  throw new Error('CRMEB UniApp MP/APP API origin marker changed');
+}
+source = source.replace(pattern, `HTTP_REQUEST_URL: ${JSON.stringify(origin.origin)},`);
+if (source.includes('https://demo.crmeb.com')) {
+  throw new Error('Prepared UniApp still references the public CRMEB demo');
+}
+fs.writeFileSync(file, source);
+NODE
+
+  node "$CUSTOM_ROOT/uniapp/overlays/apply-user-center-entry.js" "$UNIAPP_TARGET"
 
   mkdir -p "$ADMIN_TARGET/src/chamber/shared" "$UNIAPP_TARGET/chamber/shared"
   rsync -a --delete --exclude tests --exclude '*.html' --exclude .gitkeep \
@@ -215,14 +243,26 @@ verify_workspace() {
   [[ -f "$UNIAPP_TARGET/chamber/shared/tenant-brand.js" ]] || fail "UniApp shared bootstrap is missing"
   [[ -f "$ADMIN_TARGET/src/router/modules/chamber.js" ]] || fail "admin Chamber route module is missing"
   [[ -f "$ADMIN_TARGET/src/pages/chamber/graduateVerification/index.vue" ]] || fail "admin verification page is missing"
+  [[ -f "$ADMIN_TARGET/src/pages/chamber/events/index.vue" ]] || fail "admin activity workbench is missing"
   [[ -f "$UNIAPP_TARGET/pages/chamber/profile/index.vue" ]] || fail "UniApp profile page is missing"
   [[ -f "$UNIAPP_TARGET/pages/chamber/graduate_verification/index.vue" ]] || fail "UniApp verification page is missing"
+  [[ -f "$UNIAPP_TARGET/components/chamberMemberEntry/index.vue" ]] || fail "UniApp member entry is missing"
+  [[ -f "$UNIAPP_TARGET/pages/chamber/events/index.vue" ]] || fail "UniApp activity list is missing"
+  [[ -f "$UNIAPP_TARGET/pages/chamber/event_detail/index.vue" ]] || fail "UniApp activity detail is missing"
+  [[ -f "$UNIAPP_TARGET/pages/chamber/event_registrations/index.vue" ]] || fail "UniApp registration list is missing"
+  [[ -f "$UNIAPP_TARGET/pages/chamber/event_registration/index.vue" ]] || fail "UniApp registration detail is missing"
+  ! grep -Fq 'https://demo.crmeb.com' "$UNIAPP_TARGET/config/app.js" \
+    || fail "prepared UniApp must not target the public CRMEB demo"
+  grep -Fq "HTTP_REQUEST_URL: \"${UNIAPP_API_ORIGIN%/}\"," "$UNIAPP_TARGET/config/app.js" \
+    || fail "prepared UniApp API origin does not match MINGDE_UNIAPP_API_ORIGIN"
   grep -Fq "import chamber from './modules/chamber';" "$ADMIN_TARGET/src/router/routers.js" \
     || fail "admin Chamber route is not registered"
   grep -Fq '"path": "pages/chamber/profile/index"' "$UNIAPP_TARGET/pages.json" \
     || fail "UniApp profile page is not registered"
   grep -Fq '"path": "pages/chamber/graduate_verification/index"' "$UNIAPP_TARGET/pages.json" \
     || fail "UniApp verification page is not registered"
+  [[ "$(grep -Fc '<chamber-member-entry></chamber-member-entry>' "$UNIAPP_TARGET/pages/user/index.vue")" -eq 1 ]] \
+    || fail "UniApp member entry is not registered exactly once"
 
   cmp -s "$SHARED_SOURCE/tenant-brand.js" "$ADMIN_TARGET/src/chamber/shared/tenant-brand.js" || fail "admin shared bootstrap drift"
   cmp -s "$SHARED_SOURCE/tenant-brand.js" "$UNIAPP_TARGET/chamber/shared/tenant-brand.js" || fail "UniApp shared bootstrap drift"
@@ -242,6 +282,8 @@ NODE
 run_tests() {
   node "$SHARED_SOURCE/tests/tenant-brand.test.js"
   node "$SHARED_SOURCE/tests/member-ui.test.js"
+  node "$CUSTOM_ROOT/uniapp/tests/activity-ui.test.js"
+  node "$CUSTOM_ROOT/admin/tests/activity-admin.test.js"
   node - "$ADMIN_TARGET/src/chamber/shared" "$UNIAPP_TARGET/chamber/shared" <<'NODE'
 const [adminShared, uniShared] = process.argv.slice(2);
 for (const directory of [adminShared, uniShared]) {

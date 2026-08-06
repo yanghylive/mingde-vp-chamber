@@ -41,7 +41,7 @@ final class GraduateVerificationSubmission
         $submission->className = self::requiredString($payload, 'class_name', 80);
         $submission->graduationYear = self::boundedInteger($payload, 'graduation_year', 1900, 2106);
         $submission->graduationAt = self::optionalUnsignedTimestamp($payload, 'graduation_at');
-        $submission->proofObjectKeys = self::proofObjectKeys($payload);
+        $submission->proofObjectKeys = self::parseProofObjectKeys($payload);
         $submission->supersedesId = self::optionalPositiveInteger($payload, 'supersedes_id');
 
         return $submission;
@@ -191,7 +191,7 @@ final class GraduateVerificationSubmission
         return $payload[$field];
     }
 
-    private static function proofObjectKeys(array $payload): array
+    private static function parseProofObjectKeys(array $payload): array
     {
         $field = 'proof_object_keys';
         if (!array_key_exists($field, $payload) || !is_array($payload[$field])

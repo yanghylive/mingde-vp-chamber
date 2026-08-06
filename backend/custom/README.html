@@ -8,7 +8,7 @@
 </head>
 <body>
   <header class="doc-head"><div class="wrap">
-    <p class="eyebrow">BACKEND OVERLAY · G0 COMPLETE · G1-01B COMPLETE</p>
+    <p class="eyebrow">BACKEND OVERLAY · G0 COMPLETE · G1-01D COMPLETE</p>
     <h1>后端二开入口</h1>
     <p>CRMEB v6.0.0 的 PHP 业务 overlay。本目录是商会领域后端代码的所有权边界，官方子模块保持干净。</p>
   </div></header>
@@ -41,7 +41,7 @@
         <tr><td>会籍商业事实</td><td>plan、order context、term、term effect 四表</td><td>158 项结构复验</td></tr>
         <tr><td>会员与认证加固</td><td>推荐码/归因锁、资料字段、认证 current slot、协议事件</td><td>71 项结构复验</td></tr>
         <tr><td>领域状态</td><td>会员等级、毕业认证、会籍期限、订单支付/退款三维</td><td>37 项 PHP 测试</td></tr>
-        <tr><td>接口契约</td><td>OpenAPI 0.3.0 会员交易边界</td><td>9 条路径、11 个操作、77 个 Schema</td></tr>
+        <tr><td>接口契约</td><td>OpenAPI 0.5.0 会籍与会员交易边界</td><td>14 条路径、16 个操作、85 个 Schema</td></tr>
       </tbody></table></div>
     </section>
     <section>
@@ -55,18 +55,40 @@
       </tbody></table></div>
     </section>
     <section>
+      <h2>G1-01C 已落地能力</h2>
+      <div class="table-wrap"><table><thead><tr><th>能力</th><th>实现</th><th>验证</th></tr></thead><tbody>
+        <tr><td>个人资料</td><td>当前会员 GET、字段白名单 PATCH、数组 JSON 规范化、逐字段隐私和 AES-256-GCM 幂等结果</td><td>16 项资料领域测试；真实 HTTP 查询/更新/重放/冲突通过</td></tr>
+        <tr><td>私有附件</td><td>新上传 JPEG/PNG 最大 10 MiB；历史 PDF 仅受控读取；会员配额、完整性校验和鉴权读取</td><td>10 项领域 + 44 项数据库测试；Admin 必须指定申请，且读取审计归属该申请</td></tr>
+        <tr><td>毕业认证</td><td>提交/查询、不可变申请、单一当前申请、运营列表/详情/审核、审计和 L2 投影</td><td>12 项领域 + 119 项数据库测试；批准前复验材料存在性、大小和 SHA-256，失败不推进状态</td></tr>
+        <tr><td>管理权限</td><td>复用 CRMEB Admin Token，固定 <code>chamber.graduate_verification.review</code> 权限与租户/渠道范围</td><td>列表、详情、材料读取、审核重放及非法迁移均进入门禁</td></tr>
+        <tr><td>接口契约</td><td>OpenAPI 0.5.0 固定 G1-01D 已实现面</td><td>14 paths / 16 operations / 15 implemented / 1 planned / 85 schemas</td></tr>
+      </tbody></table></div>
+      <div class="callout warn"><strong>生产边界：</strong>本地私有文件系统不等于生产对象存储；读取审计、配额和内容级限制已完成，但专业恶意软件扫描仍是生产硬门槛。KMS/加密、生命周期、审计告警/检索、监控和备份恢复仍须在上线前完成。</div>
+    </section>
+    <section>
+      <h2>G1-01D 会籍交易与原生边界</h2>
+      <div class="table-wrap"><table><thead><tr><th>边界</th><th>实现</th><th>运行时范围</th></tr></thead><tbody>
+        <tr><td>公开 CRMEB API</td><td>Cart、订单创建、订单读取、订单商品读取和退款服务均由守卫装饰；会籍商品只能从 Chamber 计划结算。</td><td><code>backend/custom/app/api/provider.php</code>，覆盖原生用户 API。</td></tr>
+        <tr><td>根进程</td><td>订单、订单商品、退款和自动收货服务在根 Provider 绑定守卫；timer、queue、console 不会把会籍单当普通商品读写或结算。</td><td><code>backend/custom/app/provider.php</code>，覆盖 HTTP/queue/timer/CLI。</td></tr>
+        <tr><td>可信网关</td><td>会籍下单的私有购物车缓存和持久化行使用受控 CRMEB DAO；支付生效、期限和权益仍由 G1-01E 接管。</td><td>不会开放原生商城入口；生产仍需关闭未纳入守卫的后台商品运营路径。</td></tr>
+      </tbody></table></div>
+      <p>真实门禁覆盖 <code>/api/cart/add</code>、v2 数量入口、购物车列表/统计/修改/删除、订单列表/详情/收银、订单商品、退款商品和订单统计；所有会籍原生路径均返回统一 400 业务拒绝。</p>
+    </section>
+    <section>
       <h2>目录</h2>
       <pre>backend/custom/
 ├── app/chamber/
 │   ├── config/               # 路由、租户与 Cookie 配置
 	│   ├── commerce/             # 商业事件、金额和退款状态机
-	│   ├── identity/             # CRMEB Token 验证后的无 PII 身份上下文
-	│   ├── membership/           # 会员等级、认证、期限和订单上下文状态
+│   ├── assets/               # 私有会员材料、存储和受控二进制响应
+│   ├── identity/             # CRMEB 用户/Admin Token 验证后的身份上下文
+│   ├── membership/           # 会员等级、资料、认证、期限和订单上下文状态
 │   ├── contracts/            # 领域依赖契约
 │   ├── controller/           # 用户端/管理端薄控制器
 	│   ├── middleware/           # Auth、TenantContext、CORS 与链路追踪
 │   ├── services/             # 事务、目录查询与签名验证
 │   ├── tenancy/              # 不可变租户上下文值对象
+│   ├── verification/         # 毕业认证提交、查询和审核请求值对象
 │   ├── dao/ model/           # 后续领域查询与模型
 │   ├── listener/ jobs/       # 后续事件扩展与队列副作用
 │   └── tests/                # 可在 CRMEB 容器内运行的 PHP 测试
@@ -84,12 +106,18 @@ docker exec mingde_crmeb_php php /var/www/app/chamber/tests/commerce_run.php
 docker exec mingde_crmeb_php php /var/www/app/chamber/tests/membership_run.php
 docker exec mingde_crmeb_php php /var/www/app/chamber/tests/auth_context_run.php
 docker exec mingde_crmeb_php php /var/www/app/chamber/tests/bootstrap_domain_run.php
+docker exec mingde_crmeb_php php /var/www/app/chamber/tests/member_profile_run.php
+docker exec mingde_crmeb_php php /var/www/app/chamber/tests/member_asset_run.php
+docker exec mingde_crmeb_php php /var/www/app/chamber/tests/graduate_verification_run.php
 docker exec -w /var/www mingde_crmeb_php php app/chamber/tests/commerce_db_run.php
+docker exec -w /var/www mingde_crmeb_php php app/chamber/tests/member_asset_db_run.php
+docker exec -w /var/www mingde_crmeb_php php app/chamber/tests/graduate_verification_db_run.php
 ./scripts/check-g1-member-bootstrap.sh
+./scripts/check-g1-profile-verification.sh
 ./scripts/manage-local-database.sh status
 ruby backend/custom/commerce/audit_crmeb_v6.rb
 ruby backend/custom/openapi/validate.rb</pre>
-      <p>完整门禁会安装或复用隔离运行副本、执行迁移与种子校验、运行 PHP/前端/OpenAPI 测试，并检查真实 HTTP Token、租户解析、同/不同 Key 并发、跨租户隔离、退出态重放拦截和 CORS。</p>
+      <p>完整门禁会安装或复用隔离运行副本、执行 463 项迁移复验、运行 PHP/前端/OpenAPI 测试，并检查真实 HTTP Token、租户解析、并发/重放、资料、认证、会籍下单和四类活动报名。当前数据库为 187 张表，OpenAPI 为 0.5.0；CRMEB 原生购物车/订单/退款入口隔离、支付与退款投影、积分/席位冲正和 timer 补偿也纳入验收。</p>
     </section>
     <section>
       <h2>不可破坏的规则</h2>

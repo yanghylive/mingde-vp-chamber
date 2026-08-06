@@ -7,6 +7,7 @@ namespace app\chamber\services;
 use app\chamber\exceptions\MemberTransactionException;
 use app\chamber\identity\AuthenticatedUserContext;
 use app\chamber\membership\BootstrapIdempotency;
+use app\chamber\membership\EncryptedIdempotencyResult;
 use app\chamber\membership\MemberContext;
 use app\chamber\membership\MemberProfilePatch;
 use app\chamber\membership\MemberProfileSnapshot;
@@ -17,7 +18,7 @@ use think\facade\Db;
 
 final class MemberProfileService
 {
-    private const OPERATION = 'member.profile.patch';
+    private const OPERATION = 'updateChamberMemberProfile';
     private const PRINCIPAL_TYPE = 'crmeb_user';
     private const IDEMPOTENCY_LEASE_SECONDS = 30;
     private const IDEMPOTENCY_RETENTION_SECONDS = 604800;
@@ -80,13 +81,12 @@ final class MemberProfileService
                 $now
             );
             $state = $this->loadProfile($tenant, $auth, true);
-
-            if ($idempotency['replay_profile_id'] !== null) {
-                if ($state['snapshot']->profileId() !== $idempotency['replay_profile_id']) {
-                    throw new RuntimeException('Stored profile idempotency identity is inconsistent');
-                }
-
-                return $state['snapshot']->toArray();
+            if ($idempotency['replay_row'] !== null) {
+                return $this->decodeIdempotencyResult(
+                    $idempotency['replay_row'],
+                    $internalKey,
+                    $auth->uid()
+                );
             }
 
             $updated = $state['snapshot']->apply($patch, $now);
@@ -109,6 +109,8 @@ final class MemberProfileService
                 $leaseToken,
                 $auth->uid(),
                 $updated->profileId(),
+                $updated->toArray(),
+                $internalKey,
                 $now
             );
 
@@ -148,6 +150,13 @@ final class MemberProfileService
         if ($member->uid() !== $auth->uid()) {
             throw new RuntimeException('Stored member identity is inconsistent');
         }
+        if ($member->currentChannelId() !== $tenant->channelId()) {
+            throw new MemberTransactionException(
+                403,
+                'tenant_scope_denied',
+                'Member does not belong to this tenant channel'
+            );
+        }
         if (!$member->isActive()) {
             throw new MemberTransactionException(403, 'member_disabled', 'Member account is not active');
         }
@@ -160,7 +169,7 @@ final class MemberProfileService
         }
         $profileRow = $profileQuery->find();
         if (!is_array($profileRow)) {
-            throw new MemberTransactionException(404, 'profile_not_found', 'Member profile was not initialized');
+            throw new MemberTransactionException(409, 'profile_invalid', 'Member profile was not initialized');
         }
 
         $profileRow = $this->normalizeIntegerFields($profileRow, [
@@ -168,7 +177,7 @@ final class MemberProfileService
             'add_time', 'update_time', 'is_del',
         ]);
         if ($profileRow['is_del'] !== 0) {
-            throw new MemberTransactionException(404, 'profile_not_found', 'Member profile is unavailable');
+            throw new MemberTransactionException(409, 'profile_invalid', 'Member profile is unavailable');
         }
 
         try {
@@ -237,18 +246,14 @@ final class MemberProfileService
         if ($status === 'succeeded') {
             return [
                 'id' => (int) $row['id'],
-                'replay_profile_id' => $this->decodeIdempotencyProfileId(
-                    $row,
-                    $internalKey,
-                    $principalId
-                ),
+                'replay_row' => $row,
             ];
         }
         if (!in_array($status, ['processing', 'failed', 'unknown'], true)) {
             throw new RuntimeException('Stored profile idempotency status is invalid');
         }
         if ($status === 'processing' && hash_equals((string) $row['lease_token'], $leaseToken)) {
-            return ['id' => (int) $row['id'], 'replay_profile_id' => null];
+            return ['id' => (int) $row['id'], 'replay_row' => null];
         }
         if ($status === 'processing' && (int) $row['lease_expire_time'] >= $now) {
             throw new MemberTransactionException(
@@ -277,14 +282,14 @@ final class MemberProfileService
             throw new RuntimeException('Profile idempotency execution lease could not be acquired');
         }
 
-        return ['id' => (int) $row['id'], 'replay_profile_id' => null];
+        return ['id' => (int) $row['id'], 'replay_row' => null];
     }
 
-    private function decodeIdempotencyProfileId(
+    private function decodeIdempotencyResult(
         array $row,
         string $expectedInternalKey,
         int $expectedPrincipalId
-    ): int {
+    ): array {
         if ((int) $row['result_http_status'] !== 200 || (string) $row['result_code'] !== 'ok') {
             throw new RuntimeException('Stored profile idempotency result metadata is inconsistent');
         }
@@ -303,7 +308,9 @@ final class MemberProfileService
             || !is_int($decoded['principal_id'])
             || !isset($decoded['profile_id'])
             || !is_int($decoded['profile_id'])
-            || $decoded['profile_id'] <= 0) {
+            || $decoded['profile_id'] <= 0
+            || !isset($decoded['sealed'])
+            || !is_array($decoded['sealed'])) {
             throw new RuntimeException('Stored profile idempotency result identity is invalid');
         }
         if (!hash_equals((string) $row['idempotency_key'], $expectedInternalKey)
@@ -311,7 +318,10 @@ final class MemberProfileService
             throw new RuntimeException('Stored profile idempotency principal is inconsistent');
         }
 
-        return $decoded['profile_id'];
+        return EncryptedIdempotencyResult::open(
+            $decoded['sealed'],
+            $this->idempotencyAssociatedData($expectedInternalKey, $expectedPrincipalId, 200)
+        );
     }
 
     private function completeIdempotencyRecord(
@@ -319,10 +329,18 @@ final class MemberProfileService
         string $leaseToken,
         int $principalId,
         int $profileId,
+        array $data,
+        string $internalKey,
         int $now
     ): void {
-        // Keep replay metadata free of profile PII; a replay reloads the current scoped profile.
-        $result = ['principal_id' => $principalId, 'profile_id' => $profileId];
+        $result = [
+            'principal_id' => $principalId,
+            'profile_id' => $profileId,
+            'sealed' => EncryptedIdempotencyResult::seal(
+                $data,
+                $this->idempotencyAssociatedData($internalKey, $principalId, 200)
+            ),
+        ];
         $resultJson = BootstrapIdempotency::canonicalJson($result);
         $affected = Db::table('ch_idempotency_record')
             ->where('id', $recordId)
@@ -343,6 +361,20 @@ final class MemberProfileService
         if ($affected !== 1) {
             throw new RuntimeException('Profile idempotency result could not be completed');
         }
+    }
+
+    private function idempotencyAssociatedData(
+        string $internalKey,
+        int $principalId,
+        int $httpStatus
+    ): string {
+        return BootstrapIdempotency::canonicalJson([
+            'operation' => self::OPERATION,
+            'internal_key' => $internalKey,
+            'principal_type' => self::PRINCIPAL_TYPE,
+            'principal_id' => $principalId,
+            'http_status' => $httpStatus,
+        ]);
     }
 
     private function normalizeIntegerFields(array $row, array $fields): array

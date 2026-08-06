@@ -70,6 +70,7 @@ services:
       CHAMBER_DEV_CHANNEL_CODE: ${CHAMBER_DEV_CHANNEL_CODE:-default}
       CHAMBER_TENANT_SIGNING_SECRET: ${CHAMBER_TENANT_SIGNING_SECRET:-local-only-tenant-signing-secret-32-bytes}
       CHAMBER_TENANT_SIGNATURE_TTL: ${CHAMBER_TENANT_SIGNATURE_TTL:-300}
+      CHAMBER_IDEMPOTENCY_ENCRYPTION_KEY: ${CHAMBER_IDEMPOTENCY_ENCRYPTION_KEY:-local-only-idempotency-encryption-key-v1-32-bytes}
       CHAMBER_CORS_ALLOWED_ORIGINS: ${CHAMBER_CORS_ALLOWED_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173}
       CHAMBER_CORS_ALLOW_CREDENTIALS: ${CHAMBER_CORS_ALLOW_CREDENTIALS:-true}
     expose:
@@ -84,6 +85,45 @@ services:
     networks:
       chamber_net:
         ipv4_address: 192.168.11.90
+
+  timer:
+    container_name: mingde_crmeb_timer
+    image: ccr.ccs.tencentyun.com/crmebky_php/php:v7.4
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      TZ: Asia/Shanghai
+      MYSQL_HOST_IP: mysql
+      MYSQL_PORT: "3306"
+      MYSQL_USER: ${CRMEB_DB_USER:-crmeb}
+      MYSQL_PASSWORD: ${CRMEB_DB_PASSWORD:-123456}
+      MYSQL_DATABASE: ${CRMEB_DB_NAME:-crmeb}
+      REDIS_HOST_IP: redis
+      REDIS_PORT: "6379"
+      REDIS_DATABASE: "0"
+      REDIS_PASSWORD: ${CRMEB_REDIS_PASSWORD:-123456}
+      APP_DEBUG: "true"
+      DEFAULT_TIMEZONE: Asia/Shanghai
+      CHAMBER_ENV: local
+      CHAMBER_DEV_LOCALHOST_ENABLED: "true"
+      CHAMBER_DEV_TENANT_SLUG: ${CHAMBER_DEV_TENANT_SLUG:-local-primary}
+      CHAMBER_DEV_CHANNEL_CODE: ${CHAMBER_DEV_CHANNEL_CODE:-default}
+      CHAMBER_TENANT_SIGNING_SECRET: ${CHAMBER_TENANT_SIGNING_SECRET:-local-only-tenant-signing-secret-32-bytes}
+      CHAMBER_TENANT_SIGNATURE_TTL: ${CHAMBER_TENANT_SIGNATURE_TTL:-300}
+      CHAMBER_IDEMPOTENCY_ENCRYPTION_KEY: ${CHAMBER_IDEMPOTENCY_ENCRYPTION_KEY:-local-only-idempotency-encryption-key-v1-32-bytes}
+    command: ["php", "think", "timer", "start"]
+    working_dir: /var/www
+    volumes:
+      - ../../.build-workspace/crmeb-runtime:/var/www
+      - ./.data/runtime:/var/www/runtime
+      - ./.data/uploads:/var/www/public/uploads
+    networks:
+      chamber_net:
+        ipv4_address: 192.168.11.91
 
   nginx:
     container_name: mingde_crmeb_nginx

@@ -38,8 +38,8 @@ final class GraduateVerificationAdminQuery
         }
 
         $instance = new self();
-        $instance->status = self::status($query['status'] ?? null);
-        $instance->keyword = self::keyword($query['keyword'] ?? null);
+        $instance->status = self::parseStatus($query['status'] ?? null);
+        $instance->keyword = self::parseKeyword($query['keyword'] ?? null);
         $instance->page = self::boundedInteger($query['page'] ?? null, 'page', 1, PHP_INT_MAX, 1);
         $instance->perPage = self::boundedInteger($query['per_page'] ?? null, 'per_page', 1, 100, 20);
 
@@ -66,7 +66,7 @@ final class GraduateVerificationAdminQuery
         return $this->perPage;
     }
 
-    private static function status($value): ?string
+    private static function parseStatus($value): ?string
     {
         if ($value === null || $value === '') {
             return null;
@@ -104,7 +104,7 @@ final class GraduateVerificationAdminQuery
         return $value;
     }
 
-    private static function keyword($value): string
+    private static function parseKeyword($value): string
     {
         if ($value === null || $value === '') {
             return '';

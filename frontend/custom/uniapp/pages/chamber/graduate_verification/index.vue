@@ -11,7 +11,7 @@
     </view>
 
     <template v-else>
-      <view class="status-band" class="{{'tone-' + statusMeta.tone}}">
+      <view class="status-band" :class="'tone-' + statusMeta.tone">
         <view>
           <text class="status-label">毕业认证</text>
           <text class="status-value">{{ statusMeta.label }}</text>
@@ -44,8 +44,22 @@
         </view>
         <view class="proof-summary">
           <text class="detail-label">证明材料</text>
-          <view v-for="key in latestApplication.proof_object_keys" :key="key" class="object-key">
-            <text>{{ key }}</text>
+          <view v-for="asset in latestProofAssets" :key="asset.object_key" class="stored-proof">
+            <view class="proof-main">
+              <text class="proof-name">{{ asset.original_name }}</text>
+              <text v-if="asset.size" class="proof-meta">{{ humanFileSize(asset.size) }}</text>
+            </view>
+            <button
+              v-if="asset.id && asset.available"
+              class="text-button"
+              type="button"
+              :loading="openingAssetId === asset.id"
+              :disabled="openingAssetId === asset.id"
+              @click="openProofAsset(asset)"
+            >
+              打开
+            </button>
+            <text v-else class="proof-unavailable">材料不可用</text>
           </view>
         </view>
         <view v-if="latestApplication.review_note" class="review-note">
@@ -79,7 +93,7 @@
             <view class="field compact">
               <text class="field-label">毕业日期</text>
               <picker mode="date" :value="form.graduation_at" @change="changeGraduationDate">
-                <view class="field-input picker-value" class="{{{ muted: !form.graduation_at }}}">
+                <view class="field-input picker-value" :class="{ muted: !form.graduation_at }">
                   {{ form.graduation_at || '选择日期' }}
                 </view>
               </picker>
@@ -92,41 +106,78 @@
           <view class="section-head proof-head">
             <view>
               <text class="section-title">证明材料</text>
-              <text class="section-count">{{ form.proof_object_keys.length }}/10</text>
+              <text class="section-count">{{ proofFiles.length }}/10</text>
             </view>
-            <button
-              class="icon-button add-button"
-              type="button"
-              aria-label="添加证明材料"
-              :disabled="form.proof_object_keys.length >= 10"
-              @click="addProofKey"
-            >
-              +
-            </button>
+            <view class="proof-pickers">
+              <button
+                class="picker-button"
+                type="button"
+                :disabled="proofFiles.length >= 10"
+                @click="chooseProofImages"
+              >
+                图片
+              </button>
+              <button
+                v-if="canChooseMessageFile"
+                class="picker-button"
+                type="button"
+                :disabled="proofFiles.length >= 10"
+                @click="chooseProofFiles"
+              >
+                聊天图片
+              </button>
+            </view>
           </view>
-          <view v-for="(key, index) in form.proof_object_keys" :key="index" class="proof-row">
-            <input
-              :value="key"
-              class="field-input proof-input"
-              maxlength="255"
-              placeholder="verification/year/proof.pdf"
-              @input="changeProofKey(index, $event)"
-            />
-            <button
-              v-if="form.proof_object_keys.length > 1"
-              class="icon-button remove-button"
-              type="button"
-              aria-label="移除证明材料"
-              @click="removeProofKey(index)"
-            >
-              ×
-            </button>
+          <view v-if="!proofFiles.length" class="proof-empty">尚未添加材料</view>
+          <view v-for="item in proofFiles" :key="item.local_id" class="proof-row">
+            <view class="proof-main">
+              <text class="proof-name">{{ item.original_name }}</text>
+              <text class="proof-meta" :class="'proof-' + item.status">
+                {{ proofStatus(item) }}
+              </text>
+            </view>
+            <view class="proof-actions">
+              <button
+                v-if="item.status === 'ready' && item.id"
+                class="icon-button open-button"
+                type="button"
+                aria-label="打开证明材料"
+                :loading="openingAssetId === item.id"
+                :disabled="openingAssetId === item.id"
+                @click="openProofAsset(item)"
+              >
+                ▷
+              </button>
+              <button
+                v-if="item.status === 'failed'"
+                class="icon-button retry-button"
+                type="button"
+                aria-label="重试上传"
+                @click="uploadProofCandidate(item)"
+              >
+                ↻
+              </button>
+              <button
+                class="icon-button remove-button"
+                type="button"
+                aria-label="移除证明材料"
+                :disabled="item.status === 'uploading'"
+                @click="removeProof(item.local_id)"
+              >
+                ×
+              </button>
+            </view>
           </view>
           <text v-if="errors.proof_object_keys" class="field-error proof-error">{{ errors.proof_object_keys }}</text>
         </view>
 
         <view class="action-bar">
-          <button class="primary-button" form-type="submit" :loading="submitting" :disabled="submitting">
+          <button
+            class="primary-button"
+            form-type="submit"
+            :loading="submitting"
+            :disabled="submitting || hasUploadingProof"
+          >
             {{ latestApplication ? '重新提交审核' : '提交审核' }}
           </button>
         </view>
@@ -140,7 +191,13 @@
 </template>
 
 <script>
-import { getGraduateVerification, submitGraduateVerification } from '@/api/chamber/member.js';
+import {
+  ensureMemberInitialized,
+  downloadMemberAssetContent,
+  getGraduateVerification,
+  submitGraduateVerification,
+  uploadMemberAsset,
+} from '@/api/chamber/member.js';
 import memberUi from '@/chamber/shared/member-ui.js';
 
 export default {
@@ -153,14 +210,18 @@ export default {
       currentStatus: 'draft',
       canSubmit: false,
       latestApplication: null,
+      latestProofAssets: [],
+      proofFiles: [],
+      canChooseMessageFile: false,
+      openingAssetId: 0,
       pendingKey: '',
       pendingFingerprint: '',
       form: {
         class_name: '',
         graduation_year: '',
         graduation_at: '',
-        proof_object_keys: [''],
       },
+      inviteCode: '',
     };
   },
   computed: {
@@ -172,8 +233,13 @@ export default {
       if (this.currentStatus === 'approved') return '认证已生效';
       return '当前状态暂不可提交新申请';
     },
+    hasUploadingProof() {
+      return this.proofFiles.some((item) => item.status === 'uploading');
+    },
   },
-  onLoad() {
+  onLoad(options) {
+    this.inviteCode = options && options.invite_code ? String(options.invite_code) : '';
+    this.canChooseMessageFile = typeof uni.chooseMessageFile === 'function';
     this.loadVerification();
   },
   onPullDownRefresh() {
@@ -183,7 +249,8 @@ export default {
     loadVerification(fromPullDown) {
       this.loading = !fromPullDown;
       this.loadError = '';
-      getGraduateVerification()
+      ensureMemberInitialized(this.inviteCode)
+        .then(() => getGraduateVerification())
         .then((response) => {
           this.applySummary(response.data || {});
         })
@@ -198,6 +265,7 @@ export default {
     applySummary(summary) {
       this.currentStatus = summary.current_status || 'draft';
       this.latestApplication = summary.latest_application || null;
+      this.latestProofAssets = memberUi.proofAssetsFromApplication(this.latestApplication || {});
       this.canSubmit = Boolean(summary.can_submit);
       this.errors = {};
 
@@ -209,25 +277,139 @@ export default {
         this.form.graduation_at = this.latestApplication.graduation_at
           ? this.formatDate(this.latestApplication.graduation_at)
           : '';
-        this.form.proof_object_keys = (this.latestApplication.proof_object_keys || []).slice();
-        if (!this.form.proof_object_keys.length) this.form.proof_object_keys = [''];
+        this.proofFiles = this.latestProofAssets.filter((asset) => asset.available).map((asset, index) =>
+          Object.assign({}, asset, {
+            local_id: 'stored-' + (asset.id || index) + '-' + index,
+            status: 'ready',
+            file_path: '',
+          }),
+        );
+      } else if (!this.latestApplication) {
+        this.proofFiles = [];
       }
     },
     changeGraduationDate(event) {
       this.form.graduation_at = event.detail.value;
     },
-    addProofKey() {
-      if (this.form.proof_object_keys.length < 10) this.form.proof_object_keys.push('');
+    chooseProofImages() {
+      const remaining = 10 - this.proofFiles.length;
+      if (remaining <= 0) return;
+      uni.chooseImage({
+        count: remaining,
+        sizeType: ['original', 'compressed'],
+        sourceType: ['album', 'camera'],
+        success: (response) => {
+          const files = Array.isArray(response.tempFiles)
+            ? response.tempFiles
+            : (response.tempFilePaths || []).map((path) => ({ path }));
+          this.appendProofCandidates(files);
+        },
+      });
     },
-    removeProofKey(index) {
-      this.form.proof_object_keys.splice(index, 1);
+    chooseProofFiles() {
+      const remaining = 10 - this.proofFiles.length;
+      if (remaining <= 0 || typeof uni.chooseMessageFile !== 'function') return;
+      uni.chooseMessageFile({
+        count: remaining,
+        type: 'file',
+        extension: ['jpg', 'jpeg', 'png'],
+        success: (response) => this.appendProofCandidates(response.tempFiles || []),
+      });
     },
-    changeProofKey(index, event) {
-      this.$set(this.form.proof_object_keys, index, event.detail.value);
+    appendProofCandidates(files) {
+      const remaining = 10 - this.proofFiles.length;
+      let accepted = 0;
+      let rejectionMessage = '';
+      (files || []).forEach((file, index) => {
+        if (accepted >= remaining) return;
+        const candidate = memberUi.validateProofUploadCandidate(file);
+        if (!candidate.valid) {
+          rejectionMessage = rejectionMessage || candidate.error;
+          return;
+        }
+        const filePath = candidate.value.file_path;
+        const item = {
+          id: 0,
+          object_key: '',
+          original_name: candidate.value.original_name,
+          mime_type: candidate.value.mime_type,
+          size: Number(file.size || 0),
+          local_id: 'upload-' + Date.now() + '-' + index + '-' + Math.floor(Math.random() * 100000),
+          idempotency_key: memberUi.createIdempotencyKey('asset-upload'),
+          status: 'queued',
+          file_path: filePath,
+          upload_error: '',
+        };
+        this.proofFiles.push(item);
+        accepted += 1;
+        this.uploadProofCandidate(item);
+      });
+      if (rejectionMessage) uni.showToast({ title: rejectionMessage, icon: 'none' });
+    },
+    uploadProofCandidate(item) {
+      if (!item || !item.file_path || item.status === 'uploading') return;
+      this.$set(item, 'status', 'uploading');
+      this.$set(item, 'upload_error', '');
+      uploadMemberAsset(item.file_path, item.idempotency_key)
+        .then((response) => {
+          const asset = memberUi.normalizeMemberAsset(response.data || {});
+          if (!asset) throw new Error('上传结果缺少文件标识');
+          Object.keys(asset).forEach((key) => this.$set(item, key, asset[key]));
+          this.$set(item, 'status', 'ready');
+          this.errors = Object.assign({}, this.errors, { proof_object_keys: '' });
+        })
+        .catch((error) => {
+          this.$set(item, 'status', 'failed');
+          this.$set(item, 'upload_error', this.errorMessage(error, '上传失败'));
+        });
+    },
+    removeProof(localId) {
+      const index = this.proofFiles.findIndex((item) => item.local_id === localId);
+      if (index >= 0 && this.proofFiles[index].status !== 'uploading') this.proofFiles.splice(index, 1);
+    },
+    proofStatus(item) {
+      if (item.status === 'uploading') return '正在上传';
+      if (item.status === 'failed') return item.upload_error || '上传失败';
+      return this.humanFileSize(item.size) || '已上传';
+    },
+    openProofAsset(asset) {
+      if (!asset || !asset.id || !asset.available || this.openingAssetId) return;
+      this.openingAssetId = asset.id;
+      downloadMemberAssetContent(asset.id)
+        .then((filePath) => {
+          if (/^image\//i.test(asset.mime_type || '')) {
+            uni.previewImage({ urls: [filePath], current: filePath });
+            return;
+          }
+          uni.openDocument({
+            filePath,
+            showMenu: true,
+            fail: () => uni.showToast({ title: '暂时无法预览该文件', icon: 'none' }),
+          });
+        })
+        .catch((error) => {
+          uni.showToast({ title: this.errorMessage(error, '文件打开失败'), icon: 'none' });
+        })
+        .finally(() => {
+          this.openingAssetId = 0;
+        });
     },
     submitApplication() {
       if (this.submitting) return;
-      const result = memberUi.buildVerificationSubmission(this.form, this.latestApplication);
+      if (this.hasUploadingProof) {
+        uni.showToast({ title: '请等待材料上传完成', icon: 'none' });
+        return;
+      }
+      if (this.proofFiles.some((item) => item.status === 'failed')) {
+        uni.showToast({ title: '请重试或删除上传失败的材料', icon: 'none' });
+        return;
+      }
+      const submission = Object.assign({}, this.form, {
+        proof_object_keys: this.proofFiles
+          .filter((item) => item.status === 'ready')
+          .map((item) => item.object_key),
+      });
+      const result = memberUi.buildVerificationSubmission(submission, this.latestApplication);
       this.errors = result.errors;
       if (!result.valid) {
         uni.showToast({
@@ -252,7 +434,9 @@ export default {
           return this.loadVerification();
         })
         .catch((error) => {
-          if (error && error.data && error.data.field_errors) this.errors = error.data.field_errors;
+          if (error && error.data && error.data.field_errors) {
+            this.errors = memberUi.fieldErrorsToMap(error.data.field_errors);
+          }
           uni.showToast({
             title: this.errorMessage(error, '提交失败，请稍后重试'),
             icon: 'none',
@@ -268,22 +452,25 @@ export default {
     formatDate(timestamp) {
       if (!timestamp) return '';
       const date = new Date(Number(timestamp) * 1000);
-      const pad = (value) => String(value).padStart(2, '0');
-      return (date.getFullYear()) + '-' + (pad(date.getMonth() + 1)) + '-' + (pad(date.getDate()));
+      const pad = (value) => (Number(value) < 10 ? '0' : '') + Number(value);
+      return `${date.getUTCFullYear()}-${pad(date.getUTCMonth() + 1)}-${pad(date.getUTCDate())}`;
     },
     formatTime(timestamp) {
       if (!timestamp) return '-';
       const date = new Date(Number(timestamp) * 1000);
-      const pad = (value) => String(value).padStart(2, '0');
-      return (date.getFullYear()) + '-' + (pad(date.getMonth() + 1)) + '-' + (pad(date.getDate())) + ' ' + (pad(date.getHours())) + ':' + (pad(
+      const pad = (value) => (Number(value) < 10 ? '0' : '') + Number(value);
+      return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(
         date.getMinutes(),
-      ));
+      )}`;
+    },
+    humanFileSize(size) {
+      return memberUi.humanFileSize(size);
     },
   },
 };
 </script>
 
-<style lang="scss">
+<style lang="scss" scoped>
 .verification-page {
   min-height: 100vh;
   padding-bottom: calc(148rpx + env(safe-area-inset-bottom));
@@ -380,16 +567,17 @@ export default {
   padding-top: 22rpx;
   border-top: 1rpx solid #edf0ee;
 }
-.object-key {
+.stored-proof {
+  display: flex;
+  min-height: 82rpx;
   margin-top: 12rpx;
   padding: 14rpx 16rpx;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14rpx;
   border: 1rpx solid #dfe5e1;
   border-radius: 6rpx;
   background: #f7f9f8;
-  font-family: Menlo, Consolas, monospace;
-  font-size: 22rpx;
-  line-height: 1.5;
-  word-break: break-all;
 }
 .review-note-text {
   display: block;
@@ -454,15 +642,71 @@ export default {
 }
 .proof-row {
   display: flex;
+  min-height: 88rpx;
+  padding: 12rpx 0;
   align-items: center;
+  justify-content: space-between;
   gap: 14rpx;
-  margin-top: 18rpx;
+  border-bottom: 1rpx solid #edf0ee;
 }
-.proof-input {
+.proof-main {
   flex: 1;
   min-width: 0;
-  font-family: Menlo, Consolas, monospace;
-  font-size: 23rpx;
+}
+.proof-name,
+.proof-meta {
+  display: block;
+  overflow-wrap: anywhere;
+}
+.proof-name {
+  color: #26332d;
+  font-size: 26rpx;
+  line-height: 1.4;
+}
+.proof-meta {
+  margin-top: 6rpx;
+  color: #78837e;
+  font-size: 22rpx;
+}
+.proof-unavailable {
+  color: #9a3f36;
+  font-size: 24rpx;
+}
+.proof-failed {
+  color: #b33b32;
+}
+.proof-uploading {
+  color: #9a6510;
+}
+.proof-actions,
+.proof-pickers {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+}
+.proof-empty {
+  padding: 36rpx 0 18rpx;
+  color: #8a948f;
+  font-size: 25rpx;
+  text-align: center;
+}
+.picker-button,
+.text-button {
+  min-width: 100rpx;
+  height: 62rpx;
+  margin: 0;
+  padding: 0 18rpx;
+  border: 1rpx solid #176b52;
+  border-radius: 8rpx;
+  background: #ffffff;
+  color: #176b52;
+  font-size: 25rpx;
+  line-height: 60rpx;
+}
+.picker-button[disabled],
+.text-button[disabled] {
+  border-color: #d7ddda;
+  color: #a9b2ae;
 }
 .icon-button {
   display: flex;
@@ -477,19 +721,20 @@ export default {
   font-size: 38rpx;
   line-height: 68rpx;
 }
-.add-button {
+.open-button,
+.retry-button {
   color: #176b52;
   border: 1rpx solid #176b52;
   background: #ffffff;
-}
-.add-button[disabled] {
-  color: #a9b2ae;
-  border-color: #d7ddda;
 }
 .remove-button {
   color: #a3342d;
   border: 1rpx solid #e2c5c2;
   background: #ffffff;
+}
+.remove-button[disabled] {
+  color: #b6bfbb;
+  border-color: #e1e5e3;
 }
 .proof-error {
   margin-top: 16rpx;

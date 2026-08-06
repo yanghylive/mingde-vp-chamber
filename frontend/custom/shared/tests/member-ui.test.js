@@ -4,6 +4,7 @@ var assert = require('assert');
 var fs = require('fs');
 var path = require('path');
 var memberUi = require('../member-ui');
+var userCenterOverlay = require('../../uniapp/overlays/apply-user-center-entry');
 
 function test(name, callback) {
   try {
@@ -25,6 +26,44 @@ test('accepts private relative object keys only', function () {
   assert.strictEqual(memberUi.isValidObjectKey('/verification/proof.png'), false);
   assert.strictEqual(memberUi.isValidObjectKey('verification/../proof.png'), false);
   assert.strictEqual(memberUi.isValidObjectKey('verification//proof.png'), false);
+});
+
+test('accepts only JPEG and PNG candidates for new proof uploads', function () {
+  assert.strictEqual(
+    memberUi.validateProofUploadCandidate({ path: 'wxfile://tmp/proof.JPG', type: 'image/jpeg' }).valid,
+    true,
+  );
+  assert.strictEqual(
+    memberUi.validateProofUploadCandidate({ tempFilePath: '/tmp/proof.png', name: 'proof.png' }).value.mime_type,
+    'image/png',
+  );
+  assert.strictEqual(
+    memberUi.validateProofUploadCandidate({ path: '/tmp/proof.pdf', type: 'application/pdf' }).valid,
+    false,
+  );
+  assert.strictEqual(
+    memberUi.validateProofUploadCandidate({ path: '/tmp/proof.gif', type: 'image/gif' }).valid,
+    false,
+  );
+  assert.strictEqual(memberUi.validateProofUploadCandidate({ path: '/tmp/proof' }).valid, false);
+  var genericImage = memberUi.validateProofUploadCandidate({
+    path: 'wxfile://tmp/proof.jpg?token=opaque',
+    name: 'proof',
+    type: 'image',
+  });
+  assert.strictEqual(genericImage.valid, true);
+  assert.strictEqual(genericImage.value.file_path, 'wxfile://tmp/proof.jpg?token=opaque');
+});
+
+test('graduate verification picker filters message files to JPEG and PNG', function () {
+  var source = fs.readFileSync(
+    path.join(__dirname, '../../uniapp/pages/chamber/graduate_verification/index.vue'),
+    'utf8',
+  );
+  assert.match(source, /extension:\s*\['jpg', 'jpeg', 'png'\]/);
+  assert.match(source, /memberUi\.validateProofUploadCandidate\(file\)/);
+  assert.match(source, /uni\.openDocument\(/);
+  assert.doesNotMatch(source, /pdf/i);
 });
 
 test('builds the profile whitelist and omits an empty avatar key', function () {
@@ -76,13 +115,78 @@ test('builds a resubmission with immutable proof object keys', function () {
   assert.strictEqual(result.valid, true);
   assert.strictEqual(result.value.supersedes_id, 41);
   assert.strictEqual(result.value.proof_object_keys.length, 2);
-  assert.ok(result.value.graduation_at > 0);
+  assert.strictEqual(result.value.graduation_at, Date.UTC(2008, 6, 1) / 1000);
+
+  var invalidDate = memberUi.buildVerificationSubmission(
+    {
+      class_name: 'EMBA 2008',
+      graduation_year: '2008',
+      graduation_at: '2008-02-30',
+      proof_object_keys: ['verification/2008/a.png'],
+    },
+    null,
+  );
+  assert.strictEqual(invalidDate.valid, false);
+  assert.strictEqual(invalidDate.errors.graduation_at, '毕业日期格式不正确');
 });
 
 test('requires proof material for graduate verification', function () {
   var result = memberUi.buildVerificationSubmission({ class_name: 'MBA 2020', graduation_year: 2020 }, null);
   assert.strictEqual(result.valid, false);
   assert.strictEqual(result.errors.proof_object_keys, '请至少添加一份证明材料');
+});
+
+test('maps structured field errors to page field messages', function () {
+  assert.deepStrictEqual(
+    memberUi.fieldErrorsToMap([
+      { field: 'proof_object_keys[0]', code: 'invalid_format' },
+      { field: 'graduation_year', code: 'out_of_range' },
+      { field: 'proof_object_keys[1]', code: 'required' },
+    ]),
+    {
+      'proof_object_keys[0]': '格式不正确',
+      proof_object_keys: '格式不正确',
+      graduation_year: '超出允许范围',
+      'proof_object_keys[1]': '请填写此项',
+    },
+  );
+});
+
+test('normalizes proof asset metadata and keeps key-only compatibility', function () {
+  assert.deepStrictEqual(
+    memberUi.proofAssetsFromApplication({
+      proof_assets: [
+        {
+          id: 71,
+          object_key: 'verification/2008/diploma.pdf',
+          original_name: '毕业证.pdf',
+          mime_type: 'application/pdf',
+          size: 2048,
+          available: false,
+        },
+      ],
+      proof_object_keys: ['verification/2008/diploma.pdf', 'verification/2008/photo.png'],
+    }),
+    [
+      {
+        id: 71,
+        object_key: 'verification/2008/diploma.pdf',
+        original_name: '毕业证.pdf',
+        mime_type: 'application/pdf',
+        size: 2048,
+        available: false,
+      },
+      {
+        id: 0,
+        object_key: 'verification/2008/photo.png',
+        original_name: 'photo.png',
+        mime_type: '',
+        size: 0,
+        available: false,
+      },
+    ],
+  );
+  assert.strictEqual(memberUi.humanFileSize(2048), '2.0 KB');
 });
 
 test('exposes only valid review transitions', function () {
@@ -160,7 +264,59 @@ test('frontend API adapters keep the frozen Chamber endpoint paths', function ()
   var adminApi = fs.readFileSync(path.join(root, 'admin/src/api/chamber/graduateVerification.js'), 'utf8');
 
   assert.match(uniApi, /\/chamber\/v1\/me\/profile/);
+  assert.match(uniApi, /\/chamber\/v1\/me\/bootstrap/);
   assert.match(uniApi, /\/chamber\/v1\/me\/graduate-verifications/);
+  assert.match(uniApi, /\/chamber\/v1\/me\/assets/);
+  assert.match(uniApi, /uni\.uploadFile/);
+  assert.match(uniApi, /graduate_verification_proof/);
+  assert.match(uniApi, /if \(!token && checkLogin\(\)\) token = store\.state\.app\.token/);
+  assert.match(uniApi, /createIdempotencyKey\('member-bootstrap'\)/);
+  assert.match(uniApi, /invite_code: initializedInviteCode/);
+  assert.match(uniApi, /chamber_invite_code/);
+  assert.match(uniApi, /MEMBER_ASSET_PATH\}\/\$\{assetId\}\/content/);
+  assert.doesNotMatch(uniApi, /original_name/);
   assert.match(adminApi, /\/chamber\/admin\/v1\/graduate-verifications/);
+  assert.match(adminApi, /\/chamber\/admin\/v1\/member-assets/);
+  assert.match(adminApi, /MEMBER_ASSET_PATH\}\/\$\{assetId\}\/content/);
+  assert.match(adminApi, /params: \{ application_id: applicationId \}/);
   assert.match(adminApi, /Idempotency-Key/);
+
+  var profilePage = fs.readFileSync(path.join(root, 'uniapp/pages/chamber/profile/index.vue'), 'utf8');
+  var verificationPage = fs.readFileSync(
+    path.join(root, 'uniapp/pages/chamber/graduate_verification/index.vue'),
+    'utf8',
+  );
+  var adminPage = fs.readFileSync(
+    path.join(root, 'admin/src/pages/chamber/graduateVerification/index.vue'),
+    'utf8',
+  );
+  assert.match(adminPage, /graduateVerificationAssetContent\(asset\.id, applicationId\)/);
+  var memberEntry = fs.readFileSync(
+    path.join(root, 'uniapp/components/chamberMemberEntry/index.vue'),
+    'utf8',
+  );
+  assert.match(profilePage, /ensureMemberInitialized\(this\.inviteCode\)/);
+  assert.match(verificationPage, /ensureMemberInitialized\(this\.inviteCode\)/);
+  assert.match(memberEntry, /ensureMemberInitialized\(\)/);
+  assert.doesNotMatch(profilePage, /v-model="form\.avatar_object_key"/);
+  assert.match(
+    fs.readFileSync(path.join(root, 'admin/src/router/modules/chamber.js'), 'utf8'),
+    /beforeEnter: superAdministratorOnly/,
+  );
+  assert.doesNotMatch(profilePage + verificationPage + adminPage, /padStart/);
+  assert.doesNotMatch(verificationPage, /proof_object_keys[^\n]*(?:v-model|<input)/);
+});
+
+test('user center overlay remains deterministic against the pinned CRMEB source', function () {
+  var upstream = fs.readFileSync(
+    path.resolve(__dirname, '../../../../backend/crmeb/template/uni-app/pages/user/index.vue'),
+    'utf8',
+  );
+  var once = userCenterOverlay.applySource(upstream);
+  var twice = userCenterOverlay.applySource(once);
+
+  assert.strictEqual(once, twice);
+  assert.strictEqual((once.match(/<chamber-member-entry><\/chamber-member-entry>/g) || []).length, 1);
+  assert.strictEqual((once.match(/import ChamberMemberEntry/g) || []).length, 1);
+  assert.strictEqual((once.match(/    ChamberMemberEntry,/g) || []).length, 1);
 });

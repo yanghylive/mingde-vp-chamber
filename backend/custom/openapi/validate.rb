@@ -15,7 +15,7 @@ end
 content = File.read(spec_path)
 
 begin
-  ast = Psych.parse_stream(content, spec_path)
+  ast = Psych.parse_stream(content, filename: spec_path)
 rescue Psych::SyntaxError => e
   warn "FAIL: YAML syntax error: #{e.message}"
   exit 1
@@ -48,7 +48,13 @@ duplicates = find_duplicate_keys(ast)
 errors << "duplicate YAML keys: #{duplicates.uniq.join(', ')}" unless duplicates.empty?
 
 begin
-  spec = Psych.safe_load(content, [], [], true, spec_path)
+  spec = Psych.safe_load(
+    content,
+    permitted_classes: [],
+    permitted_symbols: [],
+    aliases: true,
+    filename: spec_path
+  )
 rescue Psych::Exception => e
   warn "FAIL: cannot load YAML: #{e.message}"
   exit 1
@@ -131,20 +137,35 @@ unless spec.is_a?(Hash)
 end
 
 errors << 'openapi must equal 3.1.0' unless spec['openapi'] == '3.1.0'
-errors << 'info.version must equal 0.4.0' unless dig_hash(spec, 'info', 'version') == '0.4.0'
+errors << 'info.version must equal 0.6.0' unless dig_hash(spec, 'info', 'version') == '0.6.0'
 
 expected_paths = [
   '/chamber/health',
   '/chamber/v1/bootstrap',
   '/chamber/v1/me/bootstrap',
   '/chamber/v1/me/profile',
+  '/chamber/v1/me/assets',
+  '/chamber/v1/me/assets/{asset_id}/content',
   '/chamber/v1/me/graduate-verifications',
   '/chamber/admin/v1/graduate-verifications',
+  '/chamber/admin/v1/member-assets/{asset_id}/content',
   '/chamber/admin/v1/graduate-verifications/{application_id}',
   '/chamber/admin/v1/graduate-verifications/{application_id}/reviews',
   '/chamber/v1/membership/plans',
   '/chamber/v1/membership/checkouts',
-  '/chamber/v1/me/membership'
+  '/chamber/v1/me/membership',
+  '/chamber/v1/events',
+  '/chamber/v1/events/{event_id}',
+  '/chamber/v1/events/{event_id}/registrations',
+  '/chamber/v1/me/event-registrations',
+  '/chamber/v1/me/event-registrations/{registration_id}',
+  '/chamber/v1/events/{event_id}/checkins',
+  '/chamber/admin/v1/events',
+  '/chamber/admin/v1/events/{event_id}',
+  '/chamber/admin/v1/events/{event_id}/publish',
+  '/chamber/admin/v1/events/{event_id}/cancel',
+  '/chamber/admin/v1/events/{event_id}/checkin-token',
+  '/chamber/admin/v1/events/{event_id}/checkins/manual'
 ]
 actual_paths = spec.fetch('paths', {}).keys.sort
 errors << "paths must contain only #{expected_paths.join(', ')}" unless actual_paths == expected_paths.sort
@@ -155,14 +176,31 @@ expected_operations = [
   ['/chamber/v1/me/bootstrap', 'post', 'bootstrapChamberMember', 'implemented', '200', 'CrmebBearerAuth'],
   ['/chamber/v1/me/profile', 'get', 'getChamberMemberProfile', 'implemented', '200', 'CrmebBearerAuth'],
   ['/chamber/v1/me/profile', 'patch', 'updateChamberMemberProfile', 'implemented', '200', 'CrmebBearerAuth'],
+  ['/chamber/v1/me/assets', 'post', 'uploadChamberMemberAsset', 'implemented', '201', 'CrmebBearerAuth'],
+  ['/chamber/v1/me/assets/{asset_id}/content', 'get', 'getChamberMemberAssetContent', 'implemented', '200', 'CrmebBearerAuth'],
   ['/chamber/v1/me/graduate-verifications', 'get', 'getGraduateVerification', 'implemented', '200', 'CrmebBearerAuth'],
   ['/chamber/v1/me/graduate-verifications', 'post', 'submitGraduateVerification', 'implemented', '201', 'CrmebBearerAuth'],
   ['/chamber/admin/v1/graduate-verifications', 'get', 'listGraduateVerificationsForAdmin', 'implemented', '200', 'CrmebAdminBearerAuth'],
+  ['/chamber/admin/v1/member-assets/{asset_id}/content', 'get', 'getChamberMemberAssetContentForAdmin', 'implemented', '200', 'CrmebAdminBearerAuth'],
   ['/chamber/admin/v1/graduate-verifications/{application_id}', 'get', 'getGraduateVerificationForAdmin', 'implemented', '200', 'CrmebAdminBearerAuth'],
   ['/chamber/admin/v1/graduate-verifications/{application_id}/reviews', 'post', 'reviewGraduateVerification', 'implemented', '200', 'CrmebAdminBearerAuth'],
-  ['/chamber/v1/membership/plans', 'get', 'listMembershipPlans', 'planned', '200', 'CrmebBearerAuth'],
-  ['/chamber/v1/membership/checkouts', 'post', 'createMembershipCheckout', 'planned', '201', 'CrmebBearerAuth'],
-  ['/chamber/v1/me/membership', 'get', 'getMembershipSummary', 'planned', '200', 'CrmebBearerAuth']
+  ['/chamber/v1/membership/plans', 'get', 'listMembershipPlans', 'implemented', '200', 'CrmebBearerAuth'],
+  ['/chamber/v1/membership/checkouts', 'post', 'createMembershipCheckout', 'implemented', '201', 'CrmebBearerAuth'],
+  ['/chamber/v1/me/membership', 'get', 'getMembershipSummary', 'implemented', '200', 'CrmebBearerAuth'],
+  ['/chamber/v1/events', 'get', 'listEvents', 'implemented', '200', 'CrmebBearerAuth'],
+  ['/chamber/v1/events/{event_id}', 'get', 'showEvent', 'implemented', '200', 'CrmebBearerAuth'],
+  ['/chamber/v1/events/{event_id}/registrations', 'post', 'createEventRegistration', 'implemented', '201', 'CrmebBearerAuth'],
+  ['/chamber/v1/me/event-registrations', 'get', 'listMyEventRegistrations', 'implemented', '200', 'CrmebBearerAuth'],
+  ['/chamber/v1/me/event-registrations/{registration_id}', 'get', 'showMyEventRegistration', 'implemented', '200', 'CrmebBearerAuth'],
+  ['/chamber/v1/events/{event_id}/checkins', 'post', 'createEventCheckin', 'implemented', '201', 'CrmebBearerAuth'],
+  ['/chamber/admin/v1/events', 'get', 'listEventsForAdmin', 'implemented', '200', 'CrmebAdminBearerAuth', 'chamber.event.manage'],
+  ['/chamber/admin/v1/events', 'post', 'createEventForAdmin', 'planned', '201', 'CrmebAdminBearerAuth', 'chamber.event.manage'],
+  ['/chamber/admin/v1/events/{event_id}', 'get', 'showEventForAdmin', 'implemented', '200', 'CrmebAdminBearerAuth', 'chamber.event.manage'],
+  ['/chamber/admin/v1/events/{event_id}', 'patch', 'updateEventForAdmin', 'planned', '200', 'CrmebAdminBearerAuth', 'chamber.event.manage'],
+  ['/chamber/admin/v1/events/{event_id}/publish', 'post', 'publishEventForAdmin', 'planned', '200', 'CrmebAdminBearerAuth', 'chamber.event.manage'],
+  ['/chamber/admin/v1/events/{event_id}/cancel', 'post', 'cancelEventForAdmin', 'planned', '200', 'CrmebAdminBearerAuth', 'chamber.event.manage'],
+  ['/chamber/admin/v1/events/{event_id}/checkin-token', 'post', 'issueEventCheckinTokenForAdmin', 'planned', '201', 'CrmebAdminBearerAuth', 'chamber.event.checkin'],
+  ['/chamber/admin/v1/events/{event_id}/checkins/manual', 'post', 'createManualEventCheckinForAdmin', 'planned', '201', 'CrmebAdminBearerAuth', 'chamber.event.checkin']
 ]
 expected_operation_contracts = {
   ['/chamber/health', 'get'] => {
@@ -185,6 +223,15 @@ expected_operation_contracts = {
     request_schema: '#/components/schemas/MemberProfilePatch',
     success_response: '#/components/responses/MemberProfileSuccess'
   },
+  ['/chamber/v1/me/assets', 'post'] => {
+    request_schema: '#/components/schemas/MemberAssetUploadRequest',
+    request_content_type: 'multipart/form-data',
+    success_response: '#/components/responses/MemberAssetCreated'
+  },
+  ['/chamber/v1/me/assets/{asset_id}/content', 'get'] => {
+    request_schema: nil,
+    success_response: '#/components/responses/MemberAssetContent'
+  },
   ['/chamber/v1/me/graduate-verifications', 'get'] => {
     request_schema: nil,
     success_response: '#/components/responses/GraduateVerificationSuccess'
@@ -196,6 +243,10 @@ expected_operation_contracts = {
   ['/chamber/admin/v1/graduate-verifications', 'get'] => {
     request_schema: nil,
     success_response: '#/components/responses/GraduateVerificationAdminListSuccess'
+  },
+  ['/chamber/admin/v1/member-assets/{asset_id}/content', 'get'] => {
+    request_schema: nil,
+    success_response: '#/components/responses/MemberAssetContent'
   },
   ['/chamber/admin/v1/graduate-verifications/{application_id}', 'get'] => {
     request_schema: nil,
@@ -216,10 +267,66 @@ expected_operation_contracts = {
   ['/chamber/v1/me/membership', 'get'] => {
     request_schema: nil,
     success_response: '#/components/responses/MembershipSummarySuccess'
+  },
+  ['/chamber/v1/events', 'get'] => {
+    request_schema: nil,
+    success_response: '#/components/responses/EventListSuccess'
+  },
+  ['/chamber/v1/events/{event_id}', 'get'] => {
+    request_schema: nil,
+    success_response: '#/components/responses/EventDetailSuccess'
+  },
+  ['/chamber/v1/events/{event_id}/registrations', 'post'] => {
+    request_schema: '#/components/schemas/EventRegistrationRequest',
+    success_response: '#/components/responses/EventRegistrationCreated'
+  },
+  ['/chamber/v1/me/event-registrations', 'get'] => {
+    request_schema: nil,
+    success_response: '#/components/responses/EventRegistrationListSuccess'
+  },
+  ['/chamber/v1/me/event-registrations/{registration_id}', 'get'] => {
+    request_schema: nil,
+    success_response: '#/components/responses/EventRegistrationSuccess'
+  },
+  ['/chamber/v1/events/{event_id}/checkins', 'post'] => {
+    request_schema: '#/components/schemas/EventCheckinRequest',
+    success_response: '#/components/responses/EventCheckinCreated'
+  },
+  ['/chamber/admin/v1/events', 'get'] => {
+    request_schema: nil,
+    success_response: '#/components/responses/AdminEventListSuccess'
+  },
+  ['/chamber/admin/v1/events', 'post'] => {
+    request_schema: '#/components/schemas/AdminEventCreateRequest',
+    success_response: '#/components/responses/AdminEventCreated'
+  },
+  ['/chamber/admin/v1/events/{event_id}', 'patch'] => {
+    request_schema: '#/components/schemas/AdminEventUpdateRequest',
+    success_response: '#/components/responses/AdminEventUpdated'
+  },
+  ['/chamber/admin/v1/events/{event_id}', 'get'] => {
+    request_schema: nil,
+    success_response: '#/components/responses/AdminEventDetailSuccess'
+  },
+  ['/chamber/admin/v1/events/{event_id}/publish', 'post'] => {
+    request_schema: nil,
+    success_response: '#/components/responses/AdminEventActionSuccess'
+  },
+  ['/chamber/admin/v1/events/{event_id}/cancel', 'post'] => {
+    request_schema: '#/components/schemas/AdminEventCancelRequest',
+    success_response: '#/components/responses/AdminEventActionSuccess'
+  },
+  ['/chamber/admin/v1/events/{event_id}/checkin-token', 'post'] => {
+    request_schema: '#/components/schemas/EventCheckinTokenRequest',
+    success_response: '#/components/responses/EventCheckinTokenCreated'
+  },
+  ['/chamber/admin/v1/events/{event_id}/checkins/manual', 'post'] => {
+    request_schema: '#/components/schemas/AdminManualEventCheckinRequest',
+    success_response: '#/components/responses/AdminEventManualCheckinCreated'
   }
 }
 operation_ids = []
-expected_operations.each do |path, method, operation_id, implementation_status, success_status, security_scheme|
+expected_operations.each do |path, method, operation_id, implementation_status, success_status, security_scheme, admin_permission|
   operation = dig_hash(spec, 'paths', path, method)
   if !operation.is_a?(Hash)
     errors << "missing #{method.upcase} operation for #{path}"
@@ -249,8 +356,11 @@ expected_operations.each do |path, method, operation_id, implementation_status, 
       errors << "#{method.upcase} #{path} requestBody must be required" unless request_body['required'] == true
       content = request_body['content'].is_a?(Hash) ? request_body['content'] : {}
       content_types = content.keys
-      errors << "#{method.upcase} #{path} requestBody must use only application/json" unless content_types == ['application/json']
-      request_schema = dig_hash(request_body, 'content', 'application/json', 'schema')
+      request_content_type = contract.fetch(:request_content_type, 'application/json')
+      unless content_types == [request_content_type]
+        errors << "#{method.upcase} #{path} requestBody must use only #{request_content_type}"
+      end
+      request_schema = dig_hash(request_body, 'content', request_content_type, 'schema')
       unless request_schema == { '$ref' => expected_request_schema }
         errors << "#{method.upcase} #{path} requestBody schema must be #{expected_request_schema}"
       end
@@ -270,7 +380,7 @@ expected_operations.each do |path, method, operation_id, implementation_status, 
   errors << "#{method.upcase} #{path} must enforce all-or-none signed headers" unless operation['x-signed-headers-all-or-none'] == true
   errors << "#{method.upcase} #{path} must require #{security_scheme}" unless operation['security'] == [{ security_scheme => [] }]
   if security_scheme == 'CrmebAdminBearerAuth'
-    expected_permission = 'chamber.graduate_verification.review'
+    expected_permission = admin_permission || 'chamber.graduate_verification.review'
     errors << "#{method.upcase} #{path} x-admin-permission must be #{expected_permission}" unless operation['x-admin-permission'] == expected_permission
   end
   %w[ChamberTenantHeader ChamberChannelHeader ChamberTimestampHeader ChamberNonceHeader ChamberSignatureHeader].each do |name|
@@ -287,6 +397,9 @@ expected_operations.each do |path, method, operation_id, implementation_status, 
     '500' => '#/components/responses/InternalServerError',
     '503' => '#/components/responses/TenantServiceUnavailable'
   }
+  if path == '/chamber/v1/membership/checkouts' && method == 'post'
+    expected_error_responses['503'] = '#/components/responses/MemberTransactionError'
+  end
   expected_error_responses.each do |status, reference|
     unless responses[status] == { '$ref' => reference }
       errors << "#{method.upcase} #{path} #{status} response must be #{reference}"
@@ -452,6 +565,7 @@ expected_enums = {
   'MembershipTermStatus' => %w[scheduled active expired revoked refunded],
   'GraduateVerificationStatus' => %w[draft pending approved returned rejected revoked],
   'GraduateVerificationReviewAction' => %w[approve return reject revoke],
+  'MemberAssetPurpose' => %w[graduate_verification_proof],
   'EventType' => %w[growth industry public_welfare],
   'EventStatus' => %w[draft published registration_closed ended cancelled],
   'EventRegistrationStatus' => %w[pending_payment registered cancelled refunded waitlisted completed],
@@ -464,9 +578,18 @@ expected_enums = {
   'RefundLifecycleState' => %w[none requested cancelled processing partially_completed completed failed],
   'MemberTransactionErrorCode' => %w[
     authentication_required permission_denied idempotency_key_required idempotency_conflict request_validation_failed
-    member_not_found member_disabled member_attribution_locked invite_code_invalid profile_invalid consent_document_stale
+    member_not_found member_disabled member_attribution_locked invite_code_invalid profile_invalid
+    unsupported_media_type asset_upload_invalid asset_quota_exceeded proof_asset_invalid asset_already_consumed asset_not_found
+    asset_integrity_failed tenant_scope_denied consent_document_stale
     verification_already_pending verification_application_not_found verification_transition_invalid verification_supersedes_mismatch
-    membership_verification_required membership_plan_unavailable membership_downgrade_not_allowed
+    membership_tier_required membership_verification_required membership_plan_unavailable membership_downgrade_not_allowed
+    membership_order_inconsistent membership_order_unavailable
+    event_not_found event_not_open signup_not_open signup_closed event_started event_full
+    channel_not_eligible points_required role_required
+    event_create_failed event_update_failed event_edit_locked event_publish_locked event_publish_failed
+    event_cancel_locked event_cancel_has_registrations event_ticket_create_failed event_serialization_failed
+    event_ticket_not_found event_payment_unavailable event_registration_failed registration_already_exists
+    registration_not_found event_reward_failed checkin_token_unavailable checkin_token_invalid checkin_already_completed
   ]
 }
 expected_enums.each do |name, values|
@@ -521,6 +644,89 @@ expected_application_id = {
   end
 end
 
+expected_asset_id = {
+  'name' => 'asset_id',
+  'in' => 'path',
+  'required' => true,
+  'schema' => { '$ref' => '#/components/schemas/PositiveId' }
+}
+[
+  ['/chamber/v1/me/assets/{asset_id}/content', 'get'],
+  ['/chamber/admin/v1/member-assets/{asset_id}/content', 'get']
+].each do |path, method|
+  parameters = Array(dig_hash(spec, 'paths', path, method, 'parameters'))
+  unless parameters.include?(expected_asset_id)
+    errors << "#{method.upcase} #{path} must require the PositiveId asset_id path parameter"
+  end
+  operation = dig_hash(spec, 'paths', path, method) || {}
+  errors << "#{method.upcase} #{path} must declare a binary response" unless operation['x-binary-response'] == true
+  unless parameters.include?({ '$ref' => '#/components/parameters/DownloadQuery' })
+    errors << "#{method.upcase} #{path} must declare the DownloadQuery parameter"
+  end
+end
+
+admin_asset_content_parameters = Array(dig_hash(
+  spec,
+  'paths',
+  '/chamber/admin/v1/member-assets/{asset_id}/content',
+  'get',
+  'parameters'
+))
+admin_application_query_ref = { '$ref' => '#/components/parameters/AdminAssetApplicationIdQuery' }
+unless admin_asset_content_parameters.include?(admin_application_query_ref)
+  errors << 'GET admin member asset content must require AdminAssetApplicationIdQuery'
+end
+owner_asset_content_parameters = Array(dig_hash(
+  spec,
+  'paths',
+  '/chamber/v1/me/assets/{asset_id}/content',
+  'get',
+  'parameters'
+))
+if owner_asset_content_parameters.include?(admin_application_query_ref)
+  errors << 'GET owner member asset content must not accept AdminAssetApplicationIdQuery'
+end
+
+asset_upload_schema = dig_hash(
+  spec,
+  'paths',
+  '/chamber/v1/me/assets',
+  'post',
+  'requestBody',
+  'content',
+  'multipart/form-data',
+  'schema'
+)
+unless asset_upload_schema == { '$ref' => '#/components/schemas/MemberAssetUploadRequest' }
+  errors << 'member asset upload must use the frozen multipart request schema'
+end
+asset_upload_encoding = dig_hash(
+  spec,
+  'paths',
+  '/chamber/v1/me/assets',
+  'post',
+  'requestBody',
+  'content',
+  'multipart/form-data',
+  'encoding'
+)
+unless asset_upload_encoding == { 'file' => { 'contentType' => 'image/jpeg, image/png' } }
+  errors << 'new member asset uploads must accept only JPEG and PNG multipart file content'
+end
+
+%w[
+  /chamber/admin/v1/graduate-verifications
+  /chamber/admin/v1/member-assets/{asset_id}/content
+  /chamber/admin/v1/graduate-verifications/{application_id}
+  /chamber/admin/v1/graduate-verifications/{application_id}/reviews
+].each do |path|
+  method = path.end_with?('/reviews') ? 'post' : 'get'
+  operation = dig_hash(spec, 'paths', path, method) || {}
+  unless operation['x-admin-scope'] == 'level-0-super-administrator-only'
+    errors << "#{method.upcase} #{path} must remain super-administrator-only until tenant grants exist"
+  end
+end
+
 admin_list_parameters = Array(dig_hash(
   spec,
   'paths',
@@ -553,7 +759,7 @@ expected_operations.each do |path, method, _operation_id, _status, _success, _se
 end
 
 expected_member_envelopes = %w[
-  MemberBootstrapEnvelope MemberProfileEnvelope GraduateVerificationQueryEnvelope
+  MemberBootstrapEnvelope MemberProfileEnvelope MemberAssetEnvelope GraduateVerificationQueryEnvelope
   GraduateVerificationCreatedEnvelope GraduateVerificationReviewEnvelope
   GraduateVerificationAdminListEnvelope GraduateVerificationAdminDetailEnvelope MembershipPlansEnvelope
   MembershipCheckoutEnvelope MembershipSummaryEnvelope MemberTransactionErrorEnvelope
@@ -585,11 +791,84 @@ rescue RegexpError => e
   errors << "ObjectStorageKey pattern is invalid: #{e.message}"
 end
 
+asset_upload = schemas['MemberAssetUploadRequest'] || {}
+errors << 'MemberAssetUploadRequest must reject unknown fields' unless asset_upload['additionalProperties'] == false
+unless Array(asset_upload['required']) == %w[purpose file]
+  errors << 'MemberAssetUploadRequest required fields differ from the frozen contract'
+end
+expected_asset_upload_file = {
+  'type' => 'string',
+  'format' => 'binary',
+  'description' => 'New uploads accept JPEG and PNG images only; authorized reads of previously stored PDF assets remain supported.'
+}
+unless asset_upload.dig('properties', 'file') == expected_asset_upload_file
+  errors << 'MemberAssetUploadRequest file must be binary and document the JPEG/PNG-only upload policy'
+end
+member_asset = schemas['MemberAsset'] || {}
+expected_member_asset_fields = %w[id object_key original_name mime_type size available]
+unless Array(member_asset['required']) == expected_member_asset_fields
+  errors << 'MemberAsset required fields differ from the frozen contract'
+end
+errors << 'MemberAsset must reject unknown fields' unless member_asset['additionalProperties'] == false
+unless member_asset.dig('properties', 'size', 'maximum') == 10_485_760
+  errors << 'MemberAsset maximum size must remain 10 MiB'
+end
+unless Array(member_asset.dig('properties', 'mime_type', 'enum')) == %w[image/jpeg image/png application/pdf]
+  errors << 'MemberAsset MIME allowlist differs from the frozen contract'
+end
+errors << 'MemberAsset availability must be boolean' unless member_asset.dig('properties', 'available', 'type') == 'boolean'
+member_asset_content_types = (dig_hash(
+  spec,
+  'components',
+  'responses',
+  'MemberAssetContent',
+  'content'
+) || {}).keys.sort
+unless member_asset_content_types == %w[application/pdf image/jpeg image/png]
+  errors << 'MemberAssetContent must retain authenticated JPEG, PNG, and historical PDF reads'
+end
+
+upload_responses = dig_hash(spec, 'paths', '/chamber/v1/me/assets', 'post', 'responses') || {}
+unless upload_responses['413'] == { '$ref' => '#/components/responses/MemberTransactionError' }
+  errors << 'member asset upload must declare the JSON HTTP 413 response'
+end
+
+%w[GraduateVerificationApplication GraduateVerificationAdminApplication].each do |schema_name|
+  schema = schemas[schema_name] || {}
+  unless Array(schema['required']).include?('proof_assets')
+    errors << "#{schema_name} must require proof_assets"
+  end
+  unless schema.dig('properties', 'proof_assets', 'items', '$ref') == '#/components/schemas/MemberAsset'
+    errors << "#{schema_name} proof_assets must use MemberAsset"
+  end
+end
+
 page_meta_required = Array(schemas.dig('PageMeta', 'required'))
 expected_page_meta = %w[page limit total total_pages has_more]
 errors << 'PageMeta required fields differ from the frozen contract' unless page_meta_required == expected_page_meta
 errors << 'limit maximum must be 100' unless dig_hash(spec, 'components', 'parameters', 'LimitQuery', 'schema', 'maximum') == 100
 errors << 'per_page maximum must be 100' unless dig_hash(spec, 'components', 'parameters', 'PerPageQuery', 'schema', 'maximum') == 100
+unless dig_hash(spec, 'components', 'parameters', 'DownloadQuery', 'schema', 'enum') == [0, 1]
+  errors << 'download query must be limited to 0 or 1'
+end
+expected_admin_application_query = {
+  'name' => 'application_id',
+  'in' => 'query',
+  'required' => true,
+  'description' => 'Graduate-verification application that owns this proof access and receives the read audit.',
+  'schema' => { '$ref' => '#/components/schemas/PositiveId' }
+}
+unless dig_hash(spec, 'components', 'parameters', 'AdminAssetApplicationIdQuery') == expected_admin_application_query
+  errors << 'admin asset application query must be a required PositiveId'
+end
+
+{
+  ['/chamber/v1/me/profile', 'get'] => '409',
+  ['/chamber/v1/me/graduate-verifications', 'post'] => '404'
+}.each do |(path, method), status|
+  responses = dig_hash(spec, 'paths', path, method, 'responses') || {}
+  errors << "#{method.upcase} #{path} must declare runtime response #{status}" unless responses.key?(status)
+end
 
 commerce_event = schemas['CommerceEvent'] || {}
 expected_commerce_fields = %w[

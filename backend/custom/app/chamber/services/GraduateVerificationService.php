@@ -31,18 +31,26 @@ final class GraduateVerificationService
     /** @var GraduateVerificationIdempotency */
     private $idempotency;
 
-    public function __construct(GraduateVerificationIdempotency $idempotency)
-    {
+    /** @var MemberAssetService */
+    private $assets;
+
+    public function __construct(
+        GraduateVerificationIdempotency $idempotency,
+        MemberAssetService $assets
+    ) {
         $this->idempotency = $idempotency;
+        $this->assets = $assets;
     }
 
     public function query(TenantContext $tenant, AuthenticatedUserContext $auth): array
     {
         return Db::transaction(function () use ($tenant, $auth): array {
             $member = $this->memberByUser($tenant->tenantId(), $auth->uid(), false);
+            $this->assertMemberCurrentChannel($tenant, $member);
             $this->assertActiveMember($member);
             $latest = $this->latestApplication(
                 $tenant->tenantId(),
+                $tenant->channelId(),
                 (int) $member['id'],
                 $auth->uid(),
                 false
@@ -53,7 +61,7 @@ final class GraduateVerificationService
                 'current_status' => $state,
                 'latest_application' => $latest === null
                     ? null
-                    : GraduateVerificationApplication::fromDatabaseRow($latest),
+                    : $this->application($tenant, $latest),
                 'can_submit' => in_array($state, [
                     GraduateVerificationState::DRAFT,
                     GraduateVerificationState::RETURNED,
@@ -71,7 +79,9 @@ final class GraduateVerificationService
         string $callerIdempotencyKey,
         array $requestMetadata = []
     ): array {
-        $this->assertActiveMember($this->memberByUser($tenant->tenantId(), $auth->uid(), false));
+        $member = $this->memberByUser($tenant->tenantId(), $auth->uid(), false);
+        $this->assertMemberCurrentChannel($tenant, $member);
+        $this->assertActiveMember($member);
 
         return $this->idempotency->execute(
             $tenant,
@@ -83,9 +93,11 @@ final class GraduateVerificationService
             201,
             function (int $now) use ($tenant, $auth, $submission, $requestMetadata): array {
                 $member = $this->memberByUser($tenant->tenantId(), $auth->uid(), true);
+                $this->assertMemberCurrentChannel($tenant, $member);
                 $this->assertActiveMember($member);
                 $latest = $this->latestApplication(
                     $tenant->tenantId(),
+                    $tenant->channelId(),
                     (int) $member['id'],
                     $auth->uid(),
                     true
@@ -96,7 +108,15 @@ final class GraduateVerificationService
                     $auth->uid(),
                     true
                 );
+                $fromState = GraduateVerificationState::fromDatabase(
+                    (int) $member['verification_status']
+                );
                 $this->assertSubmissionAllowed($member, $latest, $current, $submission);
+                $this->assets->assertOwnedProofKeys(
+                    $tenant,
+                    $auth,
+                    $submission->proofObjectKeys()
+                );
 
                 $proofJson = BootstrapIdempotency::canonicalJson($submission->proofObjectKeys());
                 $applicationId = (int) Db::table('ch_graduate_verification')->insertGetId([
@@ -123,6 +143,14 @@ final class GraduateVerificationService
                     throw new RuntimeException('Graduate verification application was not persisted');
                 }
 
+                $this->assets->consume(
+                    $tenant,
+                    $auth,
+                    $submission->proofObjectKeys(),
+                    $applicationId,
+                    $now
+                );
+
                 $updated = Db::table('ch_tenant_member')
                     ->where('id', (int) $member['id'])
                     ->where('tenant_id', $tenant->tenantId())
@@ -147,7 +175,7 @@ final class GraduateVerificationService
                     $tenant,
                     $applicationId,
                     'submit',
-                    GraduateVerificationState::DRAFT,
+                    $fromState,
                     GraduateVerificationState::PENDING,
                     1,
                     $auth->uid(),
@@ -162,7 +190,12 @@ final class GraduateVerificationService
                     throw new RuntimeException('Submitted graduate verification application is unavailable');
                 }
 
-                return GraduateVerificationApplication::fromDatabaseRow($row);
+                return $this->application($tenant, $row);
+            },
+            function () use ($tenant, $auth): void {
+                $member = $this->memberByUser($tenant->tenantId(), $auth->uid(), true);
+                $this->assertMemberCurrentChannel($tenant, $member);
+                $this->assertActiveMember($member);
             }
         );
     }
@@ -184,127 +217,165 @@ final class GraduateVerificationService
                 [['field' => 'application_id', 'code' => 'invalid_value']]
             );
         }
+        $reviewTarget = $this->assertReviewTargetActive($tenant, $applicationId, false);
+        $approvalProofContext = null;
+        if ($review->targetState() === GraduateVerificationState::APPROVED) {
+            $applicationSnapshot = GraduateVerificationApplication::fromDatabaseRow($reviewTarget);
+            $approvalProofContext = [
+                'keys' => $applicationSnapshot['proof_object_keys'],
+                'member_id' => (int) $reviewTarget['member_id'],
+                'uid' => (int) $reviewTarget['uid'],
+                'channel_id' => (int) $reviewTarget['channel_id'],
+            ];
+        }
 
-        return $this->idempotency->execute(
-            $tenant,
-            self::REVIEW_OPERATION,
-            self::ADMIN_PRINCIPAL,
-            $admin->adminId(),
-            $callerIdempotencyKey,
-            [
-                'application_id' => $applicationId,
-                'review' => $review->toCanonicalArray(),
-            ],
-            200,
-            function (int $now) use (
+        try {
+            return $this->idempotency->execute(
                 $tenant,
-                $admin,
-                $applicationId,
-                $review,
-                $requestMetadata
-            ): array {
-                $candidate = $this->applicationById($tenant, $applicationId, false, true);
-                if ($candidate === null) {
-                    throw new MemberTransactionException(
-                        404,
-                        'verification_application_not_found',
-                        'Graduate verification application was not found'
-                    );
-                }
-
-                $member = $this->memberByIdentity(
-                    $tenant->tenantId(),
-                    (int) $candidate['member_id'],
-                    (int) $candidate['uid'],
-                    true
-                );
-                $application = $this->applicationById($tenant, $applicationId, true, true);
-                if ($application === null
-                    || (int) $application['member_id'] !== (int) $member['id']
-                    || (int) $application['uid'] !== (int) $member['uid']) {
-                    throw new RuntimeException('Graduate verification application identity changed while locking');
-                }
-
-                $from = GraduateVerificationState::fromDatabase((int) $application['status']);
-                $to = $review->targetState();
-                if (!GraduateVerificationState::canTransition($from, $to)) {
-                    throw new MemberTransactionException(
-                        409,
-                        'verification_transition_invalid',
-                        sprintf('Graduate verification cannot transition from %s to %s', $from, $to)
-                    );
-                }
-
-                $updated = Db::table('ch_graduate_verification')
-                    ->where('id', $applicationId)
-                    ->where('tenant_id', $tenant->tenantId())
-                    ->where('channel_id', $tenant->channelId())
-                    ->where('status', GraduateVerificationState::toDatabase($from))
-                    ->update([
-                        'status' => GraduateVerificationState::toDatabase($to),
-                        'current_slot' => $to === GraduateVerificationState::APPROVED ? 1 : null,
-                        'reviewer_admin_id' => $admin->adminId(),
-                        'review_note' => $review->note(),
-                        'review_time' => $now,
-                        'update_time' => $now,
-                    ]);
-                if ($updated !== 1) {
-                    throw new MemberTransactionException(
-                        409,
-                        'verification_transition_invalid',
-                        'Graduate verification state changed before the review could be committed'
-                    );
-                }
-
-                $projection = $this->membershipProjection(
-                    $tenant->tenantId(),
-                    (int) $member['id'],
-                    (int) $member['uid'],
-                    $to === GraduateVerificationState::APPROVED,
-                    $now
-                );
-                $memberUpdated = Db::table('ch_tenant_member')
-                    ->where('id', (int) $member['id'])
-                    ->where('tenant_id', $tenant->tenantId())
-                    ->where('uid', (int) $member['uid'])
-                    ->update([
-                        'verification_status' => GraduateVerificationState::toDatabase($to),
-                        'current_verification_id' => $to === GraduateVerificationState::APPROVED
-                            ? $applicationId
-                            : 0,
-                        'certified_time' => $to === GraduateVerificationState::APPROVED ? $now : 0,
-                        'tier' => $projection['tier'],
-                        'tier_expire_time' => $projection['tier_expire_time'],
-                        'current_membership_term_id' => $projection['current_membership_term_id'],
-                        'membership_version' => (int) $member['membership_version'] + 1,
-                        'update_time' => $now,
-                    ]);
-                if ($memberUpdated !== 1) {
-                    throw new RuntimeException('Member verification review projection was not updated');
-                }
-
-                $this->appendAudit(
+                self::REVIEW_OPERATION,
+                self::ADMIN_PRINCIPAL,
+                $admin->adminId(),
+                $callerIdempotencyKey,
+                [
+                    'application_id' => $applicationId,
+                    'review' => $review->toCanonicalArray(),
+                ],
+                200,
+                function (int $now) use (
                     $tenant,
+                    $admin,
                     $applicationId,
-                    $review->action(),
-                    $from,
-                    $to,
-                    2,
-                    $admin->adminId(),
-                    $review->note(),
-                    $requestMetadata,
-                    (int) $application['previous_application_id'],
-                    $now
-                );
+                    $review,
+                    $requestMetadata
+                ): array {
+                    $candidate = $this->applicationById($tenant, $applicationId, false, true);
+                    if ($candidate === null) {
+                        throw new MemberTransactionException(
+                            404,
+                            'verification_application_not_found',
+                            'Graduate verification application was not found'
+                        );
+                    }
 
-                $row = $this->applicationById($tenant, $applicationId, false, true);
-                if ($row === null) {
-                    throw new RuntimeException('Reviewed graduate verification application is unavailable');
+                    $member = $this->memberByIdentity(
+                        $tenant->tenantId(),
+                        (int) $candidate['member_id'],
+                        (int) $candidate['uid'],
+                        true
+                    );
+                    $this->assertActiveMember($member);
+                    $application = $this->applicationById($tenant, $applicationId, true, true);
+                    if ($application === null
+                        || (int) $application['member_id'] !== (int) $member['id']
+                        || (int) $application['uid'] !== (int) $member['uid']) {
+                        throw new RuntimeException('Graduate verification application identity changed while locking');
+                    }
+
+                    $from = GraduateVerificationState::fromDatabase((int) $application['status']);
+                    $to = $review->targetState();
+                    if (!GraduateVerificationState::canTransition($from, $to)) {
+                        throw new MemberTransactionException(
+                            409,
+                            'verification_transition_invalid',
+                            sprintf('Graduate verification cannot transition from %s to %s', $from, $to)
+                        );
+                    }
+                    if ($to === GraduateVerificationState::APPROVED) {
+                        $applicationSnapshot = GraduateVerificationApplication::fromDatabaseRow($application);
+                        $this->assets->assertAvailableProofKeysForReview(
+                            $tenant,
+                            $applicationSnapshot['proof_object_keys'],
+                            (int) $application['member_id'],
+                            (int) $application['uid'],
+                            (int) $application['channel_id']
+                        );
+                    }
+
+                    $updated = Db::table('ch_graduate_verification')
+                        ->where('id', $applicationId)
+                        ->where('tenant_id', $tenant->tenantId())
+                        ->where('channel_id', $tenant->channelId())
+                        ->where('status', GraduateVerificationState::toDatabase($from))
+                        ->update([
+                            'status' => GraduateVerificationState::toDatabase($to),
+                            'current_slot' => $to === GraduateVerificationState::APPROVED ? 1 : null,
+                            'reviewer_admin_id' => $admin->adminId(),
+                            'review_note' => $review->note(),
+                            'review_time' => $now,
+                            'update_time' => $now,
+                        ]);
+                    if ($updated !== 1) {
+                        throw new MemberTransactionException(
+                            409,
+                            'verification_transition_invalid',
+                            'Graduate verification state changed before the review could be committed'
+                        );
+                    }
+
+                    $projection = $this->membershipProjection(
+                        $tenant->tenantId(),
+                        (int) $member['id'],
+                        (int) $member['uid'],
+                        $to === GraduateVerificationState::APPROVED,
+                        $now
+                    );
+                    $memberUpdated = Db::table('ch_tenant_member')
+                        ->where('id', (int) $member['id'])
+                        ->where('tenant_id', $tenant->tenantId())
+                        ->where('uid', (int) $member['uid'])
+                        ->update([
+                            'verification_status' => GraduateVerificationState::toDatabase($to),
+                            'current_verification_id' => $to === GraduateVerificationState::APPROVED
+                                ? $applicationId
+                                : 0,
+                            'certified_time' => $to === GraduateVerificationState::APPROVED ? $now : 0,
+                            'tier' => $projection['tier'],
+                            'tier_expire_time' => $projection['tier_expire_time'],
+                            'current_membership_term_id' => $projection['current_membership_term_id'],
+                            'membership_version' => (int) $member['membership_version'] + 1,
+                            'update_time' => $now,
+                        ]);
+                    if ($memberUpdated !== 1) {
+                        throw new RuntimeException('Member verification review projection was not updated');
+                    }
+
+                    $this->appendAudit(
+                        $tenant,
+                        $applicationId,
+                        $review->action(),
+                        $from,
+                        $to,
+                        2,
+                        $admin->adminId(),
+                        $review->note(),
+                        $requestMetadata,
+                        (int) $application['previous_application_id'],
+                        $now
+                    );
+
+                    $row = $this->applicationById($tenant, $applicationId, false, true);
+                    if ($row === null) {
+                        throw new RuntimeException('Reviewed graduate verification application is unavailable');
+                    }
+
+                    return $this->adminApplicationById($tenant, $applicationId);
+                },
+                function () use ($tenant, $applicationId): void {
+                    $this->assertReviewTargetActive($tenant, $applicationId, true);
                 }
-
-                return $this->adminApplicationById($tenant, $applicationId);
+            );
+        } catch (MemberTransactionException $exception) {
+            if ($exception->reason() === 'proof_asset_invalid' && is_array($approvalProofContext)) {
+                $this->assets->markUnavailableProofKeysForReview(
+                    $tenant,
+                    $approvalProofContext['keys'],
+                    $approvalProofContext['member_id'],
+                    $approvalProofContext['uid'],
+                    $approvalProofContext['channel_id']
+                );
             }
-        );
+            throw $exception;
+        }
     }
 
     public function listForAdmin(
@@ -324,7 +395,7 @@ final class GraduateVerificationService
 
         $items = [];
         foreach ($rows as $row) {
-            $items[] = $this->adminApplication($row);
+            $items[] = $this->adminApplication($tenant, $row);
         }
 
         return [
@@ -491,10 +562,61 @@ final class GraduateVerificationService
         }
     }
 
-    private function latestApplication(int $tenantId, int $memberId, int $uid, bool $lock): ?array
+    private function assertMemberCurrentChannel(TenantContext $tenant, array $member): void
     {
+        if ((int) ($member['tenant_id'] ?? 0) !== $tenant->tenantId()
+            || (int) ($member['current_channel_id'] ?? 0) !== $tenant->channelId()) {
+            throw new MemberTransactionException(
+                403,
+                'tenant_scope_denied',
+                'Member does not belong to this tenant channel'
+            );
+        }
+    }
+
+    private function assertReviewTargetActive(
+        TenantContext $tenant,
+        int $applicationId,
+        bool $lock
+    ): array {
+        $candidate = $this->applicationById($tenant, $applicationId, false, true);
+        if ($candidate === null) {
+            throw new MemberTransactionException(
+                404,
+                'verification_application_not_found',
+                'Graduate verification application was not found'
+            );
+        }
+        $member = $this->memberByIdentity(
+            $tenant->tenantId(),
+            (int) $candidate['member_id'],
+            (int) $candidate['uid'],
+            $lock
+        );
+        $this->assertActiveMember($member);
+
+        if ($lock) {
+            $application = $this->applicationById($tenant, $applicationId, true, true);
+            if ($application === null
+                || (int) $application['member_id'] !== (int) $member['id']
+                || (int) $application['uid'] !== (int) $member['uid']) {
+                throw new RuntimeException('Graduate verification application identity changed while authorizing');
+            }
+        }
+
+        return $candidate;
+    }
+
+    private function latestApplication(
+        int $tenantId,
+        int $channelId,
+        int $memberId,
+        int $uid,
+        bool $lock
+    ): ?array {
         $query = Db::table('ch_graduate_verification')
             ->where('tenant_id', $tenantId)
+            ->where('channel_id', $channelId)
             ->where('member_id', $memberId)
             ->where('uid', $uid)
             ->order('id', 'desc');
@@ -604,14 +726,31 @@ final class GraduateVerificationService
         return $query;
     }
 
-    private function adminApplication(array $row): array
+    private function application(TenantContext $tenant, array $row): array
     {
-        return array_merge(GraduateVerificationApplication::fromDatabaseRow($row), [
+        $application = GraduateVerificationApplication::fromDatabaseRow($row);
+        $application['proof_assets'] = $this->assets->metadataForObjectKeys(
+            $tenant,
+            $application['proof_object_keys'],
+            (int) ($row['member_id'] ?? 0),
+            (int) ($row['uid'] ?? 0),
+            (int) ($row['channel_id'] ?? 0)
+        );
+
+        return $application;
+    }
+
+    private function adminApplication(TenantContext $tenant, array $row): array
+    {
+        $previousApplicationId = (int) $row['previous_application_id'];
+        $reviewerAdminId = (int) $row['reviewer_admin_id'];
+
+        return array_merge($this->application($tenant, $row), [
             'member_id' => (int) $row['member_id'],
             'uid' => (int) $row['uid'],
             'channel_id' => (int) $row['channel_id'],
-            'previous_application_id' => (int) $row['previous_application_id'],
-            'reviewer_admin_id' => (int) $row['reviewer_admin_id'],
+            'previous_application_id' => $previousApplicationId > 0 ? $previousApplicationId : null,
+            'reviewer_admin_id' => $reviewerAdminId > 0 ? $reviewerAdminId : null,
             'is_current' => $row['current_slot'] !== null && (int) $row['current_slot'] === 1,
             'member_name' => (string) ($row['member_name'] ?? ''),
         ]);
@@ -640,6 +779,6 @@ final class GraduateVerificationService
             );
         }
 
-        return $this->adminApplication($row);
+        return $this->adminApplication($tenant, $row);
     }
 }

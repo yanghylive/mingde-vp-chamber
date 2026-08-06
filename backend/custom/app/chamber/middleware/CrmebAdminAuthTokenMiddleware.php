@@ -8,12 +8,12 @@ use app\Request;
 use app\chamber\identity\AuthenticatedAdminContext;
 use app\chamber\identity\BearerTokenExtractor;
 use app\services\system\admin\AdminAuthServices;
-use app\services\system\SystemMenusServices;
 use Closure;
 use crmeb\exceptions\AuthException;
 use crmeb\interfaces\MiddlewareInterface;
 use InvalidArgumentException;
 use think\Container;
+use think\facade\Db;
 use think\Response;
 
 final class CrmebAdminAuthTokenMiddleware implements MiddlewareInterface
@@ -21,19 +21,14 @@ final class CrmebAdminAuthTokenMiddleware implements MiddlewareInterface
     /** @var AdminAuthServices */
     private $authService;
 
-    /** @var SystemMenusServices */
-    private $menusService;
-
     /** @var Container */
     private $container;
 
     public function __construct(
         AdminAuthServices $authService,
-        SystemMenusServices $menusService,
         Container $container
     ) {
         $this->authService = $authService;
-        $this->menusService = $menusService;
         $this->container = $container;
     }
 
@@ -45,18 +40,19 @@ final class CrmebAdminAuthTokenMiddleware implements MiddlewareInterface
                 $request->header('Authori-zation', null)
             );
             $adminInfo = $this->authService->parseToken($token);
-            $permissions = [];
-            if ((int) ($adminInfo['level'] ?? -1) !== 0) {
-                list($unusedMenus, $permissions) = $this->menusService->getMenusList(
-                    $adminInfo['roles'] ?? [],
-                    (int) ($adminInfo['level'] ?? -1)
-                );
-                unset($unusedMenus);
+            $activeAdmin = Db::table('eb_system_admin')
+                ->where('id', (int) ($adminInfo['id'] ?? 0))
+                ->field('id,level,status,is_del')
+                ->find();
+            if (!is_array($activeAdmin)
+                || (int) $activeAdmin['status'] !== 1
+                || (int) $activeAdmin['is_del'] !== 0
+                || (int) $activeAdmin['level'] !== (int) ($adminInfo['level'] ?? -1)) {
+                throw new InvalidArgumentException('CRMEB administrator is inactive');
             }
-            if (!is_array($permissions)) {
-                throw new InvalidArgumentException('CRMEB administrator permissions are invalid');
-            }
-            $context = AuthenticatedAdminContext::fromAuthInfo($adminInfo, array_values($permissions));
+            // G1 initially permits only level-0 administrators. Tenant grants for delegated
+            // administrators must be implemented before any global CRMEB permission is accepted.
+            $context = AuthenticatedAdminContext::fromAuthInfo($adminInfo, []);
         } catch (AuthException | InvalidArgumentException $exception) {
             return $this->authenticationRequired($request);
         }

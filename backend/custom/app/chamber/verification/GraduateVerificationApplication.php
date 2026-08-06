@@ -33,25 +33,36 @@ final class GraduateVerificationApplication
             }
         }
 
+        $id = (int) $row['id'];
+        $graduationYear = (int) $row['graduation_year'];
+        $graduationAt = (int) $row['graduation_time'];
+        $submittedAt = (int) $row['submit_time'];
+        $reviewedAt = (int) $row['review_time'];
         $status = GraduateVerificationState::fromDatabase((int) $row['status']);
         $applicationNumber = (string) ($row['apply_no'] ?? '');
         $className = (string) ($row['class_name'] ?? '');
         $reviewNote = (string) ($row['review_note'] ?? '');
-        if ($applicationNumber === '' || strlen($applicationNumber) > 32 || strlen($className) > 320
-            || strlen($reviewNote) > 2000) {
+        $classNameLength = function_exists('mb_strlen') ? mb_strlen($className, 'UTF-8') : strlen($className);
+        $reviewNoteLength = function_exists('mb_strlen') ? mb_strlen($reviewNote, 'UTF-8') : strlen($reviewNote);
+        if ($id <= 0 || $applicationNumber === '' || strlen($applicationNumber) > 32
+            || $classNameLength > 80 || $reviewNoteLength > 500
+            || $graduationYear < 1900 || $graduationYear > 2106
+            || $graduationAt < 0 || $submittedAt < 0 || $reviewedAt < 0
+            || $graduationAt > 4294967295 || $submittedAt > 4294967295 || $reviewedAt > 4294967295) {
             throw new RuntimeException('Graduate verification row snapshot is invalid');
         }
 
         return [
-            'id' => (int) $row['id'],
+            'id' => $id,
             'application_no' => $applicationNumber,
             'status' => $status,
             'class_name' => $className,
-            'graduation_year' => (int) $row['graduation_year'],
-            'graduation_at' => (int) $row['graduation_time'],
+            'graduation_year' => $graduationYear,
+            'graduation_at' => $graduationAt,
             'proof_object_keys' => array_values($proofObjectKeys),
-            'submitted_at' => (int) $row['submit_time'],
-            'reviewed_at' => (int) $row['review_time'],
+            'proof_assets' => [],
+            'submitted_at' => $submittedAt,
+            'reviewed_at' => $reviewedAt,
             'review_note' => $reviewNote,
             'can_resubmit' => in_array($status, [
                 GraduateVerificationState::RETURNED,

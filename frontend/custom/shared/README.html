@@ -3,20 +3,28 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>租户品牌前端 Bootstrap</title>
+  <title>前端共享核心 · 租户品牌与会员 UI</title>
   <link rel="stylesheet" href="../../../docs/project-docs.css">
 </head>
 <body>
-  <header class="doc-head"><div class="wrap"><p class="eyebrow">TENANT BRAND BOOTSTRAP</p><h1>租户品牌前端 Bootstrap</h1><p>同一份框架无关配置核心，供 CRMEB Vue2 管理端和 UniApp 用户端复用。</p></div></header>
+  <header class="doc-head"><div class="wrap"><p class="eyebrow">SHARED FRONTEND CORE · 2026-07-25</p><h1>租户品牌与会员 UI 共享核心</h1><p>同一份框架无关 JavaScript 核心，供 CRMEB Vue2 管理端和 UniApp 用户端复用品牌、资料、附件、认证与审核规则。</p></div></header>
   <main class="doc-main"><div class="wrap">
-    <nav class="doc-nav"><a href="../README.html">前端二开入口</a><a href="../../../docs/PRD-v2.0.html">PRD</a></nav>
-    <section><h2>接口</h2><div class="table-wrap"><table><thead><tr><th>接口</th><th>用途</th></tr></thead><tbody>
+    <nav class="doc-nav"><a href="../README.html">前端二开入口</a><a href="../../../docs/G1-个人资料与毕业认证开发基线.html">G1-01C 基线</a><a href="../../../docs/PRD-v2.0.html">PRD</a></nav>
+    <section><h2>租户品牌接口</h2><div class="table-wrap"><table><thead><tr><th>接口</th><th>用途</th></tr></thead><tbody>
       <tr><td><code>normalizeTenantBrand(remote, defaults)</code></td><td>解包常见 CRMEB 响应，兼容 camelCase/snake_case 字段，过滤危险 URL，并统一颜色格式。</td></tr>
       <tr><td><code>bootstrapTenantBrand(options)</code></td><td>调用注入的 <code>fetchRemote</code>；远端失败时返回默认品牌和可序列化错误，不阻断应用启动。</td></tr>
       <tr><td><code>installTenantBrand(Vue, options)</code></td><td>创建 Vue2 可响应状态并挂到 <code>Vue.prototype.$tenantBrand</code>；UniApp 当前同样使用 Vue2，可直接复用。</td></tr>
     </tbody></table></div></section>
-    <section><h2>接入约束</h2><ul class="checklist"><li>共享核心不读取 <code>window</code>、<code>uni</code>、Vuex 或环境变量，网络请求由调用端注入。</li><li>管理端从 <code>src/chamber/shared</code> 引入；UniApp 从 <code>chamber/shared</code> 引入。准备脚本会自动复制。</li><li>远端配置接口未完成前可以省略 <code>fetchRemote</code>，应用将使用默认品牌正常启动。</li></ul></section>
-    <section><h2>验证</h2><pre>./scripts/prepare-local-frontend.sh test</pre></section>
-  </div></main>
+    <section><h2>会员 UI 接口</h2><div class="table-wrap"><table><thead><tr><th>接口组</th><th>用途</th></tr></thead><tbody>
+      <tr><td><code>profileFormFromData / buildProfilePatch</code></td><td>资料响应转表单、列表/隐私规范化和白名单提交校验。</td></tr>
+      <tr><td><code>normalizeMemberAsset / proofAssetsFromApplication</code></td><td>附件元数据、对象键、<code>available</code> 与认证材料展示的稳定适配。</td></tr>
+      <tr><td><code>buildVerificationSubmission</code></td><td>班级、毕业时间、1–10 份材料和 supersedes 关系校验。</td></tr>
+      <tr><td><code>verificationStatusMeta / reviewActionsForStatus / buildReviewRequest</code></td><td>用户/Admin 共用认证状态、合法审核动作和审核意见规则。</td></tr>
+      <tr><td><code>createIdempotencyKey / payloadFingerprint</code></td><td>创建调用方幂等键并稳定识别当前页面请求载荷。</td></tr>
+      <tr><td><code>resolveServiceOrigin</code></td><td>把 API 基址解析为私有内容读取的同服务 Origin，不使用公开演示地址。</td></tr>
+    </tbody></table></div></section>
+    <section><h2>接入约束</h2><ul class="checklist"><li>共享核心不读取 <code>window</code>、<code>uni</code>、Vuex 或环境变量，网络请求和文件打开由调用端注入。</li><li>管理端从 <code>src/chamber/shared</code> 引入；UniApp 从 <code>chamber/shared</code> 引入。准备脚本会自动复制。</li><li>共享校验用于前端即时反馈，后端仍是权限、状态机、幂等、配额和文件安全的唯一裁决者。</li><li>远端品牌配置失败时使用中性默认值并保留可序列化错误，不阻断应用启动。</li></ul></section>
+    <section><h2>验证</h2><pre>./scripts/prepare-local-frontend.sh test</pre><p>当前固定通过租户品牌 6 项和会员 UI 18 项测试，并检查准备后两端导入、页面注册与 API Origin。</p></section>
+  </div></main><footer><div class="wrap">mingde-vp-chamber · Shared Frontend Core · 2026-07-25</div></footer>
 </body>
 </html>

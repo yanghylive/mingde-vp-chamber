@@ -6,6 +6,7 @@ namespace app\chamber\services;
 
 use app\chamber\exceptions\MemberTransactionException;
 use app\chamber\membership\BootstrapIdempotency;
+use app\chamber\membership\EncryptedIdempotencyResult;
 use app\chamber\tenancy\TenantContext;
 use InvalidArgumentException;
 use RuntimeException;
@@ -49,7 +50,8 @@ final class GraduateVerificationIdempotency
         string $callerKey,
         array $normalizedRequest,
         int $successHttpStatus,
-        callable $execution
+        callable $execution,
+        callable $authorization = null
     ): array {
         try {
             BootstrapIdempotency::assertCallerKey($callerKey);
@@ -89,7 +91,8 @@ final class GraduateVerificationIdempotency
             $leaseToken,
             $now,
             $successHttpStatus,
-            $execution
+            $execution,
+            $authorization
         ): array {
             $record = $this->lockRecord(
                 $tenant->tenantId(),
@@ -99,9 +102,13 @@ final class GraduateVerificationIdempotency
                 $leaseToken,
                 $now
             );
+            if ($authorization !== null) {
+                call_user_func($authorization);
+            }
             if ($record['replay'] !== null) {
                 return $this->decodeResult(
                     $record['row'],
+                    $operation,
                     $internalKey,
                     $principalType,
                     $principalId,
@@ -116,6 +123,8 @@ final class GraduateVerificationIdempotency
             $this->completeRecord(
                 (int) $record['row']['id'],
                 $leaseToken,
+                $operation,
+                $internalKey,
                 $principalType,
                 $principalId,
                 $successHttpStatus,
@@ -216,6 +225,7 @@ final class GraduateVerificationIdempotency
 
     private function decodeResult(
         array $row,
+        string $operation,
         string $expectedInternalKey,
         string $expectedPrincipalType,
         int $expectedPrincipalId,
@@ -234,16 +244,27 @@ final class GraduateVerificationIdempotency
             || !hash_equals((string) $row['idempotency_key'], $expectedInternalKey)
             || ($decoded['principal_type'] ?? null) !== $expectedPrincipalType
             || ($decoded['principal_id'] ?? null) !== $expectedPrincipalId
-            || !isset($decoded['data']) || !is_array($decoded['data'])) {
+            || !isset($decoded['sealed']) || !is_array($decoded['sealed'])) {
             throw new RuntimeException('Stored graduate verification idempotency result identity is invalid');
         }
 
-        return $decoded['data'];
+        return EncryptedIdempotencyResult::open(
+            $decoded['sealed'],
+            $this->associatedData(
+                $operation,
+                $expectedInternalKey,
+                $expectedPrincipalType,
+                $expectedPrincipalId,
+                $expectedHttpStatus
+            )
+        );
     }
 
     private function completeRecord(
         int $recordId,
         string $leaseToken,
+        string $operation,
+        string $internalKey,
         string $principalType,
         int $principalId,
         int $httpStatus,
@@ -253,7 +274,16 @@ final class GraduateVerificationIdempotency
         $result = [
             'principal_type' => $principalType,
             'principal_id' => $principalId,
-            'data' => $data,
+            'sealed' => EncryptedIdempotencyResult::seal(
+                $data,
+                $this->associatedData(
+                    $operation,
+                    $internalKey,
+                    $principalType,
+                    $principalId,
+                    $httpStatus
+                )
+            ),
         ];
         $resultJson = BootstrapIdempotency::canonicalJson($result);
         $updated = Db::table('ch_idempotency_record')
@@ -275,5 +305,21 @@ final class GraduateVerificationIdempotency
         if ($updated !== 1) {
             throw new RuntimeException('Graduate verification idempotency result could not be completed');
         }
+    }
+
+    private function associatedData(
+        string $operation,
+        string $internalKey,
+        string $principalType,
+        int $principalId,
+        int $httpStatus
+    ): string {
+        return BootstrapIdempotency::canonicalJson([
+            'operation' => $operation,
+            'internal_key' => $internalKey,
+            'principal_type' => $principalType,
+            'principal_id' => $principalId,
+            'http_status' => $httpStatus,
+        ]);
     }
 }

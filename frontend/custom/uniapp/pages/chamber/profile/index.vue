@@ -14,7 +14,7 @@
       <view class="page-head">
         <view>
           <text class="page-title">会员资料</text>
-          <text class="page-status" class="{{profileComplete ? 'complete' : 'incomplete'}}">
+          <text class="page-status" :class="profileComplete ? 'complete' : 'incomplete'">
             {{ profileComplete ? '资料已完善' : '资料待完善' }}
           </text>
         </view>
@@ -30,20 +30,11 @@
           <input v-model="form.real_name" class="field-input" maxlength="40" placeholder="请输入姓名" />
           <text v-if="errors.real_name" class="field-error">{{ errors.real_name }}</text>
         </view>
-        <view class="field">
-          <text class="field-label">头像文件标识</text>
-          <input
-            v-model="form.avatar_object_key"
-            class="field-input mono"
-            maxlength="255"
-            placeholder="profile/avatars/member.png"
-          />
-          <text v-if="errors.avatar_object_key" class="field-error">{{ errors.avatar_object_key }}</text>
-        </view>
         <view class="field-grid">
           <view class="field compact">
             <text class="field-label">班级</text>
             <input v-model="form.class_name" class="field-input" maxlength="80" placeholder="如 EMBA 2008" />
+            <text v-if="errors.class_name" class="field-error">{{ errors.class_name }}</text>
           </view>
           <view class="field compact">
             <text class="field-label">毕业年份</text>
@@ -54,6 +45,7 @@
         <view class="field">
           <text class="field-label">行业</text>
           <input v-model="form.industry" class="field-input" maxlength="80" placeholder="所在行业" />
+          <text v-if="errors.industry" class="field-error">{{ errors.industry }}</text>
         </view>
         <view class="field">
           <text class="field-label">公司</text>
@@ -63,6 +55,7 @@
         <view class="field">
           <text class="field-label">职务</text>
           <input v-model="form.job_title" class="field-input" maxlength="80" placeholder="当前职务" />
+          <text v-if="errors.job_title" class="field-error">{{ errors.job_title }}</text>
         </view>
         <view class="field">
           <text class="field-label">主营业务</text>
@@ -72,20 +65,24 @@
             maxlength="500"
             placeholder="主营产品、服务或业务方向"
           />
+          <text v-if="errors.main_business" class="field-error">{{ errors.main_business }}</text>
         </view>
         <view class="field-grid">
           <view class="field compact">
             <text class="field-label">省份</text>
             <input v-model="form.province" class="field-input" maxlength="40" placeholder="省份" />
+            <text v-if="errors.province" class="field-error">{{ errors.province }}</text>
           </view>
           <view class="field compact">
             <text class="field-label">城市</text>
             <input v-model="form.city" class="field-input" maxlength="40" placeholder="城市" />
+            <text v-if="errors.city" class="field-error">{{ errors.city }}</text>
           </view>
         </view>
         <view class="field">
           <text class="field-label">个人简介</text>
           <textarea v-model="form.bio" class="field-textarea" maxlength="1000" placeholder="个人经历与当前关注方向" />
+          <text v-if="errors.bio" class="field-error">{{ errors.bio }}</text>
         </view>
       </view>
 
@@ -120,9 +117,12 @@
           >
             <view class="privacy-value">
               <text>{{ privacyLabel(form.privacy[item.key]) }}</text>
-              <text class="chevron">></text>
+              <text class="chevron">›</text>
             </view>
           </picker>
+          <text v-if="errors['privacy.' + item.key]" class="field-error privacy-error">
+            {{ errors['privacy.' + item.key] }}
+          </text>
         </view>
       </view>
 
@@ -134,7 +134,11 @@
 </template>
 
 <script>
-import { getMemberProfile, updateMemberProfile } from '@/api/chamber/member.js';
+import {
+  ensureMemberInitialized,
+  getMemberProfile,
+  updateMemberProfile,
+} from '@/api/chamber/member.js';
 import memberUi from '@/chamber/shared/member-ui.js';
 
 export default {
@@ -148,6 +152,7 @@ export default {
       updatedAt: 0,
       pendingKey: '',
       pendingFingerprint: '',
+      inviteCode: '',
       privacyOptions: memberUi.VISIBILITY_OPTIONS,
       privacyFields: memberUi.PROFILE_FIELDS,
       listFields: [
@@ -159,14 +164,16 @@ export default {
       form: memberUi.profileFormFromData({}),
     };
   },
-  onLoad() {
+  onLoad(options) {
+    this.inviteCode = options && options.invite_code ? String(options.invite_code) : '';
     this.loadProfile();
   },
   methods: {
     loadProfile() {
       this.loading = true;
       this.loadError = '';
-      getMemberProfile()
+      ensureMemberInitialized(this.inviteCode)
+        .then(() => getMemberProfile())
         .then((response) => {
           this.applyProfile(response.data || {});
         })
@@ -221,7 +228,9 @@ export default {
           uni.showToast({ title: '资料已保存', icon: 'success' });
         })
         .catch((error) => {
-          if (error && error.data && error.data.field_errors) this.errors = error.data.field_errors;
+          if (error && error.data && error.data.field_errors) {
+            this.errors = memberUi.fieldErrorsToMap(error.data.field_errors);
+          }
           uni.showToast({
             title: this.errorMessage(error, '保存失败，请稍后重试'),
             icon: 'none',
@@ -236,14 +245,14 @@ export default {
     },
     formatTime(timestamp) {
       const date = new Date(Number(timestamp) * 1000);
-      const pad = (value) => String(value).padStart(2, '0');
-      return (date.getFullYear()) + '-' + (pad(date.getMonth() + 1)) + '-' + (pad(date.getDate()));
+      const pad = (value) => (Number(value) < 10 ? '0' : '') + Number(value);
+      return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
     },
   },
 };
 </script>
 
-<style lang="scss">
+<style lang="scss" scoped>
 .profile-page {
   min-height: 100vh;
   background: #f4f6f5;
@@ -367,10 +376,18 @@ export default {
 }
 .privacy-row {
   display: flex;
+  padding: 10rpx 0;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
   min-height: 92rpx;
   border-bottom: 1rpx solid #edf0ee;
+}
+.privacy-error {
+  width: 100%;
+  margin-top: 2rpx;
+  font-size: 20rpx;
+  text-align: right;
 }
 .privacy-row:last-child {
   border-bottom: 0;

@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>G2 活动核心开发基线</title>
+  <link rel="stylesheet" href="project-docs.css">
+</head>
+<body>
+  <header class="doc-head"><div class="wrap">
+    <p class="eyebrow">G2 ACTIVITY BACKEND CORE · 2026-07-28</p>
+    <h1>G2 活动核心开发基线</h1>
+    <p>固定已可运行的活动目录、会员资格、报名查询、动态签到码、扫码签到与奖励账本边界。本基线只标记活动后端核心，不代表 G2 产品闭环完成。</p>
+  </div></header>
+  <main class="doc-main"><div class="wrap">
+    <nav class="doc-nav">
+      <a href="../index.html">项目首页</a>
+      <a href="PRD-v2.0.html">PRD v2.0</a>
+      <a href="开发任务板.html">开发任务板</a>
+      <a href="../backend/custom/openapi/README.html">OpenAPI</a>
+      <a href="../backend/custom/database/README.html">数据库基线</a>
+    </nav>
+
+    <section>
+      <h2>1. 基线结论</h2>
+      <div class="decision-grid">
+        <article><small>当前阶段</small><strong>G2 主旅程已贯通</strong><p>用户活动页、报名、签到、管理读工作台和退款奖励冲正已实现。</p></article>
+        <article><small>机器契约</small><strong>24 implemented / 6 planned</strong><p>OpenAPI 共 26 条路径、30 个操作、113 个 Schema。</p></article>
+        <article><small>数据库</small><strong>187 张表</strong><p>157 张 CRMEB + 29 张 Chamber 领域/可靠性表 + 1 张迁移登记表。</p></article>
+      </div>
+      <div class="callout warn"><strong>边界：</strong>四类报名、支付/退款投影、积分/席位/奖励冲正、用户端主页和管理读工作台已完成；退款发起/渠道对账、异常人工处理、候补/通知、活动回顾、管理写接口 HTTP 验收和真机验收仍未完成。</div>
+    </section>
+
+    <section>
+      <h2>2. 已交付代码与数据</h2>
+      <div class="table-wrap"><table>
+        <thead><tr><th>范围</th><th>实现事实</th><th>验收边界</th></tr></thead>
+        <tbody>
+          <tr><td>活动目录</td><td>租户/渠道限定的活动列表和详情，支持类型、时间、状态和标签查询</td><td><code>listEvents</code>、<code>showEvent</code> 已实现</td></tr>
+          <tr><td>资格判定</td><td>按发布状态、报名窗口、容量、会籍、毕业认证、渠道、角色和积分返回稳定原因</td><td>资格读与免费/积分报名事务共用同一规则</td></tr>
+          <tr><td>我的报名</td><td>本人报名列表和详情，可读取报名、支付、签到状态投影</td><td><code>listMyEventRegistrations</code>、<code>showMyEventRegistration</code> 已实现</td></tr>
+          <tr><td>活动报名交易</td><td>免费/积分即时确认；现金/混合三段建单；可信全额退款恢复报名积分并释放席位，部分退款只更新累计事实</td><td>96 个数据库断言 + 6 人抢 2 名额的 13 个并发断言；四种计费模式真实 HTTP 门禁通过</td></tr>
+          <tr><td>扫码签到</td><td>租户域 HMAC 动态码、过期/签名检查、报名与活动匹配、重复签到安全重放</td><td><code>createEventCheckin</code> 已实现</td></tr>
+          <tr><td>签到奖励</td><td>签到后幂等记录积分、贡献值和奖励账本；可信全额退款追加冲正</td><td>41 个奖励冲正数据库断言；余额不足时失败封闭并转人工处理</td></tr>
+          <tr><td>管理服务</td><td>活动列表/详情读接口和 Admin 工作台已实现；创建、编辑、发布、取消、发码和补签代码已加固</td><td>管理读 24 个数据库断言；仅 0 级超管可访问；6 个写操作仍为 <code>planned</code></td></tr>
+        </tbody>
+      </table></div>
+    </section>
+
+    <section>
+      <h2>3. 数据库增量</h2>
+      <p>活动运行时、签到奖励、支付冻结、超时任务和退款效果共 5 个 G2 迁移已执行并登记，新增 7 张表，同时扩展活动、票种、报名和积分账户事实。</p>
+      <div class="table-wrap"><table>
+        <thead><tr><th>数据对象</th><th>用途</th><th>关键不变量</th></tr></thead>
+        <tbody>
+          <tr><td><code>ch_event_checkin_token</code></td><td>动态签到码摘要、有效期和发码人</td><td>租户 + 活动 + token 摘要唯一</td></tr>
+          <tr><td><code>ch_event_reward</code></td><td>活动签到奖励事实</td><td>租户内幂等键唯一</td></tr>
+          <tr><td><code>ch_point_account</code></td><td>会员积分账户投影</td><td>租户内每会员单账户</td></tr>
+          <tr><td><code>ch_point_ledger</code></td><td>积分追加式流水</td><td>来源事实不重复入账</td></tr>
+          <tr><td><code>ch_contribution_ledger</code></td><td>贡献值追加式流水</td><td>来源事实不重复入账</td></tr>
+          <tr><td><code>ch_point_hold</code></td><td>混合支付报名积分冻结</td><td>每笔报名唯一；只可冻结转扣减或释放</td></tr>
+          <tr><td><code>ch_event_registration_effect</code></td><td>部分/全额退款追加效果</td><td>可信完成指纹唯一；现金、积分和席位变化可审计</td></tr>
+        </tbody>
+      </table></div>
+      <p>当前共 14 个已登记迁移，迁移结构验证合计 463 项，其中 G2 新增 26 项。</p>
+    </section>
+
+    <section>
+      <h2>4. OpenAPI 操作状态</h2>
+      <div class="table-wrap"><table>
+        <thead><tr><th>状态</th><th>活动操作</th></tr></thead>
+        <tbody>
+          <tr><td><strong>implemented（8）</strong></td><td>活动列表、活动详情、报名创建、我的报名列表、我的报名详情、扫码签到、管理活动列表和详情</td></tr>
+          <tr><td><strong>planned（6）</strong></td><td>管理端创建、更新、发布、取消、动态码和人工补签</td></tr>
+        </tbody>
+      </table></div>
+      <div class="callout"><strong>计数规则：</strong>代码文件或路由存在不等于对外完成。只有持久化幂等、权限、状态机、数据库和 HTTP 门禁均稳定后，才把 <code>planned</code> 改为 <code>implemented</code>。</div>
+    </section>
+
+    <section>
+      <h2>5. PRD 映射</h2>
+      <div class="table-wrap"><table>
+        <thead><tr><th>需求</th><th>当前状态</th><th>下一出口</th></tr></thead>
+        <tbody>
+          <tr><td><code>ACT-001/002</code> 活动发布、类型与标签</td><td>管理读工作台完成；写服务代码已加固</td><td>管理写接口 HTTP/权限门禁</td></tr>
+          <tr><td><code>ACT-003</code> 日历/列表</td><td>列表、详情 API 和 UniApp 主页已完成</td><td>真机与弱网验收</td></tr>
+          <tr><td><code>ACT-004</code> 报名资格</td><td>后端判定、报名事务和用户页面已贯通</td><td>真机边界状态验收</td></tr>
+          <tr><td><code>ACT-005/006</code> 报名支付与地图</td><td>四类报名、支付、退款终态投影、积分/席位冲正、超时释放和真实 HTTP 完成；退款发起与地图未完成</td><td>退款发起/对账和页面</td></tr>
+          <tr><td><code>ACT-007</code> 动态码/人工补签</td><td>扫码和用户页完成；管理发码/补签契约仍 planned</td><td>管理写 HTTP 门禁</td></tr>
+          <tr><td><code>ACT-008</code> 积分/贡献值</td><td>签到发放与可信全额退款冲正完成</td><td>余额不足异常的人工工单闭环</td></tr>
+          <tr><td><code>ACT-009/010</code> 候补通知与回顾</td><td>未完成</td><td>等主报名闭环后实施</td></tr>
+        </tbody>
+      </table></div>
+    </section>
+
+    <section>
+      <h2>6. 已执行验证</h2>
+      <pre>./scripts/manage-local-database.sh verify
+ruby backend/custom/openapi/validate.rb
+docker exec mingde_crmeb_php php /var/www/app/chamber/tests/event_run.php
+docker exec mingde_crmeb_php php /var/www/app/chamber/tests/event_db_run.php
+docker exec mingde_crmeb_php php /var/www/app/chamber/tests/event_registration_db_run.php
+docker exec mingde_crmeb_php php /var/www/app/chamber/tests/event_reward_reversal_db_run.php
+docker exec mingde_crmeb_php php /var/www/app/chamber/tests/event_admin_read_db_run.php
+docker exec mingde_crmeb_php php /var/www/app/chamber/tests/event_registration_concurrency_run.php</pre>
+      <ul class="checklist">
+        <li>活动领域测试 12 个用例通过。</li>
+        <li>活动数据库集成测试 72 个断言通过，覆盖持久化幂等和人工补签奖励。</li>
+        <li>活动报名数据库 96 个断言通过，奖励冲正 41 个、管理读 24 个、并发门禁 13 个断言。</li>
+        <li>UniApp 活动流程 11 个、Admin 工作台 8 个前端测试通过。</li>
+        <li>14 个数据库迁移全部重验通过，当前数据库 187 张表。</li>
+        <li>真实 HTTP 门禁通过：鉴权、幂等、免费/积分/现金/混合报名、原生购物车隔离、支付投影与重复回放。</li>
+        <li>OpenAPI 校验通过：26 paths / 30 operations / 24 implemented / 6 planned / 113 schemas。</li>
+      </ul>
+    </section>
+  </div></main>
+  <footer><div class="wrap">mingde-vp-chamber · G2 活动核心开发基线 · 2026-07-28</div></footer>
+</body>
+</html>

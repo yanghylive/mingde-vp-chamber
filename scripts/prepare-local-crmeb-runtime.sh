@@ -5,6 +5,8 @@ set -Eeuo pipefail
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SOURCE_DIR="${PROJECT_ROOT}/backend/crmeb/crmeb"
 CUSTOM_APP_DIR="${PROJECT_ROOT}/backend/custom/app/chamber"
+CUSTOM_API_PROVIDER="${PROJECT_ROOT}/backend/custom/app/api/provider.php"
+CUSTOM_ROOT_PROVIDER="${PROJECT_ROOT}/backend/custom/app/provider.php"
 RUNTIME_DIR="${PROJECT_ROOT}/.build-workspace/crmeb-runtime"
 COMPOSE_FILE="${PROJECT_ROOT}/deployment/local/docker-compose.crmeb.yml"
 
@@ -52,6 +54,8 @@ prepare_runtime() {
     [ -d "${SOURCE_DIR}" ] || fail "CRMEB source directory not found: ${SOURCE_DIR}"
     [ -f "${SOURCE_DIR}/public/install/crmeb.sql" ] || fail "CRMEB install SQL not found"
     [ -d "${CUSTOM_APP_DIR}" ] || fail "Chamber overlay not found: ${CUSTOM_APP_DIR}"
+    [ -s "${CUSTOM_API_PROVIDER}" ] || fail "CRMEB API provider overlay not found: ${CUSTOM_API_PROVIDER}"
+    [ -s "${CUSTOM_ROOT_PROVIDER}" ] || fail "CRMEB root provider overlay not found: ${CUSTOM_ROOT_PROVIDER}"
     if [ -e "${SOURCE_DIR}/app/chamber" ]; then
         [ -d "${SOURCE_DIR}/app/chamber" ] \
             || fail "CRMEB upstream app/chamber is not a directory; review the overlay conflict"
@@ -72,6 +76,8 @@ prepare_runtime() {
 
     mkdir -p "${RUNTIME_DIR}/app/chamber"
     rsync -a --delete "${CUSTOM_APP_DIR}/" "${RUNTIME_DIR}/app/chamber/"
+    install -m 0644 "${CUSTOM_API_PROVIDER}" "${RUNTIME_DIR}/app/api/provider.php"
+    install -m 0644 "${CUSTOM_ROOT_PROVIDER}" "${RUNTIME_DIR}/app/provider.php"
 
     mkdir -p \
         "${RUNTIME_DIR}/runtime" \
@@ -93,6 +99,8 @@ prepare_runtime() {
 start_services() {
     require_command docker
     compose up -d --remove-orphans
+    compose exec -T nginx nginx -t >/dev/null
+    compose exec -T nginx nginx -s reload >/dev/null
 }
 
 wait_for_services() {
@@ -137,6 +145,11 @@ database_table_count() {
     compose exec -T mysql sh -lc \
         'MYSQL_PWD="$MYSQL_PASSWORD" mysql -Nse "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema=\"$MYSQL_DATABASE\"" -u "$MYSQL_USER"' \
         | tr -d '[:space:]'
+}
+
+baseline_table_count() {
+    awk '/^CREATE TABLE/{count++} END{print count + 0}' \
+        "${RUNTIME_DIR}/public/install/crmeb.sql"
 }
 
 write_runtime_config() {
@@ -211,8 +224,9 @@ SQL
 }
 
 install_local_database() {
-    local table_count marker_count
+    local table_count marker_count expected_table_count
     table_count="$(database_table_count)"
+    expected_table_count="$(baseline_table_count)"
 
     if [ "${table_count}" -gt 0 ]; then
         if [ -s "${RUNTIME_DIR}/.env" ] && [ -f "${RUNTIME_DIR}/public/install.lock" ]; then
@@ -225,6 +239,9 @@ install_local_database() {
         [ "${marker_count}" -eq 1 ] \
             || fail "Database is not empty and is not a recognizable CRMEB schema; existing data was preserved."
 
+        [ "${table_count}" -ge "${expected_table_count}" ] \
+            || fail "CRMEB baseline import is incomplete (${table_count}/${expected_table_count} tables); existing data was preserved. Reset this local database before retrying install."
+
         printf 'Completing an interrupted CRMEB local initialization...\n'
         write_runtime_config
         configure_local_admin
@@ -234,8 +251,12 @@ install_local_database() {
 
     printf 'Importing CRMEB baseline database...\n'
     compose exec -T mysql sh -lc \
-        'MYSQL_PWD="$MYSQL_PASSWORD" mysql --default-character-set=utf8mb4 -u "$MYSQL_USER" "$MYSQL_DATABASE"' \
+        'MYSQL_PWD="$MYSQL_PASSWORD" mysql --default-character-set=utf8mb4 --init-command="SET SESSION sql_mode=NO_ENGINE_SUBSTITUTION" -u "$MYSQL_USER" "$MYSQL_DATABASE"' \
         < "${RUNTIME_DIR}/public/install/crmeb.sql"
+
+    table_count="$(database_table_count)"
+    [ "${table_count}" -ge "${expected_table_count}" ] \
+        || fail "CRMEB baseline import completed with only ${table_count}/${expected_table_count} tables"
 
     write_runtime_config
     configure_local_admin
