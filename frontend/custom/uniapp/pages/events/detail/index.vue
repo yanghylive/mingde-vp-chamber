@@ -23,17 +23,17 @@
       <!-- 时间地点 -->
       <view class="card info-card">
         <view class="info-row">
-          <view class="info-icon info-icon-time"><view class="ic ic-sm ic-clock-3-orange" /></view>
+          <view class="info-icon info-icon-time"><image class="ic ic-sm" src="/static/icons/ic-clock-3-orange.png" mode="aspectFit" /></view>
           <text class="info-text">{{ timeText }}</text>
         </view>
         <view class="info-row">
-          <view class="info-icon info-icon-loc"><view class="ic ic-sm ic-map-pin-orange" /></view>
+          <view class="info-icon info-icon-loc"><image class="ic ic-sm" src="/static/icons/ic-map-pin-orange.png" mode="aspectFit" /></view>
           <view class="info-loc">
             <text class="info-loc-name">{{ event.location_name || '待定地点' }}</text>
             <text v-if="event.address" class="info-loc-addr">{{ event.address }}</text>
           </view>
           <view class="info-nav" @tap="navigate">
-            <view class="ic ic-xs ic-navigation-blue" />
+            <image class="ic ic-xs" src="/static/icons/ic-navigation-blue.png" mode="aspectFit" />
             <text>导航</text>
           </view>
         </view>
@@ -67,7 +67,7 @@
 
       <!-- 签到入口 -->
       <view class="checkin-card card" @tap="goCheckin">
-        <view class="ci-icon"><view class="ic ic-md ic-scan-line-white" /></view>
+        <view class="ci-icon"><image class="ic ic-md" src="/static/icons/ic-scan-line-white.png" mode="aspectFit" /></view>
         <view class="ci-info">
           <text class="ci-title">现场扫码签到</text>
           <text class="ci-sub">{{ event.checkin_reward_points ? '签到立得 +' + event.checkin_reward_points + ' 积分' : '凭活动二维码签到' }}</text>

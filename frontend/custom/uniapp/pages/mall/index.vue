@@ -5,14 +5,14 @@
       <text class="ph-title">积分商城</text>
       <text class="ph-sub">我的积分 {{ points == null ? '—' : fmtPoints(points) }}</text>
       <view class="search-box glass-control">
-        <view class="ic ic-sm ic-search-gold" />
+        <image class="ic ic-sm" src="/static/icons/ic-search-gold.png" mode="aspectFit" />
         <input v-model="keyword" class="s-input" placeholder="搜索课程 / 沙龙 / 实物" placeholder-class="ph" />
       </view>
     </view>
 
     <!-- 积分规则提示条 -->
     <view class="rule-bar glass-control" @tap="rulesOpen = true">
-      <view class="ic ic-sm ic-info-gold" />
+      <image class="ic ic-sm" src="/static/icons/ic-info-gold.png" mode="aspectFit" />
       <text class="rb-text">积分规则：1 元 = 10 积分，积分不足可用现金补差价</text>
       <text class="rb-arrow">></text>
     </view>
@@ -34,7 +34,7 @@
     <!-- 人气臻选 -->
     <view class="sec-head">
       <view class="sh-row">
-        <view class="sh-icon"><view class="ic ic-sm ic-shopping-bag-gold" /></view>
+        <view class="sh-icon"><image class="ic ic-sm" src="/static/icons/ic-shopping-bag-gold.png" mode="aspectFit" /></view>
         <view>
           <text class="sh-title">人气臻选</text>
           <text class="sh-sub">积分好礼，兑换品质生活</text>
@@ -47,7 +47,7 @@
     <view v-else class="grid">
       <view v-for="p in visible" :key="p.id" class="product card" @tap="openConfirm(p)">
         <view class="{{'p-img' + (' ' + catTone(p.category))}}">
-          <view class="{{&#39;ic ic-md &#39; + catIcon(p.category)}}" />
+          <image class="ic ic-md" :src="iconPath(catIcon(p.category))" mode="aspectFit" />
         </view>
         <view class="p-cat">{{ normalizeCategory(p.category) }}</view>
         <text class="p-name">{{ p.name || p.store_name || '未命名商品' }}</text>
@@ -62,7 +62,7 @@
     <!-- 积分获取路径 -->
     <view class="sec-head">
       <view class="sh-row">
-        <view class="sh-icon"><view class="ic ic-md ic-medal-white" /></view>
+        <view class="sh-icon"><image class="ic ic-md" src="/static/icons/ic-medal-white.png" mode="aspectFit" /></view>
         <view>
           <text class="sh-title">积分获取路径</text>
           <text class="sh-sub">贡献越多，收获越多</text>
@@ -72,7 +72,7 @@
     </view>
     <view class="card paths-card">
       <view v-for="(p, i) in paths" :key="i" class="{{'path-row' + (i < paths.length - 1 ? ' path-row-border' : '')}}">
-        <view class="pr-icon"><view class="{{'ic ic-sm ' + pathIconCls(p.icon)}}" /></view>
+        <view class="pr-icon"><image class="ic ic-sm" :src="iconPath(pathIconCls(p.icon))" mode="aspectFit" /></view>
         <view class="pr-info">
           <text class="pr-title">{{ p.title }}</text>
           <text class="pr-desc">{{ p.desc }}</text>
@@ -225,6 +225,7 @@ export default {
       const map = { 课程: 'tone-course', 沙龙: 'tone-salon', 公益: 'tone-charity', 路演: 'tone-roadshow', 商品: 'tone-product', 服务: 'tone-service' }
       return map[normalizeCategory(cat)] || 'tone-product'
     },
+    iconPath(name) { return '/static/icons/' + name + '.png' },
     catIcon(cat) {
       // 商品分类图标（lucide，色随 tone：课程蓝/沙龙金/公益绿/服务紫）
       const map = {

@@ -3,7 +3,7 @@
     <page-header title="通知中心" eyebrow="活动提醒与系统通知" />
     <view v-if="loading" class="empty">通知加载中…</view>
     <view v-else-if="list.length === 0" class="empty-wrap glass-dark">
-        <view class="empty-icon"><view class="ic ic-lg ic-bell-dark" /></view>
+        <view class="empty-icon"><image class="ic ic-lg" src="/static/icons/ic-bell-dark.png" mode="aspectFit" /></view>
         <text class="empty-title">暂无通知</text>
         <text class="empty-sub">报名活动、签到、积分变动后会在这里提醒你</text>
       </view>

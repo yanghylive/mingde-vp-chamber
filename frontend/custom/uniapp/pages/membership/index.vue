@@ -9,7 +9,7 @@
           <view class="tc-name-row">
             <text class="tc-name">{{ displayName }}</text>
             <view class="tc-badge">
-              <view class="ic ic-xs ic-crown-gold" />
+              <image class="ic ic-xs" src="/static/icons/ic-crown-gold.png" mode="aspectFit" />
               <text>{{ currentTier.short }}</text>
             </view>
           </view>
@@ -21,7 +21,7 @@
         </view>
       </view>
       <view class="tc-tip">
-        <view class="ic ic-sm ic-shield-check-gold tct-icon" />
+        <image class="ic ic-sm tct-icon" src="/static/icons/ic-shield-check-gold.png" mode="aspectFit" />
         <text class="tct-text">{{ currentTier.short }} 已解锁 {{ currentTier.rights.length }} 项专属权益，持续精进解锁更高等级。</text>
       </view>
     </view>
@@ -29,7 +29,7 @@
     <!-- 等级权益 -->
     <view class="sec-head">
       <view class="sh-row">
-        <view class="sh-icon"><view class="ic ic-sm ic-medal-gold" /></view>
+        <view class="sh-icon"><image class="ic ic-sm" src="/static/icons/ic-medal-gold.png" mode="aspectFit" /></view>
         <text class="sh-title">等级权益</text>
       </view>
     </view>
@@ -55,7 +55,7 @@
         </view>
         <view v-if="expanded === t.tier" class="li-rights">
           <view v-for="r in t.rights" :key="r" class="li-right">
-            <view class="lir-check"><view class="ic ic-xs ic-check-green" /></view>
+            <view class="lir-check"><image class="ic ic-xs" src="/static/icons/ic-check-green.png" mode="aspectFit" /></view>
             <text class="lir-text">{{ r }}</text>
           </view>
         </view>
@@ -64,7 +64,7 @@
 
     <!-- 升级路径 -->
     <view class="upgrade card">
-      <view class="up-icon"><view class="ic ic-md ic-crown-blue" /></view>
+      <view class="up-icon"><image class="ic ic-md" src="/static/icons/ic-crown-blue.png" mode="aspectFit" /></view>
       <view class="up-info">
         <text class="up-title">升级路径</text>
         <text class="up-sub">持续参与活动、贡献与学习，逐级解锁更丰富权益。</text>

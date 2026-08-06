@@ -5,18 +5,18 @@
       <view class="bal-deco" />
       <view class="bal-left">
         <view class="bal-label-row">
-          <view class="ic ic-sm ic-coins-gold" />
+          <image class="ic ic-sm" src="/static/icons/ic-coins-gold.png" mode="aspectFit" />
           <text class="bal-label">当前积分余额</text>
         </view>
         <text class="bal-num">{{ balance != null ? formatPoints(balance) : '—' }}</text>
       </view>
       <view class="bal-right">
-        <view class="ic ic-lg ic-history-gold" />
+        <image class="ic ic-lg" src="/static/icons/ic-history-gold.png" mode="aspectFit" />
       </view>
     </view>
 
     <view class="section-title">
-      <view class="ic ic-sm ic-coins-gold" />
+      <image class="ic ic-sm" src="/static/icons/ic-coins-gold.png" mode="aspectFit" />
       <view class="st-wrap">
         <text class="st-text">积分流水</text>
         <text class="st-eyebrow">每一分的来龙去脉</text>

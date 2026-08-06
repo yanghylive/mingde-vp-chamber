@@ -17,7 +17,7 @@
 
       <view class="card form">
         <view class="form-title-row">
-          <view class="ic ic-sm ic-shield-check-gold" />
+          <image class="ic ic-sm" src="/static/icons/ic-shield-check-gold.png" mode="aspectFit" />
           <text class="form-title">{{ canSubmit ? '提交验证申请' : '当前申请处理中' }}</text>
         </view>
         <view v-if="!canSubmit" class="form-hint">

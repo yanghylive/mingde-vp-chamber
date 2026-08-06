@@ -5,7 +5,7 @@
       <text class="ph-title">明德大咖</text>
       <text class="ph-sub">与时代的先行者，深度同行</text>
       <view class="search-box glass-control">
-        <view class="ic ic-sm ic-search-gold" />
+        <image class="ic ic-sm" src="/static/icons/ic-search-gold.png" mode="aspectFit" />
         <input v-model="search" class="s-input" placeholder="搜索大咖姓名 / 行业 / 领域" placeholder-class="ph" />
       </view>
     </view>
@@ -13,7 +13,7 @@
     <!-- 深蓝横幅 -->
     <view class="hero glass-dark">
       <view class="hero-top">
-        <view class="hero-icon"><view class="ic ic-lg ic-award-white" /></view>
+        <view class="hero-icon"><image class="ic ic-lg" src="/static/icons/ic-award-white.png" mode="aspectFit" /></view>
         <view>
           <view class="hero-badge">专家智库</view>
           <view class="hero-title">汇聚实战智慧</view>
@@ -31,7 +31,7 @@
     <!-- 推荐大咖 -->
     <view class="sec-head">
       <view class="sh-row">
-        <view class="sh-icon"><view class="ic ic-md ic-users-round-gold" /></view>
+        <view class="sh-icon"><image class="ic ic-md" src="/static/icons/ic-users-round-gold.png" mode="aspectFit" /></view>
         <view>
           <text class="sh-title">推荐大咖</text>
           <text class="sh-sub">导师 · 教练 · 行业领袖</text>
@@ -61,7 +61,7 @@
             <view>
               <text class="ex-name">{{ e.name }}</text>
               <view class="ex-title-row">
-              <view class="ic ic-xs ic-briefcase-business-gray" />
+              <image class="ic ic-xs" src="/static/icons/ic-briefcase-business-gray.png" mode="aspectFit" />
               <text class="ex-title">{{ e.title || '明德大咖' }}{{ e.company ? ' · ' + e.company : '' }}</text>
             </view>
             </view>
@@ -79,11 +79,11 @@
           <!-- 按钮行（对齐 H5） -->
           <view class="ex-actions">
             <view class="ex-btn ex-btn-primary" @tap.stop="goDetail(e.id)">
-              <view class="ic ic-sm ic-calendar-check-white" />
+              <image class="ic ic-sm" src="/static/icons/ic-calendar-check-white.png" mode="aspectFit" />
               <text>预约 1v1</text>
             </view>
             <view class="ex-btn ex-btn-ghost" @tap.stop="goChat(e.id)">
-              <view class="ic ic-sm ic-bot-gold" />
+              <image class="ic ic-sm" src="/static/icons/ic-bot-gold.png" mode="aspectFit" />
               <text>大咖 AI 对话</text>
             </view>
           </view>
@@ -93,7 +93,7 @@
 
     <!-- 与平台 AI 助手对话（对齐 H5） -->
     <view class="ai-card glass-dark" @tap="goChat">
-      <view class="ai-icon"><view class="ic ic-md ic-bot-white" /></view>
+      <view class="ai-icon"><image class="ic ic-md" src="/static/icons/ic-bot-white.png" mode="aspectFit" /></view>
       <view class="ai-info">
         <text class="ai-title">与平台 AI 助手对话</text>
         <text class="ai-sub">24h 在线 · 商会问答 / 活动咨询 / 使用指引</text>
@@ -106,7 +106,7 @@
       <view class="quote-body">
         <text class="quote-text">真正的成长，是让认知成为行动，让行动沉淀为长期价值。</text>
         <view class="quote-by">
-          <view class="ic ic-xs ic-graduation-cap-blue" />
+          <image class="ic ic-xs" src="/static/icons/ic-graduation-cap-blue.png" mode="aspectFit" />
           <text>明德大咖智库</text>
         </view>
       </view>

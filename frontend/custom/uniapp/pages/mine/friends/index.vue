@@ -27,7 +27,7 @@
 
     <view v-if="loading" class="empty">加载中…</view>
     <view v-else-if="filtered.length === 0" class="empty-wrap">
-        <view class="empty-icon"><view class="ic ic-md ic-users-gray" /></view>
+        <view class="empty-icon"><image class="ic ic-md" src="/static/icons/ic-users-gray.png" mode="aspectFit" /></view>
         <text class="empty-title">同频者，终将相遇</text>
         <text class="empty-sub">好友需要 L2 及以上会员，当前为 L1。请到会员中心开通。</text>
       </view>

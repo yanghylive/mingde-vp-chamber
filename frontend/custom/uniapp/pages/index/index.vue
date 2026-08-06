@@ -7,16 +7,16 @@
           <view class="hd-logo">明</view>
           <view class="hd-name">
             <text>明德恒智AI企商汇</text>
-            <view class="ic ic-xs ic-crown-gold" />
+            <image class="ic ic-xs" src="/static/icons/ic-crown-gold.png" mode="aspectFit" />
           </view>
         </view>
         <view class="bell glass-control" @tap="goNotifications">
-          <view class="ic ic-sm ic-bell-dark" />
+          <image class="ic ic-sm" src="/static/icons/ic-bell-dark.png" mode="aspectFit" />
           <view v-if="hasUnread" class="bell-dot" />
         </view>
       </view>
       <view class="search-box glass-control">
-        <view class="ic ic-sm ic-search-gold" />
+        <image class="ic ic-sm" src="/static/icons/ic-search-gold.png" mode="aspectFit" />
         <input
           v-model="searchKw"
           class="s-input"
@@ -36,7 +36,7 @@
           <view class="mc-name-row">
             <text class="mc-name">{{ displayName }}</text>
             <view class="mc-badge">
-              <view class="ic ic-xs ic-crown-gold" />
+              <image class="ic ic-xs" src="/static/icons/ic-crown-gold.png" mode="aspectFit" />
               <text>L{{ tierNum }}</text>
             </view>
           </view>
@@ -78,7 +78,7 @@
       <view class="grids">
         <view v-for="g in grids" :key="g.label" class="grid-item card" @tap="goTo(g.to)">
           <view class="{{'gi-icon gi-' + (g.icon || 'default')}}">
-            <view class="{{'ic ic-md ' + gridIcon(g.icon)}}" />
+            <image class="ic ic-md" :src="gridIconSrc(g.icon)" mode="aspectFit" />
           </view>
           <text class="gi-label">{{ g.label }}</text>
         </view>
@@ -90,7 +90,7 @@
       <view class="ev-head">
         <view>
           <view class="ev-title-row">
-            <view class="ic ic-md ic-calendar-days-gold" />
+            <image class="ic ic-md" src="/static/icons/ic-calendar-days-gold.png" mode="aspectFit" />
             <text class="ev-title">官方活动</text>
           </view>
           <text class="ev-sub">高质量相聚，让思想彼此照亮</text>
@@ -131,7 +131,7 @@
         <block v-else>
           <view v-for="ev in displayEvents.slice(0, 6)" :key="ev.id" class="ev-card card" @tap="goEventDetail(ev.id)">
             <view class="{{'ev-left' + (' ' + metaTone(ev.event_type))}}">
-              <view class="{{&#39;ic ic-md &#39; + metaIcon(ev.event_type)}}" />
+              <image class="ic ic-md" :src="iconPath(metaIcon(ev.event_type))" mode="aspectFit" />
             </view>
             <view class="ev-right">
               <view class="ev-r-head">
@@ -139,14 +139,14 @@
                 <text v-if="ev.min_tier" class="ev-tier-badge">需 L{{ ev.min_tier }} 等级</text>
               </view>
               <view class="ev-r-line">
-                <view class="ic ic-sm ic-clock-3-orange" />
+                <image class="ic ic-sm" src="/static/icons/ic-clock-3-orange.png" mode="aspectFit" />
                 <text class="ev-r-text">{{ evTime(ev) }}</text>
               </view>
               <view class="ev-r-line">
-                <view class="ic ic-sm ic-map-pin-orange" />
+                <image class="ic ic-sm" src="/static/icons/ic-map-pin-orange.png" mode="aspectFit" />
                 <text class="ev-r-addr">{{ ev.location_name || ev.address || '地址待定' }}</text>
                 <view class="ev-nav" @tap.stop="openMap(ev)">
-                  <view class="ic ic-xs ic-navigation-blue" />
+                  <image class="ic ic-xs" src="/static/icons/ic-navigation-blue.png" mode="aspectFit" />
                   <text>导航</text>
                 </view>
               </view>
@@ -157,7 +157,7 @@
               </view>
               <view class="ev-actions">
                 <view class="btn-primary ev-scan" @tap.stop="goCheckin(ev)">
-                  <view class="ic ic-sm ic-scan-line-white" />
+                  <image class="ic ic-sm" src="/static/icons/ic-scan-line-white.png" mode="aspectFit" />
                   <text>扫码签到</text>
                 </view>
                 <view class="ev-detail" @tap.stop="goEventDetail(ev.id)">
@@ -177,7 +177,7 @@
       <view class="ev-head">
         <view>
           <view class="ev-title-row">
-            <view class="ic ic-md ic-sparkles-gold" />
+            <image class="ic ic-md" src="/static/icons/ic-sparkles-gold.png" mode="aspectFit" />
             <text class="ev-title">精选活动</text>
           </view>
           <text class="ev-sub">本周值得参与的高质量连接</text>
@@ -195,7 +195,7 @@
           <text class="fd-summary">{{ featured.summary || '暂无简介' }}</text>
           <view class="fd-foot">
             <view class="fd-rec">
-              <view class="ic ic-xs ic-calendar-check-gold" />
+              <image class="ic ic-xs" src="/static/icons/ic-calendar-check-gold.png" mode="aspectFit" />
               <text>本周推荐</text>
             </view>
             <view class="fd-btn" @tap.stop="goEventDetail(featured.id)">报名</view>
@@ -210,7 +210,7 @@
       <view class="ev-head">
         <view>
           <view class="ev-title-row">
-            <view class="ic ic-md ic-calendar-days-gold" />
+            <image class="ic ic-md" src="/static/icons/ic-calendar-days-gold.png" mode="aspectFit" />
             <text class="ev-title">本周精选</text>
           </view>
           <text class="ev-sub">为你的成长节奏精心编排</text>
@@ -225,7 +225,7 @@
       <view v-else class="week-grid">
         <view v-for="ev in events.slice(0, 4)" :key="ev.id" class="week-card card" @tap="goEventDetail(ev.id)">
           <view class="{{'week-thumb ' + metaTone(ev.event_type)}}">
-            <view class="{{'ic ic-lg ' + metaIcon(ev.event_type)}}" />
+            <image class="ic ic-lg" :src="iconPath(metaIcon(ev.event_type))" mode="aspectFit" />
           </view>
           <view class="week-info">
             <text class="week-title">{{ ev.title }}</text>
@@ -308,10 +308,10 @@ export default {
         this.ladder = applyTierConfig(cfg)
         const hg = cfg.home_grids
         if (Array.isArray(hg) && hg.length > 0) {
-          // config 只有 label/to，icon 从 DEFAULT_GRIDS 按 to 合并补齐（否则宫格图标全空）
+          // config 只有 label/to（to 是短路径如 /events），与 DEFAULT_GRIDS 长路径匹配并补齐 icon/to
           this.grids = hg.map((g) => {
-            const def = DEFAULT_GRIDS.find((d) => d.to === g.to) || DEFAULT_GRIDS[0]
-            return { label: (g.label || def.label), to: (g.to || def.to), icon: def.icon }
+            const def = DEFAULT_GRIDS.find((d) => d.to === g.to || d.to.indexOf(g.to) >= 0) || DEFAULT_GRIDS[0]
+            return { label: (g.label || def.label), to: def.to, icon: def.icon }
           })
         } else {
           this.grids = DEFAULT_GRIDS
@@ -406,6 +406,12 @@ export default {
         default: 'ic-star-gold'
       }
       return map[icon] || map.default
+    },
+    iconPath(name) { return '/static/icons/' + name + '.png' },
+    gridIconSrc(icon) {
+      // 宫格图标 -> 本地 PNG 路径（image 组件，微信 100% 支持）
+      const name = this.gridIcon(icon)
+      return '/static/icons/' + name + '.png'
     },
     metaIcon(t) {
       // 活动类型 -> lucide 图标类（白字，用在深色色块上）

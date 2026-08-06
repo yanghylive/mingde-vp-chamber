@@ -10,7 +10,7 @@
     <view v-if="order" class="s-order card">
       <view class="so-head">
         <view class="so-head-icon">
-          <view class="ic ic-md ic-store-gold" />
+          <image class="ic ic-md" src="/static/icons/ic-store-gold.png" mode="aspectFit" />
         </view>
         <view class="so-head-info">
           <text class="so-name">{{ order.name }}</text>

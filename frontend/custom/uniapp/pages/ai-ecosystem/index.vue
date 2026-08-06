@@ -2,7 +2,7 @@
   <view class="ai-page">
     <page-header title="AI 生态" eyebrow="让 AI 成为企业第二增长引擎">
       <view class="hdr-badge">
-        <view class="ic ic-xs ic-sparkles-blue" />
+        <image class="ic ic-xs" src="/static/icons/ic-sparkles-blue.png" mode="aspectFit" />
         <text>AI 时代</text>
       </view>
     </page-header>
@@ -12,7 +12,7 @@
       <view class="hero-deco2" />
       <view class="hero-row">
         <view class="hero-icon-box">
-          <view class="ic ic-md ic-bot-white" />
+          <image class="ic ic-md" src="/static/icons/ic-bot-white.png" mode="aspectFit" />
         </view>
         <view class="hero-text">
           <view class="hero-badge"><text>明德 AI 生态</text></view>
@@ -31,11 +31,11 @@
       >
         <view class="ac-top">
           <view class="{{'ac-icon tone-' + c.key}}">
-            <view class="ic ic-md {{c.icon}}" />
+            <image class="ic ic-md" :src="iconPath(c.icon)" mode="aspectFit" />
           </view>
           <view class="ac-title-row">
             <text class="ac-title">{{ c.title }}</text>
-            <view class="{{'ic ic-xs ic-chevron-down-gray ac-caret' + (active === c.key ? ' ac-caret-open' : '')}}" />
+            <image class="{{'ic ic-xs ac-caret' + (active === c.key ? ' ac-caret-open' : '')}}" src="/static/icons/ic-chevron-down-gray.png" mode="aspectFit" />
           </view>
           <text class="ac-desc">{{ c.desc }}</text>
         </view>
@@ -45,7 +45,7 @@
             <text v-for="p in c.points" :key="p" class="ac-point">{{ p }}</text>
           </view>
           <view class="btn-primary ac-go" @tap.stop="goChat(c)">
-            <view class="ic ic-xs ic-message-circle-white" />
+            <image class="ic ic-xs" src="/static/icons/ic-message-circle-white.png" mode="aspectFit" />
             <text>与 AI 助手对话</text>
           </view>
         </view>
@@ -55,7 +55,7 @@
     <view class="cta-card card">
       <view class="cta-row">
         <view class="cta-icon">
-          <view class="ic ic-md ic-bot-gray" />
+          <image class="ic ic-md" src="/static/icons/ic-bot-gray.png" mode="aspectFit" />
         </view>
         <view class="cta-text">
           <text class="cta-title">有任何问题？</text>
@@ -111,6 +111,7 @@ export default {
     })
   },
   methods: {
+    iconPath(name) { return '/static/icons/' + name + '.png' },
     toggle(key) {
       this.active = this.active === key ? '' : key
     },

@@ -4,11 +4,11 @@
     <view class="ph">
       <view class="ph-row">
         <view>
-          <view class="ph-eyebrow"><view class="ic ic-xs ic-crown-gold" />明德恒智AI企商汇</view>
+          <view class="ph-eyebrow"><image class="ic ic-xs" src="/static/icons/ic-crown-gold.png" mode="aspectFit" />明德恒智AI企商汇</view>
           <text class="ph-title">官方活动</text>
           <text class="ph-sub">高质量相聚，让思想彼此照亮</text>
         </view>
-        <view class="ph-bell glass-control" @tap="goNotifications"><view class="ic ic-sm ic-bell-dark" /></view>
+        <view class="ph-bell glass-control" @tap="goNotifications"><image class="ic ic-sm" src="/static/icons/ic-bell-dark.png" mode="aspectFit" /></view>
       </view>
     </view>
 
@@ -23,8 +23,8 @@
       </view>
       <view class="bn-foot">
         <view class="bn-meta">
-          <view class="bn-meta-row"><view class="ic ic-xs ic-calendar-days-white" /><text>{{ bannerDate(banner) }}</text></view>
-          <view class="bn-meta-row"><view class="ic ic-xs ic-map-pin-white" /><text>{{ banner.location_name || banner.address }}</text></view>
+          <view class="bn-meta-row"><image class="ic ic-xs" src="/static/icons/ic-calendar-days-white.png" mode="aspectFit" /><text>{{ bannerDate(banner) }}</text></view>
+          <view class="bn-meta-row"><image class="ic ic-xs" src="/static/icons/ic-map-pin-white.png" mode="aspectFit" /><text>{{ banner.location_name || banner.address }}</text></view>
         </view>
         <view class="{{'bn-btn' + (joined.includes(banner.id) ? ' bn-btn-joined' : '')}}" @tap.stop="toggle(banner.id)">
           {{ joined.includes(banner.id) ? '已报名' : '预约席位' }}
@@ -35,7 +35,7 @@
     <!-- 精选活动 -->
     <view class="section">
       <view class="sec-head">
-        <view class="sec-icon"><view class="ic ic-md ic-calendar-days-white" /></view>
+        <view class="sec-icon"><image class="ic ic-md" src="/static/icons/ic-calendar-days-white.png" mode="aspectFit" /></view>
         <view>
           <text class="sec-title">精选活动</text>
           <text class="sec-sub">官方策划，严选参与者</text>
@@ -71,8 +71,8 @@
           <view class="ev-right">
             <text class="ev-title">{{ ev.title }}</text>
             <view class="ev-meta">
-              <view class="ev-meta-row"><view class="ic ic-xs ic-clock-3-orange" /><text>{{ evTime(ev) }}</text></view>
-              <view class="ev-meta-row"><view class="ic ic-xs ic-map-pin-orange" /><text>{{ ev.location_name || ev.address || '地点待定' }}</text></view>
+              <view class="ev-meta-row"><image class="ic ic-xs" src="/static/icons/ic-clock-3-orange.png" mode="aspectFit" /><text>{{ evTime(ev) }}</text></view>
+              <view class="ev-meta-row"><image class="ic ic-xs" src="/static/icons/ic-map-pin-orange.png" mode="aspectFit" /><text>{{ ev.location_name || ev.address || '地点待定' }}</text></view>
             </view>
             <view class="ev-foot">
               <text class="ev-seats">{{ remaining(ev) }} 席可约</text>

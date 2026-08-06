@@ -3,7 +3,7 @@
     <page-header title="搜索" />
     <view class="search-bar">
       <view class="search-box">
-        <view class="ic ic-sm ic-search-gold" />
+        <image class="ic ic-sm" src="/static/icons/ic-search-gold.png" mode="aspectFit" />
         <input
           v-model="keyword"
           class="s-input"
@@ -27,7 +27,7 @@
     <view v-else>
       <view v-if="loading" class="empty">搜索中…</view>
       <view v-else-if="events.length === 0 && experts.length === 0 && products.length === 0" class="empty">
-        <view class="ic ic-lg ic-search-gold empty-icon" />
+        <image class="ic ic-lg empty-icon" src="/static/icons/ic-search-gold.png" mode="aspectFit" />
         <text class="empty-text">未找到与「{{ keyword }}」相关的内容</text>
         <view class="btn-secondary empty-btn" @tap="goHome"><text>返回首页</text></view>
       </view>
@@ -36,21 +36,21 @@
 
         <view v-if="events.length" class="group">
           <view class="g-title-row">
-            <view class="ic ic-sm ic-graduation-cap-gold" />
+            <image class="ic ic-sm" src="/static/icons/ic-graduation-cap-gold.png" mode="aspectFit" />
             <text class="g-title">活动（{{ events.length }}）</text>
           </view>
           <view v-for="ev in events" :key="ev.id" class="item card" @tap="goEvent(ev.id)">
             <view class="ev-icon">
-              <view class="ic ic-sm ic-graduation-cap-white" />
+              <image class="ic ic-sm" src="/static/icons/ic-graduation-cap-white.png" mode="aspectFit" />
             </view>
             <view class="ev-info">
               <text class="ev-name">{{ ev.title }}</text>
               <view class="ev-meta">
-                <view class="ic ic-xs ic-clock-3-orange" />
+                <image class="ic ic-xs" src="/static/icons/ic-clock-3-orange.png" mode="aspectFit" />
                 <text class="ev-meta-text">{{ ev.start_time ? formatTime(ev.start_time) : '时间待定' }}</text>
               </view>
               <view class="ev-meta">
-                <view class="ic ic-xs ic-map-pin-orange" />
+                <image class="ic ic-xs" src="/static/icons/ic-map-pin-orange.png" mode="aspectFit" />
                 <text class="ev-meta-text">{{ ev.location_name || ev.address || '地址待定' }}</text>
               </view>
               <view v-if="ev.event_type" class="ev-badge">{{ typeLabel(ev.event_type) }}</view>
@@ -60,7 +60,7 @@
 
         <view v-if="experts.length" class="group">
           <view class="g-title-row">
-            <view class="ic ic-sm ic-users-blue" />
+            <image class="ic ic-sm" src="/static/icons/ic-users-blue.png" mode="aspectFit" />
             <text class="g-title">大咖（{{ experts.length }}）</text>
           </view>
           <view v-for="e in experts" :key="e.id" class="item card" @tap="goExpert(e.id)">
@@ -70,7 +70,7 @@
             <view class="ex-info">
               <text class="ex-name">{{ e.name }}</text>
               <view v-if="e.title" class="ex-meta">
-                <view class="ic ic-xs ic-link-2-gold" />
+                <image class="ic ic-xs" src="/static/icons/ic-link-2-gold.png" mode="aspectFit" />
                 <text class="ex-meta-text">{{ e.title }}</text>
               </view>
               <text v-if="e.company || e.industry || e.bio" class="ex-sub">{{ [e.company, e.industry, e.bio].filter(function(x) { return x }).join(' · ') }}</text>
@@ -80,13 +80,13 @@
 
         <view v-if="products.length" class="group">
           <view class="g-title-row">
-            <view class="ic ic-sm ic-gift-gold" />
+            <image class="ic ic-sm" src="/static/icons/ic-gift-gold.png" mode="aspectFit" />
             <text class="g-title">商品（{{ products.length }}）</text>
           </view>
           <view class="prod-grid">
             <view v-for="p in products" :key="p.id" class="prod-card card" @tap="goMall(p)">
               <view class="prod-img">
-                <view class="ic ic-md ic-gift-gold" />
+                <image class="ic ic-md" src="/static/icons/ic-gift-gold.png" mode="aspectFit" />
               </view>
               <text class="prod-name">{{ p.name || p.store_name }}</text>
               <text class="prod-price">¥{{ p.cash_price || p.cash || 0 }}</text>

@@ -23,7 +23,7 @@
     <!-- 推荐记录（对齐 H5） -->
     <view class="sec-head">
       <view class="sh-row">
-        <view class="sh-icon"><view class="ic ic-md ic-users-white" /></view>
+        <view class="sh-icon"><image class="ic ic-md" src="/static/icons/ic-users-white.png" mode="aspectFit" /></view>
         <view>
           <text class="sh-title">推荐记录</text>
           <text class="sh-sub">每一份邀请，都被记住</text>

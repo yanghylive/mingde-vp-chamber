@@ -4,7 +4,7 @@
     <view class="ph">
       <view class="ph-row">
         <view>
-          <view class="ph-eyebrow"><view class="ic ic-xs ic-crown-gold" />明德恒智AI企商汇</view>
+          <view class="ph-eyebrow"><image class="ic ic-xs" src="/static/icons/ic-crown-gold.png" mode="aspectFit" />明德恒智AI企商汇</view>
           <text class="ph-title">我的</text>
           <text class="ph-sub">精进每一步，成就更好的自己</text>
         </view>
@@ -20,7 +20,7 @@
           <view class="pf-name-row">
             <text class="pf-name">{{ displayName }}</text>
             <view class="pf-badge">
-              <view class="ic ic-xs ic-crown-gold" />
+              <image class="ic ic-xs" src="/static/icons/ic-crown-gold.png" mode="aspectFit" />
               <text>{{ currentTier.name }}</text>
             </view>
           </view>
@@ -63,7 +63,7 @@
     <!-- 我的服务 -->
     <view class="sec-head">
       <view class="sh-row">
-        <view class="sh-icon"><view class="ic ic-md ic-medal-white" /></view>
+        <view class="sh-icon"><image class="ic ic-md" src="/static/icons/ic-medal-white.png" mode="aspectFit" /></view>
         <view>
           <text class="sh-title">我的服务</text>
           <text class="sh-sub">专属记录与权益中心</text>
@@ -89,7 +89,7 @@
     <!-- 第二菜单组 -->
     <view class="card menu" style="margin-top: 24rpx">
       <view class="menu-item menu-item-border" @tap="goEvents">
-        <view class="mi-icon c-orange"><view class="ic ic-md ic-ticket-check-orange" /></view>
+        <view class="mi-icon c-orange"><image class="ic ic-md" src="/static/icons/ic-ticket-check-orange.png" mode="aspectFit" /></view>
         <view class="mi-info">
           <text class="mi-label">我的活动</text>
           <text class="mi-sub">{{ registrationsCount }} 场报名记录</text>
@@ -97,7 +97,7 @@
         <text class="mi-arrow">></text>
       </view>
       <view class="menu-item menu-item-border" @tap="openEditor">
-        <view class="mi-icon c-blue"><view class="ic ic-md ic-star-blue" /></view>
+        <view class="mi-icon c-blue"><image class="ic ic-md" src="/static/icons/ic-star-blue.png" mode="aspectFit" /></view>
         <view class="mi-info">
           <text class="mi-label">我的资料</text>
           <text class="mi-sub">{{ profileText }}</text>
@@ -105,7 +105,7 @@
         <text class="mi-arrow">></text>
       </view>
       <view class="menu-item menu-item-border" @tap="goGraduateVerification">
-        <view class="mi-icon c-green"><view class="ic ic-md ic-shield-check-green" /></view>
+        <view class="mi-icon c-green"><image class="ic ic-md" src="/static/icons/ic-shield-check-green.png" mode="aspectFit" /></view>
         <view class="mi-info">
           <text class="mi-label">毕业验证</text>
           <text class="mi-sub">学历 / 身份认证</text>
@@ -113,7 +113,7 @@
         <text class="mi-arrow">></text>
       </view>
       <view class="menu-item" @tap="goMembership">
-        <view class="mi-icon c-pink"><view class="ic ic-md ic-gift-pink" /></view>
+        <view class="mi-icon c-pink"><image class="ic ic-md" src="/static/icons/ic-gift-pink.png" mode="aspectFit" /></view>
         <view class="mi-info">
           <text class="mi-label">会籍中心</text>
           <text class="mi-sub">{{ membershipText }}</text>
@@ -125,7 +125,7 @@
     <!-- 会员等级 grid（对齐 H5） -->
     <view class="sec-head" style="margin-top: 36rpx">
       <view class="sh-row">
-        <view class="sh-icon"><view class="ic ic-sm ic-crown-gold" /></view>
+        <view class="sh-icon"><image class="ic ic-sm" src="/static/icons/ic-crown-gold.png" mode="aspectFit" /></view>
         <view>
           <text class="sh-title">会员等级</text>
           <text class="sh-sub">见证每一次持续成长</text>
@@ -140,7 +140,7 @@
         @tap="goMembership"
       >
         <view class="{{'tier-dot' + (t.tier === tierNum ? ' tier-dot-current' : '')}}">
-          <view class="ic ic-sm ic-crown-gold" />
+          <image class="ic ic-sm" src="/static/icons/ic-crown-gold.png" mode="aspectFit" />
         </view>
         <text class="tier-name">{{ t.short }}</text>
         <text class="tier-label">{{ t.name }}</text>
@@ -293,6 +293,7 @@ export default {
     this.loadData()
   },
   methods: {
+    iconPath(name) { return '/static/icons/' + name + '.png' },
     async loadData() {
       fetchSiteConfig().then((cfg) => {
         if (cfg) this.ladder = applyTierConfig(cfg)

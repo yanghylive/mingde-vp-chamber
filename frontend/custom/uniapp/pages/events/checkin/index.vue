@@ -2,13 +2,13 @@
   <view class="checkin-page">
     <page-header title="扫码签到" eyebrow="扫描活动现场签到二维码" />
     <view class="card tip-card">
-      <view class="tip-icon"><view class="ic ic-lg ic-scan-line-white" /></view>
+      <view class="tip-icon"><image class="ic ic-lg" src="/static/icons/ic-scan-line-white.png" mode="aspectFit" /></view>
       <view class="tip-title">活动签到</view>
       <view class="tip-sub">点击下方按钮，扫描活动现场二维码完成签到</view>
     </view>
 
     <view class="scan-btn" @tap="scan">
-      <view class="ic ic-sm ic-scan-line-white" />
+      <image class="ic ic-sm" src="/static/icons/ic-scan-line-white.png" mode="aspectFit" />
       <text class="sb-text">扫码签到</text>
     </view>
 
@@ -19,7 +19,7 @@
       <text class="r-title">签到成功</text>
       <text class="r-sub">{{ resultMsg }}</text>
       <view v-if="pointsAwarded > 0" class="r-badge">
-        <view class="ic ic-xs ic-coins-gold" />
+        <image class="ic ic-xs" src="/static/icons/ic-coins-gold.png" mode="aspectFit" />
         <text class="r-badge-text">+{{ pointsAwarded }} 积分</text>
       </view>
       <view class="r-btns">

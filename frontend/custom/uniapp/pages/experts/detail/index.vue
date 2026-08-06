@@ -14,7 +14,7 @@
           </view>
           <text class="hero-title">{{ expert.title || '明德大咖' }}{{ expert.company ? ' · ' + expert.company : '' }}</text>
           <view class="hero-ai" @tap="goAiChat">
-            <view class="ic ic-sm ic-bot-gold" />
+            <image class="ic ic-sm" src="/static/icons/ic-bot-gold.png" mode="aspectFit" />
             <text>大咖 AI 对话</text>
           </view>
         </view>
@@ -32,13 +32,13 @@
       <view class="pricing card">
         <block v-if="pricingReady">
           <view class="price-item">
-            <view class="pi-icon"><view class="ic ic-sm ic-monitor-gold" /></view>
+            <view class="pi-icon"><image class="ic ic-sm" src="/static/icons/ic-monitor-gold.png" mode="aspectFit" /></view>
             <text class="pi-label">线上 1v1</text>
             <text class="pi-points">{{ onlinePoints }} 积分</text>
             <text v-if="onlineCash > 0" class="pi-cash">+ ¥{{ onlineCash }}</text>
           </view>
           <view class="price-item">
-            <view class="pi-icon"><view class="ic ic-sm ic-map-pin-orange" /></view>
+            <view class="pi-icon"><image class="ic ic-sm" src="/static/icons/ic-map-pin-orange.png" mode="aspectFit" /></view>
             <text class="pi-label">线下 1v1</text>
             <text class="pi-points">{{ offlinePoints }} 积分</text>
             <text v-if="offlineCash > 0" class="pi-cash">+ ¥{{ offlineCash }}</text>
