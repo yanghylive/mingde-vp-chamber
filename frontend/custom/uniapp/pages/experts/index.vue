@@ -382,11 +382,11 @@ export default {
   padding: 28rpx;
 }
 .ex-avatar {
-  width: 96rpx;
-  height: 96rpx;
-  border-radius: 24rpx;
+  width: 128rpx;
+  height: 128rpx;
+  border-radius: 40rpx;
   color: #fff;
-  font-size: 44rpx;
+  font-size: 40rpx;
   font-weight: 600;
   display: flex;
   align-items: center;
@@ -408,7 +408,7 @@ export default {
   justify-content: space-between;
 }
 .ex-name {
-  font-size: 30rpx;
+  font-size: 32rpx;
   font-weight: 700;
   color: #1e3656;
   display: block;
@@ -449,16 +449,16 @@ export default {
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   overflow: hidden;
-  line-height: 1.7;
-  margin-top: 12rpx;
+  line-height: 1.8;
+  margin-top: 16rpx;
 }
 .ex-price {
   font-size: 20rpx;
   color: #a06a2d;
   background: #fff6e8;
-  border-radius: 20rpx;
-  padding: 12rpx 20rpx;
-  margin-top: 14rpx;
+  border-radius: 24rpx;
+  padding: 16rpx 24rpx;
+  margin-top: 16rpx;
   line-height: 1.6;
 }
 .ex-price-muted {
@@ -468,8 +468,8 @@ export default {
 .ex-actions {
   display: flex;
   gap: 16rpx;
-  margin-top: 20rpx;
-  padding-top: 20rpx;
+  margin-top: 24rpx;
+  padding-top: 24rpx;
   border-top: 1rpx solid #eef1f5;
 }
 .ex-btn {

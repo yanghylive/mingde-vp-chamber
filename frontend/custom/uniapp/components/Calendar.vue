@@ -241,7 +241,7 @@ export default {
 }
 .cal-cell {
   width: 14.285%;
-  height: 88rpx;
+  height: 72rpx;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -250,7 +250,7 @@ export default {
   border-radius: 16rpx;
 }
 .cal-num {
-  font-size: 26rpx;
+  font-size: 24rpx;
   font-weight: 600;
   color: #31455f;
 }

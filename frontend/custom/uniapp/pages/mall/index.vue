@@ -459,10 +459,11 @@ export default {
 .grid {
   display: flex;
   flex-wrap: wrap;
-  gap: 20rpx;
+  gap: 24rpx;
 }
 .product {
-  width: calc(50% - 10rpx);
+  /* 微信 wxss 不认 %+rpx 混合 calc，改纯百分比 */
+  width: 48%;
   padding: 24rpx;
   box-sizing: border-box;
   display: flex;
@@ -470,7 +471,7 @@ export default {
 }
 .p-img {
   height: 224rpx;
-  border-radius: 28rpx;
+  border-radius: 36rpx;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -491,9 +492,10 @@ export default {
   background: #fff2df;
   color: #ac691e;
   font-size: 20rpx;
-  padding: 4rpx 12rpx;
-  border-radius: 8rpx;
-  margin-top: 20rpx;
+  font-weight: 700;
+  padding: 8rpx 20rpx;
+  border-radius: 999rpx;
+  margin-top: 24rpx;
   width: fit-content;
 }
 .p-name {
@@ -501,8 +503,8 @@ export default {
   font-weight: 700;
   color: #213653;
   line-height: 1.4;
-  margin-top: 12rpx;
-  min-height: 72rpx;
+  margin-top: 16rpx;
+  min-height: 80rpx;
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
@@ -573,19 +575,19 @@ export default {
   min-width: 0;
 }
 .pr-title {
-  font-size: 26rpx;
+  font-size: 28rpx;
   font-weight: 700;
   color: #273b59;
   display: block;
 }
 .pr-desc {
-  font-size: 20rpx;
+  font-size: 22rpx;
   color: #939cab;
   display: block;
   margin-top: 4rpx;
 }
 .pr-points {
-  font-size: 26rpx;
+  font-size: 28rpx;
   font-weight: 700;
   color: #c57620;
   flex-shrink: 0;

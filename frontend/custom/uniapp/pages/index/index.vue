@@ -827,7 +827,7 @@ const DEFAULT_GRIDS = [
 }
 .chip {
   display: inline-block;
-  padding: 14rpx 30rpx;
+  padding: 16rpx 32rpx;
   border-radius: 999rpx;
   font-size: 24rpx;
   font-weight: 600;
