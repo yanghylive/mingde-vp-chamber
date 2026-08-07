@@ -87,6 +87,18 @@ Route::group('v1/me', function () {
     ->middleware(CrmebAuthTokenMiddleware::class)
     ->middleware(TenantContextMiddleware::class, true);
 
+// 小薇认知教练（每位会员隔离实例，共享 DISCERN 文化）
+Route::group('v1/coaching', function () {
+    Route::get('today', 'CoachingController/today');
+    Route::post('morning', 'CoachingController/morning');
+    Route::post('respond', 'CoachingController/respond');
+    Route::post('evening', 'CoachingController/evening');
+    Route::get('status', 'CoachingController/status');
+})->middleware(RequestTraceMiddleware::class)
+    ->middleware(ChamberCorsMiddleware::class)
+    ->middleware(CrmebAuthTokenMiddleware::class)
+    ->middleware(TenantContextMiddleware::class, true);
+
 Route::group('v1/membership', function () {
     Route::get('plans', 'MembershipPlanController/index');
     Route::post('checkouts', 'MembershipCheckoutController/store');

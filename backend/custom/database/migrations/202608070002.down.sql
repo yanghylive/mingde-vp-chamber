@@ -1,0 +1,3 @@
+-- Rollback: drop ch_coaching_config
+SET NAMES utf8mb4;
+DROP TABLE IF EXISTS `ch_coaching_config`;
