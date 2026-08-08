@@ -362,6 +362,7 @@ final class EventService
         foreach ($checkinRows as $checkin) {
             $checked[(int) $checkin['registration_id']] = true;
         }
+        $refundAttempts = $this->refundAttemptsByRegistrationId($tenantId, $registrationIds);
 
         $items = [];
         foreach ($rows as $row) {
@@ -385,6 +386,7 @@ final class EventService
                 'integral_amount' => (int) $row['integral_amount'],
                 'order_no' => (string) ($row['order_no'] ?? ''),
                 'order_status' => is_array($context) ? $this->orderStatus($context, $status) : null,
+                'refund' => $this->refundSummary($refundAttempts[(int) $row['id']] ?? null, $context),
                 'payment_required' => is_array($context)
                     && (int) $context['pay_status'] === 0
                     && (float) $context['payable_amount'] > 0,
@@ -398,6 +400,53 @@ final class EventService
         }
 
         return $items;
+    }
+
+    private function refundAttemptsByRegistrationId(int $tenantId, array $registrationIds): array
+    {
+        if ($registrationIds === []) {
+            return [];
+        }
+        $sourceIds = array_map('strval', array_values(array_unique(array_map('intval', $registrationIds))));
+        $rows = Db::table('ch_refund_attempt')
+            ->where('tenant_id', $tenantId)
+            ->where('source_type', 'event_registration')
+            ->whereIn('source_id', $sourceIds)
+            ->order('id', 'asc')
+            ->select()
+            ->toArray();
+        $attempts = [];
+        foreach ($rows as $row) {
+            $attempts[(int) $row['source_id']] = $row;
+        }
+
+        return $attempts;
+    }
+
+    private function refundSummary(?array $attempt, ?array $context): ?array
+    {
+        if (!is_array($attempt)) {
+            return null;
+        }
+        $cumulative = is_array($context)
+            ? (string) ($context['refunded_amount'] ?? '0.00')
+            : (string) ($attempt['cumulative_after'] ?? '0.00');
+
+        return [
+            'refund_no' => (string) $attempt['refund_no'],
+            'provider' => (string) $attempt['provider'],
+            'provider_refund_no' => (string) $attempt['provider_refund_no'],
+            'status' => (string) $attempt['status'],
+            'amount' => number_format((float) $attempt['amount'], 2, '.', ''),
+            'cumulative_refunded_amount' => number_format((float) $cumulative, 2, '.', ''),
+            'provider_status' => (string) $attempt['provider_status'],
+            'final_confirmed' => (int) $attempt['final_confirmed'] === 1,
+            'final_confirm_source' => (string) $attempt['final_confirm_source'],
+            'failure_code' => (string) $attempt['failure_code'],
+            'query_retry_count' => (int) $attempt['query_retry_count'],
+            'next_query_time' => (int) $attempt['next_query_time'],
+            'updated_at' => (int) $attempt['update_time'],
+        ];
     }
 
     private function orderStatus(array $context, int $registrationStatus): string

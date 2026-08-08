@@ -5,11 +5,13 @@ declare(strict_types=1);
 namespace app\chamber\controller;
 
 use app\Request;
-use app\chamber\activity\EventRegistrationRequest;
 use app\chamber\activity\EventRegistrationListQuery;
+use app\chamber\activity\EventRegistrationRequest;
+use app\chamber\activity\EventRefundRequest;
 use app\chamber\exceptions\MemberTransactionException;
 use app\chamber\identity\AuthenticatedUserContext;
 use app\chamber\membership\BootstrapIdempotency;
+use app\chamber\services\EventRegistrationRefundService;
 use app\chamber\services\EventRegistrationService;
 use app\chamber\services\EventService;
 use app\chamber\tenancy\TenantContext;
@@ -28,10 +30,18 @@ final class EventRegistrationController
     /** @var EventRegistrationService */
     private $registrations;
 
-    public function __construct(EventService $service, EventRegistrationService $registrations)
+    /** @var EventRegistrationRefundService */
+    private $refunds;
+
+    public function __construct(
+        EventService $service,
+        EventRegistrationService $registrations,
+        EventRegistrationRefundService $refunds
+    )
     {
         $this->service = $service;
         $this->registrations = $registrations;
+        $this->refunds = $refunds;
     }
 
     public function store(
@@ -100,6 +110,28 @@ final class EventRegistrationController
             $auth,
             $this->positiveId($registration_id, 'registration_id')
         ));
+    }
+
+    public function refund(
+        Request $request,
+        TenantContext $tenant,
+        AuthenticatedUserContext $auth,
+        $registration_id
+    ): Response {
+        $callerKey = $this->idempotencyKey($request);
+        $refund = EventRefundRequest::fromArray($this->decodeJsonObject($request));
+
+        return Response::create([
+            'status' => 201,
+            'msg' => 'created',
+            'data' => $this->refunds->refund(
+                $tenant,
+                $auth,
+                $this->positiveId($registration_id, 'registration_id'),
+                $refund,
+                $callerKey
+            ),
+        ], 'json', 201);
     }
 
     private function idempotencyKey(Request $request): string

@@ -203,13 +203,10 @@ final class EventAdminService
                         $updates[$key] = $value;
                     }
                 }
-                $changed = Db::table('ch_event')
+                Db::table('ch_event')
                     ->where('tenant_id', $tenant->tenantId())
                     ->where('id', $eventId)
                     ->update($updates);
-                if ($changed !== 1) {
-                    throw $this->failure('event_update_failed', 'Event could not be updated');
-                }
                 if ($tickets !== null) {
                     $this->replaceTickets($tenant->tenantId(), $eventId, $tickets, $now);
                 }

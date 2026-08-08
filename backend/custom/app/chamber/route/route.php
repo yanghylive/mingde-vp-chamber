@@ -32,12 +32,25 @@ foreach ([
     'v1/me/membership',
     'v1/me/event-registrations',
     'v1/me/event-registrations/:registration_id',
+    'v1/me/event-registrations/:registration_id/refunds',
     'v1/membership/plans',
     'v1/membership/checkouts',
     'v1/events',
     'v1/events/:event_id',
     'v1/events/:event_id/registrations',
     'v1/events/:event_id/checkins',
+    'v1/me/friends',
+    'v1/me/friends/:friend_id/accept',
+    'v1/me/distribution',
+    'v1/me/points',
+    'v1/me/points/ledger',
+    'v1/me/stats',
+    'v1/me/orders',
+    'v1/me/notifications',
+    'v1/products/:product_id/exchange',
+    'v1/experts/:expert_id',
+    'v1/experts/:expert_id/slots',
+    'v1/experts/:expert_id/appointments',
     'admin/v1/member-assets/:asset_id/content',
     'admin/v1/graduate-verifications',
     'admin/v1/graduate-verifications/:application_id',
@@ -82,18 +95,37 @@ Route::group('v1/me', function () {
     Route::get('event-registrations', 'EventRegistrationController/index');
     Route::get('event-registrations/:registration_id', 'EventRegistrationController/show')
         ->pattern(['registration_id' => '\\d+']);
+    Route::post('event-registrations/:registration_id/refunds', 'EventRegistrationController/refund')
+        ->pattern(['registration_id' => '\\d+']);
+    Route::get('friends', 'MemberFriendController/index');
+    Route::post('friends/:friend_id/accept', 'MemberFriendController/accept')
+        ->pattern(['friend_id' => '\\d+']);
+    Route::get('distribution', 'MemberDistributionController/show');
+    Route::get('points', 'MemberPointsController/show');
+    Route::get('points/ledger', 'MemberPointsController/ledger');
+    Route::get('stats', 'MemberStatsController/show');
+    Route::get('orders', 'ProductExchangeController/orders');
+    Route::get('notifications', 'NotificationController/index');
 })->middleware(RequestTraceMiddleware::class)
     ->middleware(ChamberCorsMiddleware::class)
     ->middleware(CrmebAuthTokenMiddleware::class)
     ->middleware(TenantContextMiddleware::class, true);
 
-// 小薇认知教练（每位会员隔离实例，共享 DISCERN 文化）
-Route::group('v1/coaching', function () {
-    Route::get('today', 'CoachingController/today');
-    Route::post('morning', 'CoachingController/morning');
-    Route::post('respond', 'CoachingController/respond');
-    Route::post('evening', 'CoachingController/evening');
-    Route::get('status', 'CoachingController/status');
+Route::group('v1/products', function () {
+    Route::post(':product_id/exchange', 'ProductExchangeController/exchange')
+        ->pattern(['product_id' => '\\d+']);
+})->middleware(RequestTraceMiddleware::class)
+    ->middleware(ChamberCorsMiddleware::class)
+    ->middleware(CrmebAuthTokenMiddleware::class)
+    ->middleware(TenantContextMiddleware::class, true);
+
+Route::group('v1/experts', function () {
+    Route::get(':expert_id', 'ExpertScheduleController/show')
+        ->pattern(['expert_id' => '\\d+']);
+    Route::get(':expert_id/slots', 'ExpertScheduleController/slots')
+        ->pattern(['expert_id' => '\\d+']);
+    Route::post(':expert_id/appointments', 'ExpertScheduleController/appointments')
+        ->pattern(['expert_id' => '\\d+']);
 })->middleware(RequestTraceMiddleware::class)
     ->middleware(ChamberCorsMiddleware::class)
     ->middleware(CrmebAuthTokenMiddleware::class)
@@ -120,6 +152,16 @@ Route::group('v1/events', function () {
     ->middleware(CrmebAuthTokenMiddleware::class)
     ->middleware(TenantContextMiddleware::class, true);
 
+Route::group('v1/coaching', function () {
+    Route::get('today', 'CoachingController/today');
+    Route::post('morning', 'CoachingController/morning');
+    Route::post('respond', 'CoachingController/respond');
+    Route::post('evening', 'CoachingController/evening');
+    Route::get('status', 'CoachingController/status');
+})->middleware(RequestTraceMiddleware::class)
+    ->middleware(ChamberCorsMiddleware::class)
+    ->middleware(CrmebAuthTokenMiddleware::class)
+    ->middleware(TenantContextMiddleware::class, true);
 Route::group('admin/v1', function () {
     Route::get('member-assets/:asset_id/content', 'MemberAssetAdminController/content')
         ->pattern(['asset_id' => '\\d+']);

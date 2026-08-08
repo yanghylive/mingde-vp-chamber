@@ -18,7 +18,10 @@ try {
     } elseif ($action === 'inspect') {
         inspectEventFixture(positiveEventArgument($argv, 2, 'uid'));
     } elseif ($action === 'complete') {
-        completeEventPayment(positiveEventArgument($argv, 2, 'registration_id'));
+        completeEventPayment(
+            positiveEventArgument($argv, 2, 'registration_id'),
+            eventPaymentType($argv[3] ?? 'weixin')
+        );
     } elseif ($action === 'cleanup') {
         cleanupEventFixture(array_slice($argv, 2));
     } else {
@@ -80,11 +83,23 @@ function setupEventFixture(): void
     if (!is_array($product)) {
         throw new RuntimeException('Local event product is unavailable');
     }
+    $refundable = [
+        'mode' => 'full_before_deadline',
+        'deadline_time' => $now + 3600,
+        'percent' => 100,
+        'description' => 'HTTP refundable before local deadline',
+    ];
     $types = [
         'free' => ['price' => '0.00', 'points' => 0, 'product_id' => 0, 'sku' => ''],
         'points' => ['price' => '0.00', 'points' => 10, 'product_id' => 0, 'sku' => ''],
-        'cash' => ['price' => '10.00', 'points' => 0, 'product_id' => (int) $product['id'], 'sku' => 'cevt0001'],
-        'mixed' => ['price' => '10.00', 'points' => 15, 'product_id' => (int) $product['id'], 'sku' => 'cevt0001'],
+        'cash' => [
+            'price' => '10.00', 'points' => 0, 'product_id' => (int) $product['id'],
+            'sku' => 'cevt0001', 'refund_policy' => $refundable,
+        ],
+        'mixed' => [
+            'price' => '10.00', 'points' => 15, 'product_id' => (int) $product['id'],
+            'sku' => 'cevt0001', 'refund_policy' => $refundable,
+        ],
     ];
     $fixtures = [];
     foreach ($types as $type => $ticket) {
@@ -131,13 +146,14 @@ function createFixtureTicket(int $tenantId, int $eventId, array $ticket, int $no
         'price' => $ticket['price'], 'integral_price' => $ticket['points'],
         'product_id' => $ticket['product_id'], 'product_attr_unique' => $ticket['sku'],
         'capacity' => 10, 'reserved_count' => 0, 'paid_count' => 0, 'min_tier' => 2,
-        'eligibility_json' => '{}', 'refund_policy_json' => '{}',
+        'eligibility_json' => '{}',
+        'refund_policy_json' => json_encode($ticket['refund_policy'] ?? [], JSON_UNESCAPED_SLASHES) ?: '{}',
         'sale_start_time' => $now - 3600, 'sale_end_time' => $now + 3600,
         'status' => 1, 'sort' => 1, 'add_time' => $now, 'update_time' => $now, 'is_del' => 0,
     ]);
 }
 
-function completeEventPayment(int $registrationId): void
+function completeEventPayment(int $registrationId, string $payType): void
 {
     $registration = Db::table('ch_event_registration')->where('id', $registrationId)->find();
     if (!is_array($registration) || (int) $registration['order_pk'] <= 0) {
@@ -146,8 +162,8 @@ function completeEventPayment(int $registrationId): void
     $order = Db::table('eb_store_order')->where('id', (int) $registration['order_pk'])->find();
     $result = app()->make('app\\services\\order\\StoreOrderSuccessServices')->paySuccess(
         $order,
-        'weixin',
-        ['trade_no' => 'event-http-' . (int) $order['id']]
+        $payType,
+        $payType === 'weixin' ? ['trade_no' => 'event-http-' . (int) $order['id']] : []
     );
     outputEventJson([
         'result' => (bool) $result,
@@ -187,9 +203,27 @@ function cleanupEventFixture(array $tokens): void
         ->where('business_type', 'event_registration')->select()->toArray();
     $contextIds = array_map('intval', array_column($contexts, 'id'));
     $recordIds = array_values(array_filter(array_map('intval', array_column($contexts, 'idempotency_record_id'))));
+    $registrationIds = $uids === [] ? [] : array_map(
+        'intval',
+        Db::table('ch_event_registration')->whereIn('uid', $uids)->column('id')
+    );
+    $refundAttemptRows = [];
+    if ($registrationIds !== [] && eventTableExists('ch_refund_attempt')) {
+        $refundAttemptRows = Db::table('ch_refund_attempt')
+            ->where('source_type', 'event_registration')
+            ->whereIn('source_id', array_map('strval', $registrationIds))
+            ->field('id,idempotency_record_id')
+            ->select()
+            ->toArray();
+    }
+    $refundAttemptIds = array_values(array_filter(array_map('intval', array_column($refundAttemptRows, 'id'))));
+    $recordIds = array_merge(
+        $recordIds,
+        array_values(array_filter(array_map('intval', array_column($refundAttemptRows, 'idempotency_record_id'))))
+    );
     if ($uids !== []) {
         $idempotencyRows = Db::table('ch_idempotency_record')
-            ->where('operation', 'createEventRegistration')
+            ->whereIn('operation', ['createEventRegistration', 'createEventRegistrationRefund'])
             ->field('id,result_json')->select()->toArray();
         foreach ($idempotencyRows as $row) {
             $result = json_decode((string) ($row['result_json'] ?? ''), true);
@@ -202,6 +236,12 @@ function cleanupEventFixture(array $tokens): void
     $orderIds = array_values(array_filter(array_map('intval', array_column($contexts, 'order_pk'))));
     if ($contextIds !== []) {
         Db::table('ch_commerce_event_inbox')->whereIn('context_id', $contextIds)->delete();
+    }
+    if ($refundAttemptIds !== [] && eventTableExists('ch_refund_attempt_audit')) {
+        Db::table('ch_refund_attempt_audit')->whereIn('refund_attempt_id', $refundAttemptIds)->delete();
+    }
+    if ($refundAttemptIds !== [] && eventTableExists('ch_refund_attempt')) {
+        Db::table('ch_refund_attempt')->whereIn('id', $refundAttemptIds)->delete();
     }
     if ($orderIds !== []) {
         foreach (['eb_store_order_status', 'eb_store_order_cart_info', 'eb_store_order_economize'] as $table) {
@@ -237,6 +277,28 @@ function cleanupEventFixture(array $tokens): void
         Db::table('eb_store_product_attr_value')->where('product_id', (int) $product['id'])
             ->where('unique', 'cevt0001')->update(['stock' => 999999, 'sales' => 0]);
     }
+}
+
+function eventPaymentType(string $value): string
+{
+    if (!in_array($value, ['weixin', 'yue'], true)) {
+        throw new InvalidArgumentException('payment type must be weixin or yue');
+    }
+
+    return $value;
+}
+
+function eventTableExists(string $table): bool
+{
+    $schema = (string) (Db::query('SELECT DATABASE() AS db_name')[0]['db_name'] ?? '');
+    if ($schema === '') {
+        return false;
+    }
+    $rows = Db::query(
+        "SELECT COUNT(*) AS c FROM information_schema.TABLES WHERE TABLE_SCHEMA = '" .
+        addslashes($schema) . "' AND TABLE_NAME = '" . addslashes($table) . "'"
+    );
+    return (int) ($rows[0]['c'] ?? 0) > 0;
 }
 
 function eventTenantScope(): array
