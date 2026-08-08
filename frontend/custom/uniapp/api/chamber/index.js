@@ -79,7 +79,14 @@ export const chamber = {
   // ---- 毕业认证 ----
   myGraduateVerification: () => request('/chamber/v1/me/graduate-verifications'),
   submitGraduateVerification: (data) =>
-    request('/chamber/v1/me/graduate-verifications', { method: 'POST', data })
+    request('/chamber/v1/me/graduate-verifications', { method: 'POST', data }),
+
+  // ---- 小薇认知教练 ----
+  coachingToday: () => request('/chamber/v1/coaching/today'),
+  coachingMorning: (data) => request('/chamber/v1/coaching/morning', { method: 'POST', data }),
+  coachingRespond: (data) => request('/chamber/v1/coaching/respond', { method: 'POST', data }),
+  coachingEvening: (data) => request('/chamber/v1/coaching/evening', { method: 'POST', data }),
+  coachingStatus: () => request('/chamber/v1/coaching/status'),
 }
 
 export default chamber

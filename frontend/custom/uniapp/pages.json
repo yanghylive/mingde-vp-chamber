@@ -155,6 +155,13 @@
         "navigationBarTitleText": "AI 对话",
         "navigationStyle": "custom"
       }
+    },
+    {
+      "path": "pages/coaching/index",
+      "style": {
+        "navigationBarTitleText": "小薇 · 每日认知刷新",
+        "navigationStyle": "custom"
+      }
     }
   ],
   "globalStyle": {

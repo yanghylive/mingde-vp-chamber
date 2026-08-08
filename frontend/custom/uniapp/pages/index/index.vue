@@ -48,6 +48,41 @@
       </view>
     </view>
 
+    <!-- ===== 小薇 · 今日 3 问（首屏第一动作） ===== -->
+    <view class="section px-4">
+      <view class="xw-card card" @tap="goCoaching">
+        <view class="xw-head">
+          <view class="xw-avatar">
+            <image class="ic ic-sm" src="/static/icons/ic-sparkles-gold.png" mode="aspectFit" />
+          </view>
+          <view class="xw-title-wrap">
+            <text class="xw-title">{{ xwBrand }} · 今日认知刷新</text>
+            <text class="xw-sub">{{ xwMorning ? '3 条灵魂追问已就绪' : '每天 3 问，打破旧习惯' }}</text>
+          </view>
+          <view class="xw-arrow">
+            <image class="ic ic-xs" src="/static/icons/ic-chevron-right-gray.png" mode="aspectFit" />
+          </view>
+        </view>
+        <view v-if="xwMorning" class="xw-body">
+          <view class="xw-q">
+            <view class="xw-q-num">1</view>
+            <text class="xw-q-text">{{ xwMorning.questions[0] }}</text>
+          </view>
+          <view v-if="xwMorning.questions[1]" class="xw-q">
+            <view class="xw-q-num">2</view>
+            <text class="xw-q-text xw-q-clamp">{{ xwMorning.questions[1] }}</text>
+          </view>
+          <view class="xw-foot">
+            <text class="xw-chal">小挑战：{{ xwMorning.challenge }}</text>
+            <text class="xw-cta">回应小薇 ›</text>
+          </view>
+        </view>
+        <view v-else class="xw-body xw-empty">
+          <text class="xw-empty-text">点击进入，生成今天的认知刷新</text>
+        </view>
+      </view>
+    </view>
+
     <!-- ===== 会员等级 ladder ===== -->
     <view class="section px-4">
       <view class="sec-row">
@@ -281,7 +316,9 @@ export default {
       tierNum: 1,
       grids: [],
       ladder: TIERS,
-      CHIPS
+      CHIPS,
+      xwBrand: "小薇",
+      xwMorning: null
     }
   },
   computed: {
@@ -297,11 +334,27 @@ export default {
   },
   onShow() {
     this.loadData()
+    this.loadCoaching()
   },
   onPullDownRefresh() {
     this.loadData().finally(() => uni.stopPullDownRefresh())
   },
   methods: {
+    async loadCoaching() {
+      try {
+        const res = await chamber.coachingToday()
+        const d = res.data || {}
+        this.xwBrand = (d.brand && d.brand.name) || "小薇"
+        this.xwMorning = d.morning || null
+      } catch (e) {
+        this.xwMorning = null
+      }
+    },
+
+    goCoaching() {
+      uni.navigateTo({ url: "/pages/coaching/index" })
+    },
+
     async loadData() {
       fetchSiteConfig().then((cfg) => {
         if (!cfg) return
@@ -1114,5 +1167,112 @@ const DEFAULT_GRIDS = [
   padding: 40rpx 0;
   color: #c0c6d0;
   font-size: 26rpx;
+}
+
+/* ===== 小薇今日3问卡片 ===== */
+.xw-card {
+  background: linear-gradient(135deg, #fff8ec, #fff);
+  border: 1rpx solid #f0ddc2;
+  border-radius: 28rpx;
+  padding: 28rpx;
+  box-sizing: border-box;
+  box-shadow: 0 8rpx 32rpx rgba(185, 130, 40, 0.08);
+}
+.xw-head {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+.xw-avatar {
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #d99b49, #a9651e);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 6rpx 16rpx rgba(185, 110, 29, 0.25);
+}
+.xw-title-wrap {
+  flex: 1;
+  min-width: 0;
+}
+.xw-title {
+  display: block;
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #17325b;
+}
+.xw-sub {
+  display: block;
+  font-size: 20rpx;
+  color: #a9651e;
+  margin-top: 4rpx;
+}
+.xw-arrow {
+  flex-shrink: 0;
+}
+.xw-body {
+  margin-top: 20rpx;
+  border-top: 1rpx dashed #e8d5b0;
+  padding-top: 20rpx;
+}
+.xw-q {
+  display: flex;
+  gap: 14rpx;
+  align-items: flex-start;
+  margin-bottom: 14rpx;
+}
+.xw-q-num {
+  width: 34rpx;
+  height: 34rpx;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #d99b49, #a9651e);
+  color: #fff;
+  font-size: 20rpx;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2rpx;
+}
+.xw-q-text {
+  flex: 1;
+  font-size: 24rpx;
+  color: #203454;
+  line-height: 1.7;
+}
+.xw-q-clamp {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+.xw-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+  margin-top: 6rpx;
+}
+.xw-chal {
+  flex: 1;
+  font-size: 22rpx;
+  color: #5c6b80;
+}
+.xw-cta {
+  flex-shrink: 0;
+  font-size: 22rpx;
+  font-weight: 600;
+  color: #a9651e;
+}
+.xw-empty {
+  text-align: center;
+}
+.xw-empty-text {
+  font-size: 22rpx;
+  color: #8a94a3;
 }
 </style>
