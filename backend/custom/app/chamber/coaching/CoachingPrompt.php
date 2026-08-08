@@ -119,6 +119,12 @@ PROMPT;
             }
         }
 
+        // 完整 123456789 体系（团队/态度/支柱/目的/范畴/领导力）
+        if (isset($discern['extra']) && is_array($discern['extra'])) {
+            $parts[] = '完整体系：
+' . json_encode($discern['extra'], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+        }
+
         return $parts === [] ? '（待平台配置 DISCERN 全文）' : implode("\n\n", $parts);
     }
 }

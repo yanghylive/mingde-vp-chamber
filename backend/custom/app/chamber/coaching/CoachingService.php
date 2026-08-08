@@ -299,6 +299,7 @@ final class CoachingService
                 'four_traits' => $this->decodeJson($row['four_traits'] ?? null),
                 'five_principles' => $this->decodeJson($row['five_principles'] ?? null),
                 'six_beliefs' => $this->decodeJson($row['six_beliefs'] ?? null),
+                'extra' => $this->decodeJson($row['extra'] ?? null),
             ],
             'streak_threshold' => (int) ($row['streak_threshold'] ?: Config::get('chamber.coaching.default_streak_threshold', 3)),
         ];
