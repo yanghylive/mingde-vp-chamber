@@ -285,10 +285,10 @@ final class CoachingService
             ->find();
         if (!is_array($row)) {
             return [
-                'brand_name' => Config::get('chamber.coaching.default_brand_name', '小薇'),
+                'brand_name' => Config::get('coaching.default_brand_name', '小薇'),
                 'voice_style' => '知性温柔、精简、有温度、带点可爱灵气',
                 'content' => [],
-                'streak_threshold' => (int) Config::get('chamber.coaching.default_streak_threshold', 3),
+                'streak_threshold' => (int) Config::get('coaching.default_streak_threshold', 3),
             ];
         }
 
@@ -301,7 +301,7 @@ final class CoachingService
                 'six_beliefs' => $this->decodeJson($row['six_beliefs'] ?? null),
                 'extra' => $this->decodeJson($row['extra'] ?? null),
             ],
-            'streak_threshold' => (int) ($row['streak_threshold'] ?: Config::get('chamber.coaching.default_streak_threshold', 3)),
+            'streak_threshold' => (int) ($row['streak_threshold'] ?: Config::get('coaching.default_streak_threshold', 3)),
         ];
     }
 
@@ -388,7 +388,7 @@ final class CoachingService
 
     private function modelName(): string
     {
-        return (string) Config::get('chamber.coaching.kaypal_model', 'kaypal-fast');
+        return (string) Config::get('coaching.kaypal_model', 'kaypal-fast');
     }
 
     private function generate(string $system, string $user, string $brandName): array
@@ -402,6 +402,7 @@ final class CoachingService
             Log::warning('coaching generate failed, fallback used', [
                 'brand' => $brandName,
                 'error' => $exception->getMessage(),
+                'trace' => $exception->getTraceAsString(),
             ]);
 
             // 降级：兜底模板（PRD 6 非功能需求：生成失败时用兜底模板，不影响推送）

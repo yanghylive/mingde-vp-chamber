@@ -23,11 +23,12 @@ final class KaypalGateway
 
     public function chat(string $system, string $user, int $maxTokens = 1600, float $temperature = 0.8): string
     {
-        $cfg = Config::get('chamber.coaching', []);
+        $cfg = Config::get('coaching', []);
         $origin = rtrim((string) ($cfg['kaypal_origin'] ?? 'https://test.kaypal.cn'), '/');
         $credential = (string) ($cfg['kaypal_app_credential'] ?? '');
         $model = (string) ($cfg['kaypal_model'] ?? 'kaypal-fast');
         $timeout = (int) ($cfg['kaypal_timeout'] ?? 30);
+        $sslVerify = (bool) ($cfg['kaypal_ssl_verify'] ?? true);
 
         if ($credential === '') {
             throw new RuntimeException('chamber.coaching.kaypal_app_credential is not configured');
@@ -51,7 +52,7 @@ final class KaypalGateway
             'Authorization: Bearer ' . $credential,
         ];
 
-        $response = $this->postJson($origin . self::ENDPOINT, $body, $headers, $timeout);
+        $response = $this->postJson($origin . self::ENDPOINT, $body, $headers, $timeout, $sslVerify);
 
         if (!is_array($response)) {
             throw new RuntimeException('kaypal gateway returned a malformed response');
@@ -105,7 +106,7 @@ final class KaypalGateway
         return $signingInput . '.' . $this->b64u($signature);
     }
 
-    private function postJson(string $url, array $body, array $headers, int $timeout): array
+    private function postJson(string $url, array $body, array $headers, int $timeout, bool $sslVerify): array
     {
         $ch = curl_init($url);
         curl_setopt_array($ch, [
@@ -114,8 +115,8 @@ final class KaypalGateway
             CURLOPT_TIMEOUT => $timeout,
             CURLOPT_HTTPHEADER => $headers,
             CURLOPT_POSTFIELDS => json_encode($body, JSON_UNESCAPED_UNICODE),
-            CURLOPT_SSL_VERIFYPEER => true,
-            CURLOPT_SSL_VERIFYHOST => 2,
+            CURLOPT_SSL_VERIFYPEER => $sslVerify,
+            CURLOPT_SSL_VERIFYHOST => $sslVerify ? 2 : 0,
         ]);
 
         $raw = curl_exec($ch);

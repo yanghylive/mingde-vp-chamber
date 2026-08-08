@@ -26,6 +26,7 @@ return [
     'kaypal_context_ttl' => (int) $read('CHAMBER_KAYPAL_CONTEXT_TTL', 55),
     'kaypal_model' => $read('CHAMBER_KAYPAL_MODEL', 'kaypal-fast'),
     'kaypal_timeout' => (int) $read('CHAMBER_KAYPAL_TIMEOUT', 30),
+    'kaypal_ssl_verify' => !in_array(strtolower(trim((string) $read('CHAMBER_KAYPAL_SSL_VERIFY', 'true'))), ['false', '0', 'off', 'no'], true),
 
     // 小薇默认品牌（运营后台可覆盖 ch_discern_config）
     'default_brand_name' => '小薇',

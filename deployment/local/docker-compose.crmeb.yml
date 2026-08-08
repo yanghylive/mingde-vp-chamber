@@ -65,6 +65,7 @@ services:
       APP_DEBUG: "true"
       DEFAULT_TIMEZONE: Asia/Shanghai
       CHAMBER_ENV: local
+      CHAMBER_KAYPAL_SSL_VERIFY: "false"
       CHAMBER_DEV_LOCALHOST_ENABLED: "true"
       CHAMBER_DEV_TENANT_SLUG: ${CHAMBER_DEV_TENANT_SLUG:-local-primary}
       CHAMBER_DEV_CHANNEL_CODE: ${CHAMBER_DEV_CHANNEL_CODE:-default}
