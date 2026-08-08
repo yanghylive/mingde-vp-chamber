@@ -343,7 +343,7 @@ export default {
     async loadCoaching() {
       try {
         const res = await chamber.coachingToday()
-        const d = res.data || {}
+        const d = res || {}
         this.xwBrand = (d.brand && d.brand.name) || "小薇"
         this.xwMorning = d.morning || null
       } catch (e) {

@@ -176,7 +176,7 @@ export default {
       this.loading = true
       try {
         const res = await chamber.coachingToday()
-        const d = res.data || {}
+        const d = res || {}
         this.brand = d.brand || {}
         this.date = d.date || ''
         this.morning = d.morning || null
@@ -199,7 +199,7 @@ export default {
       uni.showLoading({ title: '小薇思考中…' })
       try {
         const res = await chamber.coachingMorning({})
-        this.morning = res.data || null
+        this.morning = res || null
         this.answers = (this.morning.questions || []).map(() => '')
         this.respondStatus = 0
         uni.hideLoading()
@@ -243,9 +243,9 @@ export default {
             note: this.note.trim(),
           },
         })
-        this.respondStatus = (res.data && res.data.respond_status) || 2
-        this.streak = (res.data && res.data.streak) || 0
-        this.responses = res.data && res.data.responses
+        this.respondStatus = (res && res.respond_status) || 2
+        this.streak = (res && res.streak) || 0
+        this.responses = res && res.responses
         uni.showToast({ title: '已回应小薇', icon: 'success' })
       } catch (e) {
         uni.showToast({ title: '提交失败，稍后再试', icon: 'none' })
@@ -257,7 +257,7 @@ export default {
       uni.showLoading({ title: '小薇复盘思考中…' })
       try {
         const res = await chamber.coachingEvening({})
-        this.evening = res.data || null
+        this.evening = res || null
         uni.hideLoading()
         uni.showToast({ title: '复盘已生成', icon: 'success' })
       } catch (e) {
