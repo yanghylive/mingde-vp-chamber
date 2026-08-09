@@ -47,13 +47,13 @@ export const chamber = {
   eventDetail: (id) => request('/chamber/v1/events/' + (id)),
   myEventRegistrations: () => request('/chamber/v1/me/event-registrations').then(pickList),
   registerEvent: (eventId, ticketId) =>
-    request('/chamber/v1/events/' + (eventId) + '/register', {
+    request('/chamber/v1/events/' + (eventId) + '/registrations', {
       method: 'POST',
       idempotencyKey: uuid(),
       data: ticketId ? { ticket_id: ticketId } : {}
     }),
   checkinEvent: (eventId) =>
-    request('/chamber/v1/events/' + (eventId) + '/checkin', {
+    request('/chamber/v1/events/' + (eventId) + '/checkins', {
       method: 'POST',
       idempotencyKey: uuid(),
       data: {}

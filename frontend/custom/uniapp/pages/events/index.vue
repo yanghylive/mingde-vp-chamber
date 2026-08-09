@@ -26,7 +26,7 @@
           <view class="bn-meta-row"><image class="ic ic-xs" src="/static/icons/ic-calendar-days-white.png" mode="aspectFit" /><text>{{ bannerDate(banner) }}</text></view>
           <view class="bn-meta-row"><image class="ic ic-xs" src="/static/icons/ic-map-pin-white.png" mode="aspectFit" /><text>{{ banner.location_name || banner.address }}</text></view>
         </view>
-        <view class="{{'bn-btn' + (joined.includes(banner.id) ? ' bn-btn-joined' : '')}}" @tap.stop="toggle(banner.id)">
+        <view class="{{'bn-btn' + (joined.includes(banner.id) ? ' bn-btn-joined' : '')}}" @tap.stop="toggle(banner)">
           {{ joined.includes(banner.id) ? '已报名' : '预约席位' }}
         </view>
       </view>
@@ -76,7 +76,7 @@
             </view>
             <view class="ev-foot">
               <text class="ev-seats">{{ remaining(ev) }} 席可约</text>
-              <view class="{{'ev-btn' + (joined.includes(ev.id) ? ' ev-btn-joined' : '')}}" @tap.stop="toggle(ev.id)">
+              <view class="{{'ev-btn' + (joined.includes(ev.id) ? ' ev-btn-joined' : '')}}" @tap.stop="toggle(ev)">
                 {{ joined.includes(ev.id) ? '已报名' : '立即报名' }}
               </view>
             </view>
@@ -175,20 +175,27 @@ export default {
       const t = ev.tickets && ev.tickets[0]
       return t && t.remaining !== undefined ? t.remaining : (ev.remaining || 0)
     },
-    toggle(id) {
+    toggle(ev) {
       if (!checkLogin()) {
         uni.navigateTo({ url: '/pages/login/index' })
         return
       }
-      if (this.joined.includes(id)) return
-      // 报名
+      if (this.joined.includes(ev.id)) return
+      // 列表页用默认票（首张可用票）报名；无票引导去详情选票
+      const ticket = ev.tickets && ev.tickets[0]
+      if (!ticket) {
+        uni.navigateTo({ url: '/pages/events/detail/index?id=' + ev.id })
+        return
+      }
       chamber
-        .registerEvent(id)
+        .registerEvent(ev.id, ticket.id)
         .then(() => {
-          this.joined.push(id)
+          this.joined.push(ev.id)
           uni.showToast({ title: '报名成功', icon: 'success' })
         })
-        .catch(() => {})
+        .catch((e) => {
+          if (e && e.msg) uni.showToast({ title: String(e.msg).slice(0, 30), icon: 'none' })
+        })
     },
     goDetail(id) {
       uni.navigateTo({ url: '/pages/events/detail/index?id=' + id })
