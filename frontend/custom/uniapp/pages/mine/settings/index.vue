@@ -128,11 +128,12 @@ export default {
       } catch (e) {}
     }
   },
-  toggle(group, key) {
-    this[group][key] = !this[group][key]
-    uni.setStorageSync('settings_toggles', JSON.stringify({ notify: this.notify, privacy: this.privacy }))
-  },
   methods: {
+    // vue2 小程序模板只能调实例方法：toggle 原为组件根级方法（模板调不到），移入 methods
+    toggle(group, key) {
+      this[group][key] = !this[group][key]
+      uni.setStorageSync('settings_toggles', JSON.stringify({ notify: this.notify, privacy: this.privacy }))
+    },
     clearCache() {
       uni.clearStorageSync()
       this.isLogin = false

@@ -32,7 +32,7 @@
       <view class="pricing card">
         <block v-if="pricingReady">
           <view class="price-item">
-            <view class="pi-icon"><image class="ic ic-sm" src="/static/icons/ic-monitor-gold.png" mode="aspectFit" /></view>
+            <view class="pi-icon"><image class="ic ic-sm" src="/static/icons/ic-presentation-gold.png" mode="aspectFit" /></view>
             <text class="pi-label">线上 1v1</text>
             <text class="pi-points">{{ onlinePoints }} 积分</text>
             <text v-if="onlineCash > 0" class="pi-cash">+ ¥{{ onlineCash }}</text>

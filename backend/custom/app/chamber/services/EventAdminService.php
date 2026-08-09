@@ -244,6 +244,10 @@ final class EventAdminService
                 }
                 $tickets = $this->ticketRows($tenant->tenantId(), $eventId, true);
                 $this->assertPublishable($event, $tickets, $now);
+
+                // 内容安全审核（微信 msgSecCheck v2）：命中违规拒绝发布（合规要求）
+                $this->assertContentSafe($event);
+
                 $updated = Db::table('ch_event')
                     ->where('tenant_id', $tenant->tenantId())
                     ->where('id', $eventId)
@@ -999,6 +1003,26 @@ final class EventAdminService
     private function validation(string $message, array $fields = []): MemberTransactionException
     {
         return new MemberTransactionException(422, 'request_validation_failed', $message, $fields);
+    }
+
+    /**
+     * 内容安全审核：标题+摘要+详情（去 HTML）拼接后过微信 msgSecCheck v2。
+     * 命中违规抛 422 拒绝发布；审核服务故障 fail-open（日志告警，不阻塞运营）。
+     */
+    private function assertContentSafe(array $event): void
+    {
+        $plainText = trim((string) ($event['title'] ?? ''))
+            . ' ' . trim((string) ($event['summary'] ?? ''))
+            . ' ' . trim(strip_tags((string) ($event['detail'] ?? '')));
+        if ($plainText === '') {
+            return;
+        }
+        $safe = (new WechatContentSecurityService())->checkText($plainText);
+        if (!$safe) {
+            throw $this->validation('内容包含违规信息，无法发布', [
+                ['field' => 'detail', 'code' => 'content_risky'],
+            ]);
+        }
     }
 
     private function conflict(string $reason, string $message): MemberTransactionException

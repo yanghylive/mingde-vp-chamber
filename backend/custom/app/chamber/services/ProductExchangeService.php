@@ -64,6 +64,21 @@ final class ProductExchangeService
                     throw new MemberTransactionException(404, 'product_not_found', 'Product was not found');
                 }
 
+                // 服务端校验积分价（防客户端自定价格）：points_cost/cash_cost 必须等于配置值
+                $exchange = Db::table('ch_exchange_product')
+                    ->where('tenant_id', $tenant->tenantId())
+                    ->where('product_id', $productId)
+                    ->where('status', 1)
+                    ->find();
+                if (!is_array($exchange)) {
+                    throw new MemberTransactionException(404, 'exchange_unavailable', 'Product is not available for exchange');
+                }
+                $expectedPoints = (int) ($exchange['points_cost'] ?? 0);
+                $expectedCash = (string) ($exchange['cash_cost'] ?? '0.00');
+                if ($pointsCost !== $expectedPoints || ($cashCost === '' ? '0.00' : $cashCost) !== $expectedCash) {
+                    throw new MemberTransactionException(409, 'price_mismatch', 'Exchange price mismatch, please refresh and retry');
+                }
+
                 $account = $this->identity->pointsAccount($tenant->tenantId(), $member, true);
                 $balance = (int) $account['balance'];
                 if ($balance < $pointsCost) {

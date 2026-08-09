@@ -3,7 +3,7 @@
     <!-- 页头 -->
     <view class="ph">
       <text class="ph-title">积分商城</text>
-      <text class="ph-sub">我的积分 {{ points == null ? '—' : fmtPoints(points) }}</text>
+      <text class="ph-sub">我的积分 {{ points == null ? '—' : formatPoints(points) }}</text>
       <view class="search-box glass-control">
         <image class="ic ic-sm" src="/static/icons/ic-search-gold.png" mode="aspectFit" />
         <input v-model="keyword" class="s-input" placeholder="搜索课程 / 沙龙 / 实物" placeholder-class="ph" />
@@ -52,7 +52,7 @@
         <view class="p-cat">{{ normalizeCategory(p.category) }}</view>
         <text class="p-name">{{ p.name || p.store_name || '未命名商品' }}</text>
         <view class="p-price-row">
-          <text class="p-points">{{ fmtPoints(p.integral_price) }}<text class="p-unit"> 积分</text></text>
+          <text class="p-points">{{ formatPoints(p.integral_price) }}<text class="p-unit"> 积分</text></text>
           <text v-if="Number(p.price) > 0" class="p-cash">{{ fmtCash(p) }}</text>
         </view>
         <view class="p-btn" @tap.stop="openConfirm(p)">立即兑换</view>
@@ -91,23 +91,23 @@
         </view>
         <view class="sheet-product">{{ confirmTarget.name || confirmTarget.store_name }}</view>
         <view class="sheet-cost">
-          {{ fmtPoints(needPoints) }} 积分 · 价值 {{ fmtCash(confirmTarget) }}
+          {{ formatPoints(needPoints) }} 积分 · 价值 {{ fmtCash(confirmTarget) }}
         </view>
         <view class="sheet-detail">
           <view class="sd-row">
             <text class="sd-label">我的积分余额</text>
-            <text class="sd-value">{{ fmtPoints(points) }}</text>
+            <text class="sd-value">{{ formatPoints(points) }}</text>
           </view>
           <view class="sd-row">
             <text class="sd-label">本次消耗积分</text>
-            <text class="sd-value">{{ fmtPoints(needPoints) }}</text>
+            <text class="sd-value">{{ formatPoints(needPoints) }}</text>
           </view>
           <view class="sd-row">
             <text class="sd-label">差价现金</text>
             <text class="{{'sd-value' + (needCash > 0 ? ' sd-gold' : ' sd-green')}}">{{ needCash > 0 ? formatMoney(needCash) : '无需补差价' }}</text>
           </view>
         </view>
-        <view v-if="needCash > 0" class="sheet-short">积分不足，可补差价 {{ formatMoney(needCash) }}（当前余额 {{ fmtPoints(points) }} / 需 {{ fmtPoints(needPoints) }}）</view>
+        <view v-if="needCash > 0" class="sheet-short">积分不足，可补差价 {{ formatMoney(needCash) }}（当前余额 {{ formatPoints(points) }} / 需 {{ formatPoints(needPoints) }}）</view>
         <view class="sheet-btns">
           <view class="btn-secondary sb" @tap="confirmTarget = null">取消</view>
           <view class="{{'btn-primary sb' + (exchanging ? ' sb-disabled' : '')}}" @tap="handleConfirm">
@@ -139,7 +139,7 @@
 
 <script>
 import chamber from '@/api/chamber'
-import { formatMoney, formatPoints } from '@/common/format'
+import { formatMoney as _formatMoney, formatPoints as _formatPoints } from '@/common/format'
 import { checkLogin } from '@/libs/login'
 import { fetchSiteConfig } from '@/common/site-config'
 import Skeleton from '@/components/Skeleton.vue'
@@ -195,6 +195,9 @@ export default {
     this.loadData()
   },
   methods: {
+    // vue2 小程序模板只能调实例方法：包装 format 工具（模板 {{ formatPoints/formatMoney(...) }}）
+    formatPoints(n) { return _formatPoints(n) },
+    formatMoney(n) { return _formatMoney(n) },
     async loadData() {
       fetchSiteConfig().then((cfg) => {
         if (cfg && cfg.points_ratio && Number(cfg.points_ratio) > 0) {
@@ -244,12 +247,9 @@ export default {
       const map = { coach: 'ic-graduation-cap-gold', charity: 'ic-heart-handshake-gold', roadshow: 'ic-presentation-gold', distribution: 'ic-user-plus-gold', study: 'ic-star-gold', medal: 'ic-medal-gold' }
       return map[icon] || 'ic-medal-gold'
     },
-    fmtPoints(v) {
-      return formatPoints(v)
-    },
     fmtCash(p) {
       const price = Number((p && p.price) || 0)
-      return price > 0 ? formatMoney(price) : ''
+      return price > 0 ? _formatMoney(price) : ''
     },
     cashOf(p) {
       const n = Number(p.price || 0)

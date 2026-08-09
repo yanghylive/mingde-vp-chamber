@@ -43,7 +43,7 @@
     <!-- 4 格统计 -->
     <view class="stats card">
       <view class="stat" @tap="goPointsLedger">
-        <text class="stat-num">{{ points != null ? fmtPoints(points) : '—' }}</text>
+        <text class="stat-num">{{ points != null ? formatPoints(points) : '—' }}</text>
         <text class="stat-label">积分</text>
       </view>
       <view class="stat">
@@ -205,11 +205,12 @@
 import chamber from '@/api/chamber'
 import { checkLogin } from '@/libs/login'
 import { TIERS, tierToNumber, applyTierConfig } from '@/common/tier'
-import { toDate } from '@/common/format'
+import { toDate, formatPoints as _formatPoints } from '@/common/format'
 import { fetchSiteConfig } from '@/common/site-config'
 
 const MENU_MAIN = [
   { label: '我的分销码', sub: '推荐新会员注册得积分', icon: 'ic-link-2-orange', color: 'c-orange', to: '/pages/mine/distribution/index' },
+  { label: 'AI 分身训练', sub: '对话训练你的智能分身', icon: 'ic-bot-gold', color: 'c-gold', to: '/pages/ai-twin/index' },
   { label: '客服微信', sub: '扫码添加专属客服', icon: 'ic-message-circle-blue', color: 'c-blue', to: '/pages/mine/customer-service/index' },
   { label: '我的好友', sub: '按等级 / 地区 / 行业筛选', icon: 'ic-users-round-green', color: 'c-green', to: '/pages/mine/friends/index' },
   { label: '积分记录', sub: '获取与消费明细', icon: 'ic-history-pink', color: 'c-pink', to: '/pages/mine/points-ledger/index' },
@@ -294,6 +295,8 @@ export default {
   },
   methods: {
     iconPath(name) { return '/static/icons/' + name + '.png' },
+    // vue2 小程序模板只能调实例方法：包装 format 工具（模板 {{ formatPoints(points) }}）
+    formatPoints(n) { return _formatPoints(n) },
     async loadData() {
       fetchSiteConfig().then((cfg) => {
         if (cfg) this.ladder = applyTierConfig(cfg)

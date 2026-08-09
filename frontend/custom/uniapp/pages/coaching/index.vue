@@ -15,6 +15,10 @@
         </view>
         <view class="ph-sub">每天 3 条灵魂追问，帮你打破旧习惯、整合行为模式</view>
       </view>
+      <!-- AI 生成标注（微信深度合成合规要求） -->
+      <view class="ai-notice">
+        <text class="ai-notice-text">AI 生成内容，仅供参考，不构成任何专业建议</text>
+      </view>
     </view>
 
     <!-- 断档/控速提示 -->
@@ -269,7 +273,7 @@ export default {
 }
 </script>
 
-<style lang="scss" scoped>
+<style lang="scss">
 .coaching-page {
   min-height: 100vh;
   background: linear-gradient(180deg, #f6f1e8 0%, #f4f6f9 30%, #eef2f7 100%);
@@ -278,7 +282,22 @@ export default {
 }
 
 .coach-head {
-  padding: 24rpx 0 8rpx;
+  padding: 0 0 8rpx;
+  padding-top: calc(env(safe-area-inset-top) + 20rpx);
+}
+
+.ai-notice {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 12rpx;
+  padding: 8rpx 20rpx;
+  border-radius: 999rpx;
+  background: rgba(201, 164, 92, 0.12);
+  border: 2rpx solid rgba(201, 164, 92, 0.3);
+}
+.ai-notice-text {
+  font-size: 22rpx;
+  color: #a9651e;
 }
 
 .ph-eyebrow {

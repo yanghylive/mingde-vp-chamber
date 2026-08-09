@@ -36,7 +36,7 @@ final class MemberPointsController
 
         return $this->success([
             'points' => is_array($account) ? (int) $account['balance'] : 0,
-            'frozen_points' => is_array($account) ? (int) $account['frozen_balance'] : 0,
+            'frozen_points' => is_array($account) ? (int) ($account['frozen_balance'] ?? 0) : 0,
         ]);
     }
 

@@ -56,7 +56,19 @@ export function memberUpdate(memberId, payload) {
   return chamberRequest({ url: `${MEMBERS_PATH}/${memberId}`, method: 'patch', data: payload });
 }
 
-/** 订单列表 */
+/** 订单列表（对账，后端返回全量近 200 笔） */
 export function memberOrders() {
   return chamberRequest({ url: `${MEMBERS_PATH}/orders`, method: 'get' });
+}
+
+/**
+ * 积分调整（后台手动调积分，L1-L4 通用）：delta 可正可负，reason 必填，callerKey 幂等（重放不重复入账）
+ * 后端：POST /chamber/admin/v1/members/:member_id/points/adjust
+ */
+export function memberAdjustPoints(memberId, payload) {
+  return chamberRequest({
+    url: `${MEMBERS_PATH}/${memberId}/points/adjust`,
+    method: 'post',
+    data: payload,
+  });
 }

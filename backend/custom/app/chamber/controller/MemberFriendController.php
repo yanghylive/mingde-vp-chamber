@@ -121,26 +121,34 @@ final class MemberFriendController
         $tenantId = $tenant->tenantId();
         $friendRecordId = $this->positiveId($friend_id);
 
-        $row = Db::table('ch_member_friend')
-            ->where('tenant_id', $tenantId)
-            ->where('id', $friendRecordId)
-            ->where('friend_member_id', $me)
-            ->lock(true)
-            ->find();
-        if (!is_array($row)) {
-            throw new MemberTransactionException(404, 'friend_request_not_found', 'Friend request was not found');
-        }
+        // 事务 + 行锁：校验原状态必须为 pending，防止已拒绝/已接受的记录被重复置为 accepted（并发安全）
+        $accepted = Db::transaction(function () use ($tenantId, $friendRecordId, $me): array {
+            $row = Db::table('ch_member_friend')
+                ->where('tenant_id', $tenantId)
+                ->where('id', $friendRecordId)
+                ->where('friend_member_id', $me)
+                ->lock(true)
+                ->find();
+            if (!is_array($row)) {
+                throw new MemberTransactionException(404, 'friend_request_not_found', 'Friend request was not found');
+            }
+            if ((string) ($row['status'] ?? '') !== 'pending') {
+                throw new MemberTransactionException(409, 'friend_request_not_pending', '好友请求已处理，不能重复接受');
+            }
 
-        Db::table('ch_member_friend')
-            ->where('id', $friendRecordId)
-            ->update(['status' => 'accepted']);
+            Db::table('ch_member_friend')
+                ->where('id', $friendRecordId)
+                ->update(['status' => 'accepted']);
 
-        return $this->success([
-            'id' => $friendRecordId,
-            'member_id' => (int) $row['member_id'],
-            'friend_member_id' => (int) $row['friend_member_id'],
-            'status' => 'accepted',
-        ]);
+            return [
+                'id' => $friendRecordId,
+                'member_id' => (int) $row['member_id'],
+                'friend_member_id' => (int) $row['friend_member_id'],
+                'status' => 'accepted',
+            ];
+        });
+
+        return $this->success($accepted);
     }
 
     private function positiveId($value): int

@@ -34,6 +34,13 @@ export const chamber = {
 
   // ---- 会员 ----
   membershipPlans: () => request('/chamber/v1/membership/plans').then((b) => (b && b.plans) || []),
+  /** 创建会员开通订单（幂等），返回 { order_no, payable_amount, currency, payment_required } */
+  membershipCheckout: (payload) =>
+    request('/chamber/v1/membership/checkouts', {
+      method: 'POST',
+      idempotencyKey: uuid(),
+      data: payload
+    }),
 
   // ---- 活动 ----
   events: () => request('/chamber/v1/events').then(pickList),

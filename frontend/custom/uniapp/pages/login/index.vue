@@ -27,7 +27,7 @@
 
       <!-- 手机号 -->
       <view class="field">
-        <image class="ic ic-sm" src="/static/icons/ic-phone-gold.png" mode="aspectFit" />
+        <image class="ic ic-sm" src="/static/icons/ic-message-circle-gold.png" mode="aspectFit" />
         <input v-model="phone" class="input" type="number" maxlength="11" placeholder="请输入手机号" placeholder-class="ph" />
       </view>
 
@@ -35,7 +35,7 @@
       <block v-if="mode === 'sms'">
         <view class="field-row">
           <view class="field flex1">
-            <image class="ic ic-sm" src="/static/icons/ic-image-gold.png" mode="aspectFit" />
+            <image class="ic ic-sm" src="/static/icons/ic-search-gold.png" mode="aspectFit" />
             <input v-model="imgCode" class="input" type="number" maxlength="6" placeholder="图片验证码" placeholder-class="ph" />
           </view>
           <image v-if="captchaImg" :src="captchaImg" class="captcha-img" mode="aspectFill" @tap="refreshCaptcha" />
@@ -65,9 +65,44 @@
       <view class="{{'submit' + (loading ? ' submit-disabled' : '')}}" @tap="submit">
         {{ loading ? '登录中…' : '登 录' }}
       </view>
+
+      <!-- 微信一键登录（CRMEB v2 routine 链路） -->
+      <view class="wx-divider">
+        <view class="wx-divider-line" />
+        <text class="wx-divider-text">其他登录方式</text>
+        <view class="wx-divider-line" />
+      </view>
+      <view class="{{'wx-login' + (loading ? ' wx-login-disabled' : '')}}" @tap="wxLogin">
+        <text class="wx-login-icon">微</text>
+        <text class="wx-login-text">微信一键登录</text>
+      </view>
+      <!-- 首次微信登录需绑定手机号（真实用户点击授权） -->
+      <button
+        v-if="wxBindMode"
+        class="wx-phone-btn"
+        open-type="getPhoneNumber"
+        @getphonenumber="onGetPhoneNumber"
+        :disabled="loading"
+      >
+        <text class="wx-phone-text">微信授权手机号绑定</text>
+      </button>
+      <view v-if="wxError" class="wx-error">{{ wxError }}</view>
     </view>
 
-    <view class="agreement">登录即代表同意《用户协议》与《隐私政策》</view>
+    <!-- 协议同意（微信审核要求：必须自主勾选，不得默认同意） -->
+    <view class="agreement">
+      <view class="agree-row" @tap="toggleAgreed">
+        <view class="{{'agree-box' + (agreed ? ' agree-box-checked' : '')}}">
+          <text v-if="agreed" class="agree-tick">✓</text>
+        </view>
+        <text class="agree-text">我已阅读并同意</text>
+      </view>
+      <view class="agree-links">
+        <text class="agree-link" @tap.stop="openLegal('agreement')">《用户服务协议》</text>
+        <text class="agree-text">与</text>
+        <text class="agree-link" @tap.stop="openLegal('privacy')">《隐私政策》</text>
+      </view>
+    </view>
   </view>
 </template>
 
@@ -87,7 +122,11 @@ export default {
       captchaImg: '',
       countdown: 0,
       loading: false,
-      error: ''
+      error: '',
+      agreed: false,
+      wxBindMode: false,
+      wxAuthKey: '',
+      wxError: ''
     }
   },
   onLoad() {
@@ -97,6 +136,102 @@ export default {
     switchMode(m) {
       this.mode = m
       this.error = ''
+    },
+    toggleAgreed() {
+      this.agreed = !this.agreed
+      if (this.agreed) this.error = ''
+    },
+    openLegal(type) {
+      uni.navigateTo({ url: '/pages/legal/index?type=' + type })
+    },
+    requireAgreed() {
+      if (!this.agreed) {
+        this.error = '请先阅读并勾选同意《用户服务协议》和《隐私政策》'
+        return false
+      }
+      return true
+    },
+    // ---- 微信一键登录 ----
+    wxLogin() {
+      if (this.loading) return
+      if (!this.requireAgreed()) return
+      this.wxError = ''
+      this.loading = true
+      uni.login({
+        provider: 'weixin',
+        success: (loginRes) => {
+          const code = loginRes.code || ''
+          if (!code) {
+            this.loading = false
+            this.wxError = '微信登录失败，请重试'
+            return
+          }
+          auth
+            .wechatAuthType(code)
+            .then((body) => {
+              const data = body && body.data ? body.data : body
+              const key = data && data.key
+              if (!key) {
+                this.loading = false
+                this.wxError = (data && data.msg) || '微信登录失败，请稍后重试'
+                return
+              }
+              this.wxAuthKey = key
+              if (data.bindPhone) {
+                // 首次微信登录：需绑定手机号（用户点击授权）
+                this.wxBindMode = true
+                this.loading = false
+                return
+              }
+              this.finishWxLogin(key)
+            })
+            .catch((e) => {
+              this.loading = false
+              this.wxError = (e && e.msg) || '微信登录失败，请稍后重试'
+            })
+        },
+        fail: () => {
+          this.loading = false
+          this.wxError = '微信登录取消或失败'
+        }
+      })
+    },
+    onGetPhoneNumber(e) {
+      const detail = e && e.detail
+      if (!detail || !detail.code) {
+        this.wxError = (detail && detail.errMsg) || '未授权手机号，无法完成绑定'
+        return
+      }
+      if (!this.wxAuthKey) {
+        this.wxError = '登录状态已失效，请重新点击微信登录'
+        return
+      }
+      this.loading = true
+      auth
+        .wechatBindPhone(this.wxAuthKey, detail.code)
+        .then(() => {
+          this.finishWxLogin(this.wxAuthKey)
+        })
+        .catch((err) => {
+          this.loading = false
+          this.wxError = (err && err.msg) || '手机号绑定失败，请重试'
+        })
+    },
+    finishWxLogin(key) {
+      auth
+        .wechatAuthLogin(key)
+        .then((body) => {
+          const d = body && body.data ? body.data : body
+          const token = d.token || d.access_token
+          if (!token) throw new Error('微信登录响应缺少 token')
+          this.wxBindMode = false
+          this.wxError = ''
+          this.finishLogin(token, d.userInfo)
+        })
+        .catch((e) => {
+          this.loading = false
+          this.wxError = (e && e.msg) || '微信登录失败，请稍后重试'
+        })
     },
     refreshCaptcha() {
       auth
@@ -110,6 +245,7 @@ export default {
     },
     sendSms() {
       if (this.countdown > 0 || this.loading) return
+      if (!this.requireAgreed()) return
       if (!/^1\d{10}$/.test(this.phone)) {
         this.error = '请输入正确的手机号'
         return
@@ -155,6 +291,7 @@ export default {
       }
     },
     submitSms() {
+      if (!this.requireAgreed()) return
       if (!/^1\d{10}$/.test(this.phone)) {
         this.error = '请输入正确的手机号'
         return
@@ -181,6 +318,7 @@ export default {
         })
     },
     submitPassword() {
+      if (!this.requireAgreed()) return
       if (!/^1\d{10}$/.test(this.phone)) {
         this.error = '请输入正确的手机号'
         return
@@ -369,9 +507,117 @@ export default {
   opacity: 0.6;
 }
 .agreement {
-  text-align: center;
+  margin-top: 48rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 22rpx;
+  color: rgba(255, 255, 255, 0.6);
+}
+.agree-row {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  padding: 12rpx 24rpx;
+}
+.agree-box {
+  width: 32rpx;
+  height: 32rpx;
+  border-radius: 8rpx;
+  border: 2rpx solid rgba(255, 255, 255, 0.5);
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.agree-box-checked {
+  background: #c9a45c;
+  border-color: #c9a45c;
+}
+.agree-tick {
+  font-size: 22rpx;
+  color: #fff;
+  line-height: 1;
+}
+.agree-text {
+  font-size: 22rpx;
+  color: rgba(255, 255, 255, 0.6);
+}
+.agree-links {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+  padding: 4rpx 24rpx 12rpx;
+}
+.agree-link {
+  font-size: 22rpx;
+  color: #c9a45c;
+}
+.wx-divider {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  margin: 36rpx 0 24rpx;
+}
+.wx-divider-line {
+  flex: 1;
+  height: 2rpx;
+  background: rgba(255, 255, 255, 0.12);
+}
+.wx-divider-text {
   font-size: 22rpx;
   color: rgba(255, 255, 255, 0.4);
-  margin-top: 48rpx;
+}
+.wx-login {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14rpx;
+  border: 2rpx solid rgba(255, 255, 255, 0.35);
+  border-radius: 20rpx;
+  padding: 22rpx 0;
+  background: rgba(255, 255, 255, 0.06);
+}
+.wx-login-disabled {
+  opacity: 0.6;
+}
+.wx-login-icon {
+  width: 40rpx;
+  height: 40rpx;
+  line-height: 40rpx;
+  text-align: center;
+  border-radius: 50%;
+  background: #07c160;
+  color: #fff;
+  font-size: 24rpx;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.wx-login-text {
+  font-size: 28rpx;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 500;
+}
+.wx-phone-btn {
+  margin-top: 20rpx;
+  background: #07c160;
+  border-radius: 20rpx;
+  font-size: 28rpx;
+  line-height: 2.6;
+}
+.wx-phone-btn::after {
+  border: none;
+}
+.wx-phone-text {
+  color: #fff;
+  font-weight: 500;
+}
+.wx-error {
+  margin-top: 16rpx;
+  text-align: center;
+  font-size: 24rpx;
+  color: #f2b0a0;
 }
 </style>

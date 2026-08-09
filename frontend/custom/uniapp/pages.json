@@ -44,6 +44,13 @@
       }
     },
     {
+      "path": "pages/legal/index",
+      "style": {
+        "navigationBarTitleText": "用户服务协议",
+        "navigationStyle": "custom"
+      }
+    },
+    {
       "path": "pages/membership/index",
       "style": {
         "navigationBarTitleText": "会员中心",
@@ -153,6 +160,13 @@
       "path": "pages/chat/index",
       "style": {
         "navigationBarTitleText": "AI 对话",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/ai-twin/index",
+      "style": {
+        "navigationBarTitleText": "AI 分身训练",
         "navigationStyle": "custom"
       }
     },

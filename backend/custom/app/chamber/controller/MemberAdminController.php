@@ -5,12 +5,15 @@ declare(strict_types=1);
 namespace app\chamber\controller;
 
 use app\Request;
+use app\chamber\exceptions\MemberTransactionException;
+use app\chamber\identity\AuthenticatedAdminContext;
 use app\chamber\tenancy\TenantContext;
 use think\facade\Db;
 use think\Response;
+use Throwable;
 
 /**
- * 会员管理（admin）：等级查看 / L4 人工指定 / 手动开通·续费·降级 / 订单查看
+ * 会员管理（admin）：等级查看 / L4 人工指定 / 手动开通·续费·降级 / 订单查看 / 积分调整
  * 路径：/api/chamber/admin/v1/members
  */
 final class MemberAdminController
@@ -159,6 +162,158 @@ final class MemberAdminController
         }
 
         return json(['code' => 0, 'msg' => 'ok', 'data' => ['items' => $items, 'total' => count($items)]]);
+    }
+
+    /**
+     * 积分调整（后台手动调积分，L1-L4 通用，无 tier 限制）。
+     * POST /api/chamber/admin/v1/members/:member_id/points/adjust
+     * body: {"delta": 100|-50, "reason": "活动补偿", "caller_key": "..."}
+     *  - delta 可正可负（单次 |delta| ≤ 1000000），reason 必填（审计），caller_key 幂等（重放返回原结果）
+     *  - 复用项目标准账本模式：事务 + 行锁 + 乐观锁 version + ch_point_ledger 幂等流水（source_type=admin_adjust，source_id=管理员ID，remark=原因）
+     *  - 权限：chamber.member.points（超管自动通过）
+     */
+    public function adjustPoints(
+        int $member_id,
+        Request $request,
+        TenantContext $tenant,
+        AuthenticatedAdminContext $admin
+    ): Response {
+        $admin->assertPermission('chamber.member.points');
+
+        $tenantId = $tenant->tenantId();
+        $member = Db::table('ch_tenant_member')
+            ->where('tenant_id', $tenantId)
+            ->where('id', $member_id)
+            ->where('status', 1)
+            ->find();
+        if (!$member) {
+            return json(['code' => 404, 'msg' => '会员不存在']);
+        }
+
+        $body = json_decode($request->getContent(), true);
+        if (!is_array($body)) {
+            return json(['code' => 400, 'msg' => '请求体必须是 JSON']);
+        }
+        $delta = (int) ($body['delta'] ?? 0);
+        $reason = trim((string) ($body['reason'] ?? ''));
+        $callerKey = trim((string) ($body['caller_key'] ?? ''));
+
+        if ($delta === 0) {
+            return json(['code' => 400, 'msg' => 'delta 不能为 0']);
+        }
+        if ($delta > 1000000 || $delta < -1000000) {
+            return json(['code' => 400, 'msg' => '单次调整幅度过大（|delta| 最大 1000000）']);
+        }
+        if ($reason === '' || mb_strlen($reason) > 200) {
+            return json(['code' => 400, 'msg' => 'reason 必填且不超过 200 字']);
+        }
+        if (!preg_match('/^[A-Za-z0-9:_-]{8,120}$/D', $callerKey)) {
+            return json(['code' => 400, 'msg' => 'caller_key 需为 8-120 位字母/数字/:_-']);
+        }
+
+        $now = time();
+        $idempotencyKey = hash('sha256', $tenantId . ':' . $callerKey);
+
+        try {
+            $result = Db::transaction(function () use ($tenantId, $member, $delta, $reason, $idempotencyKey, $now, $admin): array {
+                // 幂等命中：同一 caller_key 直接返回原结果（余额取当前账户值）
+                $existing = Db::table('ch_point_ledger')
+                    ->where('tenant_id', $tenantId)
+                    ->where('idempotency_key', $idempotencyKey)
+                    ->find();
+                if (is_array($existing)) {
+                    $current = $this->lockOrCreatePointAccount($tenantId, (int) $member['id'], (int) $member['uid'], $now);
+
+                    return [
+                        'ledger_id' => (int) $existing['id'],
+                        'balance' => (int) $current['balance'],
+                        'delta' => (int) $existing['delta'],
+                        'idempotent' => true,
+                    ];
+                }
+
+                $account = $this->lockOrCreatePointAccount($tenantId, (int) $member['id'], (int) $member['uid'], $now);
+                $newBalance = (int) $account['balance'] + $delta;
+                if ($newBalance < 0) {
+                    throw new MemberTransactionException(409, 'insufficient_points', '会员积分不足，无法扣减');
+                }
+                $updated = Db::table('ch_point_account')
+                    ->where('id', (int) $account['id'])
+                    ->where('tenant_id', $tenantId)
+                    ->where('version', (int) $account['version'])
+                    ->update([
+                        'balance' => $newBalance,
+                        'version' => (int) $account['version'] + 1,
+                        'update_time' => $now,
+                    ]);
+                if ($updated !== 1) {
+                    throw new MemberTransactionException(409, 'points_adjust_failed', '积分余额更新冲突，请重试');
+                }
+                $ledgerId = (int) Db::table('ch_point_ledger')->insertGetId([
+                    'tenant_id' => $tenantId,
+                    'account_id' => (int) $account['id'],
+                    'member_id' => (int) $member['id'],
+                    'uid' => (int) $member['uid'],
+                    'delta' => $delta,
+                    'balance_after' => $newBalance,
+                    'source_type' => 'admin_adjust',
+                    'source_id' => (string) $admin->adminId(),
+                    'remark' => $reason,
+                    'idempotency_key' => $idempotencyKey,
+                    'status' => 1,
+                    'reversal_id' => 0,
+                    'add_time' => $now,
+                ]);
+
+                return [
+                    'ledger_id' => $ledgerId,
+                    'balance' => $newBalance,
+                    'delta' => $delta,
+                    'idempotent' => false,
+                ];
+            });
+        } catch (MemberTransactionException $exception) {
+            return json(['code' => $exception->getCode(), 'msg' => $exception->getMessage()]);
+        }
+
+        return json(['code' => 0, 'msg' => 'ok', 'data' => $result]);
+    }
+
+    /**
+     * 行锁读取积分账户；不存在则初始化（与 EventRewardService 同模式，唯一键并发兜底）。
+     */
+    private function lockOrCreatePointAccount(int $tenantId, int $memberId, int $uid, int $now): array
+    {
+        $account = Db::table('ch_point_account')
+            ->where('tenant_id', $tenantId)
+            ->where('member_id', $memberId)
+            ->lock(true)
+            ->find();
+        if (!is_array($account)) {
+            try {
+                Db::table('ch_point_account')->insert([
+                    'tenant_id' => $tenantId,
+                    'member_id' => $memberId,
+                    'uid' => $uid,
+                    'balance' => 0,
+                    'version' => 1,
+                    'add_time' => $now,
+                    'update_time' => $now,
+                ]);
+            } catch (Throwable $exception) {
+                // 并发首写可能撞唯一键，忽略后重新读取
+            }
+            $account = Db::table('ch_point_account')
+                ->where('tenant_id', $tenantId)
+                ->where('member_id', $memberId)
+                ->lock(true)
+                ->find();
+        }
+        if (!is_array($account)) {
+            throw new MemberTransactionException(409, 'points_account_failed', '积分账户无法初始化');
+        }
+
+        return $account;
     }
 
     private function tierLabel(int $tier): string

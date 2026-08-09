@@ -6,12 +6,15 @@ namespace app\chamber\coaching;
 
 use app\chamber\exceptions\MemberTransactionException;
 use app\chamber\identity\AuthenticatedUserContext;
+use app\chamber\services\AiUsageRecorder;
 use app\chamber\tenancy\TenantContext;
 use InvalidArgumentException;
 use RuntimeException;
+use think\facade\Cache;
 use think\facade\Config;
 use think\facade\Db;
 use think\facade\Log;
+use Throwable;
 
 /**
  * 小薇认知教练核心服务。
@@ -20,6 +23,7 @@ use think\facade\Log;
  */
 final class CoachingService
 {
+    private const GENERATION_QUOTA_PREFIX = 'chamber:coaching:gen:';
     private const DEFAULT_FALLBACK = [
         'questions' => [
             '今天，你最想推进的事业主线是什么？',
@@ -61,6 +65,9 @@ final class CoachingService
             return $daily['morning_challenge'];
         }
 
+        // 成本防护：真正调用付费网关前校验每日生成配额（force=true 同样计数）
+        $this->assertGenerationQuota($ctx);
+
         $profile = $this->profile($ctx);
         $config = $this->config($ctx);
         $yesterday = $this->yesterday($ctx, $date);
@@ -76,7 +83,7 @@ final class CoachingService
         );
         $user = $prompt->buildMorningUser($profile, $config, $yesterday, $date);
 
-        $generated = $this->generate($system, $user, $discern['brand_name']);
+        $generated = $this->generate($system, $user, $discern['brand_name'], $ctx, 'morning');
 
         // 回写当日记录（morning_challenge 存档，供晚间精准对照）
         $morningPayload = [
@@ -149,6 +156,9 @@ final class CoachingService
             return $daily['evening_review'];
         }
 
+        // 成本防护：真正调用付费网关前校验每日生成配额（force=true 同样计数）
+        $this->assertGenerationQuota($ctx);
+
         $responses = is_array($daily['responses']) ? $daily['responses'] : [
             'answers' => [],
             'challenge_result' => 'none',
@@ -160,7 +170,7 @@ final class CoachingService
         $system = $prompt->buildEveningSystem($discern['voice_style']);
         $user = $prompt->buildEveningUser($daily['morning_challenge'], $responses);
 
-        $review = $this->generate($system, $user, $discern['brand_name']);
+        $review = $this->generate($system, $user, $discern['brand_name'], $ctx, 'evening');
         $reviewPayload = [
             'summary' => $review['summary'] ?? '今日辛苦了，复盘记录已存档。',
             'praise' => $review['praise'] ?? '',
@@ -193,6 +203,38 @@ final class CoachingService
     }
 
     // ---------- private ----------
+
+    /**
+     * Redis 原子计数限流：每位会员每天 AI 生成次数（morning+evening 合计，含 force 重新生成）。
+     * 超过 coaching.daily_generation_limit 抛 429，防止 force=true 被循环调用刷爆付费网关（成本型攻击）。
+     * 计数发生在真正调用网关之前，无论生成成功或降级兜底都计入一次。
+     * Redis 不可用时 fail-open（记录告警放行）——限流是成本保护而非数据边界，不能让限流器故障挡住正常会员。
+     */
+    private function assertGenerationQuota(array $ctx): void
+    {
+        $limit = (int) Config::get('coaching.daily_generation_limit', 10);
+        if ($limit < 1) {
+            return;
+        }
+        $key = self::GENERATION_QUOTA_PREFIX . $ctx['tenant_id'] . ':' . $ctx['member_id'] . ':' . date('Y-m-d');
+        try {
+            $redis = Cache::store('redis')->handler();
+            $count = $redis->incr($key);
+            if ($count === 1) {
+                // 首次计数：过期时间设为当天 23:59:59，次日自动重置
+                $redis->expire($key, (int) strtotime('tomorrow') - time());
+            }
+            if ($count > $limit) {
+                throw new MemberTransactionException(429, 'generation_limit_exceeded', '今日 AI 生成次数已达上限，请明天再来');
+            }
+        } catch (MemberTransactionException $exception) {
+            throw $exception;
+        } catch (Throwable $exception) {
+            Log::warning('coaching generation quota check failed, allowing request', [
+                'error' => $exception->getMessage(),
+            ]);
+        }
+    }
 
     private function context(TenantContext $tenant, AuthenticatedUserContext $auth): array
     {
@@ -391,19 +433,29 @@ final class CoachingService
         return (string) Config::get('coaching.kaypal_model', 'kaypal-fast');
     }
 
-    private function generate(string $system, string $user, string $brandName): array
+    private function generate(string $system, string $user, string $brandName, array $ctx, string $scene): array
     {
+        $started = microtime(true);
+        $usageOut = [];
         try {
             $gateway = new KaypalGateway();
-            $raw = $gateway->chat($system, $user);
+            $raw = $gateway->chat($system, $user, 1600, 0.8, $usageOut);
+            $parsed = $this->parseJsonPayload($raw);
 
-            return $this->parseJsonPayload($raw);
+            // 服务端权威 usage 计费流水（网关响应带回，不信任客户端）
+            $this->recordUsage($ctx, $scene, $usageOut, false, $started);
+
+            return $parsed;
         } catch (RuntimeException $exception) {
             Log::warning('coaching generate failed, fallback used', [
                 'brand' => $brandName,
+                'scene' => $scene,
                 'error' => $exception->getMessage(),
                 'trace' => $exception->getTraceAsString(),
             ]);
+
+            // 网关调用失败也记录一次流水（fallback_used=1，tokens 为空），供成本/故障对账
+            $this->recordUsage($ctx, $scene, $usageOut, true, $started);
 
             // 降级：兜底模板（PRD 6 非功能需求：生成失败时用兜底模板，不影响推送）
             return [
@@ -415,6 +467,21 @@ final class CoachingService
                 'fallback' => true,
             ];
         }
+    }
+
+    /**
+     * 记录 AI usage 流水（记录失败不影响主流程）。
+     */
+    private function recordUsage(array $ctx, string $scene, array $usage, bool $fallback, float $started): void
+    {
+        (new AiUsageRecorder())->record(
+            $ctx,
+            $scene,
+            $usage,
+            $this->modelName(),
+            $fallback,
+            (int) ((microtime(true) - $started) * 1000)
+        );
     }
 
     private function parseJsonPayload(string $raw): array

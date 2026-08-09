@@ -83,10 +83,14 @@ export default {
       return item.desc || this.sourceLabel(item)
     },
     sourceLabel(item) {
+      // source_type 全量映射（后端：chamber services/controller）
       var typeMap = {
         checkin: '签到', exchange: '兑换', distribution: '分销', charity: '公益',
         coach: '做教练', roadshow: '路演', study: '学习', reward: '奖励',
-        admin: '管理'
+        admin: '管理', admin_adjust: '后台调整',
+        event_checkin: '活动签到', event_checkin_refund: '签到冲正',
+        event_registration: '活动报名', event_registration_refund: '报名退款',
+        product_exchange: '积分兑换', purchase: '会员购买', grant: '授予'
       }
       var key = String(item.source_type || item.type || item.source || '').toLowerCase()
       return typeMap[key] || item.reason || key || '积分变动'

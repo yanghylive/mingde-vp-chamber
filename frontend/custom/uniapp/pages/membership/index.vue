@@ -112,6 +112,7 @@
 
 <script>
 import chamber from '@/api/chamber'
+import eventUi from '@/chamber/activity-ui.js'
 import { checkLogin } from '@/libs/login'
 import { TIERS, tierToNumber, applyTierConfig } from '@/common/tier'
 import { toDate } from '@/common/format'
@@ -183,12 +184,38 @@ export default {
     onBuy(plan) {
       const pt = this.planTierNum(plan)
       if (pt <= this.tierNum) return
-      uni.showModal({
-        title: plan.name,
-        content: '支付通道开通中。开通后自动升级为 ' + plan.name + '（¥' + this.priceNum(plan.price) + '/年）。',
-        confirmText: '知道了',
-        showCancel: false
-      })
+      if (plan.eligible === false) {
+        uni.showModal({
+          title: plan.name,
+          content: plan.ineligible_reason || '当前暂不可购买',
+          confirmText: '知道了',
+          showCancel: false
+        })
+        return
+      }
+      // 创建会员开通订单（幂等）→ 跳 CRMEB 收银台支付
+      uni.showLoading({ title: '创建订单...', mask: true })
+      chamber
+        .membershipCheckout({
+          plan_code: plan.code,
+          plan_version: Number(plan.version) || 1,
+          expected_amount: String(plan.price),
+          currency: plan.currency || 'CNY'
+        })
+        .then((res) => {
+          uni.hideLoading()
+          const orderNo = (res && res.order_no) || ''
+          const path = eventUi.paymentPath(orderNo)
+          if (!path) {
+            uni.showToast({ title: '订单创建异常，请稍后重试', icon: 'none' })
+            return
+          }
+          uni.navigateTo({ url: path })
+        })
+        .catch((error) => {
+          uni.hideLoading()
+          uni.showToast({ title: (error && error.msg) || '创建订单失败', icon: 'none' })
+        })
     },
     goMine() {
       uni.switchTab({ url: '/pages/mine/index' })

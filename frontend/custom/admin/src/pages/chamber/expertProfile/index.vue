@@ -18,7 +18,10 @@
           <h2>大咖资料</h2>
           <span>共 {{ rows.length }} 位大咖 · 编辑资料后点击「保存」立即生效</span>
         </div>
-        <el-button icon="el-icon-refresh" circle title="刷新" :loading="loading" @click="loadList" />
+        <div>
+          <el-button type="primary" size="mini" icon="el-icon-plus" @click="openAdd">添加大咖</el-button>
+          <el-button icon="el-icon-refresh" circle title="刷新" :loading="loading" @click="loadList" />
+        </div>
       </div>
 
       <el-table v-loading="loading" :data="rows" empty-text="暂无大咖" class="profile-table">
@@ -112,6 +115,17 @@ export default {
         .finally(() => {
           this.loading = false;
         });
+    },
+    openAdd() {
+      this.form = {
+        id: 0,
+        name: '',
+        title: '',
+        company: '',
+        industry: '',
+        bio: '',
+      };
+      this.dialogVisible = true;
     },
     openEdit(row) {
       this.form = {

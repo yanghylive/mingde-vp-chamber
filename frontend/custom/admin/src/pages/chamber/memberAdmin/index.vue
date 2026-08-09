@@ -61,15 +61,13 @@
                 </el-tag>
               </template>
             </el-table-column>
-            <el-table-column label="操作" width="220" align="center" fixed="right">
+            <el-table-column label="操作" width="300" align="center" fixed="right">
               <template slot-scope="scope">
                 <el-button type="primary" size="mini" @click="openAdjust(scope.row)">等级调整</el-button>
-                <el-button
-                  v-if="scope.row.tier !== 4"
-                  type="warning"
-                  size="mini"
-                  @click="certifyL4(scope.row)"
-                >指定 L4</el-button>
+                <el-button type="success" size="mini" @click="openPointsAdjust(scope.row)">积分调整</el-button>
+                <el-button v-if="scope.row.tier !== 4" type="warning" size="mini" @click="certifyL4(scope.row)"
+                  >指定 L4</el-button
+                >
               </template>
             </el-table-column>
           </el-table>
@@ -107,7 +105,9 @@
             </el-table-column>
             <el-table-column label="状态" width="90" align="center">
               <template slot-scope="scope">
-                <el-tag :type="orderStatusType(scope.row.status)" size="mini">{{ orderStatusLabel(scope.row.status) }}</el-tag>
+                <el-tag :type="orderStatusType(scope.row.status)" size="mini">{{
+                  orderStatusLabel(scope.row.status)
+                }}</el-tag>
               </template>
             </el-table-column>
             <el-table-column label="备注" min-width="160" show-overflow-tooltip>
@@ -145,11 +145,42 @@
         </el-form-item>
       </el-form>
     </el-dialog>
+
+    <!-- 积分调整弹窗 -->
+    <el-dialog title="积分调整" :visible.sync="pointsDialogVisible" width="480px" :close-on-click-modal="false">
+      <el-form label-width="90px" :model="pointsForm" ref="pointsFormRef">
+        <el-form-item label="会员">
+          <span class="member-name">{{ pointsForm.name || '-' }}</span>
+          <span class="member-sub">（会员ID {{ pointsForm.id }}）</span>
+        </el-form-item>
+        <el-form-item label="调整数值" required>
+          <el-input-number v-model="pointsForm.delta" :min="-1000000" :max="1000000" :step="50" style="width: 180px" />
+          <span class="points-hint">正数=增发，负数=扣减（单次 ±100 万以内）</span>
+        </el-form-item>
+        <el-form-item label="调整原因" required>
+          <el-input
+            v-model="pointsForm.reason"
+            type="textarea"
+            :rows="2"
+            placeholder="必填：如 开业活动积分补偿 / 运营失误扣回 / 积分兑换售后"
+            maxlength="200"
+            show-word-limit
+          />
+        </el-form-item>
+        <el-form-item label="幂等键" label-width="90px">
+          <el-input v-model="pointsForm.callerKey" placeholder="留空自动生成（重复提交不会重复入账）" maxlength="120" />
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" :loading="pointsSaving" @click="submitPointsAdjust">确认调整</el-button>
+          <el-button @click="pointsDialogVisible = false">取消</el-button>
+        </el-form-item>
+      </el-form>
+    </el-dialog>
   </div>
 </template>
 
 <script>
-import { memberList, memberUpdate, memberOrders } from '@/api/chamber/members';
+import { memberList, memberUpdate, memberOrders, memberAdjustPoints } from '@/api/chamber/members';
 import { Message, MessageBox } from 'element-ui';
 
 export default {
@@ -165,11 +196,17 @@ export default {
       dialogVisible: false,
       saving: false,
       form: { id: 0, name: '', tier: 1, tier_label: '', remark: '' },
+      pointsDialogVisible: false,
+      pointsSaving: false,
+      pointsForm: { id: 0, name: '', delta: 100, reason: '', callerKey: '' },
     };
   },
   computed: {
     incomeTotal() {
-      return this.orders.filter((o) => o.status === 1).reduce((s, o) => s + (Number(o.amount_yuan) || 0), 0).toFixed(2);
+      return this.orders
+        .filter((o) => o.status === 1)
+        .reduce((s, o) => s + (Number(o.amount_yuan) || 0), 0)
+        .toFixed(2);
     },
   },
   created() {
@@ -231,7 +268,7 @@ export default {
     },
     certifyL4(row) {
       MessageBox.confirm(
-        `确认将「${row.name || ('ID ' + row.id)}」指定为 L4 认证会员？将同时标记为已认证。`,
+        `确认将「${row.name || 'ID ' + row.id}」指定为 L4 认证会员？将同时标记为已认证。`,
         '指定 L4 认证',
         { type: 'warning', confirmButtonText: '确认指定', cancelButtonText: '取消' },
       )
@@ -248,6 +285,46 @@ export default {
             });
         })
         .catch(() => {});
+    },
+    openPointsAdjust(row) {
+      this.pointsForm = {
+        id: row.id,
+        name: row.name || 'ID ' + row.id,
+        delta: 100,
+        reason: '',
+        callerKey: '',
+      };
+      this.pointsDialogVisible = true;
+    },
+    submitPointsAdjust() {
+      const { id, delta, reason, callerKey } = this.pointsForm;
+      if (!delta) {
+        Message.warning('调整数值不能为 0');
+        return;
+      }
+      if (!reason || !reason.trim()) {
+        Message.warning('请填写调整原因');
+        return;
+      }
+      this.pointsSaving = true;
+      memberAdjustPoints(id, {
+        delta,
+        reason: reason.trim(),
+        caller_key: callerKey.trim() || `admin-points-${Date.now()}`,
+      })
+        .then((res) => {
+          const data = (res && res.data) || {};
+          this.pointsDialogVisible = false;
+          Message.success(
+            `调整成功：当前积分 ${data.balance != null ? data.balance : '-'}${
+              data.idempotent ? '（幂等命中，未重复入账）' : ''
+            }`,
+          );
+        })
+        .catch((e) => Message.error((e && e.msg) || '调整失败'))
+        .finally(() => {
+          this.pointsSaving = false;
+        });
     },
     tagType(tier) {
       return ['', 'info', 'warning', 'danger', 'success'][tier] || 'info';
