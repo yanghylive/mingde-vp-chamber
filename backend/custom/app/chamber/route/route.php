@@ -20,6 +20,10 @@ Route::options('v1/bootstrap', $preflight)
     ->middleware(RequestTraceMiddleware::class)
     ->middleware(ChamberCorsMiddleware::class);
 
+Route::options('v1/site-config', $preflight)
+    ->middleware(RequestTraceMiddleware::class)
+    ->middleware(ChamberCorsMiddleware::class);
+
 Route::options('v1/me/bootstrap', $preflight)
     ->middleware(RequestTraceMiddleware::class)
     ->middleware(ChamberCorsMiddleware::class);
@@ -47,7 +51,10 @@ foreach ([
     'v1/me/stats',
     'v1/me/orders',
     'v1/me/notifications',
+    'v1/points/paths',
     'v1/products/:product_id/exchange',
+    'v1/products',
+    'v1/experts',
     'v1/experts/:expert_id',
     'v1/experts/:expert_id/slots',
     'v1/experts/:expert_id/appointments',
@@ -61,6 +68,30 @@ foreach ([
     'admin/v1/events/:event_id/cancel',
     'admin/v1/events/:event_id/checkin-token',
     'admin/v1/events/:event_id/checkins/manual',
+    'admin/v1/members',
+    'admin/v1/members/:member_id',
+    'admin/v1/members/orders',
+    'admin/v1/members/:member_id/points/adjust',
+    'admin/v1/site-config',
+    'admin/v1/slots',
+    'admin/v1/slots/:slot_id',
+    'admin/v1/points-paths',
+    'admin/v1/experts',
+    'admin/v1/experts/profile',
+    'admin/v1/experts/:expert_id/profile',
+    'admin/v1/experts/:expert_id/pricing',
+    'admin/v1/ai-twins',
+    'admin/v1/ai-twins/:member_id',
+    'admin/v1/ai-twins/:member_id/memories',
+    'admin/v1/ai-twins/:member_id/memories/:memory_id',
+    'admin/v1/ai-twins/:member_id/chats',
+    'admin/v1/ai-twins/:member_id/knowledge',
+    'admin/v1/ai-twins/:member_id/knowledge/:knowledge_id',
+    'v1/ai-twin/me',
+    'v1/ai-twin/train',
+    'v1/ai-twin/train/history',
+    'v1/ai-twin/:expert_member_id/profile',
+    'v1/ai-twin/:expert_member_id/chat',
 ] as $route) {
     Route::options($route, $preflight)
         ->middleware(RequestTraceMiddleware::class)
@@ -73,6 +104,7 @@ Route::get('health', 'HealthController/index')
 
 Route::group('v1', function () {
     Route::get('bootstrap', 'BootstrapController/index');
+    Route::get('site-config', 'SiteConfigController/index');
 })->middleware(RequestTraceMiddleware::class)
     ->middleware(ChamberCorsMiddleware::class)
     ->middleware(TenantContextMiddleware::class, true);
@@ -111,7 +143,21 @@ Route::group('v1/me', function () {
     ->middleware(CrmebAuthTokenMiddleware::class)
     ->middleware(TenantContextMiddleware::class, true);
 
+Route::group('v1/ai-twin', function () {
+    Route::get('me', 'AiTwinController/me');
+    Route::post('train', 'AiTwinController/train');
+    Route::get('train/history', 'AiTwinController/trainHistory');
+    Route::get(':expert_member_id/profile', 'AiTwinController/profile')
+        ->pattern(['expert_member_id' => '\\d+']);
+    Route::post(':expert_member_id/chat', 'AiTwinController/chat')
+        ->pattern(['expert_member_id' => '\\d+']);
+})->middleware(RequestTraceMiddleware::class)
+    ->middleware(ChamberCorsMiddleware::class)
+    ->middleware(CrmebAuthTokenMiddleware::class)
+    ->middleware(TenantContextMiddleware::class, true);
+
 Route::group('v1/products', function () {
+    Route::get('/', 'ProductController/index');
     Route::post(':product_id/exchange', 'ProductExchangeController/exchange')
         ->pattern(['product_id' => '\\d+']);
 })->middleware(RequestTraceMiddleware::class)
@@ -119,7 +165,15 @@ Route::group('v1/products', function () {
     ->middleware(CrmebAuthTokenMiddleware::class)
     ->middleware(TenantContextMiddleware::class, true);
 
+Route::group('v1/points', function () {
+    Route::get('paths', 'PointsPathsController/index');
+})->middleware(RequestTraceMiddleware::class)
+    ->middleware(ChamberCorsMiddleware::class)
+    ->middleware(CrmebAuthTokenMiddleware::class)
+    ->middleware(TenantContextMiddleware::class, true);
+
 Route::group('v1/experts', function () {
+    Route::get('/', 'ExpertController/index');
     Route::get(':expert_id', 'ExpertScheduleController/show')
         ->pattern(['expert_id' => '\\d+']);
     Route::get(':expert_id/slots', 'ExpertScheduleController/slots')
@@ -186,6 +240,50 @@ Route::group('admin/v1', function () {
         ->pattern(['event_id' => '\\d+']);
     Route::post('events/:event_id/checkins/manual', 'EventAdminController/manualCheckin')
         ->pattern(['event_id' => '\\d+']);
+    Route::get('members', 'MemberAdminController/index');
+    Route::patch('members/:member_id', 'MemberAdminController/update')
+        ->pattern(['member_id' => '\\d+']);
+    Route::get('members/orders', 'MemberAdminController/orders');
+    Route::post('members/:member_id/points/adjust', 'MemberAdminController/adjustPoints')
+        ->pattern(['member_id' => '\\d+']);
+    // ---- 站点配置 / 大咖档期 / 积分获取路径 / 大咖库（P2） ----
+    Route::get('site-config', 'SiteConfigAdminController/index');
+    Route::put('site-config', 'SiteConfigAdminController/update');
+    Route::get('slots', 'SlotAdminController/index');
+    Route::post('slots', 'SlotAdminController/store');
+    Route::delete('slots/:slot_id', 'SlotAdminController/delete')
+        ->pattern(['slot_id' => '\\d+']);
+    Route::get('points-paths', 'PointsPathsAdminController/index');
+    Route::put('points-paths', 'PointsPathsAdminController/update');
+    // 大咖库占位：experts/profile 必须先于 :expert_id 路由注册（避免被参数路由吞掉）
+    Route::get('experts/profile', 'ExpertController/profile');
+    Route::get('experts', 'ExpertController/index');
+    Route::patch('experts/:expert_id/profile', 'ExpertController/updateProfile')
+        ->pattern(['expert_id' => '\\d+']);
+    Route::get('experts/:expert_id/pricing', 'ExpertController/showPricing')
+        ->pattern(['expert_id' => '\\d+']);
+    Route::patch('experts/:expert_id/pricing', 'ExpertController/updatePricing')
+        ->pattern(['expert_id' => '\\d+']);
+    // ---- AI 智能分身训练板块 ----
+    Route::get('ai-twins', 'AiTwinAdminController/index');
+    Route::get('ai-twins/:member_id', 'AiTwinAdminController/show')
+        ->pattern(['member_id' => '\\d+']);
+    Route::put('ai-twins/:member_id', 'AiTwinAdminController/update')
+        ->pattern(['member_id' => '\\d+']);
+    Route::get('ai-twins/:member_id/memories', 'AiTwinAdminController/memories')
+        ->pattern(['member_id' => '\\d+']);
+    Route::delete('ai-twins/:member_id/memories/:memory_id', 'AiTwinAdminController/deleteMemory')
+        ->pattern(['member_id' => '\\d+', 'memory_id' => '\\d+']);
+    Route::get('ai-twins/:member_id/chats', 'AiTwinAdminController/chats')
+        ->pattern(['member_id' => '\\d+']);
+    Route::get('ai-twins/:member_id/knowledge', 'AiTwinAdminController/knowledge')
+        ->pattern(['member_id' => '\\d+']);
+    Route::post('ai-twins/:member_id/knowledge', 'AiTwinAdminController/addKnowledge')
+        ->pattern(['member_id' => '\\d+']);
+    Route::post('ai-twins/:member_id/knowledge/upload', 'AiTwinAdminController/uploadKnowledge')
+        ->pattern(['member_id' => '\\d+']);
+    Route::delete('ai-twins/:member_id/knowledge/:knowledge_id', 'AiTwinAdminController/deleteKnowledge')
+        ->pattern(['member_id' => '\\d+', 'knowledge_id' => '\\d+']);
 })->middleware(RequestTraceMiddleware::class)
     ->middleware(ChamberCorsMiddleware::class)
     ->middleware(CrmebAdminAuthTokenMiddleware::class)

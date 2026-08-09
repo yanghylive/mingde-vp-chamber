@@ -109,6 +109,35 @@ export default {
       const headers = { 'Content-Type': 'application/json', Accept: 'text/event-stream' }
       if (token) headers['Authori-zation'] = 'Bearer ' + token
 
+      // 大咖 AI 分身对话：真实接口（非流式，按分身积分价计费）
+      if (this.expertId) {
+        const twinHeaders = { 'Content-Type': 'application/json' }
+        if (token) twinHeaders['Authori-zation'] = 'Bearer ' + token
+        wx.request({
+          url: HTTP_REQUEST_URL + '/chamber/v1/ai-twin/' + this.expertId + '/chat',
+          method: 'POST',
+          header: twinHeaders,
+          data: { message: content },
+          success: (res) => {
+            if (res.statusCode >= 400) {
+              const body = res.data
+              const msg = (body && body.msg) ? body.msg : '请求失败（' + res.statusCode + '）'
+              this.finishAssistant(msg)
+            } else {
+              this.finishAssistant(extractAnswer(res.data))
+            }
+          },
+          fail: () => {
+            this.finishAssistant('抱歉，服务暂时不可用，请稍后再试。')
+          },
+          complete: () => {
+            this.sending = false
+            this.persist()
+          }
+        })
+        return
+      }
+
       const task = wx.request({
         url: HTTP_REQUEST_URL + '/chamber/v1/chat',
         method: 'POST',
