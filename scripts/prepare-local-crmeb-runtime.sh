@@ -70,6 +70,7 @@ prepare_runtime() {
         --exclude='/public/install.lock' \
         --exclude='/runtime/' \
         --exclude='/public/uploads/' \
+        --exclude='/public/admin/' \
         --exclude='/backup/' \
         --exclude='/supervisord.log' \
         "${SOURCE_DIR}/" "${RUNTIME_DIR}/"
