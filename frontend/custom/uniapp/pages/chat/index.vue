@@ -355,7 +355,6 @@ function extractAnswer(body) {
 .send-btn-disabled {
   opacity: 0.5;
 }
-</style>
 .ct-left {
   flex: 1;
   min-width: 0;

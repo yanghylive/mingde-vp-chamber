@@ -171,7 +171,6 @@ export default {
   font-size: 22rpx;
   color: #8a94a3;
 }
-</style>
 .sec-head {
   margin: 36rpx 4rpx 20rpx;
 }
