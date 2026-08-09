@@ -96,21 +96,14 @@ test('never exposes a refund command before its real API exists', function () {
   assert.match(availability.reason, /尚未开放/);
 });
 
-test('registers all activity pages and exposes the two user-center journeys', function () {
+test('keeps chamber-pages empty (legacy pages retired) and new event UI wired', function () {
   var pages = JSON.parse(fs.readFileSync(path.join(__dirname, '../chamber-pages.json'), 'utf8'));
-  var paths = pages.map(function (item) { return item.path; });
-  [
-    'pages/chamber/events/index',
-    'pages/chamber/event_detail/index',
-    'pages/chamber/event_registrations/index',
-    'pages/chamber/event_registration/index',
-  ].forEach(function (page) {
-    assert.strictEqual(paths.filter(function (item) { return item === page; }).length, 1);
-  });
+  assert.strictEqual(pages.length, 0);
 
-  var entry = fs.readFileSync(path.join(__dirname, '../components/chamberMemberEntry/index.vue'), 'utf8');
-  assert.match(entry, /\/pages\/chamber\/events\/index/);
-  assert.match(entry, /\/pages\/chamber\/event_registrations\/index/);
+  var events = fs.readFileSync(path.join(__dirname, '../pages/events/index.vue'), 'utf8');
+  assert.match(events, /joined/);
+  assert.match(events, /toggle\(/);
+  assert.match(events, /navigateTo\(\{ url: '\/pages\/events\/detail\/index/);
 });
 
 test('uses only implemented user activity endpoints', function () {
@@ -120,27 +113,14 @@ test('uses only implemented user activity endpoints', function () {
   assert.doesNotMatch(api, /refunds|cancel-registration/);
 });
 
-test('keeps refund UI disabled and payment feedback connected to CRMEB cashier', function () {
-  var detail = fs.readFileSync(path.join(__dirname, '../pages/chamber/event_registration/index.vue'), 'utf8');
-  var eventDetail = fs.readFileSync(path.join(__dirname, '../pages/chamber/event_detail/index.vue'), 'utf8');
+test('keeps the shared activity-ui module wired to the new event pages', function () {
   var activityUiSource = fs.readFileSync(path.join(__dirname, '../chamber/activity-ui.js'), 'utf8');
-  assert.match(detail, /线上退款暂未开放/);
-  assert.match(detail, /createEventCheckin/);
-  assert.match(detail, /eventUi\.paymentPath/);
-  assert.match(eventDetail, /createEventRegistration/);
+  var membership = fs.readFileSync(path.join(__dirname, '../pages/membership/index.vue'), 'utf8');
+  var detail = fs.readFileSync(path.join(__dirname, '../pages/events/detail/index.vue'), 'utf8');
+  var checkin = fs.readFileSync(path.join(__dirname, '../pages/events/checkin/index.vue'), 'utf8');
   assert.match(activityUiSource, /expected_amount/);
+  assert.match(membership, /activity-ui/);
+  assert.match(detail, /onRegister\(/);
+  assert.match(checkin, /checkin|scanQRCode/);
 });
 
-test('guards platform scanning, filter races, retryable titles and zero coordinates', function () {
-  var detail = fs.readFileSync(path.join(__dirname, '../pages/chamber/event_registration/index.vue'), 'utf8');
-  var events = fs.readFileSync(path.join(__dirname, '../pages/chamber/events/index.vue'), 'utf8');
-  var registrations = fs.readFileSync(path.join(__dirname, '../pages/chamber/event_registrations/index.vue'), 'utf8');
-  var eventDetail = fs.readFileSync(path.join(__dirname, '../pages/chamber/event_detail/index.vue'), 'utf8');
-  assert.match(detail, /#ifdef H5/);
-  assert.match(detail, /wechatEvevt\('scanQRCode'/);
-  assert.match(detail, /#ifdef MP \|\| APP-PLUS/);
-  assert.match(events, /reloadQueued/);
-  assert.match(registrations, /reloadQueued/);
-  assert.doesNotMatch(registrations, /this\.\$set\(this\.eventsById, id, \{ id, title:/);
-  assert.match(eventDetail, /!\(latitude === 0 && longitude === 0\)/);
-});

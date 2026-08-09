@@ -503,7 +503,11 @@ export default {
     },
     // ---- 跳转 ----
     goTo(path) {
-      if (path && path.startsWith('/pages/')) uni.navigateTo({ url: path })
+      if (!path || !path.startsWith('/pages/')) return
+      // tabBar 页必须用 switchTab（微信限制：navigateTo 打不开 tabBar 页）
+      const TAB_PAGES = ['/pages/index/index', '/pages/events/index', '/pages/mall/index', '/pages/experts/index', '/pages/mine/index']
+      if (TAB_PAGES.includes(path)) uni.switchTab({ url: path })
+      else uni.navigateTo({ url: path })
     },
     goSearch() {
       uni.navigateTo({ url: '/pages/search/index' })
@@ -513,7 +517,7 @@ export default {
       uni.navigateTo({ url: '/pages/search/index' + (kw ? '?q=' + encodeURIComponent(kw) : '') })
     },
     goNotifications() {
-      uni.navigateTo({ url: '/pages/mine/notifications' })
+      uni.navigateTo({ url: '/pages/mine/notifications/index' })
     },
     goMembership() {
       if (!checkLogin()) {
