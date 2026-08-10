@@ -268,44 +268,123 @@ function extractAnswer(body) {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background: #f7f5f0;
+  background: #f0ede6;
 }
+
+/* ====== 页头：白底卡 + 层次感 ====== */
+.chat-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: calc(env(safe-area-inset-top) + 16rpx) 32rpx 20rpx;
+  background: linear-gradient(180deg, #fff 0%, #faf8f4 100%);
+  border-bottom: 1rpx solid rgba(200, 185, 155, 0.25);
+  z-index: 5;
+  position: relative;
+
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 32rpx;
+    right: 32rpx;
+    height: 1rpx;
+    background: linear-gradient(90deg, transparent, rgba(180, 160, 120, 0.15), transparent);
+  }
+}
+
+.ct-left {
+  flex: 1;
+  min-width: 0;
+}
+
+.ct-title {
+  font-size: 34rpx;
+  font-weight: 700;
+  color: #2c1e0a;
+  letter-spacing: 1rpx;
+}
+
+.ct-sub {
+  display: block;
+  font-size: 22rpx;
+  color: #a08550;
+  margin-top: 6rpx;
+  letter-spacing: 0.5rpx;
+}
+
+.ct-clear {
+  font-size: 24rpx;
+  color: #8a9aa8;
+  padding: 12rpx 24rpx;
+  background: #eee9df;
+  border-radius: 999rpx;
+  border: 1rpx solid rgba(160, 140, 100, 0.12);
+}
+
+/* ====== 消息列表区 ====== */
 .msg-list {
   flex: 1;
-  padding: 32rpx;
+  padding: 28rpx 28rpx 12rpx;
   box-sizing: border-box;
 }
+
+/* ====== 空状态欢迎区（卡片容器） ====== */
 .chat-empty {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 120rpx 40rpx;
-  gap: 24rpx;
+  padding: 80rpx 32rpx 60rpx;
+  gap: 20rpx;
+  margin: 16rpx 8rpx;
+  background: #fff;
+  border-radius: 28rpx;
+  box-shadow:
+    0 4rpx 20rpx rgba(139, 115, 68, 0.06),
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.8);
 }
+
 .ce-icon {
-  font-size: 96rpx;
-}
-.ce-text {
-  font-size: 26rpx;
-  color: #8a94a3;
+  font-size: 88rpx;
+  font-weight: 300;
+  color: transparent;
+  background: linear-gradient(135deg, #d98a2d 0%, #b8751d 50%, #8b6530 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  width: 144rpx;
+  height: 144rpx;
+  line-height: 144rpx;
   text-align: center;
+  border-radius: 40rpx;
+  background-color: #faf6ee;
+  background-image: linear-gradient(135deg, #d98a2d, #c48a30);
+  -webkit-background-clip: text;
+  box-shadow: 0 8rpx 28rpx rgba(217, 138, 45, 0.12);
 }
+
+.ce-text {
+  font-size: 27rpx;
+  color: #7a7870;
+  text-align: center;
+  line-height: 1.6;
+  max-width: 480rpx;
+}
+
+/* ====== 消息气泡 ====== */
 .msg {
-  margin-bottom: 24rpx;
+  margin-bottom: 20rpx;
   display: flex;
 }
-.msg-user {
-  justify-content: flex-end;
-}
-.msg-ai {
-  justify-content: flex-start;
-}
+.msg-user { justify-content: flex-end; }
+.msg-ai { justify-content: flex-start; }
+
 .bubble {
-  max-width: 80%;
+  max-width: 76%;
   padding: 22rpx 28rpx;
   border-radius: 24rpx;
   font-size: 28rpx;
-  line-height: 1.6;
+  line-height: 1.65;
+  word-break: break-word;
 }
 .msg-user .bubble {
   background: linear-gradient(135deg, #d98a2d, #b8751d);
@@ -314,92 +393,91 @@ function extractAnswer(body) {
 }
 .msg-ai .bubble {
   background: #fff;
-  color: #273b59;
+  color: #2c2c28;
   border-bottom-left-radius: 8rpx;
-  box-shadow: 0 4rpx 12rpx rgba(39, 59, 89, 0.04);
+  box-shadow: 0 4rpx 14rpx rgba(39, 35, 28, 0.05);
 }
+
 .cursor {
   animation: blink 1s infinite;
+  font-weight: 300;
 }
 @keyframes blink {
   0%, 100% { opacity: 1; }
   50% { opacity: 0; }
 }
-.input-bar {
-  display: flex;
-  align-items: center;
-  gap: 20rpx;
-  padding: 20rpx 32rpx calc(20rpx + env(safe-area-inset-bottom));
-  background: #fff;
-  box-shadow: 0 -8rpx 24rpx rgba(39, 59, 89, 0.06);
-}
-.msg-input {
-  flex: 1;
-  background: #f7f5f0;
-  border-radius: 999rpx;
-  padding: 20rpx 28rpx;
-  font-size: 28rpx;
-  color: #273b59;
-}
-.ph {
-  color: #c0c6d0;
-}
-.send-btn {
-  padding: 18rpx 44rpx;
-  border-radius: 999rpx;
-  background: linear-gradient(135deg, #d98a2d, #b8751d);
-  color: #fff;
-  font-size: 28rpx;
-  font-weight: 700;
-}
-.send-btn-disabled {
-  opacity: 0.5;
-}
-.ct-left {
-  flex: 1;
-  min-width: 0;
-}
-.ct-sub {
-  display: block;
-  font-size: 20rpx;
-  color: #a06a2d;
-  margin-top: 4rpx;
-}
-.chat-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: env(safe-area-inset-top) 32rpx 4rpx;
-  background: #fff;
-  box-shadow: 0 8rpx 24rpx rgba(39, 59, 89, 0.04);
-  z-index: 5;
-}
-.ct-title {
-  font-size: 32rpx;
-  font-weight: 700;
-  color: #17233d;
-}
-.ct-clear {
-  font-size: 24rpx;
-  color: #8a94a3;
-  padding: 10rpx 20rpx;
-  background: #f1f4f8;
-  border-radius: 999rpx;
-}
+
+/* ====== 建议快捷词栏 ====== */
 .suggest-bar {
   white-space: nowrap;
-  padding: 16rpx 24rpx 0;
+  padding: 14rpx 28rpx 6rpx;
   box-sizing: border-box;
+  background: transparent;
 }
+
 .suggest-chip {
   display: inline-block;
   margin-right: 16rpx;
-  padding: 12rpx 24rpx;
-  font-size: 22rpx;
-  color: #516580;
-  background: rgba(255, 255, 255, 0.7);
+  margin-bottom: 8rpx;
+  padding: 14rpx 26rpx;
+  font-size: 23rpx;
+  color: #5a5548;
+  background: #fff;
   border-radius: 999rpx;
   flex-shrink: 0;
   white-space: nowrap;
+  border: 1rpx solid rgba(180, 165, 130, 0.18);
+  box-shadow: 0 2rpx 8rpx rgba(139, 115, 68, 0.04);
+  transition: transform 0.15s ease;
+
+  &:active {
+    transform: scale(0.96);
+    background: #faf6ee;
+  }
+}
+
+/* ====== 输入栏 ====== */
+.input-bar {
+  display: flex;
+  align-items: center;
+  gap: 18rpx;
+  padding: 18rpx 28rpx calc(18rpx + env(safe-area-inset-bottom));
+  background: #fff;
+  border-top: 1rpx solid rgba(200, 185, 155, 0.2);
+  box-shadow: 0 -6rpx 28rpx rgba(44, 30, 10, 0.04);
+}
+
+.msg-input {
+  flex: 1;
+  background: #f5f2ea;
+  border-radius: 999rpx;
+  padding: 20rpx 28rpx;
+  font-size: 28rpx;
+  color: #2c2c28;
+  border: 1rpx solid rgba(180, 165, 130, 0.12);
+}
+
+.ph {
+  color: #b5ad9a;
+}
+
+.send-btn {
+  padding: 18rpx 42rpx;
+  border-radius: 999rpx;
+  background: linear-gradient(135deg, #d98a2d, #b8751d);
+  color: #fff;
+  font-size: 27rpx;
+  font-weight: 700;
+  letter-spacing: 2rpx;
+  box-shadow: 0 4rpx 14rpx rgba(217, 138, 45, 0.25);
+
+  &:active {
+    opacity: 0.85;
+    transform: scale(0.97);
+  }
+}
+
+.send-btn-disabled {
+  opacity: 0.45;
 }
 </style>
