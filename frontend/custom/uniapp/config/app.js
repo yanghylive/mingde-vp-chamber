@@ -12,7 +12,9 @@ const HEADER = {
 
 const TOKENNAME = 'Authori-zation'
 
-const TIMEOUT = 30000
+// 单次请求超时：chamber API 均为 JSON 小响应（正常 <1s），15s 足够；
+// 网络抖动时由 request.js 自动重试兜底，避免长时间白屏
+const TIMEOUT = 15000
 
 module.exports = {
   HTTP_REQUEST_URL,

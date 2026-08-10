@@ -4,13 +4,19 @@
  * - 401 自动跳登录
  * - 错误统一 toast
  * - 支持 Idempotency-Key（幂等）
+ * - 网络层失败（连接断开/超时）自动重试 2 次，抗瞬时抖动
  */
 import { HTTP_REQUEST_URL, HEADER, TOKENNAME, TIMEOUT } from '@/config/app'
 import { checkLogin, toLogin, getToken } from '@/libs/login'
 
+/** 网络层失败重试次数（fail 触发：DNS/TCP 失败、超时；请求未达服务器，重试安全） */
+const MAX_RETRY = 2
+/** 重试退避基数（ms）：第 n 次重试等待 600 * 2^(n-1) */
+const RETRY_BASE_MS = 600
+
 /**
  * @param {string} path 如 /chamber/v1/me/profile
- * @param {object} options { method, data, auth(默认true), idempotencyKey, silent(错误不弹toast) }
+ * @param {object} options { method, data, auth(默认true), idempotencyKey, silent(错误不弹toast), retry(网络层重试次数, 默认2) }
  */
 export function request(path, options = {}) {
   const {
@@ -18,7 +24,8 @@ export function request(path, options = {}) {
     data = {},
     auth = true,
     idempotencyKey = '',
-    silent = false
+    silent = false,
+    retry = MAX_RETRY
   } = options
 
   const headers = Object.assign({}, HEADER)
@@ -35,39 +42,50 @@ export function request(path, options = {}) {
 
   if (idempotencyKey) headers['Idempotency-Key'] = idempotencyKey
 
-  return new Promise((resolve, reject) => {
-    uni.request({
-      url: String(HTTP_REQUEST_URL).replace(/\/+$/, '') + path,
-      method,
-      header: headers,
-      data,
-      timeout: TIMEOUT,
-      success(response) {
-        const body = response.data || {}
-        if (response.statusCode >= 200 && response.statusCode < 300) {
-          // 统一解包：优先返回 body.data（统一响应结构 {status, msg, data}）
-          resolve(body && body.data !== undefined ? body.data : body)
-          return
+  const doRequest = (attempt) =>
+    new Promise((resolve, reject) => {
+      uni.request({
+        url: String(HTTP_REQUEST_URL).replace(/\/+$/, '') + path,
+        method,
+        header: headers,
+        data,
+        timeout: TIMEOUT,
+        success(response) {
+          const body = response.data || {}
+          if (response.statusCode >= 200 && response.statusCode < 300) {
+            // 统一解包：优先返回 body.data（统一响应结构 {status, msg, data}）
+            resolve(body && body.data !== undefined ? body.data : body)
+            return
+          }
+          // 认证失败
+          if (response.statusCode === 401 && auth) {
+            toLogin()
+          }
+          const msg = body.msg || body.message || '请求失败'
+          if (!silent) {
+            uni.showToast({ title: String(msg).slice(0, 30), icon: 'none' })
+          }
+          reject({ status: response.statusCode, msg })
+        },
+        fail(err) {
+          // 网络层失败：重试（带退避）；重试耗尽才报错
+          if (attempt < retry) {
+            const delay = RETRY_BASE_MS * Math.pow(2, attempt - 1)
+            setTimeout(() => {
+              doRequest(attempt + 1).then(resolve, reject)
+            }, delay)
+            return
+          }
+          const msg = (err && err.errMsg) || '网络异常'
+          if (!silent) {
+            uni.showToast({ title: String(msg).slice(0, 30), icon: 'none' })
+          }
+          reject({ status: -1, msg })
         }
-        // 认证失败
-        if (response.statusCode === 401 && auth) {
-          toLogin()
-        }
-        const msg = body.msg || body.message || '请求失败'
-        if (!silent) {
-          uni.showToast({ title: String(msg).slice(0, 30), icon: 'none' })
-        }
-        reject({ status: response.statusCode, msg })
-      },
-      fail(err) {
-        const msg = (err && err.errMsg) || '网络异常'
-        if (!silent) {
-          uni.showToast({ title: String(msg).slice(0, 30), icon: 'none' })
-        }
-        reject({ status: -1, msg })
-      }
+      })
     })
-  })
+
+  return doRequest(1)
 }
 
 /** 生成幂等 key */
