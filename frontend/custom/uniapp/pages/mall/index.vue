@@ -47,9 +47,9 @@
     <view v-else class="grid">
       <view v-for="p in visible" :key="p.id" class="product card" @tap="openConfirm(p)">
         <view class="{{'p-img' + (' ' + catTone(p.category))}}">
-          <!-- 商品主图优先；无图或加载失败回退分类图标 -->
+          <!-- 商品主图优先；无图或加载失败回退默认商品图 -->
           <image v-if="p.image && !imgFailed[p.id]" class="p-img-main" :src="p.image" mode="aspectFill" lazy-load @error="imgFailed[p.id] = true" />
-          <image v-else class="ic ic-md" :src="iconPath(catIcon(p.category))" mode="aspectFit" />
+          <image v-else class="p-img-main" src="/static/default-product.jpg" mode="aspectFill" />
         </view>
         <view class="p-cat">{{ normalizeCategory(p.category) }}</view>
         <text class="p-name">{{ p.name || p.store_name || '未命名商品' }}</text>
