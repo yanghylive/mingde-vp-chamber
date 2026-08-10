@@ -140,7 +140,7 @@ export default {
 }
 </script>
 
-<style scoped>
+<style lang="scss">
 .ai-train-page {
   min-height: 100vh;
   background: #f7f6f3;
