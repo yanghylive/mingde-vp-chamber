@@ -370,6 +370,9 @@ function extractAnswer(body) {
   align-items: center;
   justify-content: space-between;
   padding: env(safe-area-inset-top) 32rpx 4rpx;
+  background: #fff;
+  box-shadow: 0 8rpx 24rpx rgba(39, 59, 89, 0.04);
+  z-index: 5;
 }
 .ct-title {
   font-size: 32rpx;
