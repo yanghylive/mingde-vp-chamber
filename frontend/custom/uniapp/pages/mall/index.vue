@@ -47,7 +47,9 @@
     <view v-else class="grid">
       <view v-for="p in visible" :key="p.id" class="product card" @tap="openConfirm(p)">
         <view class="{{'p-img' + (' ' + catTone(p.category))}}">
-          <image class="ic ic-md" :src="iconPath(catIcon(p.category))" mode="aspectFit" />
+          <!-- 商品主图优先；无图或加载失败回退分类图标 -->
+          <image v-if="p.image && !imgFailed[p.id]" class="p-img-main" :src="p.image" mode="aspectFill" lazy-load @error="imgFailed[p.id] = true" />
+          <image v-else class="ic ic-md" :src="iconPath(catIcon(p.category))" mode="aspectFit" />
         </view>
         <view class="p-cat">{{ normalizeCategory(p.category) }}</view>
         <text class="p-name">{{ p.name || p.store_name || '未命名商品' }}</text>
@@ -165,6 +167,7 @@ export default {
       paths: [],
       points: null,
       loading: true,
+      imgFailed: {},
       confirmTarget: null,
       exchanging: false,
       pointsToYuan: 10,
@@ -476,6 +479,10 @@ export default {
   align-items: center;
   justify-content: center;
   overflow: hidden;
+}
+.p-img-main {
+  width: 100%;
+  height: 100%;
 }
 .pi-glyph {
   font-size: 56rpx;
