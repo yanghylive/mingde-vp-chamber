@@ -125,8 +125,9 @@ export default {
     },
     timeText() {
       const ev = this.event
+      if (!ev || !ev.start_time) return '时间待定'
       const s = fmtZhDateTime(ev.start_time)
-      const e = fmtZhDateTime(ev.end_time)
+      const e = ev.end_time ? fmtZhDateTime(ev.end_time) : ''
       if (!s) return '时间待定'
       return e ? s + ' — ' + e : s
     }

@@ -57,7 +57,7 @@
           <text class="p-points">{{ formatPoints(p.integral_price) }}<text class="p-unit"> 积分</text></text>
           <text v-if="Number(p.price) > 0" class="p-cash">{{ fmtCash(p) }}</text>
         </view>
-        <view class="p-btn" @tap.stop="openConfirm(p)">立即兑换</view>
+        <view class="{{'p-btn' + (Number(p.integral_price) <= 0 ? ' p-btn-disabled' : '')}}" @tap.stop="openConfirm(p)">{{ Number(p.integral_price) <= 0 ? '不支持兑换' : '立即兑换' }}</view>
       </view>
     </view>
 
@@ -268,6 +268,10 @@ export default {
     openConfirm(p) {
       if (!checkLogin()) {
         uni.navigateTo({ url: '/pages/login/index' })
+        return
+      }
+      if (!p || Number(p.integral_price) <= 0) {
+        uni.showToast({ title: '该商品暂不支持积分兑换', icon: 'none' })
         return
       }
       this.confirmTarget = p
@@ -549,6 +553,10 @@ export default {
   padding: 16rpx 0;
   border-radius: 16rpx;
   box-shadow: 0 10rpx 24rpx rgba(185, 110, 29, 0.2);
+}
+.p-btn-disabled {
+  background: #d5dbe3;
+  box-shadow: none;
 }
 
 /* 积分路径 */
