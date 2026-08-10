@@ -13,6 +13,11 @@ use think\facade\Db;
  * Owns points-based product exchange: balance check -> point deduction ->
  * append-only ch_point_ledger entry -> ch_product_exchange_order, all inside a
  * single tenant-scoped idempotent transaction.
+ *
+ * 定价数据源：CRMEB 商城商品 eb_store_product（与 H5 商城一致）：
+ * - 所需积分 = integral_price（商品页「积分抵扣」配置的积分价）
+ * - 积分可抵现金 = 所需积分 × integral_ratio（CRMEB 配置，默认 0.1 元/积分）
+ * - 补现金 = 商品现金价 - 积分可抵现金（不足抵扣时为 0）
  */
 final class ProductExchangeService
 {
@@ -64,18 +69,24 @@ final class ProductExchangeService
                     throw new MemberTransactionException(404, 'product_not_found', 'Product was not found');
                 }
 
-                // 服务端校验积分价（防客户端自定价格）：points_cost/cash_cost 必须等于配置值
-                $exchange = Db::table('ch_exchange_product')
-                    ->where('tenant_id', $tenant->tenantId())
-                    ->where('product_id', $productId)
-                    ->where('status', 1)
-                    ->find();
-                if (!is_array($exchange)) {
-                    throw new MemberTransactionException(404, 'exchange_unavailable', 'Product is not available for exchange');
+                // 服务端校验兑换价（防客户端自定价）：
+                // - 所需积分 = integral_price（商品积分价）
+                // - 支持「积分不足补现金」：points_cost 可 < 所需积分，缺失积分按汇率折算成现金补齐
+                //   cash_cost = 基础补现金 + 缺失积分 × integral_ratio
+                $price = (float) ($product['price'] ?? 0);
+                $expectedPoints = (int) ($product['integral_price'] ?? 0);
+                $ratio = $this->integralRatio();
+                $baseCash = max(0, $price - $expectedPoints * $ratio); // 全积分支付时的补现金
+                if ($expectedPoints <= 0) {
+                    throw new MemberTransactionException(404, 'exchange_unavailable', 'Product does not support point exchange');
                 }
-                $expectedPoints = (int) ($exchange['points_cost'] ?? 0);
-                $expectedCash = (string) ($exchange['cash_cost'] ?? '0.00');
-                if ($pointsCost !== $expectedPoints || ($cashCost === '' ? '0.00' : $cashCost) !== $expectedCash) {
+                if ($pointsCost < 1 || $pointsCost > $expectedPoints) {
+                    throw new MemberTransactionException(409, 'price_mismatch', 'Exchange price mismatch, please refresh and retry');
+                }
+                $missingPoints = $expectedPoints - $pointsCost;
+                $expectedCashNow = $baseCash + $missingPoints * $ratio; // 积分不足时现金补齐
+                $sentCash = (float) ($cashCost === '' ? '0.00' : $cashCost);
+                if (abs($sentCash - $expectedCashNow) > 0.011) {
                     throw new MemberTransactionException(409, 'price_mismatch', 'Exchange price mismatch, please refresh and retry');
                 }
 
@@ -184,5 +195,26 @@ final class ProductExchangeService
             'status' => 'paid',
             'created_at' => $now,
         ];
+    }
+
+    /** CRMEB 积分汇率：1 积分抵多少元（integral_ratio 配置，默认 0.1） */
+    private function integralRatio(): float
+    {
+        try {
+            $raw = Db::table('eb_system_config')
+                ->where('menu_name', 'integral_ratio')
+                ->value('value');
+            if ($raw !== null && $raw !== '') {
+                $decoded = json_decode((string) $raw, true);
+                $ratio = (float) (is_array($decoded) ? ($decoded['integral_ratio'] ?? $decoded) : $decoded);
+                if ($ratio > 0) {
+                    return $ratio;
+                }
+            }
+        } catch (\Throwable $e) {
+            // 配置读取失败时退回默认汇率
+        }
+
+        return 0.1;
     }
 }
