@@ -284,6 +284,14 @@ final class EventRegistrationService
             throw new MemberTransactionException(503, 'event_order_inconsistent', 'Reserved event order context is unavailable');
         }
         $snapshot = EventTicketOrderSnapshot::fromContext($context);
+        if ($snapshot->productId() < 1) {
+            // 现金票必须关联商城商品才能创建支付订单（防 500：给出明确配置提示）
+            throw new MemberTransactionException(
+                409,
+                'ticket_product_not_configured',
+                'Ticket requires payment but no product is linked, please contact the operator'
+            );
+        }
         $orders = $this->orderGateway();
         $persistedOrder = $orders->findByCheckoutKey($auth->uid(), $checkoutKey);
         if ($persistedOrder === null) {

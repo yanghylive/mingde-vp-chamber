@@ -18,7 +18,7 @@ final class EventEligibility
     public static function normalizeRules($value): array
     {
         if ($value === null || $value === '') {
-            return [];
+            return ['allowed_channel_ids' => [], 'min_points' => 0, 'required_roles' => []];
         }
         if (is_string($value)) {
             $decoded = json_decode($value, true);
