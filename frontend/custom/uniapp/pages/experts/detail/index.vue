@@ -213,10 +213,10 @@ export default {
         .finally(() => {
           this.submitting = false
         })
+    },
+    goAiChat() {
+      uni.navigateTo({ url: '/pages/chat/index?expert=' + this.expertId })
     }
-  },
-  goAiChat() {
-    uni.navigateTo({ url: '/pages/chat/index?expert=' + this.expertId })
   }
 }
 </script>

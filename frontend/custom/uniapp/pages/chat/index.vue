@@ -75,24 +75,24 @@ export default {
     }
     this.chatKey = key
   },
-  persist() {
-    try {
-      uni.setStorageSync(this.chatKey || 'chat_default', JSON.stringify(this.messages.slice(-50)))
-    } catch (e) {}
-  },
-  clearChat() {
-    uni.showModal({
-      title: '清空对话',
-      content: '确定清空当前对话历史？',
-      success: (res) => {
-        if (res.confirm) {
-          uni.removeStorageSync(this.chatKey || 'chat_default')
-          this.messages = []
-        }
-      }
-    })
-  },
   methods: {
+    persist() {
+      try {
+        uni.setStorageSync(this.chatKey || 'chat_default', JSON.stringify(this.messages.slice(-50)))
+      } catch (e) {}
+    },
+    clearChat() {
+      uni.showModal({
+        title: '清空对话',
+        content: '确定清空当前对话历史？',
+        success: (res) => {
+          if (res.confirm) {
+            uni.removeStorageSync(this.chatKey || 'chat_default')
+            this.messages = []
+          }
+        }
+      })
+    },
     sendSuggestion(text) {
       this.draft = text
       this.send()
