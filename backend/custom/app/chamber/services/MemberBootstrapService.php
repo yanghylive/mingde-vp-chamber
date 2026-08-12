@@ -269,6 +269,9 @@ final class MemberBootstrapService
                     'attribution_locked_time' => $now,
                     'update_time' => $now,
                 ]);
+
+            // 新人基础积分：注册即送 1000 积分（幂等：按 member 维度只送一次）
+            $this->grantWelcomePoints($tenant->tenantId(), $row, $now);
         } elseif ((int) $row['attribution_locked_time'] === 0) {
             $this->assertRequestedAttributionUnchanged($row, $tenant->tenantId(), $requestedInviteCode);
             Db::table('ch_tenant_member')
@@ -652,6 +655,57 @@ final class MemberBootstrapService
             . substr($hex, 12, 4) . '-'
             . substr($hex, 16, 4) . '-'
             . substr($hex, 20, 12);
+    }
+
+    /**
+     * 新人基础积分：会员首次创建时赠送 1000 积分。
+     * 幂等保证：以 member_id 维度检查，已有积分账户则跳过（同一会员只会创建一次账户）。
+     */
+    private function grantWelcomePoints(int $tenantId, array $member, int $now): void
+    {
+        $memberId = (int) $member['id'];
+        $uid = (int) $member['uid'];
+
+        // 已存在积分账户（理论上新会员不会有，双保险防重复赠送）
+        $exists = Db::table('ch_point_account')
+            ->where('tenant_id', $tenantId)
+            ->where('member_id', $memberId)
+            ->find();
+        if (is_array($exists)) {
+            return;
+        }
+
+        $welcomePoints = (int) ($this->welcomePoints ?? 1000);
+        if ($welcomePoints <= 0) {
+            return;
+        }
+
+        $accountId = (int) Db::table('ch_point_account')->insertGetId([
+            'tenant_id' => $tenantId,
+            'member_id' => $memberId,
+            'uid' => $uid,
+            'balance' => $welcomePoints,
+            'frozen_balance' => 0,
+            'version' => 1,
+            'add_time' => $now,
+            'update_time' => $now,
+        ]);
+
+        Db::table('ch_point_ledger')->insert([
+            'tenant_id' => $tenantId,
+            'account_id' => $accountId,
+            'member_id' => $memberId,
+            'uid' => $uid,
+            'delta' => $welcomePoints,
+            'balance_after' => $welcomePoints,
+            'source_type' => 'welcome_bonus',
+            'source_id' => (string) $memberId,
+            'remark' => '新人注册基础积分',
+            'idempotency_key' => 'welcome_' . $tenantId . '_' . $memberId,
+            'status' => 1,
+            'reversal_id' => 0,
+            'add_time' => $now,
+        ]);
     }
 
 }
