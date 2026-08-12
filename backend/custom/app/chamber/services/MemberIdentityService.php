@@ -43,6 +43,11 @@ final class MemberIdentityService
             ->find();
         if (!is_array($account)) {
             if ($required) {
+                \think\facade\Log::warning('points_required no account', [
+                    'tenant_id' => $tenantId,
+                    'member_id' => (int) ($member['id'] ?? 0),
+                    'uid' => (int) ($member['uid'] ?? 0),
+                ]);
                 throw new MemberTransactionException(409, 'points_required', 'Member points are insufficient');
             }
 
