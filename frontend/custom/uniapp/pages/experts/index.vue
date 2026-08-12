@@ -176,6 +176,8 @@ export default {
     async loadData() {
       try {
         this.experts = (await chamber.experts()).map(function(e){ e.first = (e.name || '明').slice(0, 1); return e })
+        // 缓存列表，供详情页在 id 丢失时恢复
+        try { uni.setStorageSync('expert_list_cache', this.experts.slice(0, 10)) } catch (e) {}
       } catch (e) {}
       this.loading = false
     },

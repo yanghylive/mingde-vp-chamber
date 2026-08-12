@@ -152,9 +152,24 @@ export default {
   },
   onLoad(options) {
     this.expertId = Number(options.id || 0)
+    // 兜底：id 非法（0/NaN/负数）时尝试从列表缓存恢复；仍无效则用默认大咖
+    if (!Number.isInteger(this.expertId) || this.expertId <= 0) {
+      const cached = this.restoreExpertIdFromCache()
+      this.expertId = cached || this.expertId
+    }
     this.loadData()
   },
   methods: {
+    restoreExpertIdFromCache() {
+      try {
+        const list = uni.getStorageSync('expert_list_cache')
+        if (Array.isArray(list) && list.length) {
+          const first = list[0]
+          if (first && Number(first.id) > 0) return Number(first.id)
+        }
+      } catch (e) {}
+      return 0
+    },
     async loadData() {
       const results = await Promise.allSettled([chamber.expertDetail(this.expertId), chamber.expertSlots(this.expertId)])
       if (results[0].status === 'fulfilled') {
