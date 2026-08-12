@@ -183,6 +183,11 @@ export default {
           if (!payload) continue
           try {
             const obj = JSON.parse(payload)
+            // 写操作确认事件：弹确认框，用户点头后调 /confirm 执行
+            if (obj && obj.type === 'confirm' && obj.data && obj.data.confirm_id) {
+              this.handleConfirm(obj.data)
+              continue
+            }
             const delta = typeof obj === 'string' ? obj : obj.content || obj.text || (obj.type === 'text' && obj.content)
             if (typeof delta === 'string' && delta) {
               this.streamReceived = true
@@ -219,6 +224,54 @@ export default {
     scrollTo(id) {
       this.$nextTick(() => {
         this.scrollInto = 'msg-' + id
+      })
+    },
+    /** 写操作确认：AI 请求报名/兑换/预约 → 弹确认框 → 用户点头 → 调 /confirm 执行 */
+    handleConfirm(data) {
+      const names = {
+        register_event: '报名活动',
+        exchange_product: '积分兑换商品',
+        book_appointment: '预约大咖'
+      }
+      const label = names[data.name] || '执行操作'
+      const args = data.args || {}
+      let detail = ''
+      if (data.name === 'register_event') detail = '报名活动 #' + (args.event_id || '?')
+      else if (data.name === 'exchange_product') detail = '兑换商品 #' + (args.product_id || '?') + '（' + (args.points_cost || 0) + ' 积分）'
+      else if (data.name === 'book_appointment') detail = '预约大咖 #' + (args.expert_id || '?') + '（' + (args.mode === 'offline' ? '线下' : '线上') + '）'
+
+      uni.showModal({
+        title: '确认' + label,
+        content: detail + '\n确定由 AI 助手为你执行吗？',
+        confirmText: '确认执行',
+        cancelText: '取消',
+        success: (res) => {
+          if (!res.confirm) {
+            this.finishAssistant('已取消' + label)
+            return
+          }
+          // 用户确认 → 调服务端执行
+          const token = uni.getStorageSync('token') || ''
+          const headers = { 'Content-Type': 'application/json' }
+          if (token) headers['Authori-zation'] = 'Bearer ' + token
+          wx.request({
+            url: HTTP_REQUEST_URL + '/chamber/v1/chat/confirm',
+            method: 'POST',
+            header: headers,
+            data: { confirm_id: data.confirm_id },
+            success: (r) => {
+              const b = r.data || {}
+              if (r.statusCode >= 200 && r.statusCode < 300 && b.ok) {
+                this.finishAssistant('✅ ' + label + '成功' + (b.data && b.data.status ? '（' + b.data.status + '）' : ''))
+              } else {
+                this.finishAssistant('❌ ' + label + '失败：' + (b.msg || b.error || ('HTTP ' + r.statusCode)))
+              }
+            },
+            fail: () => {
+              this.finishAssistant('❌ ' + label + '失败：网络异常，请重试')
+            }
+          })
+        }
       })
     }
   }
