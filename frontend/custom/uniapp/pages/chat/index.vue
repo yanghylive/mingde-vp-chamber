@@ -70,7 +70,12 @@ export default {
     if (saved) {
       try {
         const list = JSON.parse(saved)
-        if (Array.isArray(list) && list.length) this.messages = list
+        if (Array.isArray(list) && list.length) {
+          this.messages = list
+          // 历史 id 可能从 1 开始，推进 idSeq 避免 wx:key 重复
+          const maxId = list.reduce((mx, m) => Math.max(mx, Number(m.id) || 0), 0)
+          if (maxId >= idSeq) idSeq = maxId + 1
+        }
       } catch (e) {}
     }
     this.chatKey = key
