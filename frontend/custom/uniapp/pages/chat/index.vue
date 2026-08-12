@@ -149,8 +149,25 @@ export default {
           if (res.statusCode >= 400) {
             this.finishAssistant('请求失败（' + res.statusCode + '），请稍后再试')
           } else if (!this.streamReceived) {
-            // 未收到分块 -> 一次性响应
-            this.finishAssistant(extractAnswer(res.data))
+            // 未收到分块 -> 一次性响应（可能是 SSE 文本，也可能是 JSON）
+            const raw = res.data
+            let text = ''
+            if (typeof raw === 'string' && raw.indexOf('data:') !== -1) {
+              // 老平台不支持 enableChunked：一次性拿到整个 SSE，逐行解析
+              const lines = raw.split('\n')
+              for (const ln of lines) {
+                const l = ln.trim()
+                if (!l.startsWith('data:')) continue
+                const payload = l.slice(5).trim()
+                if (!payload || payload === '[DONE]') continue
+                try {
+                  const obj = JSON.parse(payload)
+                  const delta = typeof obj === 'string' ? obj : obj.content || obj.text || (obj.type === 'text' && obj.content)
+                  if (typeof delta === 'string' && delta) text += delta
+                } catch (e) {}
+              }
+            }
+            this.finishAssistant(text || extractAnswer(raw))
           } else {
             this.finishAssistant(this.assistantText)
           }
@@ -166,7 +183,10 @@ export default {
       this.streamReceived = false
       this.assistantText = ''
       let buf = ''
-      task.onChunkReceived((res) => {
+      // 兼容性：老基础库/部分平台不支持 enableChunked + onChunkReceived，
+      // 不支持时降级为普通请求（success 一次性拿到完整 SSE 文本再解析）
+      if (typeof task.onChunkReceived === 'function') {
+        task.onChunkReceived((res) => {
         let text = ''
         if (typeof res.data === 'string') {
           text = res.data
@@ -198,7 +218,8 @@ export default {
             // 非 JSON 分块忽略
           }
         }
-      })
+        })
+      }
     },
     pushMsg(role, content, streaming) {
       const msg = { id: idSeq++, role, content, streaming: !!streaming }
