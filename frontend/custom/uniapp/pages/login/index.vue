@@ -2,7 +2,9 @@
   <view class="login-page">
     <!-- 品牌 -->
     <view class="brand">
-      <view class="brand-logo">明</view>
+      <view class="brand-logo">
+        <image class="brand-logo-img" src="/static/icons/logo-ai.png" mode="aspectFit" />
+      </view>
       <text class="brand-name">明德恒智AI企商汇</text>
       <text class="brand-sub">企业家事业共同体</text>
     </view>
@@ -362,18 +364,20 @@ export default {
   margin-bottom: 80rpx;
 }
 .brand-logo {
-  width: 128rpx;
-  height: 128rpx;
+  width: 144rpx;
+  height: 144rpx;
   border-radius: 32rpx;
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
-  font-size: 56rpx;
-  font-weight: 700;
+  background: #f7f7f5;
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
   box-shadow: 0 12rpx 32rpx rgba(0, 0, 0, 0.2);
   margin-bottom: 24rpx;
+}
+.brand-logo-img {
+  width: 120rpx;
+  height: 120rpx;
 }
 .brand-name {
   font-size: 48rpx;
