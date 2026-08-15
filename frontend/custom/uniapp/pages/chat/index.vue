@@ -118,7 +118,7 @@ export default {
       if (this.expertId) {
         const twinHeaders = { 'Content-Type': 'application/json' }
         if (token) twinHeaders['Authori-zation'] = 'Bearer ' + token
-        wx.request({
+        uni.request({
           url: HTTP_REQUEST_URL + '/chamber/v1/ai-twin/' + this.expertId + '/chat',
           method: 'POST',
           header: twinHeaders,
@@ -300,7 +300,7 @@ export default {
           const token = uni.getStorageSync('token') || ''
           const headers = { 'Content-Type': 'application/json' }
           if (token) headers['Authori-zation'] = 'Bearer ' + token
-          wx.request({
+          uni.request({
             url: HTTP_REQUEST_URL + '/chamber/v1/chat/confirm',
             method: 'POST',
             header: headers,
