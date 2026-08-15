@@ -83,7 +83,7 @@ final class CoachingService
             $discern['voice_style'],
             $streak
         );
-        $user = $prompt->buildMorningUser($profile, $config, $yesterday, $date);
+        $user = $prompt->buildMorningUser($profile, $config, $yesterday, $date, $this->yesterdayHint($yesterday), $this->behavior($ctx));
 
         $generated = $this->generate($system, $user, $coachName, $ctx, 'morning');
 
@@ -294,6 +294,88 @@ final class CoachingService
         $row['evening_review'] = $this->decodeJson($row['evening_review'] ?? null);
 
         return $row;
+    }
+
+    /** 从昨日数据提取晚间复盘的明日优化建议（P2-6 复盘→优化闭环） */
+    private function yesterdayHint(?array $yesterday): string
+    {
+        if ($yesterday === null) {
+            return '';
+        }
+        $review = $yesterday['evening_review'] ?? null;
+        if (!is_array($review)) {
+            return '';
+        }
+        return trim((string) ($review['tomorrow_hint'] ?? ''));
+    }
+
+    /** 会员近期行为（报名活动/大咖对话/商城兑换），供追问关联真实行动（P2-5） */
+    private function behavior(array $ctx): array
+    {
+        $out = [];
+
+        // 近期报名活动（最多 3 条）
+        try {
+            $regs = Db::table('ch_event_registration')
+                ->where('tenant_id', $ctx['tenant_id'])
+                ->where('member_id', $ctx['member_id'])
+                ->order('id', 'desc')
+                ->limit(3)
+                ->select()
+                ->toArray();
+            foreach ($regs as $r) {
+                $ev = Db::table('ch_event')->where('id', (int) ($r['event_id'] ?? 0))->find();
+                $out[] = [
+                    'type' => 'event_registration',
+                    'event' => is_array($ev) ? (string) ($ev['title'] ?? '') : '',
+                    'status' => (string) ($r['status'] ?? ''),
+                    'at' => (int) ($r['add_time'] ?? 0),
+                ];
+            }
+        } catch (\Throwable $e) {
+            // 表缺失不阻断
+        }
+
+        // 近期大咖对话（最多 2 条）
+        try {
+            $chats = Db::table('ch_expert_ai_chat')
+                ->where('tenant_id', $ctx['tenant_id'])
+                ->where('user_id', $ctx['member_id'])
+                ->order('id', 'desc')
+                ->limit(2)
+                ->select()
+                ->toArray();
+            foreach ($chats as $c) {
+                $out[] = [
+                    'type' => 'expert_chat',
+                    'at' => (int) ($c['add_time'] ?? 0),
+                ];
+            }
+        } catch (\Throwable $e) {
+            // 表缺失不阻断
+        }
+
+        // 近期兑换（最多 2 条）
+        try {
+            $orders = Db::table('ch_product_exchange_order')
+                ->where('tenant_id', $ctx['tenant_id'])
+                ->where('member_id', $ctx['member_id'])
+                ->order('id', 'desc')
+                ->limit(2)
+                ->select()
+                ->toArray();
+            foreach ($orders as $o) {
+                $out[] = [
+                    'type' => 'product_exchange',
+                    'status' => (string) ($o['status'] ?? ''),
+                    'at' => (int) ($o['created_at'] ?? 0),
+                ];
+            }
+        } catch (\Throwable $e) {
+            // 表缺失不阻断
+        }
+
+        return $out;
     }
 
     private function profile(array $ctx): array

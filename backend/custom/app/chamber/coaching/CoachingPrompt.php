@@ -61,7 +61,7 @@ PROMPT;
         return $system;
     }
 
-    public function buildMorningUser(array $profile, array $config, ?array $yesterday, string $date): string
+    public function buildMorningUser(array $profile, array $config, ?array $yesterday, string $date, string $yesterdayHint = '', array $behavior = []): string
     {
         $lines = ['今天是 ' . $date . '。请结合以下会员数据生成今日认知刷新内容：'];
 
@@ -71,8 +71,16 @@ PROMPT;
         if ($config !== []) {
             $lines[] = "\n" . $this->wrapData('四大维度配置', $config);
         }
+        if ($behavior !== []) {
+            $lines[] = "\n" . $this->wrapData('会员近期行为', $behavior)
+                . "\n要点：会员近期行为（报名/对话/兑换）可作为追问素材——例如会员报名了某活动但未到场，可温柔追问卡点。但不要过度解读、不要编造行为之外的信息。";
+        }
         if ($yesterday !== null) {
             $lines[] = "\n" . $this->wrapData('昨日情况（连续性锚定）', $yesterday);
+        }
+        if ($yesterdayHint !== '') {
+            $lines[] = "\n" . $this->wrapData('昨日复盘给出的今日优化建议', ['hint' => $yesterdayHint])
+                . "\n要点：上述「今日优化建议」来自昨日复盘，请务必把它转化为今日的微优化或小挑战之一，形成「复盘→优化」的闭环，不要忽略它。";
         }
 
         $lines[] = "\n要点：追问锚定会员当天已有固定日程/近期拖延项；第3条可延伸家庭/健康/成长但主线回事业。";
