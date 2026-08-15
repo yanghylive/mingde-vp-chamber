@@ -110,13 +110,18 @@ final class ProductExchangeService
                     throw new MemberTransactionException(409, 'exchange_failed', 'Points balance could not be updated');
                 }
 
+                // 状态机（S5/P0 修复）：纯积分兑换（无现金补差）→ 立即 paid；
+                // 含现金补差 → pending，须支付事实确认后才 paid（防财务假账）
+                $finalCash = $cashCost === '' ? '0.00' : $cashCost;
+                $orderStatus = ((float) $finalCash > 0) ? 'pending' : 'paid';
+
                 $orderId = (int) Db::table('ch_product_exchange_order')->insertGetId([
                     'tenant_id' => $tenant->tenantId(),
                     'member_id' => $memberId,
                     'product_id' => $productId,
                     'points_cost' => $pointsCost,
-                    'cash_cost' => $cashCost === '' ? '0.00' : $cashCost,
-                    'status' => 'paid',
+                    'cash_cost' => $finalCash,
+                    'status' => $orderStatus,
                     'idempotency_key' => $callerKey,
                     'created_at' => $now,
                 ]);
@@ -139,7 +144,7 @@ final class ProductExchangeService
                     'add_time' => $now,
                 ]);
 
-                return $this->orderPayload($orderId, $product, $pointsCost, $cashCost, $now);
+                return $this->orderPayload($orderId, $product, $pointsCost, $cashCost, $now, $orderStatus);
             }
         );
     }
@@ -183,7 +188,7 @@ final class ProductExchangeService
         ];
     }
 
-    private function orderPayload(int $orderId, array $product, int $pointsCost, string $cashCost, int $now): array
+    private function orderPayload(int $orderId, array $product, int $pointsCost, string $cashCost, int $now, string $status = 'paid'): array
     {
         return [
             'id' => $orderId,
@@ -192,7 +197,7 @@ final class ProductExchangeService
             'product_image' => (string) ($product['image'] ?? ''),
             'points_cost' => $pointsCost,
             'cash_cost' => $cashCost === '' ? '0.00' : $cashCost,
-            'status' => 'paid',
+            'status' => $status,
             'created_at' => $now,
         ];
     }

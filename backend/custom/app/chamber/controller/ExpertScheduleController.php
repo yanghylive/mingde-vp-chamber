@@ -48,14 +48,34 @@ final class ExpertScheduleController
             throw new MemberTransactionException(404, 'expert_not_found', 'Expert was not found');
         }
 
-        $expert['pricing'] = [
+        $expert['pricing'] = $this->pricing($tenant->tenantId(), $expertId);
+
+        return $this->success($expert);
+    }
+
+    /** 定价表化（P0）：读 ch_expert_pricing，无记录回退默认值 */
+    private function pricing(int $tenantId, int $expertId): array
+    {
+        $row = Db::table('ch_expert_pricing')
+            ->where('tenant_id', $tenantId)
+            ->where('expert_id', $expertId)
+            ->find();
+
+        if (is_array($row)) {
+            return [
+                'online_points' => (int) ($row['online_points'] ?? 0),
+                'online_cash' => (string) ($row['online_cash'] ?? '0.00'),
+                'offline_points' => (int) ($row['offline_points'] ?? 0),
+                'offline_cash' => (string) ($row['offline_cash'] ?? '0.00'),
+            ];
+        }
+
+        return [
             'online_points' => self::ONLINE_POINTS,
             'online_cash' => self::ONLINE_CASH,
             'offline_points' => self::OFFLINE_POINTS,
             'offline_cash' => self::OFFLINE_CASH,
         ];
-
-        return $this->success($expert);
     }
 
     public function slots(
@@ -145,8 +165,9 @@ final class ExpertScheduleController
                 throw new MemberTransactionException(409, 'slot_unavailable', 'Expert slot is no longer available');
             }
 
-            $pointsCost = $mode === 'online' ? self::ONLINE_POINTS : self::OFFLINE_POINTS;
-            $cashCost = $mode === 'online' ? self::ONLINE_CASH : self::OFFLINE_CASH;
+            $pricing = $this->pricing($tenantId, $expertId);
+            $pointsCost = $mode === 'online' ? (int) $pricing['online_points'] : (int) $pricing['offline_points'];
+            $cashCost = $mode === 'online' ? (string) $pricing['online_cash'] : (string) $pricing['offline_cash'];
 
             $appointmentId = (int) Db::table('ch_appointment')->insertGetId([
                 'tenant_id' => $tenantId,
