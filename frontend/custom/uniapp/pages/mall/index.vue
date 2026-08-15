@@ -143,6 +143,7 @@
 import chamber from '@/api/chamber'
 import { formatMoney as _formatMoney, formatPoints as _formatPoints } from '@/common/format'
 import { checkLogin } from '@/libs/login'
+import { tierGuide } from '@/libs/tier-guide'
 import { fetchSiteConfig } from '@/common/site-config'
 import Skeleton from '@/components/Skeleton.vue'
 
@@ -292,6 +293,7 @@ export default {
         })
         this.loadData()
       } catch (e) {
+        tierGuide(e)
       } finally {
         this.exchanging = false
       }

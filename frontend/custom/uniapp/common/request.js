@@ -62,10 +62,12 @@ export function request(path, options = {}) {
             toLogin()
           }
           const msg = body.msg || body.message || '请求失败'
-          if (!silent) {
+          const bizCode = body.code !== undefined ? body.code : (body.data && body.data.reason) || ''
+          if (!silent && bizCode !== 'tier_required' && bizCode !== 'tier_expired') {
+            // 门禁拦截不 toast（改走升级弹窗），其余正常 toast
             uni.showToast({ title: String(msg).slice(0, 30), icon: 'none' })
           }
-          reject({ status: response.statusCode, msg })
+          reject({ status: response.statusCode, code: bizCode, msg })
         },
         fail(err) {
           // 网络层失败：重试（带退避）；重试耗尽才报错

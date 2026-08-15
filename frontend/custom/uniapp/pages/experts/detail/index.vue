@@ -89,6 +89,7 @@
 import PageHeader from '@/components/PageHeader.vue'
 import chamber from '@/api/chamber'
 import { checkLogin } from '@/libs/login'
+import { tierGuide } from '@/libs/tier-guide'
 import { toDate } from '@/common/format'
 
 export default {
@@ -208,6 +209,7 @@ export default {
           this.loadData()
         })
         .catch((e) => {
+          if (tierGuide(e)) return
           uni.showToast({ title: (e && e.msg) || '预约失败', icon: 'none' })
         })
         .finally(() => {
