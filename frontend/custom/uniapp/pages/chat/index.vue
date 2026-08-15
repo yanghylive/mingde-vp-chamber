@@ -127,7 +127,14 @@ export default {
             if (res.statusCode >= 400) {
               const body = res.data
               const msg = (body && body.msg) ? body.msg : '请求失败（' + res.statusCode + '）'
-              this.finishAssistant(msg)
+              // 积分不足降级：引导完成新手任务赚积分（S1 第三件）
+              const reason = (body && body.data && body.data.reason) || ''
+              if (reason === 'points_required' || reason === 'insufficient_points') {
+                this.finishAssistant('积分不足，先去完成新人大礼包任务赚积分吧')
+                this.guidePointsTask()
+              } else {
+                this.finishAssistant(msg)
+              }
             } else {
               this.finishAssistant(extractAnswer(res.data))
             }
@@ -231,6 +238,19 @@ export default {
       this.messages.push(msg)
       this.persist()
       this.scrollTo(msg.id)
+    },
+    guidePointsTask() {
+      uni.showModal({
+        title: '积分不足',
+        content: '完成「新人大礼包」任务即可获得积分：完善资料 / 报名活动 / 与大咖 AI 聊天。要现在去做吗？',
+        confirmText: '去做任务',
+        cancelText: '知道了',
+        success: (res) => {
+          if (res.confirm) {
+            uni.reLaunch({ url: '/pages/index/index' })
+          }
+        }
+      })
     },
     renderAssistant(text) {
       const last = this.messages[this.messages.length - 1]
