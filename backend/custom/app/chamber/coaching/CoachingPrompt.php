@@ -61,7 +61,7 @@ PROMPT;
         return $system;
     }
 
-    public function buildMorningUser(array $profile, array $config, ?array $yesterday, string $date, string $yesterdayHint = '', array $behavior = []): string
+    public function buildMorningUser(array $profile, array $config, ?array $yesterday, string $date, string $yesterdayHint = '', array $behavior = [], array $longTerm = []): string
     {
         $lines = ['今天是 ' . $date . '。请结合以下会员数据生成今日认知刷新内容：'];
 
@@ -70,6 +70,10 @@ PROMPT;
         }
         if ($config !== []) {
             $lines[] = "\n" . $this->wrapData('四大维度配置', $config);
+        }
+        if ($longTerm !== []) {
+            $lines[] = "\n" . $this->wrapData('长期坚持记录（近 30 天）', $longTerm)
+                . "\n要点：这是会员近 30 天的坚持轨迹——连续回应/连续达成天数、达成率、最近的回传笔记与小挑战。请据此识别会员的长期模式（例如连续几周卡在同类挑战、达成率走低/走高），并在追问中体现「我看到了你这段坚持」，但不要机械复述数据、不要造成压力。";
         }
         if ($behavior !== []) {
             $lines[] = "\n" . $this->wrapData('会员近期行为', $behavior)

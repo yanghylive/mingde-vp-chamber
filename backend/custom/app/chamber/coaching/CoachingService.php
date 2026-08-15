@@ -83,7 +83,7 @@ final class CoachingService
             $discern['voice_style'],
             $streak
         );
-        $user = $prompt->buildMorningUser($profile, $config, $yesterday, $date, $this->yesterdayHint($yesterday), $this->behavior($ctx));
+        $user = $prompt->buildMorningUser($profile, $config, $yesterday, $date, $this->yesterdayHint($yesterday), $this->behavior($ctx), $this->longTermSummary($ctx, $date));
 
         $generated = $this->generate($system, $user, $coachName, $ctx, 'morning');
 
@@ -376,6 +376,74 @@ final class CoachingService
         }
 
         return $out;
+    }
+
+    /**
+     * 轻量长期记忆摘要（P0-2 第一步，纯 PHP 零新依赖）：
+     * 聚合近 30 天回应/挑战达成/笔记，生成结构化摘要，让追问从"每日快照"升级为"懂你的长期陪伴"。
+     * 不额外调用 AI，直接把统计 + 最近原始数据交给 morning 生成的 AI 自行提炼。
+     */
+    private function longTermSummary(array $ctx, string $date): array
+    {
+        $since = date('Y-m-d', strtotime($date . ' -29 day'));
+        $rows = Db::table('ch_coaching_daily')
+            ->where('tenant_id', $ctx['tenant_id'])
+            ->where('channel_id', $ctx['channel_id'])
+            ->where('member_id', $ctx['member_id'])
+            ->where('record_date', '>=', $since)
+            ->where('record_date', '<', $date)
+            ->order('record_date', 'asc')
+            ->select()
+            ->toArray();
+
+        if ($rows === []) {
+            return [];
+        }
+
+        $respondDays = 0;
+        $achieveDays = 0;
+        $recentNotes = [];
+        $recentChallenges = [];
+
+        foreach ($rows as $r) {
+            if ((int) $r['respond_status'] !== 0) {
+                $respondDays++;
+            }
+            if ((int) $r['challenge_achieved'] === 1) {
+                $achieveDays++;
+            }
+
+            // 最近 7 天的笔记 + 挑战（给 AI 看原文）
+            $responses = $this->decodeJson($r['responses'] ?? null);
+            if (is_array($responses)) {
+                $note = trim((string) ($responses['note'] ?? ''));
+                $result = (string) ($responses['challenge_result'] ?? '');
+                if ($note !== '') {
+                    $recentNotes[] = ['date' => (string) $r['record_date'], 'note' => $note, 'result' => $result];
+                }
+            }
+            $challenge = $this->decodeJson($r['morning_challenge'] ?? null);
+            if (is_array($challenge) && trim((string) ($challenge['challenge'] ?? '')) !== '') {
+                $recentChallenges[] = [
+                    'date' => (string) $r['record_date'],
+                    'challenge' => (string) $challenge['challenge'],
+                    'achieved' => (int) $r['challenge_achieved'] === 1,
+                ];
+            }
+        }
+
+        $total = count($rows);
+        return [
+            'stats' => [
+                'respond_days_30d' => $respondDays,
+                'achieve_days_30d' => $achieveDays,
+                'achieve_rate' => $respondDays > 0 ? round($achieveDays / $respondDays * 100) : 0,
+                'current_streak' => $this->streak($ctx, $date),
+                'current_achieve_streak' => $this->achieveStreak($ctx, $date),
+            ],
+            'recent_notes' => array_slice($recentNotes, -7),
+            'recent_challenges' => array_slice($recentChallenges, -7),
+        ];
     }
 
     private function profile(array $ctx): array
