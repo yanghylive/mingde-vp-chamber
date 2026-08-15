@@ -48,6 +48,31 @@
       </view>
     </view>
 
+    <!-- ===== 新手任务卡（激活引导） ===== -->
+    <view v-if="tasks.length > 0" class="section px-4">
+      <view class="task-card card">
+        <view class="task-head">
+          <text class="task-title">新人大礼包 · 完成 3 步激活</text>
+          <text class="task-progress">{{ taskDone }}/{{ tasks.length }}</text>
+        </view>
+        <view class="task-progress-bar">
+          <view class="tpb-fill" :style="'width:' + taskPct + '%'" />
+        </view>
+        <view v-for="t in tasks" :key="t.key" class="task-item" @tap="goTask(t)">
+          <view class="{{'task-dot' + (t.done ? ' task-dot-done' : '')}}">
+            <text v-if="t.done" class="task-check">✓</text>
+          </view>
+          <view class="task-info">
+            <text class="task-name">{{ t.name }}</text>
+            <text class="task-desc">{{ t.desc }}</text>
+          </view>
+          <view class="task-go">
+            <text class="{{'task-btn' + (t.done ? ' task-btn-done' : '')}}">{{ t.done ? '已完成' : '去完成' }}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
     <!-- ===== 小薇 · 今日 3 问（首屏第一动作） ===== -->
     <view class="section px-4">
       <view class="xw-card card" @tap="goCoaching">
@@ -318,7 +343,9 @@ export default {
       ladder: TIERS,
       CHIPS,
       xwBrand: "小薇",
-      xwMorning: null
+      xwMorning: null,
+      tasks: [],
+      taskRegistrations: []
     }
   },
   computed: {
@@ -330,6 +357,12 @@ export default {
     },
     displayName() {
       return (this.profile && (this.profile.real_name || this.profile.nickname)) || '明德会员'
+    },
+    taskDone() {
+      return this.tasks.filter((t) => t.done).length
+    },
+    taskPct() {
+      return this.tasks.length ? Math.round((this.taskDone / this.tasks.length) * 100) : 0
     }
   },
   onShow() {
@@ -391,7 +424,40 @@ export default {
         const list = results[4].value || []
         this.hasUnread = list.some((n) => !n.is_read)
       }
+      this.loadTasks()
       this.loading = false
+    },
+    async loadTasks() {
+      if (!checkLogin()) {
+        this.tasks = []
+        return
+      }
+      const profileDone = !!(this.profile && (this.profile.real_name || this.profile.nickname))
+      let regDone = this.taskRegistrations.length > 0
+      let twinDone = false
+      try {
+        const saved = uni.getStorageSync('chat_2') || uni.getStorageSync('chat_default')
+        twinDone = !!(saved && JSON.parse(saved).length > 0)
+      } catch (e) {}
+      if (!regDone) {
+        try {
+          const regs = await chamber.myEventRegistrations()
+          this.taskRegistrations = regs || []
+          regDone = regs.length > 0
+        } catch (e) {}
+      }
+      this.tasks = [
+        { key: 'profile', name: '完善个人资料', desc: '让大咖认识你', done: profileDone, to: '/pages/mine/index?edit=1' },
+        { key: 'register', name: '报名一场活动', desc: '开启商会第一步', done: regDone, to: '/pages/events/index' },
+        { key: 'twin', name: '和大咖 AI 聊一次', desc: '体验 AI 分身', done: twinDone, to: '/pages/experts/index' }
+      ]
+      if (this.taskDone >= this.tasks.length) {
+        try { uni.removeStorageSync('task_card_dismissed') } catch (e) {}
+      }
+    },
+    goTask(t) {
+      if (t.done) return
+      if (t.to) uni.navigateTo({ url: t.to })
     },
     applyChip() {
       if (this.chip === null) {
@@ -1278,5 +1344,90 @@ const DEFAULT_GRIDS = [
 .xw-empty-text {
   font-size: 22rpx;
   color: #8a94a3;
+}
+
+/* ===== 新手任务卡 ===== */
+.task-card {
+  padding: 28rpx;
+}
+.task-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16rpx;
+}
+.task-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #17233d;
+}
+.task-progress {
+  font-size: 24rpx;
+  color: #a9651e;
+}
+.task-progress-bar {
+  height: 10rpx;
+  border-radius: 5rpx;
+  background: #f0e6d8;
+  overflow: hidden;
+  margin-bottom: 24rpx;
+}
+.tpb-fill {
+  height: 100%;
+  border-radius: 5rpx;
+  background: linear-gradient(90deg, #c87922, #eba94e);
+  transition: width 0.3s;
+}
+.task-item {
+  display: flex;
+  align-items: center;
+  padding: 16rpx 0;
+}
+.task-dot {
+  width: 40rpx;
+  height: 40rpx;
+  border-radius: 50%;
+  border: 2rpx solid #c9b396;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 20rpx;
+  flex-shrink: 0;
+}
+.task-dot-done {
+  border-color: #c87922;
+  background: linear-gradient(90deg, #c87922, #eba94e);
+}
+.task-check {
+  color: #fff;
+  font-size: 24rpx;
+}
+.task-info {
+  flex: 1;
+}
+.task-name {
+  display: block;
+  font-size: 28rpx;
+  color: #17233d;
+}
+.task-desc {
+  display: block;
+  font-size: 22rpx;
+  color: #8a94a3;
+  margin-top: 2rpx;
+}
+.task-go {
+  margin-left: 16rpx;
+}
+.task-btn {
+  font-size: 24rpx;
+  color: #a9651e;
+  border: 1rpx solid #c87922;
+  border-radius: 24rpx;
+  padding: 8rpx 24rpx;
+}
+.task-btn-done {
+  color: #8a94a3;
+  border-color: #d5d9e0;
 }
 </style>
