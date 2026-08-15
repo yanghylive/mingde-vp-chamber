@@ -136,6 +136,7 @@ Route::group('v1/me', function () {
     Route::get('distribution', 'MemberDistributionController/show');
     Route::get('points', 'MemberPointsController/show');
     Route::get('points/ledger', 'MemberPointsController/ledger');
+    Route::post('points/consume', 'MemberPointsController/consume');
     Route::get('stats', 'MemberStatsController/show');
     Route::get('orders', 'ProductExchangeController/orders');
     Route::get('notifications', 'NotificationController/index');
