@@ -45,7 +45,7 @@ final class CoachingService
 
         return [
             'date' => $date,
-            'brand' => $this->brand($tenant),
+            'brand' => $this->brand($tenant, (int) $ctx['member_id']),
             'morning' => $daily !== null ? $daily['morning_challenge'] : null,
             'responses' => $daily !== null ? $daily['responses'] : null,
             'respond_status' => $daily !== null ? (int) $daily['respond_status'] : 0,
@@ -72,18 +72,19 @@ final class CoachingService
         $config = $this->config($ctx);
         $yesterday = $this->yesterday($ctx, $date);
         $discern = $this->discern($tenant);
+        $coachName = $this->brand($tenant, (int) $ctx['member_id'])['name'];
         $streak = $this->streak($ctx, $date);
 
         $prompt = new CoachingPrompt();
         $system = $prompt->buildMorningSystem(
             $discern['content'],
-            $discern['brand_name'],
+            $coachName,
             $discern['voice_style'],
             $streak
         );
         $user = $prompt->buildMorningUser($profile, $config, $yesterday, $date);
 
-        $generated = $this->generate($system, $user, $discern['brand_name'], $ctx, 'morning');
+        $generated = $this->generate($system, $user, $coachName, $ctx, 'morning');
 
         // 回写当日记录（morning_challenge 存档，供晚间精准对照）
         $morningPayload = [
@@ -165,17 +166,18 @@ final class CoachingService
             'note' => '（今日未回传）',
         ];
         $discern = $this->discern($tenant);
+        $coachName = $this->brand($tenant, (int) $ctx['member_id'])['name'];
 
         $prompt = new CoachingPrompt();
         $system = $prompt->buildEveningSystem($discern['voice_style']);
         $user = $prompt->buildEveningUser($daily['morning_challenge'], $responses);
 
-        $review = $this->generate($system, $user, $discern['brand_name'], $ctx, 'evening');
+        $review = $this->generate($system, $user, $coachName, $ctx, 'evening');
         $reviewPayload = [
             'summary' => $review['summary'] ?? '今日辛苦了，复盘记录已存档。',
             'praise' => $review['praise'] ?? '',
             'blocker' => $review['blocker'] ?? '',
-            'tomorrow_hint' => $review['tomorrow_hint'] ?? '明天见，小薇继续陪你。',
+            'tomorrow_hint' => $review['tomorrow_hint'] ?? '明天见，' . $coachName . '继续陪你。',
             'reviewed_at' => time(),
             'model' => $this->modelName(),
         ];
@@ -347,12 +349,27 @@ final class CoachingService
         ];
     }
 
-    private function brand(TenantContext $tenant): array
+    private function brand(TenantContext $tenant, int $memberId = 0): array
     {
         $discern = $this->discern($tenant);
+        $name = (string) $discern['brand_name'];
+
+        // 会员自定义命名覆盖租户品牌名（P0-1）
+        if ($memberId > 0) {
+            $row = Db::table('ch_member_settings')
+                ->where('tenant_id', $tenant->tenantId())
+                ->where('member_id', $memberId)
+                ->find();
+            if (is_array($row) && $row['settings_json'] !== '' && $row['settings_json'] !== null) {
+                $settings = json_decode((string) $row['settings_json'], true);
+                if (is_array($settings) && trim((string) ($settings['coach_name'] ?? '')) !== '') {
+                    $name = mb_substr(trim((string) $settings['coach_name']), 0, 16);
+                }
+            }
+        }
 
         return [
-            'name' => $discern['brand_name'],
+            'name' => $name,
             'voice_style' => $discern['voice_style'],
         ];
     }

@@ -42,6 +42,7 @@ final class MemberSettingsController
         }
 
         return $this->success([
+            'coach_name' => trim((string) ($settings['coach_name'] ?? '')),
             'notify' => $this->defaults($settings, 'notify', ['activity' => true, 'points' => true, 'system' => true]),
             'privacy' => $this->defaults($settings, 'privacy', ['profileVisible' => true, 'inRecommend' => true, 'hidePhone' => true]),
         ]);
@@ -52,9 +53,10 @@ final class MemberSettingsController
         $body = $request->post();
         $notify = isset($body['notify']) && is_array($body['notify']) ? $body['notify'] : null;
         $privacy = isset($body['privacy']) && is_array($body['privacy']) ? $body['privacy'] : null;
+        $coachName = array_key_exists('coach_name', $body) ? (string) $body['coach_name'] : null;
 
-        if ($notify === null && $privacy === null) {
-            return Response::create(['code' => 1, 'msg' => 'notify or privacy required', 'data' => null], 'json', 422);
+        if ($notify === null && $privacy === null && $coachName === null) {
+            return Response::create(['code' => 1, 'msg' => 'notify or privacy or coach_name required', 'data' => null], 'json', 422);
         }
 
         $member = $this->identity->resolve($tenant, $auth, true);
@@ -79,6 +81,13 @@ final class MemberSettingsController
         }
         if ($privacy !== null) {
             $current['privacy'] = $this->sanitizeBooleans($privacy, ['profileVisible', 'inRecommend', 'hidePhone']);
+        }
+        if ($coachName !== null) {
+            $trimmed = trim($coachName);
+            if ($trimmed !== '' && mb_strlen($trimmed) > 16) {
+                return Response::create(['code' => 1, 'msg' => 'coach_name too long (max 16)', 'data' => null], 'json', 422);
+            }
+            $current['coach_name'] = $trimmed;
         }
 
         $json = json_encode($current, JSON_UNESCAPED_UNICODE);

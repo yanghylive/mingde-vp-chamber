@@ -9,8 +9,9 @@
             明德恒智AI企商汇
           </view>
         </view>
-        <view class="ph-title-row">
-          <text class="ph-title">{{ brand.name || '小薇' }}</text>
+        <view class="ph-title-row" @tap="renameCoach">
+          <text class="ph-title">{{ coachName }}</text>
+          <text class="ph-edit">✎</text>
           <text class="ph-date">{{ date }}</text>
         </view>
         <view class="ph-sub">每天 3 条灵魂追问，帮你打破旧习惯、整合行为模式</view>
@@ -23,7 +24,7 @@
 
     <!-- 断档/控速提示 -->
     <view v-if="cooldownMode" class="cooldown-banner">
-      <text class="cooldown-text">小薇降低门槛啦——今天回一个数字（0-10 今日状态）或一句话就够</text>
+      <text class="cooldown-text">{{ coachName }}降低门槛啦——今天回一个数字（0-10 今日状态）或一句话就够</text>
     </view>
 
     <!-- 今日 3 问卡片 -->
@@ -40,11 +41,11 @@
         </view>
       </view>
 
-      <view v-if="loading" class="empty"><text class="empty-text">小薇正在准备今天的追问…</text></view>
+      <view v-if="loading" class="empty"><text class="empty-text">{{ coachName }}正在准备今天的追问…</text></view>
 
       <view v-else-if="!morning" class="card glass-card empty-card">
         <text class="empty-title">今日追问还没生成</text>
-        <text class="empty-sub">点击生成，小薇为你定制今天的认知刷新</text>
+        <text class="empty-sub">点击生成，{{ coachName }}为你定制今天的认知刷新</text>
         <view class="gen-btn" @tap="genMorning">生成今日 3 问</view>
       </view>
 
@@ -76,7 +77,7 @@
             <image class="ic ic-md" src="/static/icons/ic-message-circle-gold.png" mode="aspectFit" />
           </view>
           <view>
-            <text class="sh-title">回应小薇</text>
+            <text class="sh-title">回应{{ coachName }}</text>
             <text class="sh-sub">写下你的回答，晚间自动复盘</text>
           </view>
         </view>
@@ -87,7 +88,7 @@
           <image class="ic ic-md" src="/static/icons/ic-check-circle-green.png" mode="aspectFit" />
         </view>
         <text class="done-title">今日已回传</text>
-        <text class="done-sub">连续回应 {{ streak }} 天 · 小薇已收到</text>
+        <text class="done-sub">连续回应 {{ streak }} 天 · {{ coachName }}已收到</text>
         <view class="done-btn" @tap="resetAnswers">修改回应</view>
       </view>
 
@@ -121,7 +122,7 @@
           </view>
           <view>
             <text class="sh-title">晚间复盘</text>
-            <text class="sh-sub">对照今日挑战，小薇给你复盘</text>
+            <text class="sh-sub">对照今日挑战，{{ coachName }}给你复盘</text>
           </view>
         </view>
       </view>
@@ -171,11 +172,45 @@ export default {
     }
   },
 
+  computed: {
+    coachName() {
+      return (this.brand && this.brand.name) || '小薇'
+    },
+  },
+
   onShow() {
     this.loadToday()
   },
 
   methods: {
+    // 给教练改名（用户级覆盖租户品牌名）
+    renameCoach() {
+      uni.showModal({
+        title: '给教练起个名字',
+        editable: true,
+        placeholderText: this.coachName,
+        success: async (res) => {
+          if (!res.confirm) return
+          const name = (res.content || '').trim()
+          if (!name) {
+            uni.showToast({ title: '名字不能为空', icon: 'none' })
+            return
+          }
+          if (name.length > 16) {
+            uni.showToast({ title: '名字最多 16 个字', icon: 'none' })
+            return
+          }
+          try {
+            await chamber.meSettingsUpdate({ coach_name: name })
+            this.brand = Object.assign({}, this.brand, { name })
+            uni.showToast({ title: '以后就叫' + name + '啦', icon: 'success' })
+          } catch (e) {
+            uni.showToast({ title: '保存失败，稍后再试', icon: 'none' })
+          }
+        },
+      })
+    },
+
     async loadToday() {
       this.loading = true
       try {
@@ -200,7 +235,7 @@ export default {
     },
 
     async genMorning() {
-      uni.showLoading({ title: '小薇思考中…' })
+      uni.showLoading({ title: this.coachName + '思考中…' })
       try {
         const res = await chamber.coachingMorning({})
         this.morning = res || null
@@ -250,7 +285,7 @@ export default {
         this.respondStatus = (res && res.respond_status) || 2
         this.streak = (res && res.streak) || 0
         this.responses = res && res.responses
-        uni.showToast({ title: '已回应小薇', icon: 'success' })
+        uni.showToast({ title: '已回应' + this.coachName, icon: 'success' })
       } catch (e) {
         uni.showToast({ title: '提交失败，稍后再试', icon: 'none' })
       }
@@ -258,7 +293,7 @@ export default {
     },
 
     async genEvening() {
-      uni.showLoading({ title: '小薇复盘思考中…' })
+      uni.showLoading({ title: this.coachName + '复盘思考中…' })
       try {
         const res = await chamber.coachingEvening({})
         this.evening = res || null
@@ -320,6 +355,12 @@ export default {
   font-size: 44rpx;
   font-weight: 800;
   color: #17325b;
+}
+
+.ph-edit {
+  font-size: 24rpx;
+  color: #b8751d;
+  margin-left: 4rpx;
 }
 
 .ph-date {
