@@ -194,7 +194,19 @@ export default {
       this.registering = true
       chamber
         .registerEvent(this.eventId, ticketId)
-        .then(() => {
+        .then((res) => {
+          // 付费活动：后端返回 payment_required，需引导支付而非"报名成功"
+          if (res && res.payment_required) {
+            this.registered = false
+            this.msg = '报名待支付，请完成付款后生效'
+            uni.showModal({
+              title: '待支付',
+              content: '本活动需支付费用，报名已保留，请前往订单完成支付。',
+              confirmText: '知道了',
+              showCancel: false
+            })
+            return
+          }
           this.registered = true
           this.msg = '报名成功，请在活动当天凭票签到'
           uni.showToast({ title: '报名成功', icon: 'success' })

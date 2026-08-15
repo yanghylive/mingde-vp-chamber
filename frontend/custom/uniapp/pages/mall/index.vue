@@ -287,9 +287,12 @@ export default {
           this.needCash > 0 ? this.needCash.toFixed(2) : '0.00'
         )
         const orderId = (order && (order.order_no || order.id)) || ''
+        const productName = this.confirmTarget.name || this.confirmTarget.store_name || ''
+        const needPoints = this.needPoints
+        const needCash = this.needCash
         this.confirmTarget = null
         uni.navigateTo({
-          url: '/pages/mall/exchange-success/index?points=' + this.needPoints + '&cash=' + (this.needCash > 0 ? this.needCash : 0) + '&name=' + encodeURIComponent(this.confirmTarget.name || this.confirmTarget.store_name || '') + '&order=' + orderId
+          url: '/pages/mall/exchange-success/index?points=' + needPoints + '&cash=' + (needCash > 0 ? needCash : 0) + '&name=' + encodeURIComponent(productName) + '&order=' + orderId
         })
         this.loadData()
       } catch (e) {
