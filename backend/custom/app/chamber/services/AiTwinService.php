@@ -93,7 +93,7 @@ final class AiTwinService
         return is_array($row) ? $row : [];
     }
 
-    /** 大咖会员档案（ch_member_profile）用于训练上下文 */
+    /** 大咖会员档案（ch_member_profile）用于训练上下文；档案为空时回退查 ch_expert 大咖资料 */
     public function memberProfile(int $tenantId, int $memberId): array
     {
         $profile = Db::table('ch_member_profile')
@@ -101,7 +101,29 @@ final class AiTwinService
             ->where('member_id', $memberId)
             ->find();
 
-        return is_array($profile) ? $profile : [];
+        if (is_array($profile)) {
+            return $profile;
+        }
+
+        // 回退：大咖（非会员）资料在 ch_expert 表
+        $expert = Db::table('ch_expert')
+            ->where('tenant_id', $tenantId)
+            ->where('id', $memberId)
+            ->find();
+        if (!is_array($expert)) {
+            return [];
+        }
+
+        return [
+            'tenant_id' => $tenantId,
+            'member_id' => $memberId,
+            'uid' => 0,
+            'real_name' => (string) ($expert['name'] ?? ''),
+            'industry' => (string) ($expert['industry'] ?? ''),
+            'company_name' => (string) ($expert['company'] ?? ''),
+            'job_title' => (string) ($expert['title'] ?? ''),
+            'bio' => (string) ($expert['bio'] ?? ''),
+        ];
     }
 
     // ------------------------------------------------------------------
@@ -173,7 +195,7 @@ PROMPT;
     }
 
     /** 分身 system prompt：人设 + 记忆注入（会员对话用） */
-    public function twinSystem(array $ai, array $memories, array $knowledge = []): string
+    public function twinSystem(array $ai, array $memories, array $knowledge = [], array $profile = []): string
     {
         $name = $ai['persona_name'] !== '' ? $ai['persona_name'] : '这位大咖';
         $role = $ai['persona_role'] !== '' ? $ai['persona_role'] : '资深从业者';
@@ -182,6 +204,47 @@ PROMPT;
         $catch = '';
         if ($ai['catchphrases'] !== '') {
             $catch = "\n【口头禅】" . $ai['catchphrases'];
+        }
+
+        // 档案注入（S2）：把会员档案里的行业/公司/职位/专长拼进人设，让分身"像本人"
+        $profileText = '';
+        if (is_array($profile) && $profile) {
+            $bits = [];
+            if (trim((string) ($profile['industry'] ?? '')) !== '') {
+                $bits[] = '行业：' . $profile['industry'];
+            }
+            if (trim((string) ($profile['company_name'] ?? '')) !== '') {
+                $bits[] = '公司：' . $profile['company_name'];
+            }
+            if (trim((string) ($profile['job_title'] ?? '')) !== '') {
+                $bits[] = '职位：' . $profile['job_title'];
+            }
+            if (trim((string) ($profile['main_business'] ?? '')) !== '') {
+                $bits[] = '主营业务：' . $profile['main_business'];
+            }
+            if (trim((string) ($profile['bio'] ?? '')) !== '') {
+                $bits[] = '个人简介：' . mb_substr($profile['bio'], 0, 200);
+            }
+            if (trim((string) ($profile['expertise_json'] ?? '')) !== '') {
+                $exp = json_decode($profile['expertise_json'], true);
+                if (is_array($exp) && $exp) {
+                    $expLabels = [];
+                    foreach ($exp as $x) {
+                        if (is_array($x)) {
+                            $expLabels[] = (string) ($x['label'] ?? $x['value'] ?? '');
+                        } else {
+                            $expLabels[] = (string) $x;
+                        }
+                    }
+                    $expLabels = array_values(array_filter($expLabels));
+                    if ($expLabels) {
+                        $bits[] = '专长：' . implode('、', $expLabels);
+                    }
+                }
+            }
+            if ($bits) {
+                $profileText = "\n【他的真实档案】（回答时自然体现，让会员感觉你了解他/她）\n" . implode("\n", $bits) . "\n";
+            }
         }
 
         $memoryText = '';
@@ -209,6 +272,7 @@ PROMPT;
 - 身份定位：{$role}
 - 说话语气：{$voice}{$catch}
 
+{$profileText}
 {$memoryText}
 {$knowledgeText}
 【对话规则】
@@ -347,7 +411,8 @@ PROMPT;
 
         // 2. 调 AI（长耗时，放在事务外）
         $memories = $this->memories($tenantId, $expertMemberId, self::MEMORY_INJECT_LIMIT);
-        $system = $this->twinSystem($ai, $memories, $this->relevantKnowledge($tenantId, $aiId, $message, 5));
+        $expertProfile = $this->memberProfile($tenantId, $expertMemberId);
+        $system = $this->twinSystem($ai, $memories, $this->relevantKnowledge($tenantId, $aiId, $message, 5), $expertProfile);
         $history = $this->lastHistory($tenantId, $aiId, 'member', self::MEMBER_MAX_HISTORY);
 
         $usage = [];
@@ -488,6 +553,57 @@ PROMPT;
             'training_progress' => (int) $ai['training_progress'],
             'chat_points_cost' => (int) $ai['chat_points_cost'],
             'memory_summary' => $memoriesBrief,
+        ];
+    }
+
+    /** 分身就绪度打分（S2）：档案完整度 + 知识库 + 训练进度 → 0-100 */
+    public function twinReadiness(int $tenantId, int $memberId): array
+    {
+        $ai = $this->ensureAi($tenantId, $memberId);
+        $profile = $this->memberProfile($tenantId, $memberId);
+
+        $profileFields = ['industry', 'company_name', 'job_title', 'main_business', 'bio', 'expertise_json'];
+        $filled = 0;
+        foreach ($profileFields as $f) {
+            if (trim((string) ($profile[$f] ?? '')) !== '') {
+                $filled++;
+            }
+        }
+        $profileScore = (int) round(($filled / count($profileFields)) * 50);
+
+        $knowledgeCount = (int) Db::table('ch_expert_ai_knowledge')
+            ->where('tenant_id', $tenantId)
+            ->where('expert_id', (int) $ai['id'])
+            ->where('status', 1)
+            ->count();
+        $knowledgeScore = min(30, (int) $knowledgeCount * 3);
+
+        $memoryCount = (int) Db::table('ch_expert_ai_memory')
+            ->where('tenant_id', $tenantId)
+            ->where('expert_id', (int) $ai['id'])
+            ->where('status', 1)
+            ->count();
+        $memoryScore = min(20, (int) $memoryCount * 2);
+
+        $score = min(100, $profileScore + $knowledgeScore + $memoryScore);
+
+        $tips = [];
+        if ($profileScore < 30) {
+            $tips[] = '补全行业/公司/职位/专长档案，分身说话更真实';
+        }
+        if ($knowledgeCount < 5) {
+            $tips[] = '上传 5 篇以上资料，分身能回答专业问题';
+        }
+        if ($memoryCount < 3) {
+            $tips[] = '多和训练师聊几次，分身记住你的经历';
+        }
+
+        return [
+            'score' => $score,
+            'profile_score' => $profileScore,
+            'knowledge_count' => $knowledgeCount,
+            'memory_count' => $memoryCount,
+            'tips' => $tips,
         ];
     }
 

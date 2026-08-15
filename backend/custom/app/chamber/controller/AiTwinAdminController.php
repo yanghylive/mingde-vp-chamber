@@ -126,6 +126,7 @@ final class AiTwinAdminController
         $ai = $this->twin->ensureAi($tenant->tenantId(), $memberId);
 
         $memories = $this->twin->memories($tenant->tenantId(), $memberId);
+        $readiness = $this->twin->twinReadiness($tenant->tenantId(), $memberId);
 
         return json(['code' => 0, 'msg' => 'ok', 'data' => [
             'member_id' => $memberId,
@@ -139,6 +140,7 @@ final class AiTwinAdminController
             'training_progress' => (int) $ai['training_progress'],
             'chat_points_cost' => (int) $ai['chat_points_cost'],
             'chat_count' => (int) $ai['chat_count'],
+            'readiness' => $readiness,
             'memories' => $memories,
         ]]);
     }
