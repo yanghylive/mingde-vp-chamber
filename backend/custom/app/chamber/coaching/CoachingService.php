@@ -51,6 +51,7 @@ final class CoachingService
             'respond_status' => $daily !== null ? (int) $daily['respond_status'] : 0,
             'evening_review' => $daily !== null ? $daily['evening_review'] : null,
             'streak' => $streak,
+            'achieve_streak' => $this->achieveStreak($ctx, $date),
             'cooldown_mode' => $streak >= $this->streakThreshold($tenant),
         ];
     }
@@ -135,11 +136,13 @@ final class CoachingService
         ];
 
         $streak = $this->streakBeforeToday($ctx, $date) + 1;
-        $this->upsertResponses($ctx, $date, $responses, $respondStatus, $streak);
+        $achieved = $challengeResult === 'done' ? 1 : 0;
+        $this->upsertResponses($ctx, $date, $responses, $respondStatus, $streak, $achieved);
 
         return [
             'respond_status' => $respondStatus,
             'streak' => $streak,
+            'achieve_streak' => $this->achieveStreak($ctx, $date, $achieved),
             'responses' => $responses,
             'date' => $date,
         ];
@@ -395,7 +398,7 @@ final class CoachingService
             if ($status === null) {
                 break;
             }
-            if ((int) $status === 0) {
+            if ((int) $status !== 0) {
                 $streak++;
             } else {
                 break;
@@ -427,7 +430,48 @@ final class CoachingService
             if ($status === null) {
                 break;
             }
-            if ((int) $status === 0) {
+            if ((int) $status !== 0) {
+                $streak++;
+            } else {
+                break;
+            }
+            $cursor = date('Y-m-d', strtotime($cursor . ' -1 day'));
+        }
+
+        return $streak;
+    }
+
+    /**
+     * 连续达成挑战天数（P1-3）：连续 challenge_achieved=1 的天数。
+     * 与"连续回应天数"（streak）并行，衡量"坚持完成"而非"坚持打开"。
+     */
+    private function achieveStreak(array $ctx, string $date, int $todayAchieved = -1): int
+    {
+        $rows = Db::table('ch_coaching_daily')
+            ->where('tenant_id', $ctx['tenant_id'])
+            ->where('channel_id', $ctx['channel_id'])
+            ->where('member_id', $ctx['member_id'])
+            ->where('record_date', '<=', $date)
+            ->order('record_date', 'desc')
+            ->limit(14)
+            ->column('challenge_achieved', 'record_date');
+
+        // 今天刚回传：用传入值覆盖（尚未从 DB 读到本次写入）
+        if ($todayAchieved >= 0) {
+            $rows[$date] = $todayAchieved;
+        }
+        if ($rows === []) {
+            return 0;
+        }
+
+        $streak = 0;
+        $cursor = $date;
+        for ($i = 0; $i < 14; $i++) {
+            $achieved = $rows[$cursor] ?? null;
+            if ($achieved === null) {
+                break;
+            }
+            if ((int) $achieved === 1) {
                 $streak++;
             } else {
                 break;
@@ -566,7 +610,7 @@ final class CoachingService
         ]);
     }
 
-    private function upsertResponses(array $ctx, string $date, array $payload, int $status, int $streak): void
+    private function upsertResponses(array $ctx, string $date, array $payload, int $status, int $streak, int $achieved = 0): void
     {
         $now = time();
         $existing = $this->daily($ctx, $date);
@@ -574,6 +618,7 @@ final class CoachingService
             'responses' => json_encode($payload, JSON_UNESCAPED_UNICODE),
             'respond_status' => $status,
             'streak' => $streak,
+            'challenge_achieved' => $achieved,
             'update_time' => $now,
         ];
         if ($existing !== null) {

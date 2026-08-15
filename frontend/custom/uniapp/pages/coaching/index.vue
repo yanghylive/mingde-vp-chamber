@@ -88,7 +88,7 @@
           <image class="ic ic-md" src="/static/icons/ic-check-circle-green.png" mode="aspectFit" />
         </view>
         <text class="done-title">今日已回传</text>
-        <text class="done-sub">连续回应 {{ streak }} 天 · {{ coachName }}已收到</text>
+        <text class="done-sub">连续回应 {{ streak }} 天 · 连续达成 {{ achieveStreak }} 天 · {{ coachName }}已收到</text>
         <view class="done-btn" @tap="resetAnswers">修改回应</view>
       </view>
 
@@ -163,6 +163,7 @@ export default {
       respondStatus: 0,
       evening: null,
       streak: 0,
+      achieveStreak: 0,
       cooldownMode: false,
       loading: true,
       answers: [],
@@ -223,6 +224,7 @@ export default {
         this.respondStatus = d.respond_status || 0
         this.evening = d.evening_review || null
         this.streak = d.streak || 0
+        this.achieveStreak = d.achieve_streak || 0
         this.cooldownMode = !!d.cooldown_mode
         if (d.morning) {
           this.answers = (d.morning.questions || []).map(() => '')
@@ -284,6 +286,7 @@ export default {
         })
         this.respondStatus = (res && res.respond_status) || 2
         this.streak = (res && res.streak) || 0
+        this.achieveStreak = (res && res.achieve_streak) || 0
         this.responses = res && res.responses
         uni.showToast({ title: '已回应' + this.coachName, icon: 'success' })
       } catch (e) {
