@@ -93,6 +93,7 @@
 
 <script>
 import PageHeader from '@/components/PageHeader.vue'
+import chamber from '@/api/chamber'
 import { checkLogin, logout } from '@/libs/login'
 
 export default {
@@ -118,7 +119,7 @@ export default {
     const ui = uni.getStorageSync('userInfo')
     if (ui && ui.nickname) this.nickname = ui.nickname
     if (ui && ui.phone) this.phone = ui.phone
-    // 本地持久化开关（对齐 H5 TODO 方案）
+    // 偏好从后端读（本地 storage 兜底，兼容旧版本）
     const saved = uni.getStorageSync('settings_toggles')
     if (saved) {
       try {
@@ -127,12 +128,23 @@ export default {
         if (s.privacy) this.privacy = Object.assign({}, this.privacy, s.privacy)
       } catch (e) {}
     }
+    if (this.isLogin) {
+      chamber.meSettings().then((d) => {
+        if (d && d.notify) this.notify = Object.assign({}, this.notify, d.notify)
+        if (d && d.privacy) this.privacy = Object.assign({}, this.privacy, d.privacy)
+      }).catch(() => {})
+    }
   },
   methods: {
     // vue2 小程序模板只能调实例方法：toggle 原为组件根级方法（模板调不到），移入 methods
     toggle(group, key) {
       this[group][key] = !this[group][key]
-      uni.setStorageSync('settings_toggles', JSON.stringify({ notify: this.notify, privacy: this.privacy }))
+      const payload = JSON.stringify({ notify: this.notify, privacy: this.privacy })
+      uni.setStorageSync('settings_toggles', payload)
+      // 持久化到后端（登录态下）
+      if (this.isLogin) {
+        chamber.meSettingsUpdate({ notify: this.notify, privacy: this.privacy }).catch(() => {})
+      }
     },
     clearCache() {
       uni.clearStorageSync()

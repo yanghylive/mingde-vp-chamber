@@ -139,6 +139,8 @@ Route::group('v1/me', function () {
     Route::get('points/ledger', 'MemberPointsController/ledger');
     Route::post('points/consume', 'MemberPointsController/consume');
     Route::get('stats', 'MemberStatsController/show');
+    Route::get('settings', 'MemberSettingsController/show');
+    Route::put('settings', 'MemberSettingsController/update');
     Route::get('orders', 'ProductExchangeController/orders');
     Route::get('notifications', 'NotificationController/index');
 })->middleware(RequestTraceMiddleware::class)
