@@ -51,6 +51,7 @@
 import PageHeader from '@/components/PageHeader.vue'
 import chamber from '@/api/chamber'
 import { checkLogin } from '@/libs/login'
+import { track } from '@/libs/track'
 
 export default {
   components: { PageHeader },
@@ -109,6 +110,7 @@ export default {
   },
   // S6：分享带分销码，好友打开后注册自动绑定推荐关系
   onShareAppMessage() {
+    track('share', { source: 'distribution', invite: this.code || '' })
     return {
       title: '加入明德恒智AI企商汇，和企业家一起成长',
       path: '/pages/index/index' + (this.code ? '?invite=' + this.code : '')

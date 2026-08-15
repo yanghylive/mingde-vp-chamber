@@ -45,6 +45,7 @@
 
 <script>
 import { HTTP_REQUEST_URL } from '@/config/app'
+import { track } from '@/libs/track'
 
 let idSeq = 1
 
@@ -109,6 +110,11 @@ export default {
       this.pushMsg('user', content)
       this.sending = true
       this.pushMsg('assistant', '', true)
+      // 首聊埋点（每次会话仅记一次）
+      if (!this._chatTracked) {
+        this._chatTracked = true
+        track('chat_first_message', { expert: this.expertId ? 1 : 0 })
+      }
 
       const token = uni.getStorageSync('token') || ''
       const headers = { 'Content-Type': 'application/json', Accept: 'text/event-stream' }

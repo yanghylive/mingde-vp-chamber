@@ -106,6 +106,7 @@ Route::group('v1', function () {
     Route::get('bootstrap', 'BootstrapController/index');
     Route::get('site-config', 'SiteConfigController/index');
     Route::post('client/errors', 'ClientErrorController/store');
+    Route::post('client/events', 'ClientEventController/store');
 })->middleware(RequestTraceMiddleware::class)
     ->middleware(ChamberCorsMiddleware::class)
     ->middleware(TenantContextMiddleware::class, true);

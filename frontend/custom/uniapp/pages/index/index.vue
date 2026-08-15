@@ -303,6 +303,7 @@
 <script>
 import chamber from '@/api/chamber'
 import { checkLogin } from '@/libs/login'
+import { track } from '@/libs/track'
 import { fetchSiteConfig } from '@/common/site-config'
 import { TIERS, tierToNumber, applyTierConfig } from '@/common/tier'
 import { toDate, fmtZhDateTime, fmtHHmm, formatMoney } from '@/common/format'
@@ -469,6 +470,7 @@ export default {
     },
     goTask(t) {
       if (t.done) return
+      track('task_click', { key: t.key })
       if (t.to) uni.navigateTo({ url: t.to })
     },
     applyChip() {

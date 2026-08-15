@@ -1,3 +1,5 @@
+import { track } from '@/libs/track'
+
 /**
  * 会员等级门禁引导：命中 tier_required / tier_expired 时弹升级弹窗
  * 供 大咖预约 / 商城兑换 / 好友 等门禁点共用。
@@ -15,6 +17,8 @@ export function tierGuide(e) {
     ? '你的会员等级已到期，大咖预约 / 积分兑换等权益已暂停。续费后即可继续使用。'
     : '升级 L' + (tier || 2) + ' 会员后，即可使用大咖 1v1 预约、积分商城兑换、好友互动等专属权益。'
 
+  track('gate_blocked', { reason: code, tier: tier || 0 })
+
   uni.showModal({
     title,
     content,
@@ -22,6 +26,7 @@ export function tierGuide(e) {
     cancelText: '知道了',
     success(res) {
       if (res.confirm) {
+        track('gate_upgrade_click', { reason: code })
         uni.navigateTo({ url: '/pages/membership/index' })
       }
     }

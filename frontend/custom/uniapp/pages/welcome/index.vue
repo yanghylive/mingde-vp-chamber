@@ -42,6 +42,8 @@
 </template>
 
 <script>
+import { track } from '@/libs/track'
+
 export default {
   data() {
     return {
@@ -59,6 +61,7 @@ export default {
       try {
         uni.setStorageSync('welcome_seen', '1')
       } catch (e) {}
+      track('onboard_complete', { screens: this.current + 1 })
       uni.reLaunch({ url: '/pages/index/index' })
     }
   }

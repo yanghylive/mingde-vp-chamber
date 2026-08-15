@@ -1,5 +1,6 @@
 <script>
 import store from './store'
+import { track } from '@/libs/track'
 
 export default {
   globalData: {
@@ -19,6 +20,7 @@ export default {
   },
   // 全局分享（S6）：小程序分享能力开关 + 默认文案
   onShareAppMessage() {
+    track('share', { source: 'app_default' })
     return {
       title: '明德恒智AI企商汇 · 企业家事业共同体',
       path: '/pages/index/index'
