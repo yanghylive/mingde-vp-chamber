@@ -50,7 +50,7 @@ export const chamber = {
     }),
 
   // ---- 活动 ----
-  events: () => request('/chamber/v1/events').then(pickList),
+  events: (params) => request('/chamber/v1/events', { data: params || {} }).then(pickList),
   eventDetail: (id) => request('/chamber/v1/events/' + (id)),
   myEventRegistrations: () => request('/chamber/v1/me/event-registrations').then(pickList),
   registerEvent: (eventId, ticketId) =>
@@ -67,7 +67,7 @@ export const chamber = {
     }),
 
   // ---- 大咖 ----
-  experts: () => request('/chamber/v1/experts').then(pickList),
+  experts: (params) => request('/chamber/v1/experts', { data: params || {} }).then(pickList),
   expertDetail: (id) => request('/chamber/v1/experts/' + (id)),
   expertSlots: (id) => request('/chamber/v1/experts/' + (id) + '/slots').then(pickList),
   createAppointment: (data) =>
@@ -78,7 +78,7 @@ export const chamber = {
     }),
 
   // ---- 商城 ----
-  products: () => request('/chamber/v1/products').then(pickList),
+  products: (params) => request('/chamber/v1/products', { data: params || {} }).then(pickList),
   pointsPaths: () => request('/chamber/v1/points/paths').then((b) => (b && b.items) || []),
   exchangeProduct: (id, pointsCost, cashCost) =>
     request('/chamber/v1/products/' + (id) + '/exchange', {

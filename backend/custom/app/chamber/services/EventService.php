@@ -75,6 +75,15 @@ final class EventService
                 [$encodedTag]
             );
         }
+        if ($filters->query() !== '') {
+            $like = '%' . $filters->query() . '%';
+            $query->where(function ($sub) use ($like) {
+                $sub->where('title', 'like', $like)
+                    ->whereOr('summary', 'like', $like)
+                    ->whereOr('location_name', 'like', $like)
+                    ->whereOr('address', 'like', $like);
+            });
+        }
 
         $total = (int) (clone $query)->count();
         $rows = $query

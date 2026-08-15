@@ -21,17 +21,22 @@ final class ProductController
 {
     public function index(Request $request, TenantContext $tenant): Response
     {
-        unset($request, $tenant);
+        unset($tenant);
 
         $ratio = $this->integralRatio();
 
-        $rows = Db::table('eb_store_product')
+        $query = Db::table('eb_store_product')
             ->where('is_del', 0)
-            ->where('is_show', 1)
-            ->order('id', 'desc')
-            ->limit(100)
-            ->select()
-            ->toArray();
+            ->where('is_show', 1);
+        $q = trim((string) ($request->get('q') ?? ''));
+        if ($q !== '' && mb_strlen($q) <= 40) {
+            $like = '%' . $q . '%';
+            $query->where(function ($sub) use ($like) {
+                $sub->where('store_name', 'like', $like)
+                    ->whereOr('keyword', 'like', $like);
+            });
+        }
+        $rows = $query->order('id', 'desc')->limit(100)->select()->toArray();
 
         $items = [];
         foreach ($rows as $row) {

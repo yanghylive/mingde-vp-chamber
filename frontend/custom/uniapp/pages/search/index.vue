@@ -136,31 +136,24 @@ export default {
       return map[t] || '官方活动'
     },
     async doSearch() {
-      var kw = this.keyword.trim().toLowerCase()
+      var kw = this.keyword.trim()
       if (!kw) return
       this.searched = true
       this.loading = true
-      var results = await Promise.allSettled([chamber.events(), chamber.experts(), chamber.products()])
+      // 服务端搜索：关键词传给后端，后端 LIKE 匹配返回过滤结果
+      var results = await Promise.allSettled([
+        chamber.events({ q: kw }),
+        chamber.experts({ q: kw }),
+        chamber.products({ q: kw })
+      ])
       if (results[0].status === 'fulfilled') {
-        this.events = (results[0].value || []).filter(function(ev) {
-          return [ev.title, ev.summary, ev.location_name, ev.address, ev.tags].some(function(f) {
-            return f && String(f).toLowerCase().indexOf(kw) >= 0
-          })
-        }).slice(0, 5)
+        this.events = (results[0].value || []).slice(0, 5)
       }
       if (results[1].status === 'fulfilled') {
-        this.experts = (results[1].value || []).filter(function(e) {
-          return [e.name, e.title, e.company, e.industry, e.bio, e.tags].some(function(f) {
-            return f && String(f).toLowerCase().indexOf(kw) >= 0
-          })
-        }).slice(0, 5)
+        this.experts = (results[1].value || []).slice(0, 5)
       }
       if (results[2].status === 'fulfilled') {
-        this.products = (results[2].value || []).filter(function(p) {
-          return [p.name, p.store_name, p.title, p.description, p.category].some(function(f) {
-            return f && String(f).toLowerCase().indexOf(kw) >= 0
-          })
-        }).slice(0, 4)
+        this.products = (results[2].value || []).slice(0, 4)
       }
       this.loading = false
     },

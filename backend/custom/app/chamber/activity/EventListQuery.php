@@ -27,6 +27,9 @@ final class EventListQuery
     /** @var string */
     private $tag;
 
+    /** @var string */
+    private $q;
+
     /** @var int */
     private $page;
 
@@ -40,7 +43,7 @@ final class EventListQuery
     public static function fromArray(array $query): self
     {
         foreach (array_keys($query) as $field) {
-            if (!is_string($field) || !in_array($field, ['event_type', 'status', 'tag', 'page', 'limit'], true)) {
+            if (!is_string($field) || !in_array($field, ['event_type', 'status', 'tag', 'q', 'page', 'limit'], true)) {
                 $name = is_string($field) ? $field : 'query';
                 throw self::validation($name, 'unknown_field', 'Unknown event query field: ' . $name);
             }
@@ -58,6 +61,7 @@ final class EventListQuery
             array_keys(self::EVENT_STATUSES)
         );
         $instance->tag = self::parseTag($query['tag'] ?? null);
+        $instance->q = self::parseKeyword($query['q'] ?? null);
         $instance->page = self::boundedInteger($query['page'] ?? null, 'page', 1, PHP_INT_MAX, 1);
         $instance->limit = self::boundedInteger($query['limit'] ?? null, 'limit', 1, 100, 20);
 
@@ -82,6 +86,11 @@ final class EventListQuery
     public function tag(): string
     {
         return $this->tag;
+    }
+
+    public function query(): string
+    {
+        return $this->q;
     }
 
     public function page(): int
@@ -118,6 +127,23 @@ final class EventListQuery
         $length = function_exists('mb_strlen') ? mb_strlen($value, 'UTF-8') : strlen($value);
         if ($value === '' || $length > 40) {
             throw self::validation('tag', 'invalid_length', 'tag must contain between 1 and 40 characters');
+        }
+
+        return $value;
+    }
+
+    private static function parseKeyword($value): string
+    {
+        if ($value === null || $value === '') {
+            return '';
+        }
+        if (!is_string($value)) {
+            throw self::validation('q', 'invalid_type', 'q must be a string');
+        }
+        $value = trim($value);
+        $length = function_exists('mb_strlen') ? mb_strlen($value, 'UTF-8') : strlen($value);
+        if ($value === '' || $length > 40) {
+            throw self::validation('q', 'invalid_length', 'q must contain between 1 and 40 characters');
         }
 
         return $value;

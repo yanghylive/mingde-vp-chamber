@@ -23,13 +23,21 @@ final class ExpertController
     /** 列表（admin 大咖定价页 / 小程序共用）：返回含 pricing 的专家列表 */
     public function index(Request $request, TenantContext $tenant): Response
     {
-        unset($request);
         $tenantId = $tenant->tenantId();
-        $rows = Db::table('ch_expert')
-            ->where('tenant_id', $tenantId)
-            ->order('id', 'desc')
-            ->select()
-            ->toArray();
+        $q = trim((string) ($request->get('q') ?? ''));
+        $query = Db::table('ch_expert')
+            ->where('tenant_id', $tenantId);
+        if ($q !== '' && mb_strlen($q) <= 40) {
+            $like = '%' . $q . '%';
+            $query->where(function ($sub) use ($like) {
+                $sub->where('name', 'like', $like)
+                    ->whereOr('title', 'like', $like)
+                    ->whereOr('company', 'like', $like)
+                    ->whereOr('industry', 'like', $like)
+                    ->whereOr('bio', 'like', $like);
+            });
+        }
+        $rows = $query->order('id', 'desc')->select()->toArray();
 
         $items = [];
         foreach ($rows as $e) {
