@@ -365,7 +365,11 @@ export default {
       return this.tasks.length ? Math.round((this.taskDone / this.tasks.length) * 100) : 0
     }
   },
-  onLoad() {
+  onLoad(options) {
+    // 分享回流：携带邀请码则暂存（注册 bootstrap 时绑定推荐关系）
+    if (options && options.invite) {
+      try { uni.setStorageSync('invite_code', options.invite) } catch (e) {}
+    }
     // 首启欢迎引导：仅第一次进入展示，之后永久跳过
     try {
       if (!uni.getStorageSync('welcome_seen')) {

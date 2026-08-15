@@ -16,6 +16,13 @@ export default {
     if (userInfo) {
       store.commit('setUserInfo', userInfo)
     }
+  },
+  // 全局分享（S6）：小程序分享能力开关 + 默认文案
+  onShareAppMessage() {
+    return {
+      title: '明德恒智AI企商汇 · 企业家事业共同体',
+      path: '/pages/index/index'
+    }
   }
 }
 </script>

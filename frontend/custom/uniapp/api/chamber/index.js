@@ -6,13 +6,18 @@ import { request, pickList, uuid } from '@/common/request'
 export const chamber = {
   /** 公开 bootstrap */
   bootstrap: () => request('/chamber/v1/bootstrap', { auth: false }),
-  /** 会员 bootstrap（登录后） */
-  meBootstrap: () =>
-    request('/chamber/v1/me/bootstrap', {
+  /** 会员 bootstrap（登录后）；携带邀请码（S6 分享回流） */
+  meBootstrap: () => {
+    let invite = ''
+    try {
+      invite = uni.getStorageSync('invite_code') || ''
+    } catch (e) {}
+    return request('/chamber/v1/me/bootstrap', {
       method: 'POST',
       idempotencyKey: uuid(),
-      data: {}
-    }),
+      data: invite ? { invite_code: invite } : {}
+    })
+  },
 
   // ---- 我的 ----
   meProfile: () => request('/chamber/v1/me/profile'),

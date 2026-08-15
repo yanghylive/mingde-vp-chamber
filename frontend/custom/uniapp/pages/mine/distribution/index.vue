@@ -8,6 +8,7 @@
       <view class="dc-copy {{!code || loading ? 'dc-copy-disabled' : ''}}" @tap="copyCode">
         {{ copied ? '已复制 OK' : '复制分销码' }}
       </view>
+      <button class="dc-share" open-type="share">分享给好友</button>
     </view>
 
     <view class="stats card">
@@ -105,6 +106,13 @@ export default {
         }
       })
     }
+  },
+  // S6：分享带分销码，好友打开后注册自动绑定推荐关系
+  onShareAppMessage() {
+    return {
+      title: '加入明德恒智AI企商汇，和企业家一起成长',
+      path: '/pages/index/index' + (this.code ? '?invite=' + this.code : '')
+    }
   }
 }
 </script>
@@ -149,6 +157,20 @@ export default {
 }
 .dc-copy-disabled {
   opacity: 0.5;
+}
+.dc-share {
+  margin-top: 24rpx;
+  padding: 20rpx 80rpx;
+  border-radius: 999rpx;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1rpx solid rgba(255, 255, 255, 0.35);
+  color: #fff;
+  font-size: 28rpx;
+  font-weight: 700;
+  line-height: 1.4;
+}
+.dc-share::after {
+  border: none;
 }
 .stats {
   display: flex;
