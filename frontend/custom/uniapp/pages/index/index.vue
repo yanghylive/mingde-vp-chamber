@@ -365,6 +365,14 @@ export default {
       return this.tasks.length ? Math.round((this.taskDone / this.tasks.length) * 100) : 0
     }
   },
+  onLoad() {
+    // 首启欢迎引导：仅第一次进入展示，之后永久跳过
+    try {
+      if (!uni.getStorageSync('welcome_seen')) {
+        uni.redirectTo({ url: '/pages/welcome/index' })
+      }
+    } catch (e) {}
+  },
   onShow() {
     this.loadData()
     this.loadCoaching()
