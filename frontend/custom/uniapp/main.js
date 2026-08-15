@@ -12,11 +12,17 @@ const ERROR_URL = 'https://md.kaypal.cn/api/chamber/v1/client/errors'
 function reportClientError(msg, stack, page) {
   if (!msg) return
   try {
+    let uid = 0
+    try {
+      const u = uni.getStorageSync('userInfo')
+      if (u && (u.uid || u.id)) uid = Number(u.uid || u.id) || 0
+    } catch (e) {}
     uni.request({
       url: ERROR_URL,
       method: 'POST',
       header: { 'Content-Type': 'application/json' },
       data: {
+        uid: uid,
         msg: String(msg).slice(0, 300),
         stack: String(stack || '').slice(0, 800),
         page: String(page || '').slice(0, 120),
