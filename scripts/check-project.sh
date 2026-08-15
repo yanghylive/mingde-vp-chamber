@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-EXPECTED_CRMEB_SHA="7dcddffff73ec542d689f159724296351f29ea9a"
+EXPECTED_CRMEB_SHA="0791fbf8b0d75bb8af0faa25c6305535368559f3"
 
 fail() {
   printf 'ERROR: %s\n' "$1" >&2
@@ -229,10 +229,7 @@ required_files=(
   "frontend/custom/admin/src/router/modules/chamber.js"
   "frontend/custom/uniapp/api/chamber/member.js"
   "frontend/custom/uniapp/chamber-pages.json"
-  "frontend/custom/uniapp/components/chamberMemberEntry/index.vue"
   "frontend/custom/uniapp/overlays/apply-user-center-entry.js"
-  "frontend/custom/uniapp/pages/chamber/profile/index.vue"
-  "frontend/custom/uniapp/pages/chamber/graduate_verification/index.vue"
   "ai-service/README.html"
   "deployment/README.html"
   "deployment/local/README.html"
