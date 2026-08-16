@@ -250,36 +250,62 @@ final class SettlementService
         return ['scanned' => count($rows), 'done' => $done, 'failed' => $failed];
     }
 
-    /** 退款下期抵扣：接收方应退金额记入抵扣余额，下次结算少分 */
+    /** 退款下期抵扣：接收方应退金额记入抵扣余额，下次结算少分。事务 + 行锁原子化。 */
     public function recordRefundDebit(int $tenantId, string $receiverType, int $receiverId, string $receiverName, string $amount): void
     {
         $minor = Money::toMinor($amount);
         $now = time();
-        $row = Db::table('ch_settlement_balance')
-            ->where('tenant_id', $tenantId)
-            ->where('receiver_type', $receiverType)
-            ->where('receiver_id', $receiverId)
-            ->find();
-        if (is_array($row)) {
-            $newMinor = (int) round((float) $row['balance'] * 100) + $minor;
-            Db::table('ch_settlement_balance')
-                ->where('id', (int) $row['id'])
-                ->update([
-                    'balance' => $this->minorToYuan($newMinor),
-                    'receiver_name' => $receiverName !== '' ? $receiverName : $row['receiver_name'],
+
+        Db::transaction(function () use ($tenantId, $receiverType, $receiverId, $receiverName, $minor, $now) {
+            $row = Db::table('ch_settlement_balance')
+                ->where('tenant_id', $tenantId)
+                ->where('receiver_type', $receiverType)
+                ->where('receiver_id', $receiverId)
+                ->lock(true)
+                ->find();
+            if (is_array($row)) {
+                $newMinor = (int) round((float) $row['balance'] * 100) + $minor;
+                Db::table('ch_settlement_balance')
+                    ->where('id', (int) $row['id'])
+                    ->update([
+                        'balance' => $this->minorToYuan($newMinor),
+                        'receiver_name' => $receiverName !== '' ? $receiverName : $row['receiver_name'],
+                        'update_time' => $now,
+                    ]);
+
+                return;
+            }
+
+            // 缺行插入，唯一键 uk_receiver 兜底：并发 duplicate 时重读并累加
+            try {
+                Db::table('ch_settlement_balance')->insert([
+                    'tenant_id' => $tenantId,
+                    'receiver_type' => $receiverType,
+                    'receiver_id' => $receiverId,
+                    'receiver_name' => $receiverName,
+                    'balance' => $this->minorToYuan($minor),
+                    'add_time' => $now,
                     'update_time' => $now,
                 ]);
-        } else {
-            Db::table('ch_settlement_balance')->insert([
-                'tenant_id' => $tenantId,
-                'receiver_type' => $receiverType,
-                'receiver_id' => $receiverId,
-                'receiver_name' => $receiverName,
-                'balance' => $this->minorToYuan($minor),
-                'add_time' => $now,
-                'update_time' => $now,
-            ]);
-        }
+            } catch (\Throwable $e) {
+                $row2 = Db::table('ch_settlement_balance')
+                    ->where('tenant_id', $tenantId)
+                    ->where('receiver_type', $receiverType)
+                    ->where('receiver_id', $receiverId)
+                    ->lock(true)
+                    ->find();
+                if (is_array($row2)) {
+                    $newMinor = (int) round((float) $row2['balance'] * 100) + $minor;
+                    Db::table('ch_settlement_balance')
+                        ->where('id', (int) $row2['id'])
+                        ->update([
+                            'balance' => $this->minorToYuan($newMinor),
+                            'receiver_name' => $receiverName !== '' ? $receiverName : $row2['receiver_name'],
+                            'update_time' => $now,
+                        ]);
+                }
+            }
+        });
     }
 
     /** 抵扣余额查询（对账用） */
@@ -310,13 +336,14 @@ final class SettlementService
     // 私有
     // ------------------------------------------------------------------
 
-    /** 下期抵扣：扣减明细金额并冲抵余额 */
+    /** 下期抵扣：扣减明细金额并冲抵余额。行锁保证并发 settle 不丢更新。 */
     private function applyDebit(int $tenantId, array $rule, int $detailMinor, int $now): int
     {
         $row = Db::table('ch_settlement_balance')
             ->where('tenant_id', $tenantId)
             ->where('receiver_type', (string) $rule['receiver_type'])
             ->where('receiver_id', (int) $rule['receiver_id'])
+            ->lock(true)
             ->find();
         if (!is_array($row)) {
             return $detailMinor;
