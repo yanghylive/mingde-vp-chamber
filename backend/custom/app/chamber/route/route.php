@@ -57,6 +57,7 @@ foreach ([
     'v1/me/notifications',
     'v1/me/numbers',
     'v1/me/numbers/:number_id/select',
+    'v1/me/appointments',
     'v1/points/paths',
     'v1/products/:product_id/exchange',
     'v1/products',
@@ -64,6 +65,7 @@ foreach ([
     'v1/experts/:expert_id',
     'v1/experts/:expert_id/slots',
     'v1/experts/:expert_id/appointments',
+    'v1/experts/appointments/:appointment_id/cancel',
     'admin/v1/member-assets/:asset_id/content',
     'admin/v1/graduate-verifications',
     'admin/v1/graduate-verifications/:application_id',
@@ -161,6 +163,7 @@ Route::group('v1/me', function () {
     Route::get('numbers', 'MemberNumberController/index');
     Route::post('numbers/:number_id/select', 'MemberNumberController/select')
         ->pattern(['number_id' => '\d+']);
+    Route::get('appointments', 'ExpertScheduleController/myAppointments');
 })->middleware(RequestTraceMiddleware::class)
     ->middleware(ChamberCorsMiddleware::class)
     ->middleware(CrmebAuthTokenMiddleware::class)
@@ -203,6 +206,8 @@ Route::group('v1/experts', function () {
         ->pattern(['expert_id' => '\\d+']);
     Route::post(':expert_id/appointments', 'ExpertScheduleController/appointments')
         ->pattern(['expert_id' => '\\d+']);
+    Route::post('appointments/:appointment_id/cancel', 'ExpertScheduleController/cancelAppointment')
+        ->pattern(['appointment_id' => '\\d+']);
 })->middleware(RequestTraceMiddleware::class)
     ->middleware(ChamberCorsMiddleware::class)
     ->middleware(CrmebAuthTokenMiddleware::class)

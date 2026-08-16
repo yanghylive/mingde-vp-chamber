@@ -187,22 +187,64 @@ final class ExpertScheduleController
 
             $pricing = $this->pricing($tenantId, $expertId);
             $pointsCost = $mode === 'online' ? (int) $pricing['online_points'] : (int) $pricing['offline_points'];
-            $cashCost = $mode === 'online' ? (string) $pricing['online_cash'] : (string) $pricing['offline_cash'];
+            if ($pointsCost <= 0) {
+                throw new MemberTransactionException(409, 'pricing_unavailable', '大咖定价未配置，请稍后再试');
+            }
+            // 现金暂不收（微信支付商户号未配置），cash_cost 记 0，商户号开通后补收
+            $cashCost = '0.00';
+
+            // 扣积分（乐观锁 + 账本）
+            $account = $this->identity->pointsAccount($tenantId, $member, true);
+            $balance = (int) $account['balance'];
+            if ($balance < $pointsCost) {
+                throw new MemberTransactionException(409, 'insufficient_points', '积分不足，需要 ' . $pointsCost . ' 积分');
+            }
+            $newBalance = $balance - $pointsCost;
+            $updated = Db::table('ch_point_account')
+                ->where('id', (int) $account['id'])
+                ->where('tenant_id', $tenantId)
+                ->where('version', (int) $account['version'])
+                ->update([
+                    'balance' => $newBalance,
+                    'version' => (int) $account['version'] + 1,
+                    'update_time' => $now,
+                ]);
+            if ($updated !== 1) {
+                throw new MemberTransactionException(409, 'points_conflict', '积分账户已变动，请重试');
+            }
 
             $appointmentId = (int) Db::table('ch_appointment')->insertGetId([
                 'tenant_id' => $tenantId,
                 'expert_id' => $expertId,
                 'member_id' => (int) $member['id'],
+                'uid' => (int) $member['uid'],
                 'slot_id' => (int) $slot['id'],
                 'mode' => $mode,
-                'status' => 'pending',
+                'status' => 'confirmed',
                 'points_cost' => $pointsCost,
                 'cash_cost' => $cashCost,
                 'created_at' => $now,
+                'add_time' => $now,
             ]);
             if ($appointmentId <= 0) {
                 throw new MemberTransactionException(409, 'appointment_failed', 'Appointment could not be created');
             }
+
+            Db::table('ch_point_ledger')->insert([
+                'tenant_id' => $tenantId,
+                'account_id' => (int) $account['id'],
+                'member_id' => (int) $member['id'],
+                'uid' => (int) $member['uid'],
+                'delta' => -1 * $pointsCost,
+                'balance_after' => $newBalance,
+                'source_type' => 'appointment',
+                'source_id' => (string) $appointmentId,
+                'remark' => '预约大咖（' . ($mode === 'online' ? '线上' : '线下') . '）',
+                'idempotency_key' => hash('sha256', 'appointment_points:' . $tenantId . ':' . $appointmentId),
+                'status' => 1,
+                'reversal_id' => 0,
+                'add_time' => $now,
+            ]);
 
             Db::table('ch_expert_slot')
                 ->where('id', (int) $slot['id'])
@@ -216,7 +258,7 @@ final class ExpertScheduleController
                 'member_id' => (int) $member['id'],
                 'slot_id' => (int) $slot['id'],
                 'mode' => $mode,
-                'status' => 'pending',
+                'status' => 'confirmed',
                 'points_cost' => $pointsCost,
                 'cash_cost' => $cashCost,
                 'created_at' => $now,
@@ -224,6 +266,127 @@ final class ExpertScheduleController
         });
 
         return $this->success($appointment);
+    }
+
+    /** 取消预约：退积分 + 档期回 open */
+    public function cancelAppointment(
+        Request $request,
+        TenantContext $tenant,
+        AuthenticatedUserContext $auth,
+        $appointment_id
+    ): Response {
+        $appointmentId = $this->positiveId($appointment_id);
+        $member = $this->identity->resolve($tenant, $auth);
+        $tenantId = $tenant->tenantId();
+        $now = time();
+
+        $result = Db::transaction(function () use ($tenantId, $member, $appointmentId, $now): array {
+            $appointment = Db::table('ch_appointment')
+                ->where('tenant_id', $tenantId)
+                ->where('id', $appointmentId)
+                ->where('member_id', (int) $member['id'])
+                ->lock(true)
+                ->find();
+            if (!is_array($appointment)) {
+                throw new MemberTransactionException(404, 'appointment_not_found', '预约不存在');
+            }
+            if ((string) $appointment['status'] !== 'confirmed') {
+                throw new MemberTransactionException(409, 'appointment_not_cancellable', '当前预约状态不允许取消');
+            }
+
+            $pointsCost = (int) $appointment['points_cost'];
+
+            $account = $this->identity->pointsAccount($tenantId, $member, true);
+            $balance = (int) $account['balance'];
+            $newBalance = $balance + $pointsCost;
+            $updated = Db::table('ch_point_account')
+                ->where('id', (int) $account['id'])
+                ->where('tenant_id', $tenantId)
+                ->where('version', (int) $account['version'])
+                ->update([
+                    'balance' => $newBalance,
+                    'version' => (int) $account['version'] + 1,
+                    'update_time' => $now,
+                ]);
+            if ($updated !== 1) {
+                throw new MemberTransactionException(409, 'points_conflict', '积分账户已变动，请重试');
+            }
+
+            Db::table('ch_point_ledger')->insert([
+                'tenant_id' => $tenantId,
+                'account_id' => (int) $account['id'],
+                'member_id' => (int) $member['id'],
+                'uid' => (int) $member['uid'],
+                'delta' => $pointsCost,
+                'balance_after' => $newBalance,
+                'source_type' => 'appointment_cancel',
+                'source_id' => (string) $appointmentId,
+                'remark' => '取消预约退积分',
+                'idempotency_key' => hash('sha256', 'appointment_cancel_points:' . $tenantId . ':' . $appointmentId),
+                'status' => 1,
+                'reversal_id' => 0,
+                'add_time' => $now,
+            ]);
+
+            Db::table('ch_appointment')
+                ->where('id', $appointmentId)
+                ->update(['status' => 'cancelled', 'cancel_time' => $now]);
+
+            Db::table('ch_expert_slot')
+                ->where('id', (int) $appointment['slot_id'])
+                ->where('tenant_id', $tenantId)
+                ->update(['status' => 'open']);
+
+            return [
+                'id' => $appointmentId,
+                'status' => 'cancelled',
+                'points_refunded' => $pointsCost,
+            ];
+        });
+
+        return $this->success($result);
+    }
+
+    /** 我的预约列表 */
+    public function myAppointments(
+        Request $request,
+        TenantContext $tenant,
+        AuthenticatedUserContext $auth
+    ): Response {
+        $member = $this->identity->resolve($tenant, $auth);
+        $tenantId = $tenant->tenantId();
+        $limit = min(100, max(1, (int) $request->get('limit', 20)));
+        $page = max(1, (int) $request->get('page', 1));
+
+        $query = Db::table('ch_appointment')
+            ->where('tenant_id', $tenantId)
+            ->where('member_id', (int) $member['id'])
+            ->order('id', 'desc');
+
+        $total = (clone $query)->count();
+        $rows = $query->page($page, $limit)->select()->toArray();
+
+        $items = [];
+        foreach ($rows as $row) {
+            $slot = Db::table('ch_expert_slot')->where('id', (int) $row['slot_id'])->find();
+            $expert = Db::table('ch_expert')->where('id', (int) $row['expert_id'])->find();
+            $items[] = [
+                'id' => (int) $row['id'],
+                'expert_id' => (int) $row['expert_id'],
+                'expert_name' => is_array($expert) ? (string) $expert['name'] : '',
+                'slot_id' => (int) $row['slot_id'],
+                'start_time' => is_array($slot) ? (int) $slot['start_time'] : 0,
+                'end_time' => is_array($slot) ? (int) $slot['end_time'] : 0,
+                'mode' => (string) $row['mode'],
+                'status' => (string) $row['status'],
+                'points_cost' => (int) $row['points_cost'],
+                'cash_cost' => (string) $row['cash_cost'],
+                'created_at' => (int) $row['created_at'],
+                'cancel_time' => (int) ($row['cancel_time'] ?? 0),
+            ];
+        }
+
+        return $this->success(['items' => $items, 'page' => $page, 'limit' => $limit, 'total' => $total]);
     }
 
     private function decodeJsonMap(string $json): array

@@ -1,0 +1,3 @@
+SELECT COLUMN_NAME, COLUMN_TYPE, COLUMN_DEFAULT
+FROM information_schema.COLUMNS
+WHERE TABLE_SCHEMA = 'crmeb' AND TABLE_NAME = 'ch_appointment' AND COLUMN_NAME = 'cancel_time';

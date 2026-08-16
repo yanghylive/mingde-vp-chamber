@@ -268,8 +268,10 @@ export default {
       this.submitting = true
       chamber
         .createAppointment({ expert_id: this.expertId, slot_id: this.selectedSlot, mode: this.mode })
-        .then(() => {
-          uni.showToast({ title: '预约成功，请按档期赴约', icon: 'success' })
+        .then((r) => {
+          const d = (r && r.data) || {}
+          const cost = d.points_cost ? '，已扣 ' + d.points_cost + ' 积分' : ''
+          uni.showToast({ title: '预约成功' + cost, icon: 'success', duration: 2500 })
           this.booked = true
           this.selectedSlot = null
           this.loadData()

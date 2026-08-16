@@ -233,6 +233,7 @@ const MENU_MAIN = [
   { label: 'AI 分身训练', sub: '对话训练你的智能分身', icon: 'ic-bot-gold', color: 'c-gold', to: '/pages/ai-twin/index' },
   { label: '客服微信', sub: '扫码添加专属客服', icon: 'ic-message-circle-blue', color: 'c-blue', to: '/pages/mine/customer-service/index' },
   { label: '我的好友', sub: '按等级 / 地区 / 行业筛选', icon: 'ic-users-round-green', color: 'c-green', to: '/pages/mine/friends/index' },
+  { label: '我的预约', sub: '大咖档期预约记录', icon: 'ic-calendar-check-gold', color: 'c-gold', to: '/pages/mine/appointments/index' },
   { label: '积分记录', sub: '获取与消费明细', icon: 'ic-history-pink', color: 'c-pink', to: '/pages/mine/points-ledger/index' },
   { label: '设置', sub: '资料 / 通知 / 隐私', icon: 'ic-settings-gray', color: 'c-gray', to: '/pages/mine/settings/index' }
 ]

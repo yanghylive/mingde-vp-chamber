@@ -78,6 +78,9 @@ export const chamber = {
       idempotencyKey: uuid(),
       data: { slot_id: data.slot_id, mode: data.mode, topic: data.topic || '', message: data.message || '' }
     }),
+  myAppointments: () => request('/chamber/v1/me/appointments').then(pickList),
+  cancelAppointment: (id) =>
+    request('/chamber/v1/experts/appointments/' + id + '/cancel', { method: 'POST' }),
 
   // ---- 商城 ----
   products: (params) => request('/chamber/v1/products', { data: params || {} }).then(pickList),

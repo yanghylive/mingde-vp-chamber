@@ -86,6 +86,13 @@
       }
     },
     {
+      "path": "pages/mine/appointments/index",
+      "style": {
+        "navigationBarTitleText": "我的预约",
+        "navigationStyle": "custom"
+      }
+    },
+    {
       "path": "pages/mine/friends/index",
       "style": {
         "navigationBarTitleText": "好友",
