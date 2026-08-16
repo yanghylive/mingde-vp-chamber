@@ -35,6 +35,9 @@ final class AiTwinService
     /** 注入记忆条数上限 */
     private const MEMORY_INJECT_LIMIT = 12;
 
+    /** 查询 embedding 进程内 LRU 缓存上限 */
+    private const EMBEDDING_CACHE_MAX = 50;
+
     /** @var MemberIdentityService */
     private $identity;
 
@@ -43,6 +46,9 @@ final class AiTwinService
 
     /** @var AiUsageRecorder */
     private $usage;
+
+    /** @var array<string, array> 查询 embedding 进程内缓存（key=sha256(query)） */
+    private $embeddingCache = [];
 
     public function __construct(?KaypalGateway $gateway = null, ?AiUsageRecorder $usage = null)
     {
@@ -990,9 +996,21 @@ PROMPT;
     /** 问题向量化（失败返回 null，调用方降级纯 BM25；短超时避免拖慢对话） */
     private function embeddingFor(string $text): ?array
     {
+        $key = hash('sha256', $text);
+        if (isset($this->embeddingCache[$key])) {
+            return $this->embeddingCache[$key];
+        }
+
         $usage = null;
         $vectors = $this->gateway->embed($text, $usage, 8);
         $vec = $vectors[0] ?? [];
+        if ($vec) {
+            // 近似 LRU：超上限淘汰最早写入
+            if (count($this->embeddingCache) >= self::EMBEDDING_CACHE_MAX) {
+                array_shift($this->embeddingCache);
+            }
+            $this->embeddingCache[$key] = $vec;
+        }
 
         return $vec ? $vec : null;
     }
