@@ -90,6 +90,22 @@ final class SlotAdminController
         }
 
         $now = time();
+        if ($startTime <= $now) {
+            return json(['code' => 400, 'msg' => '档期开始时间需晚于当前时间']);
+        }
+
+        // 同一专家时间区间不可重叠（半开区间 [start, end)）
+        $overlap = Db::table('ch_expert_slot')
+            ->where('tenant_id', $tenantId)
+            ->where('expert_id', $expertId)
+            ->where('deleted_at', 0)
+            ->where('start_time', '<', $endTime)
+            ->where('end_time', '>', $startTime)
+            ->find();
+        if (is_array($overlap)) {
+            return json(['code' => 409, 'msg' => '档期时间与已有档期重叠']);
+        }
+
         $id = (int) Db::table('ch_expert_slot')->insertGetId([
             'tenant_id'  => $tenantId,
             'expert_id'  => $expertId,
