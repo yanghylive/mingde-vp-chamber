@@ -35,12 +35,12 @@
     <view v-else-if="records.length === 0" class="empty">暂无推荐记录</view>
     <view v-else class="card records">
       <view v-for="(r, i) in records" :key="i" class="record">
-        <view class="rc-avatar">{{ (r.nickname || r.real_name || '友').slice(0, 1) }}</view>
+        <view class="rc-avatar">{{ (r.invited_name || '友').slice(0, 1) }}</view>
         <view class="rc-info">
-          <text class="rc-name">{{ r.nickname || r.real_name || '明德会员' }}</text>
+          <text class="rc-name">{{ r.invited_name || '明德会员' }}</text>
           <text class="rc-time">{{ r.created_at ? toDateStr(r.created_at) : '' }}</text>
         </view>
-        <text class="{{'rc-status' + (r.status === 'accepted' || r.rewarded ? ' rc-ok' : '')}}">{{ r.status === 'accepted' || r.rewarded ? '已到账' : '待确认' }}</text>
+        <text class="{{'rc-status' + (r.status === 'credited' ? ' rc-ok' : '')}}">{{ r.status === 'credited' ? '已到账' : '待确认' }}</text>
       </view>
     </view>
 

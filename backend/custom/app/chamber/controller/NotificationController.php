@@ -48,6 +48,7 @@ final class NotificationController
             $items[] = [
                 'id' => (int) $row['id'],
                 'event_id' => (int) $row['event_id'],
+                'type' => (int) $row['event_id'] > 0 ? 'event' : 'system',
                 'title' => (string) $row['title'],
                 'body' => (string) $row['body'],
                 'read' => (int) $row['read'] === 1,

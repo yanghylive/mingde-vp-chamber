@@ -42,10 +42,41 @@ final class MemberDistributionController
             ->where('status', 'credited')
             ->sum('points_earned');
 
+        $rows = Db::table('ch_distribution_record')
+            ->where('tenant_id', $tenantId)
+            ->where('member_id', $memberId)
+            ->where('invited_member_id', '>', 0)
+            ->order('created_at', 'desc')
+            ->order('id', 'desc')
+            ->limit(50)
+            ->select()
+            ->toArray();
+
+        $records = [];
+        foreach ($rows as $r) {
+            $invitedName = '';
+            $profile = Db::table('ch_member_profile')
+                ->where('tenant_id', $tenantId)
+                ->where('member_id', (int) $r['invited_member_id'])
+                ->find();
+            if (is_array($profile)) {
+                $invitedName = (string) ($profile['real_name'] ?? '');
+            }
+            $records[] = [
+                'id'                 => (int) $r['id'],
+                'invited_member_id'  => (int) $r['invited_member_id'],
+                'invited_name'       => $invitedName,
+                'points_earned'      => (int) $r['points_earned'],
+                'status'             => (string) $r['status'],
+                'created_at'         => (int) $r['created_at'],
+            ];
+        }
+
         return $this->success([
             'code' => $code,
             'referred_count' => $referred,
             'points_earned' => $earned,
+            'records' => $records,
         ]);
     }
 
