@@ -181,22 +181,22 @@ export default {
     },
     onlinePoints() {
       const p = this.expert && (this.expert.pricing || {})
-      const v = p && p.online ? p.online.points : (this.expert && this.expert.online_points)
+      const v = p.online_points != null ? p.online_points : (p.online ? p.online.points : (this.expert && this.expert.online_points))
       return Number(v || 0)
     },
     onlineCash() {
       const p = this.expert && (this.expert.pricing || {})
-      const v = p && p.online ? p.online.cash : (this.expert && this.expert.online_cash)
+      const v = p.online_cash != null ? p.online_cash : (p.online ? p.online.cash : (this.expert && this.expert.online_cash))
       return Number(v || 0)
     },
     offlinePoints() {
       const p = this.expert && (this.expert.pricing || {})
-      const v = p && p.offline ? p.offline.points : (this.expert && this.expert.offline_points)
+      const v = p.offline_points != null ? p.offline_points : (p.offline ? p.offline.points : (this.expert && this.expert.offline_points))
       return Number(v || 0)
     },
     offlineCash() {
       const p = this.expert && (this.expert.pricing || {})
-      const v = p && p.offline ? p.offline.cash : (this.expert && this.expert.offline_cash)
+      const v = p.offline_cash != null ? p.offline_cash : (p.offline ? p.offline.cash : (this.expert && this.expert.offline_cash))
       return Number(v || 0)
     },
     slotsByDay() {

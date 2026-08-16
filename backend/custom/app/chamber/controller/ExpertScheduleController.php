@@ -73,12 +73,12 @@ final class ExpertScheduleController
         ]);
     }
 
-    /** 定价表化（P0）：读 ch_expert_pricing，无记录回退默认值 */
+    /** 定价：统一读 ch_expert 表（与 admin 录入、列表展示一致；ch_expert_pricing 表已废弃不再读） */
     private function pricing(int $tenantId, int $expertId): array
     {
-        $row = Db::table('ch_expert_pricing')
+        $row = Db::table('ch_expert')
             ->where('tenant_id', $tenantId)
-            ->where('expert_id', $expertId)
+            ->where('id', $expertId)
             ->find();
 
         if (is_array($row)) {
