@@ -111,6 +111,7 @@ final class ExpertScheduleController
             ->where('tenant_id', $tenant->tenantId())
             ->where('expert_id', $expertId)
             ->where('status', 'open')
+            ->where('deleted_at', 0)
             ->where('start_time', '>=', $now)
             ->order('start_time', 'asc')
             ->limit(60)
@@ -183,6 +184,7 @@ final class ExpertScheduleController
                 ->where('tenant_id', $tenantId)
                 ->where('id', (int) $slotId)
                 ->where('expert_id', $expertId)
+                ->where('deleted_at', 0)
                 ->lock(true)
                 ->find();
             if (!is_array($slot)) {

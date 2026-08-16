@@ -1,0 +1,2 @@
+SELECT COLUMN_NAME, COLUMN_TYPE FROM information_schema.COLUMNS
+WHERE TABLE_SCHEMA='crmeb' AND TABLE_NAME='ch_expert_slot' AND COLUMN_NAME='deleted_at';

@@ -103,7 +103,7 @@ final class SlotAdminController
         return json(['code' => 0, 'msg' => 'ok', 'data' => ['id' => $id]]);
     }
 
-    /** 删除档期（含已预约——保留预约记录，仅移除档期） */
+    /** 删除档期（软删除，保留历史展示） */
     public function delete(int $slot_id, Request $request, TenantContext $tenant): Response
     {
         unset($request);
@@ -112,14 +112,15 @@ final class SlotAdminController
             ->where('tenant_id', $tenantId)
             ->where('id', $slot_id)
             ->find();
-        if (!is_array($slot)) {
+        if (!is_array($slot) || (int) $slot['deleted_at'] > 0) {
             return json(['code' => 404, 'msg' => '档期不存在']);
         }
 
+        // 软删除：保留行，历史预约仍能 join 到时段信息
         Db::table('ch_expert_slot')
             ->where('tenant_id', $tenantId)
             ->where('id', $slot_id)
-            ->delete();
+            ->update(['deleted_at' => time()]);
 
         return json(['code' => 0, 'msg' => 'ok', 'data' => ['deleted' => $slot_id]]);
     }
