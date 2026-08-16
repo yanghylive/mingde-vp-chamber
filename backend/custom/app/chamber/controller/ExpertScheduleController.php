@@ -164,13 +164,20 @@ final class ExpertScheduleController
         $tenantId = $tenant->tenantId();
         $now = time();
 
+        // 客户端幂等键：同一 Idempotency-Key 重试返回第一次创建的预约，不重复扣积分
+        $idemKey = trim((string) $request->header('Idempotency-Key', ''));
+        $bookingKey = $idemKey !== ''
+            ? hash('sha256', $idemKey)
+            : 'gen:' . bin2hex(random_bytes(12));
+
         $appointment = Db::transaction(function () use (
             $tenantId,
             $expertId,
             $member,
             $slotId,
             $mode,
-            $now
+            $now,
+            $bookingKey
         ): array {
             $slot = Db::table('ch_expert_slot')
                 ->where('tenant_id', $tenantId)
@@ -181,8 +188,41 @@ final class ExpertScheduleController
             if (!is_array($slot)) {
                 throw new MemberTransactionException(404, 'slot_not_found', 'Expert slot was not found');
             }
+
+            // 幂等重放：同一 booking_key 已有预约，直接返回第一次结果（不重复扣积分/占档期）
+            $existing = Db::table('ch_appointment')
+                ->where('tenant_id', $tenantId)
+                ->where('member_id', (int) $member['id'])
+                ->where('booking_key', $bookingKey)
+                ->find();
+            if (is_array($existing)) {
+                return [
+                    'id' => (int) $existing['id'],
+                    'expert_id' => (int) $existing['expert_id'],
+                    'member_id' => (int) $existing['member_id'],
+                    'slot_id' => (int) $existing['slot_id'],
+                    'mode' => (string) $existing['mode'],
+                    'status' => (string) $existing['status'],
+                    'points_cost' => (int) $existing['points_cost'],
+                    'cash_cost' => (string) $existing['cash_cost'],
+                    'created_at' => (int) $existing['created_at'],
+                    'replayed' => true,
+                ];
+            }
+
             if ((string) $slot['status'] !== 'open') {
                 throw new MemberTransactionException(409, 'slot_unavailable', 'Expert slot is no longer available');
+            }
+            if ((int) $slot['start_time'] <= $now) {
+                throw new MemberTransactionException(409, 'slot_expired', '该档期已过期');
+            }
+            if ((int) $slot['end_time'] <= (int) $slot['start_time']) {
+                throw new MemberTransactionException(409, 'slot_invalid', '档期时间非法');
+            }
+            // mode(online/offline) 必须与档期 location(0线上/1线下) 一致
+            $expectLocation = $mode === 'online' ? 0 : 1;
+            if ((int) $slot['location'] !== $expectLocation) {
+                throw new MemberTransactionException(409, 'mode_location_mismatch', '预约方式与档期类型不匹配');
             }
 
             $pricing = $this->pricing($tenantId, $expertId);
@@ -223,6 +263,7 @@ final class ExpertScheduleController
                 'status' => 'confirmed',
                 'points_cost' => $pointsCost,
                 'cash_cost' => $cashCost,
+                'booking_key' => $bookingKey,
                 'created_at' => $now,
                 'add_time' => $now,
             ]);
