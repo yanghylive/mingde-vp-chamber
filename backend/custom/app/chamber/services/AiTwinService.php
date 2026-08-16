@@ -657,12 +657,13 @@ PROMPT;
     {
         $twinMemberId = $this->resolveTwinMemberId($tenantId, $expertMemberId);
         $ai = $this->ensureAi($tenantId, $twinMemberId);
-        $memories = $this->memories($tenantId, $twinMemberId, self::MEMORY_INJECT_LIMIT);
 
-        $memoriesBrief = [];
-        foreach ($memories as $m) {
-            $memoriesBrief[] = $m['content'];
-        }
+        // 隐私：不返回训练记忆原文，只返回数量（原文仅服务端注入 AI 时使用）
+        $memoryCount = (int) Db::table('ch_expert_ai_memory')
+            ->where('tenant_id', $tenantId)
+            ->where('expert_id', (int) $ai['id'])
+            ->where('status', 1)
+            ->count();
 
         return [
             'persona_name' => (string) $ai['persona_name'],
@@ -671,7 +672,7 @@ PROMPT;
             'training_status' => (int) $ai['training_status'],
             'training_progress' => (int) $ai['training_progress'],
             'chat_points_cost' => (int) $ai['chat_points_cost'],
-            'memory_summary' => $memoriesBrief,
+            'memory_count' => $memoryCount,
         ];
     }
 
