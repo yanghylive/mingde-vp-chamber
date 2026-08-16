@@ -11,6 +11,11 @@
     "name": "CRMEB-KY",
     "version": "v6.0.0",
     "commit": "7dcddffff73ec542d689f159724296351f29ea9a",
+    "project_commit": "0791fbf8b0d75bb8af0faa25c6305535368559f3",
+    "patches": [
+      { "commit": "7095948e", "note": "chamber 接口前缀/CORS/cookie 兼容调整（小程序 404 修复 + 跨域）" },
+      { "commit": "0791fbf", "note": "短信验证码发送修复——captchaType 为空时跳过滑块校验" }
+    ],
     "submodule_path": "backend/crmeb",
     "source": "https://gitee.com/ZhongBangKeJi/CRMEB.git",
     "github_mirror": "https://github.com/crmeb/CRMEB"

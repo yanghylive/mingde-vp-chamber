@@ -172,8 +172,9 @@ class PhpSource
 end
 
 class CrmebV6Audit
-  LOCKED_COMMIT = "7dcddffff73ec542d689f159724296351f29ea9a"
-  LOCKED_TAG = "v6.0.0"
+  LOCKED_COMMIT = "0791fbf8b0d75bb8af0faa25c6305535368559f3"
+  UPSTREAM_COMMIT = "7dcddffff73ec542d689f159724296351f29ea9a"
+  UPSTREAM_TAG = "v6.0.0"
 
   TARGETS = {
     store_success: "app/services/order/StoreOrderSuccessServices.php",
@@ -236,14 +237,12 @@ class CrmebV6Audit
 
   def verify_source_lock!
     commit = git("rev-parse", "HEAD")
-    tag = git("describe", "--tags", "--exact-match", "HEAD")
     dirty = git("status", "--porcelain", "--untracked-files=no")
 
-    raise AuditError, "expected commit #{LOCKED_COMMIT}, got #{commit}" unless commit == LOCKED_COMMIT
-    raise AuditError, "expected tag #{LOCKED_TAG}, got #{tag}" unless tag == LOCKED_TAG
+    raise AuditError, "expected project commit #{LOCKED_COMMIT}, got #{commit}" unless commit == LOCKED_COMMIT
     raise AuditError, "tracked CRMEB source is dirty: #{dirty.lines.first.to_s.strip}" unless dirty.empty?
 
-    puts "Source lock: PASS (#{tag} @ #{commit})"
+    puts "Source lock: PASS (project @ #{commit}, based on upstream #{UPSTREAM_TAG} #{UPSTREAM_COMMIT})"
   end
 
   def git(*arguments)

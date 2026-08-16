@@ -11,8 +11,7 @@ SHARED_SOURCE="$CUSTOM_ROOT/shared"
 WORKSPACE_ROOT="${MINGDE_FRONTEND_WORKSPACE:-$PROJECT_ROOT/.build-workspace/frontend}"
 ADMIN_TARGET="$WORKSPACE_ROOT/admin"
 UNIAPP_TARGET="$WORKSPACE_ROOT/uni-app"
-EXPECTED_TAG="v6.0.0"
-EXPECTED_COMMIT="7dcddffff73ec542d689f159724296351f29ea9a"
+EXPECTED_COMMIT="0791fbf8b0d75bb8af0faa25c6305535368559f3"
 MODE="${1:-prepare}"
 UNIAPP_API_ORIGIN="${MINGDE_UNIAPP_API_ORIGIN:-http://127.0.0.1:8011}"
 
@@ -36,13 +35,11 @@ verify_source() {
   [[ -f "$SHARED_SOURCE/tenant-brand.js" ]] || fail "tenant brand core is missing"
   [[ -f "$SHARED_SOURCE/vue2-tenant-brand.js" ]] || fail "Vue2 tenant brand adapter is missing"
 
-  local commit tag dirty
+  local commit dirty
   commit="$(git -C "$CRMEB_ROOT" rev-parse HEAD)"
-  tag="$(git -C "$CRMEB_ROOT" describe --tags --exact-match HEAD 2>/dev/null || true)"
   dirty="$(git -C "$CRMEB_ROOT" status --porcelain)"
 
   [[ "$commit" == "$EXPECTED_COMMIT" ]] || fail "CRMEB commit drift: expected $EXPECTED_COMMIT, got $commit"
-  [[ "$tag" == "$EXPECTED_TAG" ]] || fail "CRMEB tag drift: expected $EXPECTED_TAG, got ${tag:-none}"
   [[ -z "$dirty" ]] || fail "CRMEB submodule has local changes; keep upstream read-only"
 
   node - "$ADMIN_SOURCE/package.json" "$ADMIN_SOURCE/package-lock.json" "$UNIAPP_SOURCE/package.json" "$UNIAPP_SOURCE/package-lock.json" "$(npm --version)" <<'NODE'
