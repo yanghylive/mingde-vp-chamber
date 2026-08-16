@@ -56,7 +56,7 @@ final class ProductExchangeService
             $callerKey,
             ['product_id' => $productId, 'points_cost' => $pointsCost, 'cash_cost' => $cashCost],
             200,
-            function (int $now) use ($tenant, $auth, $productId, $pointsCost, $cashCost): array {
+            function (int $now) use ($tenant, $auth, $productId, $pointsCost, $cashCost, $callerKey): array {
                 $member = $this->identity->resolve($tenant, $auth, true);
                 $memberId = (int) $member['id'];
 
@@ -145,6 +145,9 @@ final class ProductExchangeService
                 ]);
 
                 return $this->orderPayload($orderId, $product, $pointsCost, $cashCost, $now, $orderStatus);
+            },
+            function () use ($tenant, $auth): void {
+                $this->identity->resolve($tenant, $auth, false);
             }
         );
     }
