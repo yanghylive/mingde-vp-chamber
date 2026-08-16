@@ -71,14 +71,21 @@ final class SettlementAdminController
         $total = (clone $query)->count();
         $rows = $query->page($page, $limit)->select()->toArray();
 
+        // 批量查明细，消除 N+1
+        $detailMap = [];
+        $settlementIds = array_values(array_filter(array_map(static function ($r) {
+            return (int) $r['id'];
+        }, $rows)));
+        if ($settlementIds) {
+            foreach (Db::table('ch_settlement_detail')->whereIn('settlement_id', $settlementIds)->select()->toArray() as $d) {
+                $detailMap[(int) $d['settlement_id']][] = $d;
+            }
+        }
+
         $items = [];
         foreach ($rows as $r) {
-            $details = Db::table('ch_settlement_detail')
-                ->where('settlement_id', (int) $r['id'])
-                ->select()
-                ->toArray();
             $detailItems = [];
-            foreach ($details as $d) {
+            foreach ($detailMap[(int) $r['id']] ?? [] as $d) {
                 $detailItems[] = [
                     'id' => (int) $d['id'],
                     'receiver_type' => (string) $d['receiver_type'],
