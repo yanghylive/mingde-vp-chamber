@@ -104,6 +104,8 @@ final class MemberFriendController
                 'tier' => (int) $friend['tier'],
                 'province' => $province,
                 'city' => $city,
+                'region' => trim($province . ($city !== '' && $city !== $province ? ' ' . $city : '')),
+                'status' => 'accepted',
             ];
         }
 

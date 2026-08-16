@@ -18,10 +18,10 @@ final class PointsPathsController
 {
     /** 默认 4 条路径（无配置时回退） */
     private const DEFAULT_PATHS = [
-        ['code' => 'coach', 'title' => '做教练 / 开课', 'points' => 200, 'icon' => 'coach'],
-        ['code' => 'charity', 'title' => '公益活动', 'points' => 100, 'icon' => 'charity'],
-        ['code' => 'roadshow', 'title' => '项目路演', 'points' => 80, 'icon' => 'roadshow'],
-        ['code' => 'distribution', 'title' => '推荐新会员', 'points' => 50, 'icon' => 'distribution'],
+        ['code' => 'coach', 'title' => '做教练 / 开课', 'points' => 200, 'icon' => 'coach', 'desc' => '分享专业经验，成为平台认证教练'],
+        ['code' => 'charity', 'title' => '公益活动', 'points' => 100, 'icon' => 'charity', 'desc' => '参与商业向善公益活动'],
+        ['code' => 'roadshow', 'title' => '项目路演', 'points' => 80, 'icon' => 'roadshow', 'desc' => '登上路演舞台展示项目'],
+        ['code' => 'distribution', 'title' => '推荐新会员', 'points' => 50, 'icon' => 'distribution', 'desc' => '推荐企业家加入明德共同体'],
     ];
 
     public function index(Request $request, TenantContext $tenant): Response
@@ -44,6 +44,7 @@ final class PointsPathsController
                 'title'  => (string) ($p['title'] ?? ''),
                 'points' => (int) ($p['points'] ?? 0),
                 'icon'   => (string) ($p['icon'] ?? ''),
+                'desc'   => (string) ($p['desc'] ?? ''),
             ];
         }
 

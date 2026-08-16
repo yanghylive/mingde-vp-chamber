@@ -144,7 +144,7 @@ final class EventCheckinService
         if (is_array($existing)) {
             $this->grantReward($tenant, $event, $registration, $now);
 
-            return $this->result($existing, true);
+            return $this->result($existing, true, max(0, (int) ($event['checkin_reward_points'] ?? 0)));
         }
 
         try {
@@ -169,7 +169,7 @@ final class EventCheckinService
             if (is_array($existing)) {
                 $this->grantReward($tenant, $event, $registration, $now);
 
-                return $this->result($existing, true);
+                return $this->result($existing, true, max(0, (int) ($event['checkin_reward_points'] ?? 0)));
             }
             throw new MemberTransactionException(409, 'event_reward_failed', 'Event check-in could not be recorded');
         }
@@ -195,6 +195,7 @@ final class EventCheckinService
             'checked_at' => $now,
             'checkin_type' => 'scan',
             'replayed' => false,
+            'points_awarded' => max(0, (int) ($event['checkin_reward_points'] ?? 0)),
         ];
     }
 
@@ -240,7 +241,7 @@ final class EventCheckinService
         );
     }
 
-    private function result(array $row, bool $replayed): array
+    private function result(array $row, bool $replayed, int $pointsAwarded = 0): array
     {
         return [
             'id' => (int) $row['id'],
@@ -249,6 +250,7 @@ final class EventCheckinService
             'checked_at' => (int) $row['checked_time'],
             'checkin_type' => (int) $row['checkin_type'] === 2 ? 'manual' : 'scan',
             'replayed' => $replayed,
+            'points_awarded' => $pointsAwarded,
         ];
     }
 

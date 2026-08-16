@@ -160,10 +160,6 @@
             <text class="ms-label">姓名</text>
             <input v-model="editor.real_name" class="ms-input" placeholder="请输入真实姓名" placeholder-class="ph" />
           </view>
-          <view class="ms-field">
-            <text class="ms-label">昵称</text>
-            <input v-model="editor.nickname" class="ms-input" placeholder="对外展示昵称" placeholder-class="ph" />
-          </view>
           <view class="ms-row">
             <view class="ms-field flex1">
               <text class="ms-label">公司</text>
@@ -235,7 +231,6 @@ export default {
       saveError: '',
       editor: {
         real_name: '',
-        nickname: '',
         company_name: '',
         job_title: '',
         industry: '',
@@ -269,10 +264,10 @@ export default {
       return this.stats.contribution !== undefined ? this.stats.contribution : null
     },
     friendsCount() {
-      return this.friendsList.length || (this.stats.friend_count || 0)
+      return this.friendsList.length || (this.stats.friends || 0)
     },
     distributionCount() {
-      return (this.distribution && this.distribution.invite_count) || 0
+      return (this.distribution && this.distribution.referred_count) || 0
     },
     registrationsCount() {
       return this.registrations.length
@@ -329,11 +324,10 @@ export default {
       const p = this.profile || {}
       this.editor = {
         real_name: p.real_name || '',
-        nickname: p.nickname || this.displayName || '',
         company_name: p.company_name || '',
         job_title: p.job_title || '',
         industry: p.industry || '',
-        region: p.region || '',
+        region: p.city || p.province || '',
         bio: p.bio || ''
       }
       this.saveError = ''
@@ -350,11 +344,10 @@ export default {
       try {
         await chamber.meProfileUpdate({
           real_name: this.editor.real_name,
-          nickname: this.editor.nickname,
           company_name: this.editor.company_name,
           job_title: this.editor.job_title,
           industry: this.editor.industry,
-          region: this.editor.region,
+          city: this.editor.region,
           bio: this.editor.bio
         })
         uni.showToast({ title: '已保存', icon: 'success' })

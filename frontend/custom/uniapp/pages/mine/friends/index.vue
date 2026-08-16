@@ -39,7 +39,7 @@
             <text class="f-name">{{ f.nickname || f.real_name || '明德会员' }}</text>
             <text v-if="f.tier" class="f-tier">L{{ f.tier }}</text>
           </view>
-          <text class="f-meta">{{ f.region && f.industry ? f.region + ' · ' + f.industry : (f.region || f.industry || f.company || '明德精英') }}</text>
+          <text class="f-meta">{{ f.region && f.industry ? f.region + ' · ' + f.industry : (f.region || f.industry || f.company_name || '明德精英') }}</text>
         </view>
         <view class="{{'f-status' + (f.status === 'accepted' ? ' f-accepted' : ' f-pending')}}">
           {{ f.status === 'accepted' ? '已通过' : '待确认' }}

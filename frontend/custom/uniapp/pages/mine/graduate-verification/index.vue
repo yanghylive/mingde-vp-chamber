@@ -89,15 +89,16 @@ export default {
     async loadData() {
       try {
         var g = await chamber.myGraduateVerification()
-        if (g && g.status) {
-          this.status = g.status
-          this.canSubmit = g.can_submit !== false
-          if (g.status === 'pending' || g.status === 'approved') {
-            this.form.class_name = g.class_name || ''
-            this.form.graduation_year = g.graduation_year ? String(g.graduation_year) : ''
+        var app = g && g.latest_application
+        this.status = (g && g.current_status) || 'draft'
+        this.canSubmit = !g || g.can_submit !== false
+        if (app) {
+          if (this.status === 'pending' || this.status === 'approved') {
+            this.form.class_name = app.class_name || ''
+            this.form.graduation_year = app.graduation_year ? String(app.graduation_year) : ''
           }
-          if (g.status === 'approved' && g.class_name) {
-            this.approvedSub = (g.class_name || '') + ' · ' + (g.graduation_year || '') + ' 届'
+          if (this.status === 'approved' && app.class_name) {
+            this.approvedSub = (app.class_name || '') + ' · ' + (app.graduation_year || '') + ' 届'
           }
         }
       } catch (e) {}

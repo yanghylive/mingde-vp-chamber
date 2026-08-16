@@ -13,7 +13,7 @@
 
     <view class="stats card">
       <view class="stat">
-        <text class="stat-num">{{ info.invite_count || 0 }}</text>
+        <text class="stat-num">{{ info.referred_count || 0 }}</text>
         <text class="stat-label">推荐人数</text>
       </view>
       <view class="stat">
