@@ -96,6 +96,8 @@ foreach ([
     'admin/v1/ai-twins/:member_id/chats',
     'admin/v1/ai-twins/:member_id/knowledge',
     'admin/v1/ai-twins/:member_id/knowledge/:knowledge_id',
+    'admin/v1/notifications',
+    'admin/v1/notifications/:notification_id',
     'v1/ai-twin/me',
     'v1/ai-twin/train',
     'v1/ai-twin/train/history',
@@ -314,6 +316,13 @@ Route::group('admin/v1', function () {
         ->pattern(['member_id' => '\\d+']);
     Route::delete('ai-twins/:member_id/knowledge/:knowledge_id', 'AiTwinAdminController/deleteKnowledge')
         ->pattern(['member_id' => '\\d+', 'knowledge_id' => '\\d+']);
+    // ---- 通知发布 ----
+    Route::get('notifications', 'NotificationAdminController/index');
+    Route::post('notifications', 'NotificationAdminController/store');
+    Route::patch('notifications/:notification_id', 'NotificationAdminController/update')
+        ->pattern(['notification_id' => '\\d+']);
+    Route::delete('notifications/:notification_id', 'NotificationAdminController/destroy')
+        ->pattern(['notification_id' => '\\d+']);
 })->middleware(RequestTraceMiddleware::class)
     ->middleware(ChamberCorsMiddleware::class)
     ->middleware(CrmebAdminAuthTokenMiddleware::class)

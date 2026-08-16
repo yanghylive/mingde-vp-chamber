@@ -45,7 +45,7 @@
         <el-table-column label="标题" min-width="180">
           <template slot-scope="scope">
             <div class="primary-cell">{{ scope.row.title }}</div>
-            <div class="secondary-cell">ID {{ scope.row.id }} · 会员 {{ scope.row.member_id }}</div>
+            <div class="secondary-cell">ID {{ scope.row.id }} · {{ scope.row.member_id === 0 ? '全部会员' : '会员 ' + scope.row.member_id }}</div>
           </template>
         </el-table-column>
         <el-table-column label="内容" min-width="240" show-overflow-tooltip>

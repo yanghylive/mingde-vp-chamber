@@ -37,7 +37,9 @@ final class NotificationController
 
         $query = Db::table('ch_event_notification')
             ->where('tenant_id', $tenantId)
-            ->where('member_id', $memberId)
+            ->where(function ($q) use ($memberId) {
+                $q->where('member_id', $memberId)->whereOr('member_id', 0);
+            })
             ->order('id', 'desc');
 
         $total = (clone $query)->count();
