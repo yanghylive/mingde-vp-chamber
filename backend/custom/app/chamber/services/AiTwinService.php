@@ -463,36 +463,17 @@ PROMPT;
         // 大咖名（展示）
         $expertName = $ai['persona_name'] !== '' ? $ai['persona_name'] : '大咖#' . $twinMemberId;
 
-        // 1. 预校验余额
+        // 1. 预校验余额（快速失败，避免无谓上游调用）
         $account = $this->identity->pointsAccount($tenantId, $member, true);
         if ((int) $account['balance'] < $cost) {
             throw new MemberTransactionException(409, 'insufficient_points', '积分不足，需要 ' . $cost . ' 积分');
         }
 
-        // 2. 调 AI（长耗时，放在事务外）
-        $memories = $this->memories($tenantId, $twinMemberId, self::MEMORY_INJECT_LIMIT);
-        $expertProfile = $this->memberProfile($tenantId, $twinMemberId);
-        $system = $this->twinSystem($ai, $memories, $this->relevantKnowledge($tenantId, $aiId, $message, 5), $expertProfile);
-        $history = $this->lastHistory($tenantId, $aiId, 'member', self::MEMBER_MAX_HISTORY);
-
-        $usage = [];
-        try {
-            $reply = $this->gateway->chatWithHistory($system, $history, $message, 1000, 0.7, $usage);
-        } catch (RuntimeException $e) {
-            Log::warning('ai_twin.chat gateway error', ['err' => $e->getMessage()]);
-            throw new MemberTransactionException(502, 'ai_gateway_error', 'AI 服务暂不可用，请稍后再试');
-        }
-
-        // 3. 事务：乐观锁扣积分 + 账本 + 存对话
-        $history[] = ['role' => 'user', 'content' => $message];
-        $history[] = ['role' => 'assistant', 'content' => $reply];
-        $history = array_slice($history, -self::MEMBER_MAX_HISTORY);
-
         $now = time();
-        $chatId = null;
-        $finalBalance = null;
-        Db::transaction(function () use ($tenant, $member, $cost, $twinMemberId, $expertName, $tenantId, $aiId, $history, $now, $memberId, &$chatId, &$finalBalance) {
-            // 乐观锁重读
+        // 2. 先扣积分（乐观锁 + 账本）。改为「先扣后调」：AI 失败再退，避免
+        //    「先调 AI 成功后再扣积分」导致的重复请求重复消耗上游成本。
+        $deductKey = hash('sha256', 'ai_twin_chat:' . $tenantId . ':' . $memberId . ':' . bin2hex(random_bytes(8)));
+        Db::transaction(function () use ($tenant, $member, $cost, $expertName, $tenantId, $memberId, $now, $deductKey) {
             $account = $this->identity->pointsAccount($tenantId, $member, true);
             $balance = (int) $account['balance'];
             if ($balance < $cost) {
@@ -500,7 +481,6 @@ PROMPT;
             }
 
             $newBalance = $balance - $cost;
-            $finalBalance = $newBalance;
             $updated = Db::table('ch_point_account')
                 ->where('id', (int) $account['id'])
                 ->where('tenant_id', $tenantId)
@@ -514,6 +494,46 @@ PROMPT;
                 throw new MemberTransactionException(409, 'points_conflict', '积分账户已变动，请重试');
             }
 
+            Db::table('ch_point_ledger')->insert([
+                'tenant_id' => $tenantId,
+                'account_id' => (int) $account['id'],
+                'member_id' => $memberId,
+                'uid' => (int) $member['uid'],
+                'delta' => -$cost,
+                'balance_after' => $newBalance,
+                'source_type' => 'ai_twin_chat',
+                'source_id' => '0',
+                'remark' => '与大咖「' . $expertName . '」AI 分身对话',
+                'idempotency_key' => $deductKey,
+                'status' => 1,
+                'reversal_id' => 0,
+                'add_time' => $now,
+            ]);
+        });
+
+        // 3. 调 AI（长耗时，放在事务外）
+        $memories = $this->memories($tenantId, $twinMemberId, self::MEMORY_INJECT_LIMIT);
+        $expertProfile = $this->memberProfile($tenantId, $twinMemberId);
+        $system = $this->twinSystem($ai, $memories, $this->relevantKnowledge($tenantId, $aiId, $message, 5), $expertProfile);
+        $history = $this->lastHistory($tenantId, $aiId, 'member', self::MEMBER_MAX_HISTORY);
+
+        $usage = [];
+        try {
+            $reply = $this->gateway->chatWithHistory($system, $history, $message, 1000, 0.7, $usage);
+        } catch (RuntimeException $e) {
+            Log::warning('ai_twin.chat gateway error', ['err' => $e->getMessage()]);
+            $this->refundChatPoints($member, $tenantId, $cost, $now, $deductKey);
+            throw new MemberTransactionException(502, 'ai_gateway_error', 'AI 服务暂不可用，请稍后再试');
+        }
+
+        // 4. 存对话 + 关联账本 source_id + chat_count（事务）
+        $history[] = ['role' => 'user', 'content' => $message];
+        $history[] = ['role' => 'assistant', 'content' => $reply];
+        $history = array_slice($history, -self::MEMBER_MAX_HISTORY);
+
+        $chatId = null;
+        $finalBalance = null;
+        Db::transaction(function () use ($tenant, $member, $twinMemberId, $tenantId, $aiId, $history, $now, $memberId, $deductKey, &$chatId, &$finalBalance) {
             $chatId = (int) Db::table('ch_expert_ai_chat')->insertGetId([
                 'tenant_id' => $tenantId,
                 'expert_id' => $aiId,
@@ -527,26 +547,19 @@ PROMPT;
                 'update_time' => $now,
             ]);
 
-            Db::table('ch_point_ledger')->insert([
-                'tenant_id' => $tenantId,
-                'account_id' => (int) $account['id'],
-                'member_id' => $memberId,
-                'uid' => (int) $member['uid'],
-                'delta' => -$cost,
-                'balance_after' => $newBalance,
-                'source_type' => 'ai_twin_chat',
-                'source_id' => (string) $chatId,
-                'remark' => '与大咖「' . $expertName . '」AI 分身对话',
-                'idempotency_key' => 'ai_twin_chat_' . $chatId,
-                'status' => 1,
-                'reversal_id' => 0,
-                'add_time' => $now,
-            ]);
+            // 账本 source_id 关联对话 id，对账可追溯
+            Db::table('ch_point_ledger')
+                ->where('tenant_id', $tenantId)
+                ->where('idempotency_key', $deductKey)
+                ->update(['source_id' => (string) $chatId]);
 
             Db::table('ch_expert_ai')->where('id', $aiId)->update([
                 'chat_count' => Db::raw('chat_count + 1'),
                 'update_time' => $now,
             ]);
+
+            $account = $this->identity->pointsAccount($tenantId, $member, true);
+            $finalBalance = (int) $account['balance'];
         });
 
         $this->recordUsage(['tenant_id' => $tenantId, 'member_id' => $memberId], 'ai_twin_chat', $usage);
@@ -557,6 +570,49 @@ PROMPT;
             'balance' => (int) $finalBalance,
             'chat_id' => (int) $chatId,
         ];
+    }
+
+    /** AI 调用失败后退回已扣积分（乐观锁 + reversal 账本）。退款失败仅记日志，不吞原异常。 */
+    private function refundChatPoints(array $member, int $tenantId, int $cost, int $now, string $deductKey): void
+    {
+        $memberId = (int) $member['id'];
+        try {
+            Db::transaction(function () use ($member, $tenantId, $memberId, $cost, $now, $deductKey) {
+                $account = $this->identity->pointsAccount($tenantId, $member, true);
+                $balance = (int) $account['balance'];
+                $newBalance = $balance + $cost;
+                $updated = Db::table('ch_point_account')
+                    ->where('id', (int) $account['id'])
+                    ->where('tenant_id', $tenantId)
+                    ->where('version', (int) $account['version'])
+                    ->update([
+                        'balance' => $newBalance,
+                        'version' => (int) $account['version'] + 1,
+                        'update_time' => $now,
+                    ]);
+                if (!$updated) {
+                    throw new MemberTransactionException(409, 'points_conflict', '积分账户已变动，退款失败');
+                }
+
+                Db::table('ch_point_ledger')->insert([
+                    'tenant_id' => $tenantId,
+                    'account_id' => (int) $account['id'],
+                    'member_id' => $memberId,
+                    'uid' => (int) $member['uid'],
+                    'delta' => $cost,
+                    'balance_after' => $newBalance,
+                    'source_type' => 'ai_twin_chat_refund',
+                    'source_id' => '0',
+                    'remark' => 'AI 对话失败退款',
+                    'idempotency_key' => hash('sha256', 'ai_twin_chat_refund:' . $tenantId . ':' . $memberId . ':' . $deductKey),
+                    'status' => 1,
+                    'reversal_id' => 0,
+                    'add_time' => $now,
+                ]);
+            });
+        } catch (Throwable $e) {
+            Log::warning('ai_twin.chat refund failed', ['deduct_key' => $deductKey, 'err' => $e->getMessage()]);
+        }
     }
 
     // ------------------------------------------------------------------
