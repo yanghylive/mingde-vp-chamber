@@ -25,11 +25,22 @@ final class MonitorController
     /** 心跳超时阈值（秒）：repair 每 5 分钟一次，超过 15 分钟视为失联 */
     private const CRON_STALE_SECONDS = 900;
 
+    /** 告警冷却期（秒）：同一 (component, error_code) 冷却期内不重复告警 */
+    private const ALERT_COOLDOWN_SECONDS = 3600;
+
+    /** webhook 域名 allowlist（防 SSRF）：空数组表示不限制 */
+    private const WEBHOOK_ALLOWED_HOSTS = [
+        'qyapi.weixin.qq.com',       // 企业微信
+        'oapi.dingtalk.com',         // 钉钉
+        'open.feishu.cn',            // 飞书
+    ];
+
     public function health(): Response
     {
         $dbOk = $this->dbPing();
         $cron = $this->cronHealth();
         $errorCount = $this->recentErrorCount();
+        $settlement = $this->settlementMetrics();
 
         $healthy = $dbOk && $cron['healthy'];
 
@@ -41,6 +52,7 @@ final class MonitorController
             'db' => ['ok' => $dbOk],
             'cron' => $cron,
             'errors_last_24h' => $errorCount,
+            'settlement' => $settlement,
         ];
 
         if (!$healthy) {
@@ -63,11 +75,17 @@ final class MonitorController
     private function sendWebhookAlert(array $payload): void
     {
         try {
+            // 冷却去重：同一 (component, error_code) 冷却期内不重复告警
+            $now = time();
+            if (!$this->shouldFire('health', 'degraded', $now)) {
+                return;
+            }
+
             $url = (string) Db::table('eb_system_config')
                 ->where('menu_name', 'monitor_webhook_url')
                 ->value('value');
             $url = trim($url, "\"' ");
-            if ($url === '' || !preg_match('/^https?:\/\//', $url)) {
+            if ($url === '' || !$this->urlAllowed($url)) {
                 return;
             }
 
@@ -99,6 +117,9 @@ final class MonitorController
             ]);
             curl_exec($ch);
             curl_close($ch);
+
+            // 发送成功后记录冷却
+            $this->markFired('health', 'degraded', $now);
         } catch (\Throwable $e) {
             (new ChamberLogger())->error('monitor.webhook.failed', ['err' => $e->getMessage()]);
         }
@@ -146,5 +167,91 @@ final class MonitorController
         } catch (\Throwable $e) {
             return -1;
         }
+    }
+
+    /** 结算指标：pending/processing/uncertain 明细数（结算卡单可观测） */
+    private function settlementMetrics(): array
+    {
+        try {
+            $count = static function (string $status): int {
+                return (int) Db::table('ch_settlement_detail')
+                    ->where('status', $status)
+                    ->count();
+            };
+
+            return [
+                'pending' => $count('pending'),
+                'processing' => $count('processing'),
+                'uncertain' => $count('uncertain'),
+            ];
+        } catch (\Throwable $e) {
+            return ['pending' => -1, 'processing' => -1, 'uncertain' => -1];
+        }
+    }
+
+    /** 告警冷却：同一 (component, error_code) 冷却期内不重复 */
+    private function shouldFire(string $component, string $errorCode, int $now): bool
+    {
+        try {
+            $row = Db::table('ch_alert_state')
+                ->where('tenant_id', 0)
+                ->where('component', $component)
+                ->where('error_code', $errorCode)
+                ->find();
+            if (is_array($row) && (int) $row['last_fired_at'] + self::ALERT_COOLDOWN_SECONDS > $now) {
+                return false;
+            }
+
+            return true;
+        } catch (\Throwable $e) {
+            return true;
+        }
+    }
+
+    private function markFired(string $component, string $errorCode, int $now): void
+    {
+        try {
+            $exists = Db::table('ch_alert_state')
+                ->where('tenant_id', 0)
+                ->where('component', $component)
+                ->where('error_code', $errorCode)
+                ->find();
+            if (is_array($exists)) {
+                Db::table('ch_alert_state')
+                    ->where('id', (int) $exists['id'])
+                    ->update(['last_fired_at' => $now]);
+            } else {
+                Db::table('ch_alert_state')->insert([
+                    'tenant_id' => 0,
+                    'component' => $component,
+                    'error_code' => $errorCode,
+                    'last_fired_at' => $now,
+                ]);
+            }
+        } catch (\Throwable $e) {
+            // 冷却记录失败不阻塞告警
+        }
+    }
+
+    /** webhook URL 域名 allowlist（防 SSRF 打到内网） */
+    private function urlAllowed(string $url): bool
+    {
+        if (!preg_match('/^https?:\/\//', $url)) {
+            return false;
+        }
+        $host = (string) parse_url($url, PHP_URL_HOST);
+        if ($host === '') {
+            return false;
+        }
+        if (!self::WEBHOOK_ALLOWED_HOSTS) {
+            return true;
+        }
+        foreach (self::WEBHOOK_ALLOWED_HOSTS as $allowed) {
+            if ($host === $allowed || str_ends_with($host, '.' . $allowed)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

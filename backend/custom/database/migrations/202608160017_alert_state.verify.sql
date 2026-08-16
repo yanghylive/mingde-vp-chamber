@@ -1,0 +1,4 @@
+SELECT TABLE_NAME FROM information_schema.TABLES
+WHERE TABLE_SCHEMA='crmeb' AND TABLE_NAME='ch_alert_state';
+SELECT INDEX_NAME, COLUMN_NAME FROM information_schema.STATISTICS
+WHERE TABLE_SCHEMA='crmeb' AND TABLE_NAME='ch_alert_state' AND INDEX_NAME='uk_alert';
