@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace app\chamber\services;
 
 use app\chamber\commerce\Money;
+use app\chamber\contracts\SettlementChannelInterface;
 use app\chamber\exceptions\MemberTransactionException;
 use think\facade\Db;
 
@@ -321,7 +322,7 @@ final class SettlementService
         return $detailMinor - $debit;
     }
 
-    /** 执行单条明细打款（通道桩，待真实通道接入后替换） */
+    /** 执行单条明细打款（settlement.live=true 走真实通道，否则走桩） */
     private function executeDetail(int $detailId, int $now): void
     {
         $detail = Db::table('ch_settlement_detail')
@@ -347,8 +348,16 @@ final class SettlementService
             return;
         }
 
-        // 通道桩：记录打款记录 + 标记成功（真实微信分账/商家转账/对公转账待接入）
-        $channelOrderNo = 'MOCK_' . strtoupper(substr($idempotencyKey, 0, 16));
+        // 通道分发：settlement.live=true 时走真实通道（商户号开通后启用），否则走桩
+        if ($this->liveEnabled()) {
+            $result = $this->channel($channel)->pay($detail);
+            $channelOrderNo = (string) $result['channel_order_no'];
+            $rawResponse = (string) $result['raw'];
+        } else {
+            $channelOrderNo = 'MOCK_' . strtoupper(substr($idempotencyKey, 0, 16));
+            $rawResponse = '{"mock":true}';
+        }
+
         Db::table('ch_payout_record')->insert([
             'settlement_detail_id' => $detailId,
             'tenant_id' => (int) $detail['tenant_id'],
@@ -357,7 +366,7 @@ final class SettlementService
             'amount' => (string) $detail['amount'],
             'status' => 'success',
             'idempotency_key' => $idempotencyKey,
-            'raw_response' => '{"mock":true}',
+            'raw_response' => $rawResponse,
             'add_time' => $now,
             'update_time' => $now,
         ]);
@@ -370,6 +379,27 @@ final class SettlementService
                 'settled_time' => $now,
                 'update_time' => $now,
             ]);
+    }
+
+    /** 是否启用真实通道（config settlement.live，商户号开通后置 true） */
+    private function liveEnabled(): bool
+    {
+        return (bool) \think\facade\Config::get('settlement.live', false);
+    }
+
+    /** 通道工厂：按 ch_settlement_detail.channel 分发 */
+    private function channel(string $channel): SettlementChannelInterface
+    {
+        switch ($channel) {
+            case self::CHANNEL_MERCHANT_TRANSFER:
+                return new MerchantTransferChannel();
+            case self::CHANNEL_WECHAT_SPLIT:
+                return new WechatSplitChannel();
+            case self::CHANNEL_BANK:
+                return new BankTransferChannel();
+            default:
+                throw new MemberTransactionException(501, 'channel_unknown', '未知结算通道：' . $channel);
+        }
     }
 
     /** 分账单全部明细成功后关闭 */
