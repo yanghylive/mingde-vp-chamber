@@ -409,10 +409,31 @@ final class ExpertScheduleController
         $total = (clone $query)->count();
         $rows = $query->page($page, $limit)->select()->toArray();
 
+        // 批量查 slot + expert，消除 N+1（历史预约需显示已软删档期/专家的快照信息，故不过滤 deleted_at/is_del）
+        $slotIds = array_values(array_unique(array_filter(array_map(static function ($r) {
+            return (int) $r['slot_id'];
+        }, $rows))));
+        $expertIds = array_values(array_unique(array_filter(array_map(static function ($r) {
+            return (int) $r['expert_id'];
+        }, $rows))));
+
+        $slotMap = [];
+        if ($slotIds) {
+            foreach (Db::table('ch_expert_slot')->whereIn('id', $slotIds)->select()->toArray() as $s) {
+                $slotMap[(int) $s['id']] = $s;
+            }
+        }
+        $expertMap = [];
+        if ($expertIds) {
+            foreach (Db::table('ch_expert')->whereIn('id', $expertIds)->select()->toArray() as $e) {
+                $expertMap[(int) $e['id']] = $e;
+            }
+        }
+
         $items = [];
         foreach ($rows as $row) {
-            $slot = Db::table('ch_expert_slot')->where('id', (int) $row['slot_id'])->find();
-            $expert = Db::table('ch_expert')->where('id', (int) $row['expert_id'])->find();
+            $slot = $slotMap[(int) $row['slot_id']] ?? null;
+            $expert = $expertMap[(int) $row['expert_id']] ?? null;
             $items[] = [
                 'id' => (int) $row['id'],
                 'expert_id' => (int) $row['expert_id'],
