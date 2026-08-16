@@ -1,0 +1,3 @@
+SELECT TABLE_NAME FROM information_schema.TABLES
+WHERE TABLE_SCHEMA = 'crmeb' AND TABLE_NAME LIKE 'ch_settlement%'
+ORDER BY TABLE_NAME;
