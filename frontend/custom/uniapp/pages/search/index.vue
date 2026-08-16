@@ -384,7 +384,8 @@ export default {
   gap: 24rpx;
 }
 .prod-card {
-  width: calc(50% - 12rpx);
+  /* 微信 wxss 不认 % + rpx 混合 calc，48% 稳定两列 */
+  width: 48%;
   padding: 24rpx;
   box-sizing: border-box;
 }
