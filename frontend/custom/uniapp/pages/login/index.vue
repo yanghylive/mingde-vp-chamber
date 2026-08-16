@@ -75,7 +75,7 @@
         <view class="wx-divider-line" />
       </view>
       <view class="{{'wx-login' + (loading ? ' wx-login-disabled' : '')}}" @tap="wxLogin">
-        <text class="wx-login-icon">微</text>
+        <image class="wx-login-icon" src="/static/icons/ic-wechat.png" mode="aspectFit" />
         <text class="wx-login-text">微信一键登录</text>
       </view>
       <!-- 首次微信登录需绑定手机号（真实用户点击授权） -->
@@ -568,41 +568,34 @@ export default {
 .wx-divider-line {
   flex: 1;
   height: 2rpx;
-  background: rgba(255, 255, 255, 0.12);
+  background: #e8ecf1;
 }
 .wx-divider-text {
   font-size: 22rpx;
-  color: rgba(255, 255, 255, 0.4);
+  color: #8a94a3;
 }
 .wx-login {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 14rpx;
-  border: 2rpx solid rgba(255, 255, 255, 0.35);
+  gap: 16rpx;
+  background: #07c160;
   border-radius: 20rpx;
-  padding: 22rpx 0;
-  background: rgba(255, 255, 255, 0.06);
+  padding: 26rpx 0;
+  box-shadow: 0 12rpx 32rpx rgba(7, 193, 96, 0.28);
 }
 .wx-login-disabled {
   opacity: 0.6;
 }
 .wx-login-icon {
-  width: 40rpx;
-  height: 40rpx;
-  line-height: 40rpx;
-  text-align: center;
-  border-radius: 50%;
-  background: #07c160;
-  color: #fff;
-  font-size: 24rpx;
-  font-weight: 600;
+  width: 44rpx;
+  height: 44rpx;
   flex-shrink: 0;
 }
 .wx-login-text {
-  font-size: 28rpx;
-  color: rgba(255, 255, 255, 0.9);
-  font-weight: 500;
+  font-size: 32rpx;
+  color: #fff;
+  font-weight: 600;
 }
 .wx-phone-btn {
   margin-top: 20rpx;
