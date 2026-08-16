@@ -16,6 +16,10 @@ Route::options('health', $preflight)
     ->middleware(RequestTraceMiddleware::class)
     ->middleware(ChamberCorsMiddleware::class);
 
+Route::options('monitor/health', $preflight)
+    ->middleware(RequestTraceMiddleware::class)
+    ->middleware(ChamberCorsMiddleware::class);
+
 Route::options('v1/bootstrap', $preflight)
     ->middleware(RequestTraceMiddleware::class)
     ->middleware(ChamberCorsMiddleware::class);
@@ -101,6 +105,10 @@ foreach ([
 }
 
 Route::get('health', 'HealthController/index')
+    ->middleware(RequestTraceMiddleware::class)
+    ->middleware(ChamberCorsMiddleware::class);
+
+Route::get('monitor/health', 'MonitorController/health')
     ->middleware(RequestTraceMiddleware::class)
     ->middleware(ChamberCorsMiddleware::class);
 

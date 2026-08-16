@@ -66,4 +66,10 @@ if (in_array($which, ['membership', 'all'], true)) {
     }
 }
 
+// 心跳：供 MonitorController 健康检查判断定时任务是否仍在运行（每 5 分钟一次，>15 分钟视为失联）
+@file_put_contents(
+    '/tmp/chamber_cron_heartbeat.json',
+    json_encode(['cron' => 'repair', 'last_run' => time(), 'ok' => $ok])
+);
+
 exit($ok ? 0 : 1);
