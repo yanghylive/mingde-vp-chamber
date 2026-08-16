@@ -27,9 +27,25 @@ final class MemberProfileService
     {
         return Db::transaction(function () use ($tenant, $auth): array {
             $state = $this->loadProfile($tenant, $auth, false);
+            $profile = $state['snapshot']->toArray();
+            $profile['member_no'] = $this->selectedMemberNo($tenant->tenantId(), $state['member']->memberId());
 
-            return $state['snapshot']->toArray();
+            return $profile;
         });
+    }
+
+    /** 会员当前选中的展示番号（ch_member_number is_selected=1） */
+    private function selectedMemberNo(int $tenantId, int $memberId): string
+    {
+        $row = Db::table('ch_member_number')
+            ->where('tenant_id', $tenantId)
+            ->where('member_id', $memberId)
+            ->where('is_selected', 1)
+            ->where('status', 1)
+            ->where('is_del', 0)
+            ->find();
+
+        return is_array($row) ? (string) $row['number'] : '';
     }
 
     public function updateProfile(

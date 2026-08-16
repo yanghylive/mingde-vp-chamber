@@ -24,7 +24,7 @@
               <text>{{ currentTier.name }}</text>
             </view>
           </view>
-          <text class="pf-sub">{{ currentTier.short }} · 番号 {{ memberNo }}{{ expiresText }}</text>
+          <text class="pf-sub" @tap="openNumberPicker">{{ currentTier.short }} · 番号 {{ memberNo }}{{ expiresText }}<text v-if="numbersList.length > 1" class="pf-no-switch"> 切换▾</text></text>
         </view>
         <view class="pf-edit" @tap="openEditor">编辑资料</view>
       </view>
@@ -193,6 +193,30 @@
       </view>
     </view>
 
+    <!-- 番号选择弹窗 -->
+    <view v-if="numberPickerVisible" class="modal-mask" @tap="numberPickerVisible = false">
+      <view class="num-sheet" @tap.stop>
+        <view class="num-sheet-head">
+          <text class="num-sheet-title">选择展示番号</text>
+          <view class="num-sheet-close" @tap="numberPickerVisible = false">×</view>
+        </view>
+        <scroll-view scroll-y class="num-sheet-body">
+          <view
+            v-for="n in numbersList"
+            :key="n.id"
+            class="{{'num-item' + (n.is_selected ? ' num-item-active' : '')}}"
+            @tap="pickNumber(n)"
+          >
+            <view class="num-item-main">
+              <text class="num-item-number">{{ n.number }}</text>
+              <text v-if="n.label" class="num-item-label">{{ n.label }}</text>
+            </view>
+            <text v-if="n.is_selected" class="num-item-check">✓</text>
+          </view>
+        </scroll-view>
+      </view>
+    </view>
+
     <view class="footer">明德恒智AI企商汇 · PBC 企业家事业共同体</view>
   </view>
 </template>
@@ -236,7 +260,9 @@ export default {
         industry: '',
         region: '',
         bio: ''
-      }
+      },
+      numbersList: [],
+      numberPickerVisible: false
     }
   },
   computed: {
@@ -336,6 +362,30 @@ export default {
     closeEditor() {
       if (this.saving) return
       this.editing = false
+    },
+    openNumberPicker() {
+      this.numberPickerVisible = true
+      chamber
+        .meNumbers()
+        .then((list) => {
+          this.numbersList = Array.isArray(list) ? list : []
+        })
+        .catch(() => {
+          this.numbersList = []
+        })
+    },
+    pickNumber(n) {
+      chamber
+        .selectNumber(n.id)
+        .then(() => {
+          this.numbersList = this.numbersList.map((x) => Object.assign({}, x, { is_selected: x.id === n.id }))
+          if (this.profile) this.profile.member_no = n.number
+          uni.showToast({ title: '已切换', icon: 'success' })
+          setTimeout(() => (this.numberPickerVisible = false), 400)
+        })
+        .catch((e) => {
+          uni.showToast({ title: (e && e.msg) || '切换失败', icon: 'none' })
+        })
     },
     async saveEditor() {
       if (this.saving) return
@@ -481,6 +531,10 @@ export default {
   font-size: 20rpx;
   color: rgba(255, 255, 255, 0.65);
   margin-top: 10rpx;
+}
+.pf-no-switch {
+  color: #ffd78f;
+  font-size: 18rpx;
 }
 .pf-edit {
   flex-shrink: 0;
@@ -787,5 +841,72 @@ export default {
   color: #c0c6d0;
   font-size: 22rpx;
   padding: 60rpx 0 20rpx;
+}
+.num-sheet {
+  width: 100%;
+  background: #fff;
+  border-radius: 36rpx 36rpx 0 0;
+  max-height: 70vh;
+  display: flex;
+  flex-direction: column;
+}
+.num-sheet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 32rpx 36rpx 12rpx;
+}
+.num-sheet-title {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #273b59;
+}
+.num-sheet-close {
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: 50%;
+  background: #f2f5f8;
+  color: #8a94a3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30rpx;
+}
+.num-sheet-body {
+  padding: 12rpx 36rpx 40rpx;
+  box-sizing: border-box;
+  max-height: 52vh;
+}
+.num-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24rpx 28rpx;
+  border-radius: 20rpx;
+  background: #f7f9fb;
+  margin-bottom: 16rpx;
+}
+.num-item-active {
+  background: #fff6e8;
+  border: 2rpx solid #e8a23c;
+}
+.num-item-main {
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+}
+.num-item-number {
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #273b59;
+}
+.num-item-label {
+  font-size: 22rpx;
+  color: #8a94a3;
+}
+.num-item-check {
+  color: #b8751d;
+  font-size: 30rpx;
+  font-weight: 700;
 }
 </style>

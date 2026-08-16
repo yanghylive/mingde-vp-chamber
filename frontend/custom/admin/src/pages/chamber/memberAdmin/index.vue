@@ -61,10 +61,11 @@
                 </el-tag>
               </template>
             </el-table-column>
-            <el-table-column label="操作" width="300" align="center" fixed="right">
+            <el-table-column label="操作" width="340" align="center" fixed="right">
               <template slot-scope="scope">
                 <el-button type="primary" size="mini" @click="openAdjust(scope.row)">等级调整</el-button>
                 <el-button type="success" size="mini" @click="openPointsAdjust(scope.row)">积分调整</el-button>
+                <el-button type="info" size="mini" @click="openNumbers(scope.row)">番号</el-button>
                 <el-button v-if="scope.row.tier !== 4" type="warning" size="mini" @click="certifyL4(scope.row)"
                   >指定 L4</el-button
                 >
@@ -176,11 +177,36 @@
         </el-form-item>
       </el-form>
     </el-dialog>
+
+    <!-- 会员番号弹窗（后台录入多个，前台会员选一个展示） -->
+    <el-dialog title="会员番号" :visible.sync="numbersDialogVisible" width="560px" :close-on-click-modal="false">
+      <el-form label-width="80px">
+        <el-form-item label="会员">
+          <span class="member-name">{{ numberForm.name || '-' }}</span>
+          <span class="member-sub">（会员ID {{ numberForm.id }}）</span>
+        </el-form-item>
+        <el-form-item label="番号列表">
+          <div class="number-list">
+            <div v-for="(n, i) in numberForm.numbers" :key="i" class="number-row">
+              <el-input v-model="n.number" placeholder="番号（如 MD-2024-001）" size="small" />
+              <el-input v-model="n.label" placeholder="标签（如 商会会员号）" size="small" />
+              <el-button type="danger" size="mini" icon="el-icon-delete" circle @click="numberForm.numbers.splice(i, 1)" />
+            </div>
+          </div>
+          <el-button type="text" icon="el-icon-plus" @click="addNumber">添加番号</el-button>
+          <div class="number-hint">会员可从前台「我的」页选择其中一个作为对外展示番号</div>
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" :loading="numbersSaving" @click="saveNumbers">保存番号</el-button>
+          <el-button @click="numbersDialogVisible = false">取消</el-button>
+        </el-form-item>
+      </el-form>
+    </el-dialog>
   </div>
 </template>
 
 <script>
-import { memberList, memberUpdate, memberOrders, memberAdjustPoints } from '@/api/chamber/members';
+import { memberList, memberUpdate, memberOrders, memberAdjustPoints, memberNumbers, memberNumbersUpdate } from '@/api/chamber/members';
 import { Message, MessageBox } from 'element-ui';
 
 export default {
@@ -199,6 +225,9 @@ export default {
       pointsDialogVisible: false,
       pointsSaving: false,
       pointsForm: { id: 0, name: '', delta: 100, reason: '', callerKey: '' },
+      numbersDialogVisible: false,
+      numbersSaving: false,
+      numberForm: { id: 0, name: '', numbers: [] },
     };
   },
   computed: {
@@ -326,6 +355,37 @@ export default {
           this.pointsSaving = false;
         });
     },
+    openNumbers(row) {
+      this.numberForm = { id: row.id, name: row.name || 'ID ' + row.id, numbers: [] };
+      memberNumbers(row.id)
+        .then((res) => {
+          const items = (res && res.data && res.data.items) || [];
+          this.numberForm.numbers = items.map((n) => ({ number: n.number || '', label: n.label || '' }));
+          if (this.numberForm.numbers.length === 0) this.numberForm.numbers.push({ number: '', label: '' });
+        })
+        .catch(() => {
+          this.numberForm.numbers = [{ number: '', label: '' }];
+        });
+      this.numbersDialogVisible = true;
+    },
+    addNumber() {
+      this.numberForm.numbers.push({ number: '', label: '' });
+    },
+    saveNumbers() {
+      const numbers = this.numberForm.numbers
+        .map((n) => ({ number: (n.number || '').trim(), label: (n.label || '').trim() }))
+        .filter((n) => n.number);
+      this.numbersSaving = true;
+      memberNumbersUpdate(this.numberForm.id, numbers)
+        .then(() => {
+          Message.success('番号已保存');
+          this.numbersDialogVisible = false;
+        })
+        .catch((e) => Message.error((e && e.msg) || '保存失败'))
+        .finally(() => {
+          this.numbersSaving = false;
+        });
+    },
     tagType(tier) {
       return ['', 'info', 'warning', 'danger', 'success'][tier] || 'info';
     },
@@ -399,5 +459,24 @@ export default {
 }
 .expired-tag {
   opacity: 0.7;
+}
+.number-list {
+  width: 100%;
+  max-height: 260px;
+  overflow-y: auto;
+}
+.number-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.number-row >>> .el-input {
+  flex: 1;
+}
+.number-hint {
+  font-size: 12px;
+  color: #909399;
+  margin-top: 6px;
 }
 </style>

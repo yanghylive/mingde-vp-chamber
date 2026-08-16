@@ -72,3 +72,17 @@ export function memberAdjustPoints(memberId, payload) {
     data: payload,
   });
 }
+
+/** 会员番号列表 */
+export function memberNumbers(memberId) {
+  return chamberRequest({ url: `${MEMBERS_PATH}/${memberId}/numbers`, method: 'get' });
+}
+
+/** 会员番号批量保存（整包替换） */
+export function memberNumbersUpdate(memberId, numbers) {
+  return chamberRequest({
+    url: `${MEMBERS_PATH}/${memberId}/numbers`,
+    method: 'post',
+    data: { numbers },
+  });
+}

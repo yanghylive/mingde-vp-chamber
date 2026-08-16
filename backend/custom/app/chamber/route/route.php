@@ -55,6 +55,8 @@ foreach ([
     'v1/me/stats',
     'v1/me/orders',
     'v1/me/notifications',
+    'v1/me/numbers',
+    'v1/me/numbers/:number_id/select',
     'v1/points/paths',
     'v1/products/:product_id/exchange',
     'v1/products',
@@ -76,6 +78,7 @@ foreach ([
     'admin/v1/members/:member_id',
     'admin/v1/members/orders',
     'admin/v1/members/:member_id/points/adjust',
+    'admin/v1/members/:member_id/numbers',
     'admin/v1/site-config',
     'admin/v1/slots',
     'admin/v1/slots/:slot_id',
@@ -153,6 +156,9 @@ Route::group('v1/me', function () {
     Route::put('settings', 'MemberSettingsController/update');
     Route::get('orders', 'ProductExchangeController/orders');
     Route::get('notifications', 'NotificationController/index');
+    Route::get('numbers', 'MemberNumberController/index');
+    Route::post('numbers/:number_id/select', 'MemberNumberController/select')
+        ->pattern(['number_id' => '\d+']);
 })->middleware(RequestTraceMiddleware::class)
     ->middleware(ChamberCorsMiddleware::class)
     ->middleware(CrmebAuthTokenMiddleware::class)
@@ -260,6 +266,11 @@ Route::group('admin/v1', function () {
         ->pattern(['member_id' => '\\d+']);
     Route::get('members/orders', 'MemberAdminController/orders');
     Route::post('members/:member_id/points/adjust', 'MemberAdminController/adjustPoints')
+        ->pattern(['member_id' => '\\d+']);
+    // ---- 会员番号（后台多录 + 前台单选） ----
+    Route::get('members/:member_id/numbers', 'MemberNumberAdminController/index')
+        ->pattern(['member_id' => '\\d+']);
+    Route::post('members/:member_id/numbers', 'MemberNumberAdminController/store')
         ->pattern(['member_id' => '\\d+']);
     // ---- 站点配置 / 大咖档期 / 积分获取路径 / 大咖库（P2） ----
     Route::get('site-config', 'SiteConfigAdminController/index');

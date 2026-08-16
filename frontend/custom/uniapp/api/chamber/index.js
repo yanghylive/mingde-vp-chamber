@@ -31,6 +31,8 @@ export const chamber = {
   mePointsLedger: () => request('/chamber/v1/me/points/ledger').then(pickList),
   meOrders: () => request('/chamber/v1/me/orders').then(pickList),
   meNotifications: () => request('/chamber/v1/me/notifications').then(pickList),
+  meNumbers: () => request('/chamber/v1/me/numbers').then(pickList),
+  selectNumber: (id) => request('/chamber/v1/me/numbers/' + id + '/select', { method: 'POST' }),
   points: () =>
     request('/chamber/v1/me/points').then((body) => {
       // body 已解包为 data（可能是数字 / {points} / {balance}）
