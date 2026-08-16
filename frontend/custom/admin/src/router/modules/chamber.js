@@ -76,6 +76,16 @@ export default {
       component: () => import('@/pages/chamber/pointsPaths/index'),
     },
     {
+      path: 'products',
+      name: 'chamber_products',
+      meta: {
+        auth: ['chamber.product.manage'],
+        title: '积分商品管理',
+      },
+      beforeEnter: superAdministratorOnly,
+      component: () => import('@/pages/chamber/products/index'),
+    },
+    {
       path: 'expert-profile',
       name: 'chamber_expert_profile',
       meta: {

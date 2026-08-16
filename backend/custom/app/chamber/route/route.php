@@ -76,6 +76,8 @@ foreach ([
     'admin/v1/slots',
     'admin/v1/slots/:slot_id',
     'admin/v1/points-paths',
+    'admin/v1/products',
+    'admin/v1/products/:product_id',
     'admin/v1/experts',
     'admin/v1/experts/profile',
     'admin/v1/experts/:expert_id/profile',
@@ -260,6 +262,10 @@ Route::group('admin/v1', function () {
         ->pattern(['slot_id' => '\\d+']);
     Route::get('points-paths', 'PointsPathsAdminController/index');
     Route::put('points-paths', 'PointsPathsAdminController/update');
+    // ---- 积分商城商品管理 ----
+    Route::get('products', 'ProductAdminController/index');
+    Route::patch('products/:product_id', 'ProductAdminController/update')
+        ->pattern(['product_id' => '\\d+']);
     // 大咖库占位：experts/profile 必须先于 :expert_id 路由注册（避免被参数路由吞掉）
     Route::get('experts/profile', 'ExpertController/profile');
     Route::get('experts', 'ExpertController/index');
