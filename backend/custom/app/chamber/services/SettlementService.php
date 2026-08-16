@@ -34,6 +34,13 @@ final class SettlementService
     public const CHANNEL_BANK = 'bank';                            // 对公银行转账
     public const CHANNEL_WECHAT_SPLIT = 'wechat_split';            // 微信分账（对公）
 
+    /** claim/lease 认领超时（秒）：认领后超过此时长未完成，可被其他 worker 重新认领 */
+    private const CLAIM_TTL = 300;
+    /** 失败退避（秒）：渠道失败后 next_retry_time = now + 退避，避免立即重试 */
+    private const RETRY_BACKOFF = 60;
+    /** 单条明细最大尝试次数 */
+    private const MAX_ATTEMPTS = 3;
+
     /** 分账规则列表（启用中） */
     public function rules(int $tenantId, string $businessType): array
     {
@@ -205,7 +212,12 @@ final class SettlementService
         $now = time();
         $rows = Db::table('ch_settlement_detail')
             ->whereIn('status', ['pending', 'failed'])
-            ->where('retry_count', '<', 3)
+            ->where('retry_count', '<', self::MAX_ATTEMPTS)
+            ->where('next_retry_time', '<=', $now)
+            ->where(function ($q) use ($now) {
+                $q->where('claim_token', '')
+                    ->whereOr('claim_expire_time', '<', $now);
+            })
             ->order('id', 'asc')
             ->limit($limit)
             ->select()
@@ -215,8 +227,9 @@ final class SettlementService
         $failed = 0;
         foreach ($rows as $detail) {
             try {
-                $this->executeDetail((int) $detail['id'], $now);
-                $done++;
+                if ($this->executeDetail((int) $detail['id'], $now)) {
+                    $done++;
+                }
             } catch (\Throwable $e) {
                 $failed++;
                 Db::table('ch_settlement_detail')
@@ -225,6 +238,8 @@ final class SettlementService
                         'status' => 'failed',
                         'fail_reason' => mb_substr($e->getMessage(), 0, 255),
                         'retry_count' => (int) $detail['retry_count'] + 1,
+                        'next_retry_time' => $now + self::RETRY_BACKOFF,
+                        'claim_token' => '',
                         'update_time' => $now,
                     ]);
             }
@@ -322,15 +337,32 @@ final class SettlementService
         return $detailMinor - $debit;
     }
 
-    /** 执行单条明细打款（settlement.live=true 走真实通道，否则走桩） */
-    private function executeDetail(int $detailId, int $now): void
+    /** 执行单条明细打款（claim/lease + 幂等 + 失败退避）。返回 true=成功，false=未处理/失败。 */
+    private function executeDetail(int $detailId, int $now): bool
     {
-        $detail = Db::table('ch_settlement_detail')
+        // 1. 原子认领（claim/lease）：只有 claim_token 为空或已过期的行才能被认领，
+        //    不依赖事务行锁，并发 worker 只有一个能 claim 成功（受影响行数=1）
+        $token = bin2hex(random_bytes(16));
+        $claimed = Db::table('ch_settlement_detail')
             ->where('id', $detailId)
-            ->lock(true)
-            ->find();
-        if (!is_array($detail) || !in_array((string) $detail['status'], ['pending', 'failed'], true)) {
-            return;
+            ->whereIn('status', ['pending', 'failed'])
+            ->where(function ($q) use ($now) {
+                $q->where('claim_token', '')
+                    ->whereOr('claim_expire_time', '<', $now);
+            })
+            ->update([
+                'status' => 'processing',
+                'claim_token' => $token,
+                'claim_expire_time' => $now + self::CLAIM_TTL,
+                'update_time' => $now,
+            ]);
+        if ($claimed !== 1) {
+            return false;
+        }
+
+        $detail = Db::table('ch_settlement_detail')->where('id', $detailId)->find();
+        if (!is_array($detail)) {
+            return false;
         }
 
         $channel = (string) $detail['channel'];
@@ -339,46 +371,89 @@ final class SettlementService
             (int) $detail['tenant_id'],
             (int) $detail['id'],
         ]));
+        $payloadHash = hash('sha256', json_encode($detail, JSON_UNESCAPED_UNICODE));
 
-        // 幂等：已打款成功则跳过
-        $exists = Db::table('ch_payout_record')
-            ->where('idempotency_key', $idempotencyKey)
-            ->find();
-        if (is_array($exists)) {
-            return;
+        // 2. 外部调用前先写 payout_record(status=pending)，幂等键唯一兜底。
+        //    唯一键只能防重复写本地记录，不能撤销已发出的渠道请求——claim 才是第一道闸。
+        $payoutId = 0;
+        try {
+            $payoutId = (int) Db::table('ch_payout_record')->insertGetId([
+                'settlement_detail_id' => $detailId,
+                'tenant_id' => (int) $detail['tenant_id'],
+                'channel' => $channel,
+                'channel_order_no' => '',
+                'amount' => (string) $detail['amount'],
+                'status' => 'pending',
+                'idempotency_key' => $idempotencyKey,
+                'request_payload_hash' => $payloadHash,
+                'raw_response' => '',
+                'add_time' => $now,
+                'update_time' => $now,
+            ]);
+        } catch (\Throwable $e) {
+            // duplicate key：已有 payout_record，说明该明细已处理过，释放 claim 跳过
+            Db::table('ch_settlement_detail')
+                ->where('id', $detailId)
+                ->update(['claim_token' => '', 'update_time' => $now]);
+
+            return false;
         }
 
-        // 通道分发：settlement.live=true 时走真实通道（商户号开通后启用），否则走桩
-        if ($this->liveEnabled()) {
-            $result = $this->channel($channel)->pay($detail);
-            $channelOrderNo = (string) $result['channel_order_no'];
-            $rawResponse = (string) $result['raw'];
-        } else {
-            $channelOrderNo = 'MOCK_' . strtoupper(substr($idempotencyKey, 0, 16));
-            $rawResponse = '{"mock":true}';
+        // 3. 调渠道
+        try {
+            if ($this->liveEnabled()) {
+                $result = $this->channel($channel)->pay($detail);
+                $channelOrderNo = (string) $result['channel_order_no'];
+                $rawResponse = (string) $result['raw'];
+            } else {
+                $channelOrderNo = 'MOCK_' . strtoupper(substr($idempotencyKey, 0, 16));
+                $rawResponse = '{"mock":true}';
+            }
+        } catch (\Throwable $e) {
+            // 渠道异常：payout 保留 pending/failed 供对账，detail 回 failed + 退避重试
+            Db::table('ch_payout_record')
+                ->where('id', $payoutId)
+                ->update([
+                    'status' => 'failed',
+                    'raw_response' => mb_substr($e->getMessage(), 0, 2000),
+                    'update_time' => $now,
+                ]);
+            Db::table('ch_settlement_detail')
+                ->where('id', $detailId)
+                ->update([
+                    'status' => 'failed',
+                    'fail_reason' => mb_substr($e->getMessage(), 0, 255),
+                    'retry_count' => Db::raw('retry_count + 1'),
+                    'claim_token' => '',
+                    'next_retry_time' => $now + self::RETRY_BACKOFF,
+                    'update_time' => $now,
+                ]);
+
+            return false;
         }
 
-        Db::table('ch_payout_record')->insert([
-            'settlement_detail_id' => $detailId,
-            'tenant_id' => (int) $detail['tenant_id'],
-            'channel' => $channel,
-            'channel_order_no' => $channelOrderNo,
-            'amount' => (string) $detail['amount'],
-            'status' => 'success',
-            'idempotency_key' => $idempotencyKey,
-            'raw_response' => $rawResponse,
-            'add_time' => $now,
-            'update_time' => $now,
-        ]);
+        // 4. 回写成功
+        Db::table('ch_payout_record')
+            ->where('id', $payoutId)
+            ->update([
+                'status' => 'success',
+                'channel_order_no' => $channelOrderNo,
+                'raw_response' => $rawResponse,
+                'update_time' => $now,
+            ]);
 
         Db::table('ch_settlement_detail')
             ->where('id', $detailId)
+            ->where('claim_token', $token)
             ->update([
                 'status' => 'success',
                 'channel_ref' => $channelOrderNo,
                 'settled_time' => $now,
+                'claim_token' => '',
                 'update_time' => $now,
             ]);
+
+        return true;
     }
 
     /** 是否启用真实通道（config settlement.live，商户号开通后置 true） */
