@@ -55,6 +55,7 @@ foreach ([
     'v1/me/stats',
     'v1/me/orders',
     'v1/me/notifications',
+    'v1/me/notifications/:notification_id/read',
     'v1/me/numbers',
     'v1/me/numbers/:number_id/select',
     'v1/me/appointments',
@@ -165,6 +166,8 @@ Route::group('v1/me', function () {
     Route::put('settings', 'MemberSettingsController/update');
     Route::get('orders', 'ProductExchangeController/orders');
     Route::get('notifications', 'NotificationController/index');
+    Route::post('notifications/:notification_id/read', 'NotificationController/markRead')
+        ->pattern(['notification_id' => '\d+']);
     Route::get('numbers', 'MemberNumberController/index');
     Route::post('numbers/:number_id/select', 'MemberNumberController/select')
         ->pattern(['number_id' => '\d+']);

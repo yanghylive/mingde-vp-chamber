@@ -32,6 +32,7 @@ final class NotificationAdminController
 
         $query = Db::table('ch_event_notification')
             ->where('tenant_id', $tenantId)
+            ->where('is_del', 0)
             ->order('id', 'desc');
 
         $total = (clone $query)->count();
@@ -154,14 +155,14 @@ final class NotificationAdminController
         return json(['code' => 0, 'msg' => 'ok']);
     }
 
-    /** 撤销通知（物理删除） */
+    /** 撤销通知（软删除，审计保留） */
     public function destroy(int $notification_id, Request $request, TenantContext $tenant): Response
     {
         unset($request);
         Db::table('ch_event_notification')
             ->where('tenant_id', $tenant->tenantId())
             ->where('id', $notification_id)
-            ->delete();
+            ->update(['is_del' => 1]);
 
         return json(['code' => 0, 'msg' => 'ok']);
     }
