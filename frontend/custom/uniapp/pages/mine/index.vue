@@ -732,28 +732,29 @@ export default {
   max-height: 56vh;
 }
 .ms-field {
-  margin-bottom: 20rpx;
+  margin-bottom: 24rpx;
 }
 .ms-row {
   display: flex;
   gap: 20rpx;
 }
 .ms-row .ms-field {
-  width: 50%;
+  flex: 1;
+  min-width: 0;
 }
 .ms-label {
   display: block;
-  font-size: 20rpx;
-  color: rgba(255, 255, 255, 0.7);
-  margin-bottom: 10rpx;
+  font-size: 24rpx;
+  color: rgba(255, 255, 255, 0.8);
+  margin-bottom: 12rpx;
 }
 .ms-input {
   background: rgba(255, 255, 255, 0.1);
   border: 1rpx solid rgba(255, 255, 255, 0.12);
   border-radius: 16rpx;
   color: #fff;
-  font-size: 26rpx;
-  padding: 20rpx 24rpx;
+  font-size: 28rpx;
+  padding: 24rpx 28rpx;
   width: 100%;
   box-sizing: border-box;
 }

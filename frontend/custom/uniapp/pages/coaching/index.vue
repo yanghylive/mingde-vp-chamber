@@ -561,12 +561,12 @@ export default {
 
 .answer-input {
   width: 100%;
-  height: 120rpx;
+  height: 140rpx;
   background: #f4f7fb;
   border-radius: 16rpx;
-  padding: 16rpx;
+  padding: 20rpx;
   box-sizing: border-box;
-  font-size: 24rpx;
+  font-size: 28rpx;
   color: #203454;
   border: 1rpx solid #e6ebf1;
 }
@@ -605,12 +605,12 @@ export default {
 
 .note-input {
   width: 100%;
-  height: 80rpx;
+  height: 88rpx;
   background: #f4f7fb;
   border-radius: 16rpx;
-  padding: 0 16rpx;
+  padding: 0 20rpx;
   box-sizing: border-box;
-  font-size: 24rpx;
+  font-size: 28rpx;
   border: 1rpx solid #e6ebf1;
 }
 
