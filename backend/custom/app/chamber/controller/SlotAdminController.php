@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace app\chamber\controller;
 
 use app\Request;
+use app\chamber\identity\AuthenticatedAdminContext;
 use app\chamber\tenancy\TenantContext;
 use think\facade\Db;
 use think\Response;
@@ -33,8 +34,9 @@ final class SlotAdminController
     }
 
     /** 档期列表（按大咖分组） */
-    public function index(Request $request, TenantContext $tenant): Response
+    public function index(Request $request, TenantContext $tenant, AuthenticatedAdminContext $admin): Response
     {
+        $admin->assertPermission('chamber.appointment.manage');
         unset($request);
         $tenantId = $tenant->tenantId();
         $slots = Db::table('ch_expert_slot')
@@ -62,8 +64,9 @@ final class SlotAdminController
     }
 
     /** 新增档期 */
-    public function store(Request $request, TenantContext $tenant): Response
+    public function store(Request $request, TenantContext $tenant, AuthenticatedAdminContext $admin): Response
     {
+        $admin->assertPermission('chamber.appointment.manage');
         $tenantId = $tenant->tenantId();
         $raw = $request->getContent();
         if (strlen($raw) > self::MAX_BODY_BYTES) {
@@ -120,8 +123,9 @@ final class SlotAdminController
     }
 
     /** 删除档期（软删除，保留历史展示） */
-    public function delete(int $slot_id, Request $request, TenantContext $tenant): Response
+    public function delete(int $slot_id, Request $request, TenantContext $tenant, AuthenticatedAdminContext $admin): Response
     {
+        $admin->assertPermission('chamber.appointment.manage');
         unset($request);
         $tenantId = $tenant->tenantId();
         $slot = Db::table('ch_expert_slot')

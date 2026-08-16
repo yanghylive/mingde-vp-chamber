@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace app\chamber\controller;
 
 use app\Request;
+use app\chamber\identity\AuthenticatedAdminContext;
 use app\chamber\tenancy\TenantContext;
 use think\facade\Db;
 use think\Response;
@@ -24,8 +25,9 @@ final class NotificationAdminController
     private const MAX_LIMIT = 100;
 
     /** 通知列表 */
-    public function index(Request $request, TenantContext $tenant): Response
+    public function index(Request $request, TenantContext $tenant, AuthenticatedAdminContext $admin): Response
     {
+        $admin->assertPermission('chamber.notification.read');
         $tenantId = $tenant->tenantId();
         $limit = min(self::MAX_LIMIT, max(1, (int) $request->get('limit', 50)));
         $page = max(1, (int) $request->get('page', 1));
@@ -52,8 +54,9 @@ final class NotificationAdminController
     }
 
     /** 发布通知 */
-    public function store(Request $request, TenantContext $tenant): Response
+    public function store(Request $request, TenantContext $tenant, AuthenticatedAdminContext $admin): Response
     {
+        $admin->assertPermission('chamber.notification.write');
         $tenantId = $tenant->tenantId();
         $body = json_decode((string) $request->getContent(), true);
         if (!is_array($body)) {
@@ -119,8 +122,9 @@ final class NotificationAdminController
     }
 
     /** 编辑通知（title/body） */
-    public function update(int $notification_id, Request $request, TenantContext $tenant): Response
+    public function update(int $notification_id, Request $request, TenantContext $tenant, AuthenticatedAdminContext $admin): Response
     {
+        $admin->assertPermission('chamber.notification.write');
         $tenantId = $tenant->tenantId();
         $body = json_decode((string) $request->getContent(), true);
         if (!is_array($body)) {
@@ -156,8 +160,9 @@ final class NotificationAdminController
     }
 
     /** 撤销通知（软删除，审计保留） */
-    public function destroy(int $notification_id, Request $request, TenantContext $tenant): Response
+    public function destroy(int $notification_id, Request $request, TenantContext $tenant, AuthenticatedAdminContext $admin): Response
     {
+        $admin->assertPermission('chamber.notification.delete');
         unset($request);
         Db::table('ch_event_notification')
             ->where('tenant_id', $tenant->tenantId())

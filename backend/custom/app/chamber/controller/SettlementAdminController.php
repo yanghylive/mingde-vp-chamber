@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace app\chamber\controller;
 
 use app\Request;
+use app\chamber\identity\AuthenticatedAdminContext;
 use app\chamber\services\SettlementService;
 use app\chamber\tenancy\TenantContext;
 use think\facade\Db;
@@ -24,8 +25,9 @@ final class SettlementAdminController
     }
 
     /** 分账规则列表 */
-    public function rules(Request $request, TenantContext $tenant): Response
+    public function rules(Request $request, TenantContext $tenant, AuthenticatedAdminContext $admin): Response
     {
+        $admin->assertPermission('chamber.settlement.read');
         $businessType = (string) $request->get('business_type', SettlementService::BUSINESS_MEMBERSHIP);
 
         return json(['code' => 0, 'msg' => 'ok', 'data' => [
@@ -34,8 +36,9 @@ final class SettlementAdminController
     }
 
     /** 保存分账规则（整包替换，比例可改） */
-    public function saveRules(Request $request, TenantContext $tenant): Response
+    public function saveRules(Request $request, TenantContext $tenant, AuthenticatedAdminContext $admin): Response
     {
+        $admin->assertPermission('chamber.settlement.rule.write');
         $body = json_decode((string) $request->getContent(), true);
         if (!is_array($body)) {
             $body = [];
@@ -59,8 +62,9 @@ final class SettlementAdminController
     }
 
     /** 分账单列表（对账） */
-    public function settlements(Request $request, TenantContext $tenant): Response
+    public function settlements(Request $request, TenantContext $tenant, AuthenticatedAdminContext $admin): Response
     {
+        $admin->assertPermission('chamber.settlement.read');
         $limit = min(100, max(1, (int) $request->get('limit', 20)));
         $page = max(1, (int) $request->get('page', 1));
 
@@ -115,8 +119,9 @@ final class SettlementAdminController
     }
 
     /** 抵扣余额（退款下期抵扣的对账） */
-    public function balances(Request $request, TenantContext $tenant): Response
+    public function balances(Request $request, TenantContext $tenant, AuthenticatedAdminContext $admin): Response
     {
+        $admin->assertPermission('chamber.settlement.read');
         unset($request);
 
         return json(['code' => 0, 'msg' => 'ok', 'data' => [
@@ -125,16 +130,18 @@ final class SettlementAdminController
     }
 
     /** 手动触发 T+1 结算（cron 也可直接调 SettlementService::runDue） */
-    public function runDue(Request $request, TenantContext $tenant): Response
+    public function runDue(Request $request, TenantContext $tenant, AuthenticatedAdminContext $admin): Response
     {
+        $admin->assertPermission('chamber.settlement.retry');
         unset($request);
 
         return json(['code' => 0, 'msg' => 'ok', 'data' => $this->settlement->runDue()]);
     }
 
     /** 手动补单结算（某笔订单漏结算时运营补触发，也用于测试） */
-    public function settle(Request $request, TenantContext $tenant): Response
+    public function settle(Request $request, TenantContext $tenant, AuthenticatedAdminContext $admin): Response
     {
+        $admin->assertPermission('chamber.settlement.manual_adjust');
         $body = json_decode((string) $request->getContent(), true);
         if (!is_array($body)) {
             $body = [];

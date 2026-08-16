@@ -50,9 +50,12 @@ final class CrmebAdminAuthTokenMiddleware implements MiddlewareInterface
                 || (int) $activeAdmin['level'] !== (int) ($adminInfo['level'] ?? -1)) {
                 throw new InvalidArgumentException('CRMEB administrator is inactive');
             }
-            // G1 initially permits only level-0 administrators. Tenant grants for delegated
-            // administrators must be implemented before any global CRMEB permission is accepted.
-            $context = AuthenticatedAdminContext::fromAuthInfo($adminInfo, []);
+            // 从 ch_admin_permission 加载动作级权限点（超管 level=0 自动全放行）
+            $adminId = (int) ($adminInfo['id'] ?? 0);
+            $permissions = Db::table('ch_admin_permission')
+                ->where('admin_id', $adminId)
+                ->column('permission');
+            $context = AuthenticatedAdminContext::fromAuthInfo($adminInfo, $permissions ?: []);
         } catch (AuthException | InvalidArgumentException $exception) {
             return $this->authenticationRequired($request);
         }
