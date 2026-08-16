@@ -66,12 +66,36 @@ final class AiTwinService
             return $row;
         }
 
+        // 合法性校验：memberId 必须是「真实会员」或「ch_expert 大咖」，否则不建分身
+        // （修复：此前对任意 id 都自动建空分身，导致灌垃圾数据 + 花积分对话空壳）
+        $isMember = Db::table('ch_tenant_member')
+            ->where('tenant_id', $tenantId)
+            ->where('id', $memberId)
+            ->where('is_del', 0)
+            ->find();
+        $expert = Db::table('ch_expert')
+            ->where('tenant_id', $tenantId)
+            ->where('id', $memberId)
+            ->find();
+        if (!is_array($isMember) && !is_array($expert)) {
+            return [];
+        }
+
+        // 非会员大咖（仅 ch_expert 资料，未注册会员账号）时，用大咖资料初始化 persona，
+        // 让分身「像本人」（修复：此前 persona_name 为空，对话退化成「这位大咖」空壳）
+        $personaName = '';
+        $personaRole = '';
+        if (is_array($expert)) {
+            $personaName = (string) $expert['name'];
+            $personaRole = $this->roleLabel((string) ($expert['role'] ?? ''));
+        }
+
         $now = time();
         Db::table('ch_expert_ai')->insert([
             'tenant_id' => $tenantId,
             'member_id' => $memberId,
-            'persona_name' => '',
-            'persona_role' => '',
+            'persona_name' => $personaName,
+            'persona_role' => $personaRole,
             'voice_style' => '自然亲和、简洁有力',
             'catchphrases' => '',
             'knowledge_base' => '',
@@ -91,6 +115,18 @@ final class AiTwinService
             ->find();
 
         return is_array($row) ? $row : [];
+    }
+
+    /** 角色 code → 中文名（mentor=导师 / coach=教练 / industry_leader=行业领袖） */
+    private function roleLabel(string $code): string
+    {
+        $map = [
+            'mentor' => '导师',
+            'coach' => '教练',
+            'industry_leader' => '行业领袖',
+        ];
+
+        return $map[$code] ?? '';
     }
 
     /** 大咖会员档案（ch_member_profile）用于训练上下文；档案为空时回退查 ch_expert 大咖资料 */
@@ -397,6 +433,9 @@ PROMPT;
         }
 
         $ai = $this->ensureAi($tenantId, $expertMemberId);
+        if (!$ai) {
+            throw new MemberTransactionException(404, 'expert_not_found', '大咖不存在或尚未开通 AI 分身');
+        }
         $aiId = (int) $ai['id'];
         $cost = max(1, (int) $ai['chat_points_cost']);
 
@@ -430,7 +469,8 @@ PROMPT;
 
         $now = time();
         $chatId = null;
-        Db::transaction(function () use ($tenant, $member, $cost, $expertMemberId, $expertName, $tenantId, $aiId, $history, $now, $memberId, &$chatId) {
+        $finalBalance = null;
+        Db::transaction(function () use ($tenant, $member, $cost, $expertMemberId, $expertName, $tenantId, $aiId, $history, $now, $memberId, &$chatId, &$finalBalance) {
             // 乐观锁重读
             $account = $this->identity->pointsAccount($tenantId, $member, true);
             $balance = (int) $account['balance'];
@@ -439,6 +479,7 @@ PROMPT;
             }
 
             $newBalance = $balance - $cost;
+            $finalBalance = $newBalance;
             $updated = Db::table('ch_point_account')
                 ->where('id', (int) $account['id'])
                 ->where('tenant_id', $tenantId)
@@ -492,7 +533,7 @@ PROMPT;
         return [
             'reply' => $reply,
             'cost' => $cost,
-            'balance' => (int) $account['balance'] - $cost,
+            'balance' => (int) $finalBalance,
             'chat_id' => (int) $chatId,
         ];
     }

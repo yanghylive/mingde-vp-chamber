@@ -46,6 +46,8 @@ final class ExpertController
                 'name'    => (string) $e['name'],
                 'title'   => (string) $e['title'],
                 'company' => (string) $e['company'],
+                'industry' => (string) $e['industry'],
+                'bio'     => (string) $e['bio'],
                 'pricing' => [
                     'online_points'  => (int) $e['online_points'],
                     'online_cash'    => (string) $e['online_cash'],

@@ -89,7 +89,7 @@
                 <image class="ic ic-md" src="/static/icons/ic-gift-gold.png" mode="aspectFit" />
               </view>
               <text class="prod-name">{{ p.name || p.store_name }}</text>
-              <text class="prod-price">¥{{ p.cash_price || p.cash || 0 }}</text>
+              <text class="prod-price">{{ p.integral_price ? p.integral_price + ' 积分' : '' }}{{ Number(p.price) > 0 ? ' ¥' + p.price : '' }}</text>
             </view>
           </view>
         </view>
