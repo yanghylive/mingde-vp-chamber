@@ -43,14 +43,34 @@ final class ExpertScheduleController
         $expert_id
     ): Response {
         $expertId = $this->positiveId($expert_id);
-        $expert = $this->findExpert($tenant->tenantId(), $expertId);
-        if ($expert === null) {
+        $expert = Db::table('ch_expert')
+            ->where('tenant_id', $tenant->tenantId())
+            ->where('id', $expertId)
+            ->find();
+        if (!is_array($expert)) {
             throw new MemberTransactionException(404, 'expert_not_found', 'Expert was not found');
         }
 
-        $expert['pricing'] = $this->pricing($tenant->tenantId(), $expertId);
+        $role = (string) ($expert['role'] ?? 'mentor');
+        if ($role === '') {
+            $role = 'mentor';
+        }
 
-        return $this->success($expert);
+        return $this->success([
+            'id'          => (int) $expert['id'],
+            'name'        => (string) $expert['name'],
+            'title'       => (string) $expert['title'],
+            'company'     => (string) $expert['company'],
+            'industry'    => (string) $expert['industry'],
+            'bio'         => (string) $expert['bio'],
+            'role'        => $role,
+            'profile'     => $this->decodeJsonMap((string) ($expert['profile_json'] ?? '')),
+            'role_fields' => $this->roleFields($tenant->tenantId(), $role),
+            'cases'       => $this->cases($tenant->tenantId(), $expertId),
+            'credentials' => $this->credentials($tenant->tenantId(), $expertId),
+            'courses'     => $this->courses($tenant->tenantId(), $expertId),
+            'pricing'     => $this->pricing($tenant->tenantId(), $expertId),
+        ]);
     }
 
     /** 定价表化（P0）：读 ch_expert_pricing，无记录回退默认值 */
@@ -206,69 +226,110 @@ final class ExpertScheduleController
         return $this->success($appointment);
     }
 
-    private function findExpert(int $tenantId, int $expertId): ?array
+    private function decodeJsonMap(string $json): array
     {
-        $mentorRoles = Db::table('ch_persona_role')
-            ->where('tenant_id', $tenantId)
-            ->whereIn('code', ['mentor', 'coach', 'industry_leader'])
-            ->where('status', 1)
-            ->where('is_del', 0)
-            ->column('id');
+        $decoded = json_decode($json, true);
 
-        $expert = null;
-        if ($mentorRoles) {
-            $member = Db::table('ch_tenant_member')
-                ->where('tenant_id', $tenantId)
-                ->where('id', $expertId)
-                ->where('primary_role_id', 'in', $mentorRoles)
-                ->where('status', 1)
-                ->where('is_del', 0)
-                ->find();
-            if (is_array($member)) {
-                $profile = Db::table('ch_member_profile')
-                    ->where('tenant_id', $tenantId)
-                    ->where('member_id', $expertId)
-                    ->find();
-                if (is_array($profile) && trim((string) $profile['real_name']) !== '') {
-                    $expert = [
-                        'id' => (int) $member['id'],
-                        'name' => (string) $profile['real_name'],
-                        'title' => (string) ($profile['job_title'] ?? ''),
-                        'company' => (string) ($profile['company_name'] ?? ''),
-                        'bio' => (string) ($profile['bio'] ?? ''),
-                        'industry' => (string) ($profile['industry'] ?? ''),
-                    ];
-                }
-            }
-        }
-
-        if ($expert === null) {
-            $expert = $this->seedExpert($expertId);
-        }
-
-        return $expert;
+        return is_array($decoded) ? $decoded : [];
     }
 
-    private function seedExpert(int $expertId): ?array
+    private function roleFields(int $tenantId, string $role): array
     {
-        $seeds = [
-            1 => ['name' => '陈明远', 'title' => '知名导师 · 行业领袖', 'company' => '明德恒智咨询', 'bio' => '深耕企业家教练领域 15 年，服务过 200+ 家企业创始人。', 'industry' => '企业服务'],
-            2 => ['name' => '李一舟', 'title' => 'AI 增长教练', 'company' => '智舟咨询', 'bio' => '专注 AI 与组织效能，帮助 100+ 团队完成 AI 转型落地。', 'industry' => '人工智能'],
-            3 => ['name' => '王慧', 'title' => '公益慈善家', 'company' => '向善公益', 'bio' => '长期投身商业向善事业，发起多个企业家公益项目。', 'industry' => '公益慈善'],
-        ];
-        if (!isset($seeds[$expertId])) {
-            return null;
-        }
-        $seed = $seeds[$expertId];
+        $rows = Db::table('ch_expert_role_field')
+            ->where('tenant_id', $tenantId)
+            ->where('role', $role)
+            ->where('status', 1)
+            ->order('sort', 'asc')
+            ->order('id', 'asc')
+            ->select()
+            ->toArray();
 
-        return [
-            'id' => $expertId,
-            'name' => $seed['name'],
-            'title' => $seed['title'],
-            'company' => $seed['company'],
-            'bio' => $seed['bio'],
-            'industry' => $seed['industry'],
-        ];
+        $items = [];
+        foreach ($rows as $r) {
+            $items[] = [
+                'field_key'   => (string) $r['field_key'],
+                'field_label' => (string) $r['field_label'],
+                'field_type'  => (string) $r['field_type'],
+                'placeholder' => (string) $r['placeholder'],
+            ];
+        }
+
+        return $items;
+    }
+
+    private function cases(int $tenantId, int $expertId): array
+    {
+        $rows = Db::table('ch_expert_case')
+            ->where('tenant_id', $tenantId)
+            ->where('expert_id', $expertId)
+            ->where('status', 1)
+            ->where('is_del', 0)
+            ->order('sort', 'asc')
+            ->order('id', 'asc')
+            ->select()
+            ->toArray();
+
+        $items = [];
+        foreach ($rows as $r) {
+            $items[] = [
+                'id'          => (int) $r['id'],
+                'title'       => (string) $r['title'],
+                'description' => (string) $r['description'],
+                'industry'    => (string) $r['industry'],
+                'year'        => (int) $r['year'],
+            ];
+        }
+
+        return $items;
+    }
+
+    private function credentials(int $tenantId, int $expertId): array
+    {
+        $rows = Db::table('ch_expert_credential')
+            ->where('tenant_id', $tenantId)
+            ->where('expert_id', $expertId)
+            ->where('status', 1)
+            ->where('is_del', 0)
+            ->order('sort', 'asc')
+            ->order('id', 'asc')
+            ->select()
+            ->toArray();
+
+        $items = [];
+        foreach ($rows as $r) {
+            $items[] = [
+                'id'     => (int) $r['id'],
+                'name'   => (string) $r['name'],
+                'issuer' => (string) $r['issuer'],
+                'year'   => (int) $r['year'],
+            ];
+        }
+
+        return $items;
+    }
+
+    private function courses(int $tenantId, int $expertId): array
+    {
+        $rows = Db::table('ch_expert_course')
+            ->where('tenant_id', $tenantId)
+            ->where('expert_id', $expertId)
+            ->where('status', 1)
+            ->where('is_del', 0)
+            ->order('sort', 'asc')
+            ->order('id', 'asc')
+            ->select()
+            ->toArray();
+
+        $items = [];
+        foreach ($rows as $r) {
+            $items[] = [
+                'id'      => (int) $r['id'],
+                'title'   => (string) $r['title'],
+                'summary' => (string) $r['summary'],
+            ];
+        }
+
+        return $items;
     }
 
     private function positiveId($value): int

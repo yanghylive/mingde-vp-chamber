@@ -10,6 +10,7 @@
         <view class="hero-info">
           <view class="hero-name-row">
             <text class="hero-name">{{ expert.name }}</text>
+            <text v-if="roleLabel" class="hero-role">{{ roleLabel }}</text>
             <text v-if="expert.industry" class="hero-industry">{{ expert.industry }}</text>
           </view>
           <text class="hero-title">{{ expert.title || '明德大咖' }}{{ expert.company ? ' · ' + expert.company : '' }}</text>
@@ -22,6 +23,58 @@
       <view v-if="expert.bio || expert.description" class="bio card">
         <text class="bio-title">简介</text>
         <text class="bio-text">{{ expert.bio || expert.description }}</text>
+      </view>
+
+      <!-- 角色化专业档案（EXP-001：按角色字段模板渲染） -->
+      <view v-if="roleProfile.length" class="role-profile card">
+        <text class="rp-head">专业档案</text>
+        <view v-for="f in roleProfile" :key="f.key" class="rp-row">
+          <text class="rp-label">{{ f.label }}</text>
+          <view v-if="f.type === 'tags' && Array.isArray(f.value)" class="rp-tags">
+            <text v-for="(t, i) in f.value" :key="i" class="rp-tag">{{ t }}</text>
+          </view>
+          <text v-else class="rp-text">{{ f.value || '—' }}</text>
+        </view>
+      </view>
+
+      <!-- 辅导案例（EXP-002） -->
+      <view v-if="expert.cases && expert.cases.length">
+        <view class="section-head">
+          <text class="section-title">辅导案例</text>
+        </view>
+        <view v-for="c in expert.cases" :key="c.id" class="case-item card">
+          <text class="case-title">{{ c.title }}</text>
+          <text class="case-desc">{{ c.description }}</text>
+          <view class="case-meta">
+            <text v-if="c.industry" class="case-industry">{{ c.industry }}</text>
+            <text v-if="c.year" class="case-year">{{ c.year }}</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 资质（EXP-002） -->
+      <view v-if="expert.credentials && expert.credentials.length">
+        <view class="section-head">
+          <text class="section-title">专业资质</text>
+        </view>
+        <view v-for="c in expert.credentials" :key="c.id" class="cred-item card">
+          <view class="cred-badge"><image class="ic ic-sm" src="/static/icons/ic-shield-check-gold.png" mode="aspectFit" /></view>
+          <view class="cred-info">
+            <text class="cred-name">{{ c.name }}</text>
+            <text class="cred-issuer">{{ c.issuer }}{{ c.year ? ' · ' + c.year : '' }}</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 课程（EXP-002） -->
+      <view v-if="expert.courses && expert.courses.length">
+        <view class="section-head">
+          <text class="section-title">主讲课程</text>
+        </view>
+        <view v-for="c in expert.courses" :key="c.id" class="course-item card">
+          <text class="course-title">{{ c.title }}</text>
+          <text v-if="c.summary" class="course-summary">{{ c.summary }}</text>
+        </view>
       </view>
 
       <!-- 定价 -->
@@ -109,6 +162,19 @@ export default {
     }
   },
   computed: {
+    // 角色中文名（EXP-001）
+    roleLabel() {
+      const map = { mentor: '导师', coach: '教练', industry_leader: '行业领袖' }
+      return this.expert && map[this.expert.role] ? map[this.expert.role] : ''
+    },
+    // 角色化资料：把 role_fields 模板 + profile 值合并成 [{key,label,type,value}]
+    roleProfile() {
+      if (!this.expert || !Array.isArray(this.expert.role_fields)) return []
+      const profile = this.expert.profile || {}
+      return this.expert.role_fields
+        .map((f) => ({ key: f.field_key, label: f.field_label, type: f.field_type, value: profile[f.field_key] }))
+        .filter((f) => f.value !== undefined && f.value !== null && f.value !== '')
+    },
     // 定价归一化（兼容嵌套 pricing 对象）
     pricingReady() {
       return Number(this.onlinePoints || 0) > 0 || Number(this.onlineCash || 0) > 0 || Number(this.offlinePoints || 0) > 0 || Number(this.offlineCash || 0) > 0
@@ -318,6 +384,140 @@ export default {
   font-size: 24rpx;
   color: #516580;
   line-height: 1.7;
+}
+.hero-role {
+  font-size: 22rpx;
+  color: #b8751d;
+  background: rgba(184, 117, 29, 0.12);
+  padding: 6rpx 16rpx;
+  border-radius: 999rpx;
+  font-weight: 600;
+}
+.role-profile {
+  margin-top: 24rpx;
+  padding: 32rpx;
+}
+.rp-head {
+  font-size: 26rpx;
+  font-weight: 700;
+  color: #273b59;
+  display: block;
+  margin-bottom: 8rpx;
+}
+.rp-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 24rpx;
+  padding: 16rpx 0;
+  border-bottom: 1rpx solid #eef1f5;
+}
+.rp-row:last-child {
+  border-bottom: none;
+}
+.rp-label {
+  width: 150rpx;
+  flex-shrink: 0;
+  font-size: 24rpx;
+  color: #8a94a3;
+  padding-top: 4rpx;
+}
+.rp-text {
+  flex: 1;
+  font-size: 26rpx;
+  color: #273b59;
+  line-height: 1.5;
+}
+.rp-tags {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+}
+.rp-tag {
+  font-size: 22rpx;
+  color: #b8751d;
+  background: #f7f5f0;
+  padding: 6rpx 18rpx;
+  border-radius: 999rpx;
+}
+.case-item {
+  margin-bottom: 20rpx;
+  padding: 28rpx;
+}
+.case-title {
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #273b59;
+  display: block;
+}
+.case-desc {
+  font-size: 24rpx;
+  color: #516580;
+  line-height: 1.6;
+  display: block;
+  margin-top: 10rpx;
+}
+.case-meta {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  margin-top: 14rpx;
+}
+.case-industry {
+  font-size: 22rpx;
+  color: #b8751d;
+  background: #f7f5f0;
+  padding: 4rpx 14rpx;
+  border-radius: 999rpx;
+}
+.case-year {
+  font-size: 22rpx;
+  color: #8a94a3;
+}
+.cred-item {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  margin-bottom: 20rpx;
+  padding: 24rpx 28rpx;
+}
+.cred-badge {
+  width: 60rpx;
+  height: 60rpx;
+  flex-shrink: 0;
+}
+.cred-info {
+  flex: 1;
+  min-width: 0;
+}
+.cred-name {
+  font-size: 26rpx;
+  font-weight: 600;
+  color: #273b59;
+  display: block;
+}
+.cred-issuer {
+  font-size: 22rpx;
+  color: #8a94a3;
+  margin-top: 6rpx;
+  display: block;
+}
+.course-item {
+  margin-bottom: 20rpx;
+  padding: 28rpx;
+}
+.course-title {
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #273b59;
+  display: block;
+}
+.course-summary {
+  font-size: 24rpx;
+  color: #516580;
+  line-height: 1.6;
+  display: block;
+  margin-top: 10rpx;
 }
 .section-head {
   display: flex;
