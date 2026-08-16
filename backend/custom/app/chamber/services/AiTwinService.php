@@ -129,6 +129,25 @@ final class AiTwinService
         return $map[$code] ?? '';
     }
 
+    /**
+     * 统一解析「分身归属的 member_id」。
+     * 大咖详情页传的是 ch_expert.id（资料表），而分身按 ch_expert_ai.member_id 归属。
+     * 若该大咖已关联会员（ch_expert.member_id > 0），用会员 member_id；否则原样返回
+     * （真会员 member_id，或未关联会员的 ch_expert.id 代理）。
+     */
+    private function resolveTwinMemberId(int $tenantId, int $id): int
+    {
+        $expert = Db::table('ch_expert')
+            ->where('tenant_id', $tenantId)
+            ->where('id', $id)
+            ->find();
+        if (is_array($expert) && (int) ($expert['member_id'] ?? 0) > 0) {
+            return (int) $expert['member_id'];
+        }
+
+        return $id;
+    }
+
     /** 大咖会员档案（ch_member_profile）用于训练上下文；档案为空时回退查 ch_expert 大咖资料 */
     public function memberProfile(int $tenantId, int $memberId): array
     {
@@ -428,11 +447,13 @@ PROMPT;
         $memberId = (int) $member['id'];
         $tenantId = $tenant->tenantId();
 
-        if ($expertMemberId === $memberId) {
+        $twinMemberId = $this->resolveTwinMemberId($tenantId, $expertMemberId);
+
+        if ($twinMemberId === $memberId) {
             throw new MemberTransactionException(422, 'self_chat_not_allowed', '不能和自己的分身对话，请去训练它');
         }
 
-        $ai = $this->ensureAi($tenantId, $expertMemberId);
+        $ai = $this->ensureAi($tenantId, $twinMemberId);
         if (!$ai) {
             throw new MemberTransactionException(404, 'expert_not_found', '大咖不存在或尚未开通 AI 分身');
         }
@@ -440,7 +461,7 @@ PROMPT;
         $cost = max(1, (int) $ai['chat_points_cost']);
 
         // 大咖名（展示）
-        $expertName = $ai['persona_name'] !== '' ? $ai['persona_name'] : '大咖#' . $expertMemberId;
+        $expertName = $ai['persona_name'] !== '' ? $ai['persona_name'] : '大咖#' . $twinMemberId;
 
         // 1. 预校验余额
         $account = $this->identity->pointsAccount($tenantId, $member, true);
@@ -449,8 +470,8 @@ PROMPT;
         }
 
         // 2. 调 AI（长耗时，放在事务外）
-        $memories = $this->memories($tenantId, $expertMemberId, self::MEMORY_INJECT_LIMIT);
-        $expertProfile = $this->memberProfile($tenantId, $expertMemberId);
+        $memories = $this->memories($tenantId, $twinMemberId, self::MEMORY_INJECT_LIMIT);
+        $expertProfile = $this->memberProfile($tenantId, $twinMemberId);
         $system = $this->twinSystem($ai, $memories, $this->relevantKnowledge($tenantId, $aiId, $message, 5), $expertProfile);
         $history = $this->lastHistory($tenantId, $aiId, 'member', self::MEMBER_MAX_HISTORY);
 
@@ -470,7 +491,7 @@ PROMPT;
         $now = time();
         $chatId = null;
         $finalBalance = null;
-        Db::transaction(function () use ($tenant, $member, $cost, $expertMemberId, $expertName, $tenantId, $aiId, $history, $now, $memberId, &$chatId, &$finalBalance) {
+        Db::transaction(function () use ($tenant, $member, $cost, $twinMemberId, $expertName, $tenantId, $aiId, $history, $now, $memberId, &$chatId, &$finalBalance) {
             // 乐观锁重读
             $account = $this->identity->pointsAccount($tenantId, $member, true);
             $balance = (int) $account['balance'];
@@ -496,7 +517,7 @@ PROMPT;
             $chatId = (int) Db::table('ch_expert_ai_chat')->insertGetId([
                 'tenant_id' => $tenantId,
                 'expert_id' => $aiId,
-                'member_id' => $expertMemberId,
+                'member_id' => $twinMemberId,
                 'chat_type' => 'member',
                 'user_id' => $memberId,
                 'messages' => json_encode($history, JSON_UNESCAPED_UNICODE),
@@ -578,8 +599,9 @@ PROMPT;
     /** 分身公开信息（会员对话前查看） */
     public function twinProfile(int $tenantId, int $expertMemberId): array
     {
-        $ai = $this->ensureAi($tenantId, $expertMemberId);
-        $memories = $this->memories($tenantId, $expertMemberId, self::MEMORY_INJECT_LIMIT);
+        $twinMemberId = $this->resolveTwinMemberId($tenantId, $expertMemberId);
+        $ai = $this->ensureAi($tenantId, $twinMemberId);
+        $memories = $this->memories($tenantId, $twinMemberId, self::MEMORY_INJECT_LIMIT);
 
         $memoriesBrief = [];
         foreach ($memories as $m) {
@@ -600,8 +622,9 @@ PROMPT;
     /** 分身就绪度打分（S2）：档案完整度 + 知识库 + 训练进度 → 0-100 */
     public function twinReadiness(int $tenantId, int $memberId): array
     {
-        $ai = $this->ensureAi($tenantId, $memberId);
-        $profile = $this->memberProfile($tenantId, $memberId);
+        $twinMemberId = $this->resolveTwinMemberId($tenantId, $memberId);
+        $ai = $this->ensureAi($tenantId, $twinMemberId);
+        $profile = $this->memberProfile($tenantId, $twinMemberId);
 
         $profileFields = ['industry', 'company_name', 'job_title', 'main_business', 'bio', 'expertise_json'];
         $filled = 0;

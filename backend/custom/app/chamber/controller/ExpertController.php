@@ -82,6 +82,7 @@ final class ExpertController
                 'industry'    => (string) $e['industry'],
                 'bio'         => (string) $e['bio'],
                 'role'        => (string) ($e['role'] ?? 'mentor'),
+                'member_id'   => (int) ($e['member_id'] ?? 0),
                 'profile'     => $this->decodeJsonMap((string) ($e['profile_json'] ?? '')),
                 'cases'       => $this->listRows($tenantId, $expertId, 'ch_expert_case', 'case'),
                 'credentials' => $this->listRows($tenantId, $expertId, 'ch_expert_credential', 'credential'),
@@ -201,6 +202,7 @@ final class ExpertController
             'industry'     => trim((string) ($body['industry'] ?? '')),
             'bio'          => trim((string) ($body['bio'] ?? '')),
             'role'         => $role,
+            'member_id'    => max(0, (int) ($body['member_id'] ?? 0)),
             'profile_json' => json_encode($profile, JSON_UNESCAPED_UNICODE),
         ];
         if ($data['name'] === '') {

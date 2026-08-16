@@ -64,6 +64,18 @@
             <el-option v-for="o in roleOptions" :key="o.value" :label="o.label" :value="o.value" />
           </el-select>
         </el-form-item>
+        <el-form-item label="关联会员">
+          <el-select
+            v-model="form.member_id"
+            placeholder="选择已注册会员（可选，用于关联账号）"
+            filterable
+            clearable
+            style="width: 100%"
+          >
+            <el-option v-for="m in memberOptions" :key="m.id" :label="m.name + '（会员ID ' + m.id + '）'" :value="m.id" />
+          </el-select>
+          <div class="member-tip">大咖注册会员后在此关联，AI 分身/预约自动归位到其账号；未注册可留空</div>
+        </el-form-item>
         <el-form-item label="头衔" prop="title">
           <el-input v-model="form.title" placeholder="如：知名导师 · 行业领袖" maxlength="60" />
         </el-form-item>
@@ -165,6 +177,7 @@
 
 <script>
 import { expertProfileList, expertProfileUpdate } from '@/api/chamber/expertProfile';
+import { memberList } from '@/api/chamber/members';
 import { Message } from 'element-ui';
 
 const ROLE_OPTIONS = [
@@ -183,6 +196,7 @@ export default {
       rows: [],
       roleFields: { mentor: [], coach: [], industry_leader: [] },
       roleOptions: ROLE_OPTIONS,
+      memberOptions: [],
       dialogVisible: false,
       form: this.emptyForm(),
       rules: {
@@ -197,6 +211,7 @@ export default {
   },
   created() {
     this.loadList();
+    this.loadMemberOptions();
   },
   methods: {
     emptyForm() {
@@ -208,6 +223,7 @@ export default {
         industry: '',
         bio: '',
         role: 'mentor',
+        member_id: 0,
         profile: {},
         cases: [],
         credentials: [],
@@ -238,6 +254,16 @@ export default {
           this.loading = false;
         });
     },
+    loadMemberOptions() {
+      memberList()
+        .then((res) => {
+          const data = res.data || {};
+          this.memberOptions = Array.isArray(data.items) ? data.items : [];
+        })
+        .catch(() => {
+          this.memberOptions = [];
+        });
+    },
     openAdd() {
       this.form = this.emptyForm();
       this.dialogVisible = true;
@@ -251,6 +277,7 @@ export default {
         industry: row.industry || '',
         bio: row.bio || '',
         role: row.role || 'mentor',
+        member_id: row.member_id || 0,
         profile: row.profile && typeof row.profile === 'object' ? row.profile : {},
         cases: Array.isArray(row.cases) ? row.cases.map((x) => Object.assign({}, x)) : [],
         credentials: Array.isArray(row.credentials) ? row.credentials.map((x) => Object.assign({}, x)) : [],
@@ -300,6 +327,7 @@ export default {
           industry: this.form.industry,
           bio: this.form.bio,
           role: this.form.role,
+          member_id: this.form.member_id || 0,
           profile: this.normalizeProfile(),
           cases: this.form.cases.filter((c) => c.title && c.title.trim()),
           credentials: this.form.credentials.filter((c) => c.name && c.name.trim()),
@@ -394,5 +422,11 @@ export default {
 .showcase-row >>> .el-input,
 .showcase-row >>> .el-input-number {
   flex: 1;
+}
+.member-tip {
+  font-size: 12px;
+  color: #909399;
+  line-height: 1.5;
+  margin-top: 4px;
 }
 </style>
