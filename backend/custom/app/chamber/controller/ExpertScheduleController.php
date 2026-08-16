@@ -266,6 +266,9 @@ final class ExpertScheduleController
                 'points_cost' => $pointsCost,
                 'cash_cost' => $cashCost,
                 'booking_key' => $bookingKey,
+                'slot_start_time' => (int) $slot['start_time'],
+                'slot_end_time' => (int) $slot['end_time'],
+                'location' => (int) $slot['location'],
                 'created_at' => $now,
                 'add_time' => $now,
             ]);
@@ -409,20 +412,11 @@ final class ExpertScheduleController
         $total = (clone $query)->count();
         $rows = $query->page($page, $limit)->select()->toArray();
 
-        // 批量查 slot + expert，消除 N+1（历史预约需显示已软删档期/专家的快照信息，故不过滤 deleted_at/is_del）
-        $slotIds = array_values(array_unique(array_filter(array_map(static function ($r) {
-            return (int) $r['slot_id'];
-        }, $rows))));
+        // 批量查 expert 消除 N+1；时段信息用快照字段，不依赖时段表（时段被删也能展示历史）
         $expertIds = array_values(array_unique(array_filter(array_map(static function ($r) {
             return (int) $r['expert_id'];
         }, $rows))));
 
-        $slotMap = [];
-        if ($slotIds) {
-            foreach (Db::table('ch_expert_slot')->whereIn('id', $slotIds)->select()->toArray() as $s) {
-                $slotMap[(int) $s['id']] = $s;
-            }
-        }
         $expertMap = [];
         if ($expertIds) {
             foreach (Db::table('ch_expert')->whereIn('id', $expertIds)->select()->toArray() as $e) {
@@ -432,15 +426,14 @@ final class ExpertScheduleController
 
         $items = [];
         foreach ($rows as $row) {
-            $slot = $slotMap[(int) $row['slot_id']] ?? null;
             $expert = $expertMap[(int) $row['expert_id']] ?? null;
             $items[] = [
                 'id' => (int) $row['id'],
                 'expert_id' => (int) $row['expert_id'],
                 'expert_name' => is_array($expert) ? (string) $expert['name'] : '',
                 'slot_id' => (int) $row['slot_id'],
-                'start_time' => is_array($slot) ? (int) $slot['start_time'] : 0,
-                'end_time' => is_array($slot) ? (int) $slot['end_time'] : 0,
+                'start_time' => (int) $row['slot_start_time'],
+                'end_time' => (int) $row['slot_end_time'],
                 'mode' => (string) $row['mode'],
                 'status' => (string) $row['status'],
                 'points_cost' => (int) $row['points_cost'],
