@@ -175,7 +175,16 @@ export default {
     },
     async loadData() {
       try {
-        this.experts = (await chamber.experts()).map(function(e){ e.first = (e.name || '明').slice(0, 1); return e })
+        this.experts = (await chamber.experts()).map(function(e){
+          e.first = (e.name || '明').slice(0, 1)
+          // 后端定价放在嵌套 pricing 对象里，归一化到扁平字段，供模板直接读
+          const p = e.pricing || {}
+          e.online_points = (e.online_points != null ? e.online_points : p.online_points)
+          e.online_cash = (e.online_cash != null ? e.online_cash : p.online_cash)
+          e.offline_points = (e.offline_points != null ? e.offline_points : p.offline_points)
+          e.offline_cash = (e.offline_cash != null ? e.offline_cash : p.offline_cash)
+          return e
+        })
         // 缓存列表，供详情页在 id 丢失时恢复
         try { uni.setStorageSync('expert_list_cache', this.experts.slice(0, 10)) } catch (e) {}
       } catch (e) {}
