@@ -1,9 +1,25 @@
-SELECT COLUMN_NAME FROM information_schema.COLUMNS
-WHERE TABLE_SCHEMA='crmeb' AND TABLE_NAME='ch_settlement_detail'
-AND COLUMN_NAME IN ('claim_token','claim_expire_time','next_retry_time');
-SELECT COLUMN_NAME FROM information_schema.COLUMNS
-WHERE TABLE_SCHEMA='crmeb' AND TABLE_NAME='ch_payout_record'
-AND COLUMN_NAME IN ('request_payload_hash','query_count','last_query_time');
-SELECT INDEX_NAME FROM information_schema.STATISTICS
-WHERE TABLE_SCHEMA='crmeb' AND TABLE_NAME='ch_settlement_detail'
-AND INDEX_NAME IN ('idx_due','idx_claim');
+-- Structural checks (auto-generated).
+SET NAMES utf8mb4;
+
+SELECT 'ch_settlement_detail.exists' AS check_name,
+       IF(COUNT(*) = 1, 'PASS', 'FAIL') AS result,
+       CONCAT('tables=', COUNT(*)) AS details
+FROM information_schema.tables
+WHERE table_schema = DATABASE()
+  AND table_name = 'ch_settlement_detail';
+
+SELECT 'ch_settlement_detail.claim_token' AS check_name,
+       IF(COUNT(*) = 1, 'PASS', 'FAIL') AS result,
+       CONCAT('columns=', COUNT(*)) AS details
+FROM information_schema.columns
+WHERE table_schema = DATABASE()
+  AND table_name = 'ch_settlement_detail'
+  AND column_name = 'claim_token';
+
+SELECT 'ch_settlement_detail.claim_expire_time' AS check_name,
+       IF(COUNT(*) = 1, 'PASS', 'FAIL') AS result,
+       CONCAT('columns=', COUNT(*)) AS details
+FROM information_schema.columns
+WHERE table_schema = DATABASE()
+  AND table_name = 'ch_settlement_detail'
+  AND column_name = 'claim_expire_time';

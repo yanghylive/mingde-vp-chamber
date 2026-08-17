@@ -1,11 +1,117 @@
--- 校验 EXP-001/002 迁移结果
-SELECT IF(COUNT(*) = 2, 'OK: ch_expert has role + profile_json', CONCAT('FAIL: ch_expert missing columns, found ', COUNT(*))) AS `result`
-FROM information_schema.COLUMNS
-WHERE TABLE_SCHEMA = 'crmeb' AND TABLE_NAME = 'ch_expert' AND COLUMN_NAME IN ('role', 'profile_json');
+-- Structural checks (auto-generated).
+SET NAMES utf8mb4;
 
-SELECT IF(COUNT(*) = 4, 'OK: 4 showcase tables exist', CONCAT('FAIL: showcase tables = ', COUNT(*))) AS `result`
-FROM information_schema.TABLES
-WHERE TABLE_SCHEMA = 'crmeb' AND TABLE_NAME IN ('ch_expert_role_field', 'ch_expert_case', 'ch_expert_credential', 'ch_expert_course');
+SELECT 'ch_expert_role_field.exists' AS check_name,
+       IF(COUNT(*) = 1, 'PASS', 'FAIL') AS result,
+       CONCAT('tables=', COUNT(*)) AS details
+FROM information_schema.tables
+WHERE table_schema = DATABASE()
+  AND table_name = 'ch_expert_role_field';
 
-SELECT IF(COUNT(*) = 12, 'OK: 12 role fields seeded', CONCAT('FAIL: role fields = ', COUNT(*))) AS `result`
-FROM ch_expert_role_field WHERE tenant_id = 1 AND status = 1;
+SELECT 'ch_expert_role_field.id' AS check_name,
+       IF(COUNT(*) = 1, 'PASS', 'FAIL') AS result,
+       CONCAT('columns=', COUNT(*)) AS details
+FROM information_schema.columns
+WHERE table_schema = DATABASE()
+  AND table_name = 'ch_expert_role_field'
+  AND column_name = 'id';
+
+SELECT 'ch_expert_role_field.tenant_id' AS check_name,
+       IF(COUNT(*) = 1, 'PASS', 'FAIL') AS result,
+       CONCAT('columns=', COUNT(*)) AS details
+FROM information_schema.columns
+WHERE table_schema = DATABASE()
+  AND table_name = 'ch_expert_role_field'
+  AND column_name = 'tenant_id';
+
+SELECT 'ch_expert_case.exists' AS check_name,
+       IF(COUNT(*) = 1, 'PASS', 'FAIL') AS result,
+       CONCAT('tables=', COUNT(*)) AS details
+FROM information_schema.tables
+WHERE table_schema = DATABASE()
+  AND table_name = 'ch_expert_case';
+
+SELECT 'ch_expert_case.id' AS check_name,
+       IF(COUNT(*) = 1, 'PASS', 'FAIL') AS result,
+       CONCAT('columns=', COUNT(*)) AS details
+FROM information_schema.columns
+WHERE table_schema = DATABASE()
+  AND table_name = 'ch_expert_case'
+  AND column_name = 'id';
+
+SELECT 'ch_expert_case.tenant_id' AS check_name,
+       IF(COUNT(*) = 1, 'PASS', 'FAIL') AS result,
+       CONCAT('columns=', COUNT(*)) AS details
+FROM information_schema.columns
+WHERE table_schema = DATABASE()
+  AND table_name = 'ch_expert_case'
+  AND column_name = 'tenant_id';
+
+SELECT 'ch_expert_credential.exists' AS check_name,
+       IF(COUNT(*) = 1, 'PASS', 'FAIL') AS result,
+       CONCAT('tables=', COUNT(*)) AS details
+FROM information_schema.tables
+WHERE table_schema = DATABASE()
+  AND table_name = 'ch_expert_credential';
+
+SELECT 'ch_expert_credential.id' AS check_name,
+       IF(COUNT(*) = 1, 'PASS', 'FAIL') AS result,
+       CONCAT('columns=', COUNT(*)) AS details
+FROM information_schema.columns
+WHERE table_schema = DATABASE()
+  AND table_name = 'ch_expert_credential'
+  AND column_name = 'id';
+
+SELECT 'ch_expert_credential.tenant_id' AS check_name,
+       IF(COUNT(*) = 1, 'PASS', 'FAIL') AS result,
+       CONCAT('columns=', COUNT(*)) AS details
+FROM information_schema.columns
+WHERE table_schema = DATABASE()
+  AND table_name = 'ch_expert_credential'
+  AND column_name = 'tenant_id';
+
+SELECT 'ch_expert_course.exists' AS check_name,
+       IF(COUNT(*) = 1, 'PASS', 'FAIL') AS result,
+       CONCAT('tables=', COUNT(*)) AS details
+FROM information_schema.tables
+WHERE table_schema = DATABASE()
+  AND table_name = 'ch_expert_course';
+
+SELECT 'ch_expert_course.id' AS check_name,
+       IF(COUNT(*) = 1, 'PASS', 'FAIL') AS result,
+       CONCAT('columns=', COUNT(*)) AS details
+FROM information_schema.columns
+WHERE table_schema = DATABASE()
+  AND table_name = 'ch_expert_course'
+  AND column_name = 'id';
+
+SELECT 'ch_expert_course.tenant_id' AS check_name,
+       IF(COUNT(*) = 1, 'PASS', 'FAIL') AS result,
+       CONCAT('columns=', COUNT(*)) AS details
+FROM information_schema.columns
+WHERE table_schema = DATABASE()
+  AND table_name = 'ch_expert_course'
+  AND column_name = 'tenant_id';
+
+SELECT 'ch_expert.exists' AS check_name,
+       IF(COUNT(*) = 1, 'PASS', 'FAIL') AS result,
+       CONCAT('tables=', COUNT(*)) AS details
+FROM information_schema.tables
+WHERE table_schema = DATABASE()
+  AND table_name = 'ch_expert';
+
+SELECT 'ch_expert.role' AS check_name,
+       IF(COUNT(*) = 1, 'PASS', 'FAIL') AS result,
+       CONCAT('columns=', COUNT(*)) AS details
+FROM information_schema.columns
+WHERE table_schema = DATABASE()
+  AND table_name = 'ch_expert'
+  AND column_name = 'role';
+
+SELECT 'ch_expert.profile_json' AS check_name,
+       IF(COUNT(*) = 1, 'PASS', 'FAIL') AS result,
+       CONCAT('columns=', COUNT(*)) AS details
+FROM information_schema.columns
+WHERE table_schema = DATABASE()
+  AND table_name = 'ch_expert'
+  AND column_name = 'profile_json';

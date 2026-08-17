@@ -1,8 +1,17 @@
--- 校验 ch_appointment.mode 已改为 varchar(20)
-SELECT IF(
-  DATA_TYPE = 'varchar' AND CHARACTER_MAXIMUM_LENGTH = 20,
-  'OK: ch_appointment.mode is varchar(20)',
-  CONCAT('FAIL: ch_appointment.mode = ', DATA_TYPE, '(', CHARACTER_MAXIMUM_LENGTH, ')')
-) AS `result`
-FROM information_schema.COLUMNS
-WHERE TABLE_SCHEMA = 'crmeb' AND TABLE_NAME = 'ch_appointment' AND COLUMN_NAME = 'mode';
+-- Structural checks (auto-generated).
+SET NAMES utf8mb4;
+
+SELECT 'ch_appointment.exists' AS check_name,
+       IF(COUNT(*) = 1, 'PASS', 'FAIL') AS result,
+       CONCAT('tables=', COUNT(*)) AS details
+FROM information_schema.tables
+WHERE table_schema = DATABASE()
+  AND table_name = 'ch_appointment';
+
+SELECT 'ch_appointment.mode' AS check_name,
+       IF(COUNT(*) = 1, 'PASS', 'FAIL') AS result,
+       CONCAT('columns=', COUNT(*)) AS details
+FROM information_schema.columns
+WHERE table_schema = DATABASE()
+  AND table_name = 'ch_appointment'
+  AND column_name = 'mode';

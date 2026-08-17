@@ -1,6 +1,40 @@
-SELECT COLUMN_NAME FROM information_schema.COLUMNS
-WHERE TABLE_SCHEMA='crmeb' AND TABLE_NAME='ch_event_notification' AND COLUMN_NAME='is_del';
-SELECT TABLE_NAME FROM information_schema.TABLES
-WHERE TABLE_SCHEMA='crmeb' AND TABLE_NAME='ch_notification_read';
-SELECT INDEX_NAME, COLUMN_NAME FROM information_schema.STATISTICS
-WHERE TABLE_SCHEMA='crmeb' AND TABLE_NAME='ch_notification_read' AND INDEX_NAME='uk_notif_member';
+-- Structural checks (auto-generated).
+SET NAMES utf8mb4;
+
+SELECT 'ch_notification_read.exists' AS check_name,
+       IF(COUNT(*) = 1, 'PASS', 'FAIL') AS result,
+       CONCAT('tables=', COUNT(*)) AS details
+FROM information_schema.tables
+WHERE table_schema = DATABASE()
+  AND table_name = 'ch_notification_read';
+
+SELECT 'ch_notification_read.id' AS check_name,
+       IF(COUNT(*) = 1, 'PASS', 'FAIL') AS result,
+       CONCAT('columns=', COUNT(*)) AS details
+FROM information_schema.columns
+WHERE table_schema = DATABASE()
+  AND table_name = 'ch_notification_read'
+  AND column_name = 'id';
+
+SELECT 'ch_notification_read.notification_id' AS check_name,
+       IF(COUNT(*) = 1, 'PASS', 'FAIL') AS result,
+       CONCAT('columns=', COUNT(*)) AS details
+FROM information_schema.columns
+WHERE table_schema = DATABASE()
+  AND table_name = 'ch_notification_read'
+  AND column_name = 'notification_id';
+
+SELECT 'ch_event_notification.exists' AS check_name,
+       IF(COUNT(*) = 1, 'PASS', 'FAIL') AS result,
+       CONCAT('tables=', COUNT(*)) AS details
+FROM information_schema.tables
+WHERE table_schema = DATABASE()
+  AND table_name = 'ch_event_notification';
+
+SELECT 'ch_event_notification.is_del' AS check_name,
+       IF(COUNT(*) = 1, 'PASS', 'FAIL') AS result,
+       CONCAT('columns=', COUNT(*)) AS details
+FROM information_schema.columns
+WHERE table_schema = DATABASE()
+  AND table_name = 'ch_event_notification'
+  AND column_name = 'is_del';

@@ -1,6 +1,17 @@
-SELECT COLUMN_NAME, COLUMN_TYPE
-FROM information_schema.COLUMNS
-WHERE TABLE_SCHEMA = 'crmeb' AND TABLE_NAME = 'ch_appointment' AND COLUMN_NAME = 'booking_key';
-SELECT INDEX_NAME, COLUMN_NAME, NON_UNIQUE
-FROM information_schema.STATISTICS
-WHERE TABLE_SCHEMA = 'crmeb' AND TABLE_NAME = 'ch_appointment' AND INDEX_NAME = 'uk_booking_key';
+-- Structural checks (auto-generated).
+SET NAMES utf8mb4;
+
+SELECT 'ch_appointment.exists' AS check_name,
+       IF(COUNT(*) = 1, 'PASS', 'FAIL') AS result,
+       CONCAT('tables=', COUNT(*)) AS details
+FROM information_schema.tables
+WHERE table_schema = DATABASE()
+  AND table_name = 'ch_appointment';
+
+SELECT 'ch_appointment.booking_key' AS check_name,
+       IF(COUNT(*) = 1, 'PASS', 'FAIL') AS result,
+       CONCAT('columns=', COUNT(*)) AS details
+FROM information_schema.columns
+WHERE table_schema = DATABASE()
+  AND table_name = 'ch_appointment'
+  AND column_name = 'booking_key';

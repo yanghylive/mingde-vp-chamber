@@ -1,2 +1,17 @@
-SELECT COLUMN_NAME, COLUMN_TYPE FROM information_schema.COLUMNS
-WHERE TABLE_SCHEMA='crmeb' AND TABLE_NAME='ch_expert_slot' AND COLUMN_NAME='deleted_at';
+-- Structural checks (auto-generated).
+SET NAMES utf8mb4;
+
+SELECT 'ch_expert_slot.exists' AS check_name,
+       IF(COUNT(*) = 1, 'PASS', 'FAIL') AS result,
+       CONCAT('tables=', COUNT(*)) AS details
+FROM information_schema.tables
+WHERE table_schema = DATABASE()
+  AND table_name = 'ch_expert_slot';
+
+SELECT 'ch_expert_slot.deleted_at' AS check_name,
+       IF(COUNT(*) = 1, 'PASS', 'FAIL') AS result,
+       CONCAT('columns=', COUNT(*)) AS details
+FROM information_schema.columns
+WHERE table_schema = DATABASE()
+  AND table_name = 'ch_expert_slot'
+  AND column_name = 'deleted_at';
