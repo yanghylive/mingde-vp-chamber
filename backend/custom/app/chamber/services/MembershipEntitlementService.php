@@ -293,7 +293,7 @@ final class MembershipEntitlementService
             'term_months' => $this->positiveInt($snapshot, 'term_months'),
         ];
         $tier = MemberTier::rank($planSnapshot['tier']);
-        if (!in_array($tier, [3, 4], true)) {
+        if (!in_array($tier, [2, 3], true)) {
             throw $this->inconsistent();
         }
         $paidAmount = Money::assertAmount((string) $context['paid_amount'], 'paid_amount');

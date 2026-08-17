@@ -64,8 +64,8 @@ final class MembershipPlanSnapshot
         }
 
         $tier = MemberTier::assertValid($input['tier']);
-        if (!in_array($tier, [MemberTier::L3, MemberTier::L4], true)) {
-            throw new InvalidArgumentException('Membership plan tier must be L3 or L4');
+        if (!in_array($tier, [MemberTier::L2, MemberTier::L3], true)) {
+            throw new InvalidArgumentException('Membership plan tier must be L2 or L3');
         }
         $code = MembershipCheckoutRequest::assertPlanCode($input['code']);
         $name = self::assertDisplayString($input['name'], 'name', 80);
