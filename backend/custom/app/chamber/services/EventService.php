@@ -227,6 +227,10 @@ final class EventService
 
     private function member(TenantContext $tenant, AuthenticatedUserContext $auth): array
     {
+        // 匿名游客：无会员身份，返回空数组（下游 qualificationFacts/formatEvent 已兼容空 member）
+        if ($auth->isAnonymous()) {
+            return [];
+        }
         $row = Db::table('ch_tenant_member')
             ->where('tenant_id', $tenant->tenantId())
             ->where('uid', $auth->uid())
@@ -250,6 +254,10 @@ final class EventService
 
     private function qualificationFacts(TenantContext $tenant, array $member, int $now): array
     {
+        // 匿名游客：无角色、无积分
+        if (!isset($member['id'])) {
+            return ['role_codes' => [], 'points' => 0];
+        }
         $roles = Db::table('ch_member_role')->alias('member_role')
             ->join(
                 ['ch_persona_role' => 'persona_role'],

@@ -42,7 +42,7 @@ export const chamber = {
     }),
 
   // ---- 会员 ----
-  membershipPlans: () => request('/chamber/v1/membership/plans').then((b) => (b && b.plans) || []),
+  membershipPlans: () => request('/chamber/v1/membership/plans', { auth: false }).then((b) => (b && b.plans) || []),
   /** 创建会员开通订单（幂等），返回 { order_no, payable_amount, currency, payment_required } */
   membershipCheckout: (payload) =>
     request('/chamber/v1/membership/checkouts', {
@@ -52,8 +52,8 @@ export const chamber = {
     }),
 
   // ---- 活动 ----
-  events: (params) => request('/chamber/v1/events', { data: params || {} }).then(pickList),
-  eventDetail: (id) => request('/chamber/v1/events/' + (id)),
+  events: (params) => request('/chamber/v1/events', { auth: false, data: params || {} }).then(pickList),
+  eventDetail: (id) => request('/chamber/v1/events/' + (id), { auth: false }),
   myEventRegistrations: () => request('/chamber/v1/me/event-registrations').then(pickList),
   registerEvent: (eventId, ticketId) =>
     request('/chamber/v1/events/' + (eventId) + '/registrations', {
@@ -69,9 +69,9 @@ export const chamber = {
     }),
 
   // ---- 大咖 ----
-  experts: (params) => request('/chamber/v1/experts', { data: params || {} }).then(pickList),
-  expertDetail: (id) => request('/chamber/v1/experts/' + (id)),
-  expertSlots: (id) => request('/chamber/v1/experts/' + (id) + '/slots').then(pickList),
+  experts: (params) => request('/chamber/v1/experts', { auth: false, data: params || {} }).then(pickList),
+  expertDetail: (id) => request('/chamber/v1/experts/' + (id), { auth: false }),
+  expertSlots: (id) => request('/chamber/v1/experts/' + (id) + '/slots', { auth: false }).then(pickList),
   createAppointment: (data) =>
     request('/chamber/v1/experts/' + (data.expert_id) + '/appointments', {
       method: 'POST',
@@ -83,8 +83,8 @@ export const chamber = {
     request('/chamber/v1/experts/appointments/' + id + '/cancel', { method: 'POST' }),
 
   // ---- 商城 ----
-  products: (params) => request('/chamber/v1/products', { data: params || {} }).then(pickList),
-  pointsPaths: () => request('/chamber/v1/points/paths').then((b) => (b && b.items) || []),
+  products: (params) => request('/chamber/v1/products', { auth: false, data: params || {} }).then(pickList),
+  pointsPaths: () => request('/chamber/v1/points/paths', { auth: false }).then((b) => (b && b.items) || []),
   exchangeProduct: (id, pointsCost, cashCost) =>
     request('/chamber/v1/products/' + (id) + '/exchange', {
       method: 'POST',
@@ -101,11 +101,11 @@ export const chamber = {
     request('/chamber/v1/me/graduate-verifications', { method: 'POST', data }),
 
   // ---- 小薇认知教练 ----
-  coachingToday: () => request('/chamber/v1/coaching/today'),
+  coachingToday: () => request('/chamber/v1/coaching/today', { auth: false }),
   coachingMorning: (data) => request('/chamber/v1/coaching/morning', { method: 'POST', data }),
   coachingRespond: (data) => request('/chamber/v1/coaching/respond', { method: 'POST', data }),
   coachingEvening: (data) => request('/chamber/v1/coaching/evening', { method: 'POST', data }),
-  coachingStatus: () => request('/chamber/v1/coaching/status'),
+  coachingStatus: () => request('/chamber/v1/coaching/status', { auth: false }),
 }
 
 export default chamber

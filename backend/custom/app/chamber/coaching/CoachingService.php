@@ -38,6 +38,19 @@ final class CoachingService
 
     public function today(TenantContext $tenant, AuthenticatedUserContext $auth): array
     {
+        if ($auth->isAnonymous()) {
+            return [
+                'date' => date('Y-m-d'),
+                'brand' => $this->brand($tenant, 0),
+                'morning' => null,
+                'responses' => null,
+                'respond_status' => 0,
+                'evening_review' => null,
+                'streak' => 0,
+                'achieve_streak' => 0,
+                'cooldown_mode' => false,
+            ];
+        }
         $ctx = $this->context($tenant, $auth);
         $date = date('Y-m-d');
         $daily = $this->daily($ctx, $date);
@@ -191,6 +204,15 @@ final class CoachingService
 
     public function status(TenantContext $tenant, AuthenticatedUserContext $auth): array
     {
+        if ($auth->isAnonymous()) {
+            return [
+                'date' => date('Y-m-d'),
+                'streak' => 0,
+                'threshold' => $this->streakThreshold($tenant),
+                'cooldown_mode' => false,
+                'message' => '小薇每天 3 条追问，等你的回应',
+            ];
+        }
         $ctx = $this->context($tenant, $auth);
         $date = date('Y-m-d');
         $streak = $this->streak($ctx, $date);

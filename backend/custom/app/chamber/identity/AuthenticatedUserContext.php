@@ -23,8 +23,8 @@ final class AuthenticatedUserContext
 
     public function __construct(int $uid, bool $phoneBound, string $tokenType)
     {
-        if ($uid <= 0) {
-            throw new InvalidArgumentException('Authenticated user ID must be positive');
+        if ($uid < 0) {
+            throw new InvalidArgumentException('Authenticated user ID must not be negative');
         }
         if ($tokenType !== 'api') {
             throw new InvalidArgumentException('Authenticated token type must be the CRMEB user API type');
@@ -33,6 +33,15 @@ final class AuthenticatedUserContext
         $this->uid = $uid;
         $this->phoneBound = $phoneBound;
         $this->tokenType = $tokenType;
+    }
+
+    /**
+     * 匿名/游客上下文（可选鉴权场景：未登录也能浏览公开内容）。
+     * uid=0 表示「无会员身份」；phoneBound 恒为 false。
+     */
+    public static function anonymous(): self
+    {
+        return new self(0, false, 'api');
     }
 
     public static function fromAuthInfo(array $authInfo): self
@@ -62,6 +71,11 @@ final class AuthenticatedUserContext
     public function uid(): int
     {
         return $this->uid;
+    }
+
+    public function isAnonymous(): bool
+    {
+        return $this->uid <= 0;
     }
 
     public function phoneBound(): bool

@@ -208,7 +208,10 @@ export default {
           this.pointsToYuan = Number(cfg.points_ratio)
         }
       })
-      const jobs = [chamber.products(), chamber.points(), chamber.pointsPaths()]
+      const jobs = [chamber.products(), chamber.pointsPaths()]
+      if (checkLogin()) {
+        chamber.points().then((p) => { this.points = p }).catch(() => {})
+      }
       const results = await Promise.allSettled(jobs)
       if (results[0].status === 'fulfilled') {
         this.list = results[0].value || []
@@ -219,8 +222,7 @@ export default {
         }
         this.categoryOptions = cats
       }
-      if (results[1].status === 'fulfilled') this.points = results[1].value
-      if (results[2].status === 'fulfilled') this.paths = results[2].value || []
+      if (results[1].status === 'fulfilled') this.paths = results[1].value || []
       this.loading = false
     },
     normalizeCategory,

@@ -3,6 +3,7 @@
 use app\chamber\middleware\ChamberCorsMiddleware;
 use app\chamber\middleware\CrmebAdminAuthTokenMiddleware;
 use app\chamber\middleware\CrmebAuthTokenMiddleware;
+use app\chamber\middleware\OptionalAuthTokenMiddleware;
 use app\chamber\middleware\RequestTraceMiddleware;
 use app\chamber\middleware\TenantContextMiddleware;
 use think\facade\Route;
@@ -190,8 +191,15 @@ Route::group('v1/ai-twin', function () {
     ->middleware(CrmebAuthTokenMiddleware::class)
     ->middleware(TenantContextMiddleware::class, true);
 
+// ===== 浏览类公开读接口（可选鉴权：游客可浏览，登录后返回个性化数据） =====
 Route::group('v1/products', function () {
     Route::get('/', 'ProductController/index');
+})->middleware(RequestTraceMiddleware::class)
+    ->middleware(ChamberCorsMiddleware::class)
+    ->middleware(OptionalAuthTokenMiddleware::class)
+    ->middleware(TenantContextMiddleware::class, true);
+
+Route::group('v1/products', function () {
     Route::post(':product_id/exchange', 'ProductExchangeController/exchange')
         ->pattern(['product_id' => '\\d+']);
 })->middleware(RequestTraceMiddleware::class)
@@ -203,7 +211,7 @@ Route::group('v1/points', function () {
     Route::get('paths', 'PointsPathsController/index');
 })->middleware(RequestTraceMiddleware::class)
     ->middleware(ChamberCorsMiddleware::class)
-    ->middleware(CrmebAuthTokenMiddleware::class)
+    ->middleware(OptionalAuthTokenMiddleware::class)
     ->middleware(TenantContextMiddleware::class, true);
 
 Route::group('v1/experts', function () {
@@ -212,6 +220,12 @@ Route::group('v1/experts', function () {
         ->pattern(['expert_id' => '\\d+']);
     Route::get(':expert_id/slots', 'ExpertScheduleController/slots')
         ->pattern(['expert_id' => '\\d+']);
+})->middleware(RequestTraceMiddleware::class)
+    ->middleware(ChamberCorsMiddleware::class)
+    ->middleware(OptionalAuthTokenMiddleware::class)
+    ->middleware(TenantContextMiddleware::class, true);
+
+Route::group('v1/experts', function () {
     Route::post(':expert_id/appointments', 'ExpertScheduleController/appointments')
         ->pattern(['expert_id' => '\\d+']);
     Route::post('appointments/:appointment_id/cancel', 'ExpertScheduleController/cancelAppointment')
@@ -223,6 +237,12 @@ Route::group('v1/experts', function () {
 
 Route::group('v1/membership', function () {
     Route::get('plans', 'MembershipPlanController/index');
+})->middleware(RequestTraceMiddleware::class)
+    ->middleware(ChamberCorsMiddleware::class)
+    ->middleware(OptionalAuthTokenMiddleware::class)
+    ->middleware(TenantContextMiddleware::class, true);
+
+Route::group('v1/membership', function () {
     Route::post('checkouts', 'MembershipCheckoutController/store');
 })->middleware(RequestTraceMiddleware::class)
     ->middleware(ChamberCorsMiddleware::class)
@@ -233,6 +253,12 @@ Route::group('v1/events', function () {
     Route::get('', 'EventController/index');
     Route::get(':event_id', 'EventController/show')
         ->pattern(['event_id' => '\\d+']);
+})->middleware(RequestTraceMiddleware::class)
+    ->middleware(ChamberCorsMiddleware::class)
+    ->middleware(OptionalAuthTokenMiddleware::class)
+    ->middleware(TenantContextMiddleware::class, true);
+
+Route::group('v1/events', function () {
     Route::post(':event_id/registrations', 'EventRegistrationController/store')
         ->pattern(['event_id' => '\\d+']);
     Route::post(':event_id/checkins', 'EventCheckinController/store')
@@ -244,10 +270,16 @@ Route::group('v1/events', function () {
 
 Route::group('v1/coaching', function () {
     Route::get('today', 'CoachingController/today');
+    Route::get('status', 'CoachingController/status');
+})->middleware(RequestTraceMiddleware::class)
+    ->middleware(ChamberCorsMiddleware::class)
+    ->middleware(OptionalAuthTokenMiddleware::class)
+    ->middleware(TenantContextMiddleware::class, true);
+
+Route::group('v1/coaching', function () {
     Route::post('morning', 'CoachingController/morning');
     Route::post('respond', 'CoachingController/respond');
     Route::post('evening', 'CoachingController/evening');
-    Route::get('status', 'CoachingController/status');
 })->middleware(RequestTraceMiddleware::class)
     ->middleware(ChamberCorsMiddleware::class)
     ->middleware(CrmebAuthTokenMiddleware::class)

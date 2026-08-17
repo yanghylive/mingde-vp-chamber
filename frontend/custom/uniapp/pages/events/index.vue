@@ -143,10 +143,12 @@ export default {
     async loadData() {
       try {
         this.events = await chamber.events()
-        // 已报名状态
-        const regs = await chamber.myEventRegistrations().catch(() => [])
-        if (Array.isArray(regs)) {
-          this.joined = regs.filter((r) => r.status !== 'cancelled').map((r) => r.event_id || r.id)
+        // 已报名状态（仅登录后展示）
+        if (checkLogin()) {
+          const regs = await chamber.myEventRegistrations().catch(() => [])
+          if (Array.isArray(regs)) {
+            this.joined = regs.filter((r) => r.status !== 'cancelled').map((r) => r.event_id || r.id)
+          }
         }
       } catch (e) {
         this.loadError = (e && e.message) || '加载失败，请重试'

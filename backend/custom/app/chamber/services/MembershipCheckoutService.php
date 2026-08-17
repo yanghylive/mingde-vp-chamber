@@ -58,9 +58,12 @@ final class MembershipCheckoutService
 
     public function listPlans(TenantContext $tenant, AuthenticatedUserContext $auth): array
     {
-        $member = $this->memberByUser($tenant->tenantId(), $auth->uid(), false);
-        $this->assertMemberCurrentChannel($tenant, $member);
-        $this->assertActiveMember($member);
+        $anonymous = $auth->isAnonymous();
+        if (!$anonymous) {
+            $member = $this->memberByUser($tenant->tenantId(), $auth->uid(), false);
+            $this->assertMemberCurrentChannel($tenant, $member);
+            $this->assertActiveMember($member);
+        }
         $now = $this->now();
 
         $rows = Db::table('ch_membership_plan')
@@ -77,10 +80,15 @@ final class MembershipCheckoutService
             ->select()
             ->toArray();
 
-        $approved = (int) $member['verification_status'] === GraduateVerificationState::toDatabase(
-            GraduateVerificationState::APPROVED
-        );
-        $effectiveTier = $this->memberTier($member);
+        if ($anonymous) {
+            $approved = false;
+            $effectiveTier = MemberTier::L1;
+        } else {
+            $approved = (int) $member['verification_status'] === GraduateVerificationState::toDatabase(
+                GraduateVerificationState::APPROVED
+            );
+            $effectiveTier = $this->memberTier($member);
+        }
         $plans = [];
         foreach ($rows as $row) {
             $plan = $this->planFromRow($row);
