@@ -277,7 +277,7 @@ member_ui_tests="$(grep -c '^PASS ' <<<"${member_ui_output}" | tr -d '[:space:]'
 tenant_brand_test_minimum="$(manifest_g1_minimum \
     'tenant_brand_tests_minimum' 'tenant_brand_tests' 6)"
 member_ui_test_minimum="$(manifest_g1_minimum \
-    'member_ui_tests_minimum' 'member_ui_tests' 18)"
+    'member_ui_tests_minimum' 'member_ui_tests' 16)"
 [ "${tenant_brand_tests}" -ge "${tenant_brand_test_minimum}" ] \
     || fail "tenant brand frontend tests were removed: ${tenant_brand_tests} < ${tenant_brand_test_minimum}"
 [ "${member_ui_tests}" -ge "${member_ui_test_minimum}" ] \

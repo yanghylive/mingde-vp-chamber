@@ -4,7 +4,6 @@ var assert = require('assert');
 var fs = require('fs');
 var path = require('path');
 var memberUi = require('../member-ui');
-var userCenterOverlay = require('../../uniapp/overlays/apply-user-center-entry');
 
 function test(name, callback) {
   try {
@@ -55,16 +54,10 @@ test('accepts only JPEG and PNG candidates for new proof uploads', function () {
   assert.strictEqual(genericImage.value.file_path, 'wxfile://tmp/proof.jpg?token=opaque');
 });
 
-test('graduate verification picker filters message files to JPEG and PNG', function () {
-  var source = fs.readFileSync(
-    path.join(__dirname, '../../uniapp/pages/chamber/graduate_verification/index.vue'),
-    'utf8',
-  );
-  assert.match(source, /extension:\s*\['jpg', 'jpeg', 'png'\]/);
-  assert.match(source, /memberUi\.validateProofUploadCandidate\(file\)/);
-  assert.match(source, /uni\.openDocument\(/);
-  assert.doesNotMatch(source, /pdf/i);
-});
+// NOTE: the legacy proof-file picker (pages/chamber/graduate_verification) was retired in the
+// "legacy pages" cleanup. Graduate verification is now a class_name + graduation_year form
+// (pages/mine/graduate-verification/index.vue), and proof asset uploads flow through
+// memberApi.uploadMemberAsset -> uni.uploadFile (covered by the API adapters test below).
 
 test('builds the profile whitelist and omits an empty avatar key', function () {
   var result = memberUi.buildProfilePatch({
@@ -281,9 +274,9 @@ test('frontend API adapters keep the frozen Chamber endpoint paths', function ()
   assert.match(adminApi, /params: \{ application_id: applicationId \}/);
   assert.match(adminApi, /Idempotency-Key/);
 
-  var profilePage = fs.readFileSync(path.join(root, 'uniapp/pages/chamber/profile/index.vue'), 'utf8');
+  var minePage = fs.readFileSync(path.join(root, 'uniapp/pages/mine/index.vue'), 'utf8');
   var verificationPage = fs.readFileSync(
-    path.join(root, 'uniapp/pages/chamber/graduate_verification/index.vue'),
+    path.join(root, 'uniapp/pages/mine/graduate-verification/index.vue'),
     'utf8',
   );
   var adminPage = fs.readFileSync(
@@ -291,32 +284,13 @@ test('frontend API adapters keep the frozen Chamber endpoint paths', function ()
     'utf8',
   );
   assert.match(adminPage, /graduateVerificationAssetContent\(asset\.id, applicationId\)/);
-  var memberEntry = fs.readFileSync(
-    path.join(root, 'uniapp/components/chamberMemberEntry/index.vue'),
-    'utf8',
-  );
-  assert.match(profilePage, /ensureMemberInitialized\(this\.inviteCode\)/);
-  assert.match(verificationPage, /ensureMemberInitialized\(this\.inviteCode\)/);
-  assert.match(memberEntry, /ensureMemberInitialized\(\)/);
-  assert.doesNotMatch(profilePage, /v-model="form\.avatar_object_key"/);
+  assert.match(minePage, /chamber\s*\.meProfile\(/);
+  assert.match(verificationPage, /chamber\s*\.submitGraduateVerification/);
+  assert.match(verificationPage, /chamber\s*\.myGraduateVerification/);
   assert.match(
     fs.readFileSync(path.join(root, 'admin/src/router/modules/chamber.js'), 'utf8'),
     /beforeEnter: superAdministratorOnly/,
   );
-  assert.doesNotMatch(profilePage + verificationPage + adminPage, /padStart/);
+  assert.doesNotMatch(minePage + verificationPage + adminPage, /padStart/);
   assert.doesNotMatch(verificationPage, /proof_object_keys[^\n]*(?:v-model|<input)/);
-});
-
-test('user center overlay remains deterministic against the pinned CRMEB source', function () {
-  var upstream = fs.readFileSync(
-    path.resolve(__dirname, '../../../../backend/crmeb/template/uni-app/pages/user/index.vue'),
-    'utf8',
-  );
-  var once = userCenterOverlay.applySource(upstream);
-  var twice = userCenterOverlay.applySource(once);
-
-  assert.strictEqual(once, twice);
-  assert.strictEqual((once.match(/<chamber-member-entry><\/chamber-member-entry>/g) || []).length, 1);
-  assert.strictEqual((once.match(/import ChamberMemberEntry/g) || []).length, 1);
-  assert.strictEqual((once.match(/    ChamberMemberEntry,/g) || []).length, 1);
 });

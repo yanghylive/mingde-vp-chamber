@@ -124,3 +124,10 @@ test('keeps the shared activity-ui module wired to the new event pages', functio
   assert.match(checkin, /checkin|scanQRCode/);
 });
 
+test('falls back to address copy when navigation coordinates are missing', function () {
+  var detail = fs.readFileSync(path.join(__dirname, '../pages/events/detail/index.vue'), 'utf8');
+  assert.match(detail, /if \(lat && lng\)/);
+  assert.match(detail, /暂未配置导航坐标，可复制地址自行搜索/);
+  assert.match(detail, /setClipboardData/);
+});
+
