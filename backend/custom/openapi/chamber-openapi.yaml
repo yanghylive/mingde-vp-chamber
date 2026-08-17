@@ -1381,6 +1381,579 @@ paths:
           $ref: '#/components/responses/InternalServerError'
         '503':
           $ref: '#/components/responses/TenantServiceUnavailable'
+  /chamber/v1/me/notifications:
+    get:
+      tags:
+        - Member
+      summary: List notifications for the authenticated member
+      operationId: listMyNotifications
+      security:
+        - CrmebBearerAuth: []
+      x-implementation-status: implemented
+      x-requirement-id: CH-NOTIF-001
+      x-tenant-context: required
+      x-signed-headers-all-or-none: true
+      parameters:
+        - $ref: '#/components/parameters/RequestIdHeader'
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+        - $ref: '#/components/parameters/ChamberTenantHeader'
+        - $ref: '#/components/parameters/ChamberChannelHeader'
+        - $ref: '#/components/parameters/ChamberTimestampHeader'
+        - $ref: '#/components/parameters/ChamberNonceHeader'
+        - $ref: '#/components/parameters/ChamberSignatureHeader'
+        - $ref: '#/components/parameters/PageQuery'
+        - $ref: '#/components/parameters/LimitQuery'
+      responses:
+        '200':
+          $ref: '#/components/responses/NotificationListSuccess'
+        '400':
+          $ref: '#/components/responses/ChamberRequestError'
+        '401':
+          $ref: '#/components/responses/ChamberRequestError'
+        '403':
+          $ref: '#/components/responses/ChamberRequestError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/TenantServiceUnavailable'
+  /chamber/v1/me/notifications/{notification_id}/read:
+    post:
+      tags:
+        - Member
+      summary: Mark a notification as read for the authenticated member
+      operationId: markNotificationRead
+      security:
+        - CrmebBearerAuth: []
+      x-implementation-status: implemented
+      x-requirement-id: CH-NOTIF-002
+      x-tenant-context: required
+      x-signed-headers-all-or-none: true
+      parameters:
+        - $ref: '#/components/parameters/RequestIdHeader'
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+        - $ref: '#/components/parameters/ChamberTenantHeader'
+        - $ref: '#/components/parameters/ChamberChannelHeader'
+        - $ref: '#/components/parameters/ChamberTimestampHeader'
+        - $ref: '#/components/parameters/ChamberNonceHeader'
+        - $ref: '#/components/parameters/ChamberSignatureHeader'
+        - $ref: '#/components/parameters/IdempotencyKeyHeader'
+        - $ref: '#/components/parameters/NotificationIdPath'
+      responses:
+        '200':
+          $ref: '#/components/responses/NotificationReadSuccess'
+        '400':
+          $ref: '#/components/responses/ChamberRequestError'
+        '401':
+          $ref: '#/components/responses/ChamberRequestError'
+        '403':
+          $ref: '#/components/responses/ChamberRequestError'
+        '404':
+          $ref: '#/components/responses/MemberTransactionError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/TenantServiceUnavailable'
+  /chamber/v1/me/appointments:
+    get:
+      tags:
+        - Member
+      summary: List the authenticated member appointments
+      operationId: listMyAppointments
+      security:
+        - CrmebBearerAuth: []
+      x-implementation-status: implemented
+      x-requirement-id: CH-APPT-001
+      x-tenant-context: required
+      x-signed-headers-all-or-none: true
+      parameters:
+        - $ref: '#/components/parameters/RequestIdHeader'
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+        - $ref: '#/components/parameters/ChamberTenantHeader'
+        - $ref: '#/components/parameters/ChamberChannelHeader'
+        - $ref: '#/components/parameters/ChamberTimestampHeader'
+        - $ref: '#/components/parameters/ChamberNonceHeader'
+        - $ref: '#/components/parameters/ChamberSignatureHeader'
+        - $ref: '#/components/parameters/PageQuery'
+        - $ref: '#/components/parameters/LimitQuery'
+      responses:
+        '200':
+          $ref: '#/components/responses/AppointmentListSuccess'
+        '400':
+          $ref: '#/components/responses/ChamberRequestError'
+        '401':
+          $ref: '#/components/responses/ChamberRequestError'
+        '403':
+          $ref: '#/components/responses/ChamberRequestError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/TenantServiceUnavailable'
+  /chamber/v1/experts/{expert_id}/appointments:
+    post:
+      tags:
+        - Member
+      summary: Create an appointment with an expert slot
+      operationId: createAppointment
+      security:
+        - CrmebBearerAuth: []
+      x-implementation-status: implemented
+      x-requirement-id: CH-APPT-002
+      x-tenant-context: required
+      x-signed-headers-all-or-none: true
+      parameters:
+        - $ref: '#/components/parameters/RequestIdHeader'
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+        - $ref: '#/components/parameters/ChamberTenantHeader'
+        - $ref: '#/components/parameters/ChamberChannelHeader'
+        - $ref: '#/components/parameters/ChamberTimestampHeader'
+        - $ref: '#/components/parameters/ChamberNonceHeader'
+        - $ref: '#/components/parameters/ChamberSignatureHeader'
+        - $ref: '#/components/parameters/IdempotencyKeyHeader'
+        - $ref: '#/components/parameters/ExpertIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AppointmentCreateRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/AppointmentCreated'
+        '400':
+          $ref: '#/components/responses/ChamberRequestError'
+        '401':
+          $ref: '#/components/responses/ChamberRequestError'
+        '403':
+          $ref: '#/components/responses/ChamberRequestError'
+        '404':
+          $ref: '#/components/responses/MemberTransactionError'
+        '409':
+          $ref: '#/components/responses/MemberTransactionError'
+        '422':
+          $ref: '#/components/responses/MemberTransactionError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/TenantServiceUnavailable'
+  /chamber/v1/experts/appointments/{appointment_id}/cancel:
+    post:
+      tags:
+        - Member
+      summary: Cancel an appointment and refund points
+      operationId: cancelAppointment
+      security:
+        - CrmebBearerAuth: []
+      x-implementation-status: implemented
+      x-requirement-id: CH-APPT-003
+      x-tenant-context: required
+      x-signed-headers-all-or-none: true
+      parameters:
+        - $ref: '#/components/parameters/RequestIdHeader'
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+        - $ref: '#/components/parameters/ChamberTenantHeader'
+        - $ref: '#/components/parameters/ChamberChannelHeader'
+        - $ref: '#/components/parameters/ChamberTimestampHeader'
+        - $ref: '#/components/parameters/ChamberNonceHeader'
+        - $ref: '#/components/parameters/ChamberSignatureHeader'
+        - $ref: '#/components/parameters/IdempotencyKeyHeader'
+        - $ref: '#/components/parameters/AppointmentIdPath'
+      responses:
+        '200':
+          $ref: '#/components/responses/AppointmentCancelled'
+        '400':
+          $ref: '#/components/responses/ChamberRequestError'
+        '401':
+          $ref: '#/components/responses/ChamberRequestError'
+        '403':
+          $ref: '#/components/responses/ChamberRequestError'
+        '404':
+          $ref: '#/components/responses/MemberTransactionError'
+        '409':
+          $ref: '#/components/responses/MemberTransactionError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/TenantServiceUnavailable'
+  /chamber/admin/v1/notifications:
+    get:
+      tags:
+        - Administration
+      summary: List notifications for administration
+      operationId: listNotificationsForAdmin
+      security:
+        - CrmebAdminBearerAuth: []
+      x-implementation-status: implemented
+      x-requirement-id: CH-NOTIF-003
+      x-tenant-context: required
+      x-signed-headers-all-or-none: true
+      x-admin-permission: chamber.notification.read
+      parameters:
+        - $ref: '#/components/parameters/RequestIdHeader'
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+        - $ref: '#/components/parameters/ChamberTenantHeader'
+        - $ref: '#/components/parameters/ChamberChannelHeader'
+        - $ref: '#/components/parameters/ChamberTimestampHeader'
+        - $ref: '#/components/parameters/ChamberNonceHeader'
+        - $ref: '#/components/parameters/ChamberSignatureHeader'
+        - $ref: '#/components/parameters/PageQuery'
+        - $ref: '#/components/parameters/LimitQuery'
+      responses:
+        '200':
+          $ref: '#/components/responses/AdminNotificationListSuccess'
+        '400':
+          $ref: '#/components/responses/ChamberRequestError'
+        '401':
+          $ref: '#/components/responses/ChamberRequestError'
+        '403':
+          $ref: '#/components/responses/ChamberRequestError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/TenantServiceUnavailable'
+    post:
+      tags:
+        - Administration
+      summary: Publish a notification (broadcast or targeted member)
+      operationId: createNotificationForAdmin
+      security:
+        - CrmebAdminBearerAuth: []
+      x-implementation-status: implemented
+      x-requirement-id: CH-NOTIF-004
+      x-tenant-context: required
+      x-signed-headers-all-or-none: true
+      x-admin-permission: chamber.notification.write
+      parameters:
+        - $ref: '#/components/parameters/RequestIdHeader'
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+        - $ref: '#/components/parameters/ChamberTenantHeader'
+        - $ref: '#/components/parameters/ChamberChannelHeader'
+        - $ref: '#/components/parameters/ChamberTimestampHeader'
+        - $ref: '#/components/parameters/ChamberNonceHeader'
+        - $ref: '#/components/parameters/ChamberSignatureHeader'
+        - $ref: '#/components/parameters/IdempotencyKeyHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NotificationCreateRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/NotificationCreated'
+        '400':
+          $ref: '#/components/responses/ChamberRequestError'
+        '401':
+          $ref: '#/components/responses/ChamberRequestError'
+        '403':
+          $ref: '#/components/responses/ChamberRequestError'
+        '404':
+          $ref: '#/components/responses/MemberTransactionError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/TenantServiceUnavailable'
+  /chamber/admin/v1/notifications/{notification_id}:
+    patch:
+      tags:
+        - Administration
+      summary: Edit a notification title or body
+      operationId: updateNotificationForAdmin
+      security:
+        - CrmebAdminBearerAuth: []
+      x-implementation-status: implemented
+      x-requirement-id: CH-NOTIF-005
+      x-tenant-context: required
+      x-signed-headers-all-or-none: true
+      x-admin-permission: chamber.notification.write
+      parameters:
+        - $ref: '#/components/parameters/RequestIdHeader'
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+        - $ref: '#/components/parameters/ChamberTenantHeader'
+        - $ref: '#/components/parameters/ChamberChannelHeader'
+        - $ref: '#/components/parameters/ChamberTimestampHeader'
+        - $ref: '#/components/parameters/ChamberNonceHeader'
+        - $ref: '#/components/parameters/ChamberSignatureHeader'
+        - $ref: '#/components/parameters/IdempotencyKeyHeader'
+        - $ref: '#/components/parameters/NotificationIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NotificationUpdateRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/NotificationUpdated'
+        '400':
+          $ref: '#/components/responses/ChamberRequestError'
+        '401':
+          $ref: '#/components/responses/ChamberRequestError'
+        '403':
+          $ref: '#/components/responses/ChamberRequestError'
+        '404':
+          $ref: '#/components/responses/MemberTransactionError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/TenantServiceUnavailable'
+    delete:
+      tags:
+        - Administration
+      summary: Withdraw a notification (soft delete)
+      operationId: deleteNotificationForAdmin
+      security:
+        - CrmebAdminBearerAuth: []
+      x-implementation-status: implemented
+      x-requirement-id: CH-NOTIF-006
+      x-tenant-context: required
+      x-signed-headers-all-or-none: true
+      x-admin-permission: chamber.notification.delete
+      parameters:
+        - $ref: '#/components/parameters/RequestIdHeader'
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+        - $ref: '#/components/parameters/ChamberTenantHeader'
+        - $ref: '#/components/parameters/ChamberChannelHeader'
+        - $ref: '#/components/parameters/ChamberTimestampHeader'
+        - $ref: '#/components/parameters/ChamberNonceHeader'
+        - $ref: '#/components/parameters/ChamberSignatureHeader'
+        - $ref: '#/components/parameters/NotificationIdPath'
+      responses:
+        '200':
+          $ref: '#/components/responses/NotificationDeleted'
+        '400':
+          $ref: '#/components/responses/ChamberRequestError'
+        '401':
+          $ref: '#/components/responses/ChamberRequestError'
+        '403':
+          $ref: '#/components/responses/ChamberRequestError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/TenantServiceUnavailable'
+  /chamber/admin/v1/settlement/rules:
+    get:
+      tags:
+        - Administration
+      summary: Get settlement rules for a business type
+      operationId: getSettlementRulesForAdmin
+      security:
+        - CrmebAdminBearerAuth: []
+      x-implementation-status: implemented
+      x-requirement-id: CH-SETTLE-001
+      x-tenant-context: required
+      x-signed-headers-all-or-none: true
+      x-admin-permission: chamber.settlement.read
+      parameters:
+        - $ref: '#/components/parameters/RequestIdHeader'
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+        - $ref: '#/components/parameters/ChamberTenantHeader'
+        - $ref: '#/components/parameters/ChamberChannelHeader'
+        - $ref: '#/components/parameters/ChamberTimestampHeader'
+        - $ref: '#/components/parameters/ChamberNonceHeader'
+        - $ref: '#/components/parameters/ChamberSignatureHeader'
+        - $ref: '#/components/parameters/BusinessTypeQuery'
+      responses:
+        '200':
+          $ref: '#/components/responses/SettlementRulesSuccess'
+        '400':
+          $ref: '#/components/responses/ChamberRequestError'
+        '401':
+          $ref: '#/components/responses/ChamberRequestError'
+        '403':
+          $ref: '#/components/responses/ChamberRequestError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/TenantServiceUnavailable'
+    put:
+      tags:
+        - Administration
+      summary: Save settlement rules for a business type
+      operationId: saveSettlementRulesForAdmin
+      security:
+        - CrmebAdminBearerAuth: []
+      x-implementation-status: implemented
+      x-requirement-id: CH-SETTLE-002
+      x-tenant-context: required
+      x-signed-headers-all-or-none: true
+      x-admin-permission: chamber.settlement.rule.write
+      parameters:
+        - $ref: '#/components/parameters/RequestIdHeader'
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+        - $ref: '#/components/parameters/ChamberTenantHeader'
+        - $ref: '#/components/parameters/ChamberChannelHeader'
+        - $ref: '#/components/parameters/ChamberTimestampHeader'
+        - $ref: '#/components/parameters/ChamberNonceHeader'
+        - $ref: '#/components/parameters/ChamberSignatureHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SettlementRulesSaveRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/SettlementRulesSaved'
+        '400':
+          $ref: '#/components/responses/ChamberRequestError'
+        '401':
+          $ref: '#/components/responses/ChamberRequestError'
+        '403':
+          $ref: '#/components/responses/ChamberRequestError'
+        '422':
+          $ref: '#/components/responses/MemberTransactionError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/TenantServiceUnavailable'
+  /chamber/admin/v1/settlement/settlements:
+    get:
+      tags:
+        - Administration
+      summary: List settlement orders for reconciliation
+      operationId: listSettlementsForAdmin
+      security:
+        - CrmebAdminBearerAuth: []
+      x-implementation-status: implemented
+      x-requirement-id: CH-SETTLE-003
+      x-tenant-context: required
+      x-signed-headers-all-or-none: true
+      x-admin-permission: chamber.settlement.read
+      parameters:
+        - $ref: '#/components/parameters/RequestIdHeader'
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+        - $ref: '#/components/parameters/ChamberTenantHeader'
+        - $ref: '#/components/parameters/ChamberChannelHeader'
+        - $ref: '#/components/parameters/ChamberTimestampHeader'
+        - $ref: '#/components/parameters/ChamberNonceHeader'
+        - $ref: '#/components/parameters/ChamberSignatureHeader'
+        - $ref: '#/components/parameters/PageQuery'
+        - $ref: '#/components/parameters/LimitQuery'
+      responses:
+        '200':
+          $ref: '#/components/responses/SettlementListSuccess'
+        '400':
+          $ref: '#/components/responses/ChamberRequestError'
+        '401':
+          $ref: '#/components/responses/ChamberRequestError'
+        '403':
+          $ref: '#/components/responses/ChamberRequestError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/TenantServiceUnavailable'
+  /chamber/admin/v1/settlement/balances:
+    get:
+      tags:
+        - Administration
+      summary: Get settlement debit balances for reconciliation
+      operationId: getSettlementBalancesForAdmin
+      security:
+        - CrmebAdminBearerAuth: []
+      x-implementation-status: implemented
+      x-requirement-id: CH-SETTLE-004
+      x-tenant-context: required
+      x-signed-headers-all-or-none: true
+      x-admin-permission: chamber.settlement.read
+      parameters:
+        - $ref: '#/components/parameters/RequestIdHeader'
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+        - $ref: '#/components/parameters/ChamberTenantHeader'
+        - $ref: '#/components/parameters/ChamberChannelHeader'
+        - $ref: '#/components/parameters/ChamberTimestampHeader'
+        - $ref: '#/components/parameters/ChamberNonceHeader'
+        - $ref: '#/components/parameters/ChamberSignatureHeader'
+      responses:
+        '200':
+          $ref: '#/components/responses/SettlementBalancesSuccess'
+        '400':
+          $ref: '#/components/responses/ChamberRequestError'
+        '401':
+          $ref: '#/components/responses/ChamberRequestError'
+        '403':
+          $ref: '#/components/responses/ChamberRequestError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/TenantServiceUnavailable'
+  /chamber/admin/v1/settlement/run-due:
+    post:
+      tags:
+        - Administration
+      summary: Trigger due settlement payout execution
+      operationId: runSettlementDueForAdmin
+      security:
+        - CrmebAdminBearerAuth: []
+      x-implementation-status: implemented
+      x-requirement-id: CH-SETTLE-005
+      x-tenant-context: required
+      x-signed-headers-all-or-none: true
+      x-admin-permission: chamber.settlement.retry
+      parameters:
+        - $ref: '#/components/parameters/RequestIdHeader'
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+        - $ref: '#/components/parameters/ChamberTenantHeader'
+        - $ref: '#/components/parameters/ChamberChannelHeader'
+        - $ref: '#/components/parameters/ChamberTimestampHeader'
+        - $ref: '#/components/parameters/ChamberNonceHeader'
+        - $ref: '#/components/parameters/ChamberSignatureHeader'
+        - $ref: '#/components/parameters/IdempotencyKeyHeader'
+      responses:
+        '200':
+          $ref: '#/components/responses/SettlementRunSuccess'
+        '400':
+          $ref: '#/components/responses/ChamberRequestError'
+        '401':
+          $ref: '#/components/responses/ChamberRequestError'
+        '403':
+          $ref: '#/components/responses/ChamberRequestError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/TenantServiceUnavailable'
+  /chamber/admin/v1/settlement/settle:
+    post:
+      tags:
+        - Administration
+      summary: Manually settle a single order for reconciliation
+      operationId: settleOrderForAdmin
+      security:
+        - CrmebAdminBearerAuth: []
+      x-implementation-status: implemented
+      x-requirement-id: CH-SETTLE-006
+      x-tenant-context: required
+      x-signed-headers-all-or-none: true
+      x-admin-permission: chamber.settlement.manual_adjust
+      parameters:
+        - $ref: '#/components/parameters/RequestIdHeader'
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+        - $ref: '#/components/parameters/ChamberTenantHeader'
+        - $ref: '#/components/parameters/ChamberChannelHeader'
+        - $ref: '#/components/parameters/ChamberTimestampHeader'
+        - $ref: '#/components/parameters/ChamberNonceHeader'
+        - $ref: '#/components/parameters/ChamberSignatureHeader'
+        - $ref: '#/components/parameters/IdempotencyKeyHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SettlementSettleRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/SettlementSettled'
+        '400':
+          $ref: '#/components/responses/ChamberRequestError'
+        '401':
+          $ref: '#/components/responses/ChamberRequestError'
+        '403':
+          $ref: '#/components/responses/ChamberRequestError'
+        '409':
+          $ref: '#/components/responses/MemberTransactionError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/TenantServiceUnavailable'
 components:
   securitySchemes:
     CrmebBearerAuth:
@@ -1543,6 +2116,35 @@ components:
       description: Filter by one registration lifecycle status.
       schema:
         $ref: '#/components/schemas/EventRegistrationStatus'
+    NotificationIdPath:
+      name: notification_id
+      in: path
+      required: true
+      schema:
+        $ref: '#/components/schemas/PositiveId'
+    ExpertIdPath:
+      name: expert_id
+      in: path
+      required: true
+      schema:
+        $ref: '#/components/schemas/PositiveId'
+    AppointmentIdPath:
+      name: appointment_id
+      in: path
+      required: true
+      schema:
+        $ref: '#/components/schemas/PositiveId'
+    BusinessTypeQuery:
+      name: business_type
+      in: query
+      required: false
+      schema:
+        type: string
+        enum:
+          - membership_fee
+          - appointment
+          - event
+          - expert_service
   headers:
     RequestIdResponseHeader:
       description: |
@@ -2042,6 +2644,171 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/ChamberRequestErrorEnvelope'
+    NotificationListSuccess:
+      description: NotificationListSuccess
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestIdResponseHeader'
+        X-Correlation-Id:
+          $ref: '#/components/headers/CorrelationIdResponseHeader'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/NotificationListEnvelope'
+    NotificationReadSuccess:
+      description: NotificationReadSuccess
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestIdResponseHeader'
+        X-Correlation-Id:
+          $ref: '#/components/headers/CorrelationIdResponseHeader'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/NotificationReadEnvelope'
+    AppointmentListSuccess:
+      description: AppointmentListSuccess
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestIdResponseHeader'
+        X-Correlation-Id:
+          $ref: '#/components/headers/CorrelationIdResponseHeader'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/AppointmentListEnvelope'
+    AppointmentCreated:
+      description: AppointmentCreated
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestIdResponseHeader'
+        X-Correlation-Id:
+          $ref: '#/components/headers/CorrelationIdResponseHeader'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/AppointmentCreatedEnvelope'
+    AppointmentCancelled:
+      description: AppointmentCancelled
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestIdResponseHeader'
+        X-Correlation-Id:
+          $ref: '#/components/headers/CorrelationIdResponseHeader'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/AppointmentCancelledEnvelope'
+    AdminNotificationListSuccess:
+      description: AdminNotificationListSuccess
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestIdResponseHeader'
+        X-Correlation-Id:
+          $ref: '#/components/headers/CorrelationIdResponseHeader'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/AdminNotificationListEnvelope'
+    NotificationCreated:
+      description: NotificationCreated
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestIdResponseHeader'
+        X-Correlation-Id:
+          $ref: '#/components/headers/CorrelationIdResponseHeader'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/NotificationCreatedEnvelope'
+    NotificationUpdated:
+      description: NotificationUpdated
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestIdResponseHeader'
+        X-Correlation-Id:
+          $ref: '#/components/headers/CorrelationIdResponseHeader'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/NotificationUpdatedEnvelope'
+    NotificationDeleted:
+      description: NotificationDeleted
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestIdResponseHeader'
+        X-Correlation-Id:
+          $ref: '#/components/headers/CorrelationIdResponseHeader'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/NotificationDeletedEnvelope'
+    SettlementRulesSuccess:
+      description: SettlementRulesSuccess
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestIdResponseHeader'
+        X-Correlation-Id:
+          $ref: '#/components/headers/CorrelationIdResponseHeader'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/SettlementRulesEnvelope'
+    SettlementRulesSaved:
+      description: SettlementRulesSaved
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestIdResponseHeader'
+        X-Correlation-Id:
+          $ref: '#/components/headers/CorrelationIdResponseHeader'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/SettlementRulesSavedEnvelope'
+    SettlementListSuccess:
+      description: SettlementListSuccess
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestIdResponseHeader'
+        X-Correlation-Id:
+          $ref: '#/components/headers/CorrelationIdResponseHeader'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/SettlementListEnvelope'
+    SettlementBalancesSuccess:
+      description: SettlementBalancesSuccess
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestIdResponseHeader'
+        X-Correlation-Id:
+          $ref: '#/components/headers/CorrelationIdResponseHeader'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/SettlementBalancesEnvelope'
+    SettlementRunSuccess:
+      description: SettlementRunSuccess
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestIdResponseHeader'
+        X-Correlation-Id:
+          $ref: '#/components/headers/CorrelationIdResponseHeader'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/SettlementRunEnvelope'
+    SettlementSettled:
+      description: SettlementSettled
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestIdResponseHeader'
+        X-Correlation-Id:
+          $ref: '#/components/headers/CorrelationIdResponseHeader'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/SettlementSettledEnvelope'
   schemas:
     RequestId:
       type: string
@@ -4465,3 +5232,609 @@ components:
       oneOf:
         - $ref: '#/components/schemas/TenantErrorEnvelope'
         - $ref: '#/components/schemas/MemberTransactionErrorEnvelope'
+    NotificationItem:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - type
+        - title
+        - body
+        - read
+        - created_at
+      properties:
+        id:
+          $ref: '#/components/schemas/PositiveId'
+        type:
+          type: string
+          enum:
+            - event
+            - system
+        title:
+          type: string
+        body:
+          type: string
+        read:
+          type: boolean
+        created_at:
+          $ref: '#/components/schemas/UnixTimestampSeconds'
+    NotificationListData:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+        - page
+        - limit
+        - total
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/NotificationItem'
+        page:
+          type: integer
+        limit:
+          type: integer
+        total:
+          type: integer
+    NotificationReadData:
+      type: object
+      additionalProperties: false
+      required:
+        - read
+      properties:
+        read:
+          type: boolean
+          const: true
+    AppointmentItem:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - expert_id
+        - slot_id
+        - mode
+        - status
+        - points_cost
+        - cash_cost
+        - created_at
+      properties:
+        id:
+          $ref: '#/components/schemas/PositiveId'
+        expert_id:
+          type: integer
+        expert_name:
+          type: string
+        slot_id:
+          type: integer
+        start_time:
+          $ref: '#/components/schemas/UnixTimestampSeconds'
+        end_time:
+          $ref: '#/components/schemas/UnixTimestampSeconds'
+        mode:
+          type: string
+          enum:
+            - online
+            - offline
+        status:
+          type: string
+          enum:
+            - pending
+            - confirmed
+            - cancelled
+        points_cost:
+          type: integer
+        cash_cost:
+          $ref: '#/components/schemas/MoneyAmount'
+        created_at:
+          $ref: '#/components/schemas/UnixTimestampSeconds'
+        cancel_time:
+          $ref: '#/components/schemas/UnixTimestampSeconds'
+    AppointmentListData:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+        - page
+        - limit
+        - total
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/AppointmentItem'
+        page:
+          type: integer
+        limit:
+          type: integer
+        total:
+          type: integer
+    AppointmentCreatedData:
+      allOf:
+        -
+          $ref: '#/components/schemas/AppointmentItem'
+        -
+          type: object
+          properties:
+            replayed:
+              type: boolean
+    AppointmentCancelledData:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - status
+        - points_refunded
+      properties:
+        id:
+          $ref: '#/components/schemas/PositiveId'
+        status:
+          type: string
+          const: cancelled
+        points_refunded:
+          type: integer
+    AppointmentCreateRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - slot_id
+        - mode
+      properties:
+        slot_id:
+          $ref: '#/components/schemas/PositiveId'
+        mode:
+          type: string
+          enum:
+            - online
+            - offline
+    NotificationCreateRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - title
+        - body
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+        body:
+          type: string
+          minLength: 1
+          maxLength: 1000
+        scope:
+          type: string
+          enum:
+            - all
+            - member
+        target_member_id:
+          type: integer
+    NotificationUpdateRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+        body:
+          type: string
+          minLength: 1
+          maxLength: 1000
+    NotificationCreatedData:
+      type: object
+      additionalProperties: false
+      required:
+        - sent
+        - id
+      properties:
+        sent:
+          type: integer
+        id:
+          $ref: '#/components/schemas/PositiveId'
+    EmptyData:
+      type: object
+      additionalProperties: false
+    SettlementRule:
+      type: object
+      additionalProperties: false
+      required:
+        - receiver_type
+        - receiver_id
+        - receiver_name
+        - ratio
+        - channel
+      properties:
+        receiver_type:
+          type: string
+          enum:
+            - company
+            - expert
+            - individual
+        receiver_id:
+          type: integer
+        receiver_name:
+          type: string
+        ratio:
+          type: integer
+          minimum: 0
+          maximum: 100
+        channel:
+          type: string
+          enum:
+            - wechat_split
+            - merchant_transfer
+            - bank
+    SettlementRulesData:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/SettlementRule'
+    SettlementRulesSaveRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - business_type
+        - rules
+      properties:
+        business_type:
+          type: string
+          enum:
+            - membership_fee
+            - appointment
+            - event
+            - expert_service
+        rules:
+          type: array
+          items:
+            $ref: '#/components/schemas/SettlementRule'
+    SettlementDetail:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - receiver_type
+        - receiver_name
+        - ratio
+        - amount
+        - channel
+        - status
+      properties:
+        id:
+          $ref: '#/components/schemas/PositiveId'
+        receiver_type:
+          type: string
+        receiver_name:
+          type: string
+        ratio:
+          type: integer
+        amount:
+          $ref: '#/components/schemas/MoneyAmount'
+        channel:
+          type: string
+        status:
+          type: string
+          enum:
+            - pending
+            - processing
+            - success
+            - failed
+            - reversed
+    Settlement:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - business_type
+        - order_no
+        - order_amount
+        - status
+        - details
+      properties:
+        id:
+          $ref: '#/components/schemas/PositiveId'
+        business_type:
+          type: string
+        order_no:
+          type: string
+        order_amount:
+          $ref: '#/components/schemas/MoneyAmount'
+        status:
+          type: string
+          enum:
+            - pending
+            - processing
+            - done
+            - partial
+            - failed
+        details:
+          type: array
+          items:
+            $ref: '#/components/schemas/SettlementDetail'
+    SettlementListData:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+        - page
+        - limit
+        - total
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Settlement'
+        page:
+          type: integer
+        limit:
+          type: integer
+        total:
+          type: integer
+    SettlementBalance:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - receiver_type
+        - receiver_id
+        - receiver_name
+        - balance
+      properties:
+        id:
+          $ref: '#/components/schemas/PositiveId'
+        receiver_type:
+          type: string
+        receiver_id:
+          type: integer
+        receiver_name:
+          type: string
+        balance:
+          $ref: '#/components/schemas/MoneyAmount'
+    SettlementBalancesData:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/SettlementBalance'
+    SettlementRunData:
+      type: object
+      additionalProperties: false
+      required:
+        - scanned
+        - done
+        - failed
+      properties:
+        scanned:
+          type: integer
+        done:
+          type: integer
+        failed:
+          type: integer
+    SettlementSettleRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - business_type
+        - order_no
+        - order_amount
+      properties:
+        business_type:
+          type: string
+          enum:
+            - membership_fee
+            - appointment
+            - event
+            - expert_service
+        order_no:
+          type: string
+          minLength: 1
+          maxLength: 64
+        order_amount:
+          $ref: '#/components/schemas/MoneyAmount'
+    SettlementSettledData:
+      type: object
+      additionalProperties: false
+    NotificationListEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelopeBase'
+        - type: object
+          required:
+            - data
+          properties:
+            status:
+              const: 200
+            msg:
+              const: ok
+            data:
+              $ref: '#/components/schemas/NotificationListData'
+    NotificationReadEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelopeBase'
+        - type: object
+          required:
+            - data
+          properties:
+            status:
+              const: 200
+            msg:
+              const: ok
+            data:
+              $ref: '#/components/schemas/NotificationReadData'
+    AppointmentListEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelopeBase'
+        - type: object
+          required:
+            - data
+          properties:
+            status:
+              const: 200
+            msg:
+              const: ok
+            data:
+              $ref: '#/components/schemas/AppointmentListData'
+    AppointmentCreatedEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelopeBase'
+        - type: object
+          required:
+            - data
+          properties:
+            status:
+              const: 200
+            msg:
+              const: ok
+            data:
+              $ref: '#/components/schemas/AppointmentCreatedData'
+    AppointmentCancelledEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelopeBase'
+        - type: object
+          required:
+            - data
+          properties:
+            status:
+              const: 200
+            msg:
+              const: ok
+            data:
+              $ref: '#/components/schemas/AppointmentCancelledData'
+    AdminNotificationListEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelopeBase'
+        - type: object
+          required:
+            - data
+          properties:
+            status:
+              const: 200
+            msg:
+              const: ok
+            data:
+              $ref: '#/components/schemas/NotificationListData'
+    NotificationCreatedEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelopeBase'
+        - type: object
+          required:
+            - data
+          properties:
+            status:
+              const: 200
+            msg:
+              const: ok
+            data:
+              $ref: '#/components/schemas/NotificationCreatedData'
+    NotificationUpdatedEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelopeBase'
+        - type: object
+          required:
+            - data
+          properties:
+            status:
+              const: 200
+            msg:
+              const: ok
+            data:
+              $ref: '#/components/schemas/EmptyData'
+    NotificationDeletedEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelopeBase'
+        - type: object
+          required:
+            - data
+          properties:
+            status:
+              const: 200
+            msg:
+              const: ok
+            data:
+              $ref: '#/components/schemas/EmptyData'
+    SettlementRulesEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelopeBase'
+        - type: object
+          required:
+            - data
+          properties:
+            status:
+              const: 200
+            msg:
+              const: ok
+            data:
+              $ref: '#/components/schemas/SettlementRulesData'
+    SettlementRulesSavedEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelopeBase'
+        - type: object
+          required:
+            - data
+          properties:
+            status:
+              const: 200
+            msg:
+              const: ok
+            data:
+              $ref: '#/components/schemas/EmptyData'
+    SettlementListEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelopeBase'
+        - type: object
+          required:
+            - data
+          properties:
+            status:
+              const: 200
+            msg:
+              const: ok
+            data:
+              $ref: '#/components/schemas/SettlementListData'
+    SettlementBalancesEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelopeBase'
+        - type: object
+          required:
+            - data
+          properties:
+            status:
+              const: 200
+            msg:
+              const: ok
+            data:
+              $ref: '#/components/schemas/SettlementBalancesData'
+    SettlementRunEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelopeBase'
+        - type: object
+          required:
+            - data
+          properties:
+            status:
+              const: 200
+            msg:
+              const: ok
+            data:
+              $ref: '#/components/schemas/SettlementRunData'
+    SettlementSettledEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelopeBase'
+        - type: object
+          required:
+            - data
+          properties:
+            status:
+              const: 200
+            msg:
+              const: ok
+            data:
+              $ref: '#/components/schemas/SettlementSettledData'

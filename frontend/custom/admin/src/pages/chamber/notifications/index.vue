@@ -23,12 +23,12 @@
             <el-radio label="member">指定会员</el-radio>
           </el-radio-group>
         </el-form-item>
-        <el-form-item v-if="!editingId && form.scope === 'member'" label="会员 ID" prop="member_id">
-          <el-input-number v-model="form.member_id" :min="1" :step="1" style="width: 200px" />
+        <el-form-item v-if="!editingId && form.scope === 'member'" label="会员 ID" prop="target_member_id">
+          <el-input-number v-model="form.target_member_id" :min="1" :step="1" style="width: 200px" />
         </el-form-item>
         <el-form-item>
           <el-button type="primary" :loading="sending" @click="sendForm">{{ editingId ? '保存修改' : '发布' }}</el-button>
-          <el-button v-if="editingId" @click="editingId = 0; form = { title: '', body: '', scope: 'all', member_id: 1 }">取消编辑</el-button>
+          <el-button v-if="editingId" @click="editingId = 0; form = { title: '', body: '', scope: 'all', target_member_id: 1 }">取消编辑</el-button>
         </el-form-item>
       </el-form>
     </el-card>
@@ -86,11 +86,11 @@ export default {
       rows: [],
       total: 0,
       editingId: 0,
-      form: { title: '', body: '', scope: 'all', member_id: 1 },
+      form: { title: '', body: '', scope: 'all', target_member_id: 1 },
       rules: {
         title: [{ required: true, message: '请输入通知标题', trigger: 'blur' }],
         body: [{ required: true, message: '请输入通知内容', trigger: 'blur' }],
-        member_id: [{ required: true, message: '请输入会员 ID', trigger: 'change' }],
+        target_member_id: [{ required: true, message: '请输入会员 ID', trigger: 'change' }],
       },
     };
   },
@@ -130,7 +130,7 @@ export default {
               title: this.form.title,
               body: this.form.body,
               scope: this.form.scope,
-              member_id: this.form.member_id,
+              target_member_id: this.form.target_member_id,
             });
         req
           .then((res) => {
@@ -141,7 +141,7 @@ export default {
               Message.success(`通知已发布（${sent} 人）`);
             }
             this.editingId = 0;
-            this.form = { title: '', body: '', scope: 'all', member_id: 1 };
+            this.form = { title: '', body: '', scope: 'all', target_member_id: 1 };
             this.loadList();
           })
           .catch((e) => Message.error((e && e.msg) || (this.editingId ? '更新失败' : '发布失败')))
@@ -156,7 +156,7 @@ export default {
         title: row.title || '',
         body: row.body || '',
         scope: 'all',
-        member_id: 1,
+        target_member_id: 1,
       };
     },
     recall(row) {

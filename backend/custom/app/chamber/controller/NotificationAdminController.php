@@ -66,7 +66,8 @@ final class NotificationAdminController
         $title = trim((string) ($body['title'] ?? ''));
         $content = trim((string) ($body['body'] ?? ''));
         $scope = (string) ($body['scope'] ?? 'all');
-        $memberId = (int) ($body['member_id'] ?? 0);
+        // 契约字段 target_member_id（member_id 兼容旧前端）
+        $memberId = (int) ($body['target_member_id'] ?? $body['member_id'] ?? 0);
 
         if ($title === '') {
             return json(['code' => 400, 'msg' => '请填写通知标题']);

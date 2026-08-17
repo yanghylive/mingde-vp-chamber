@@ -165,7 +165,19 @@ expected_paths = [
   '/chamber/admin/v1/events/{event_id}/publish',
   '/chamber/admin/v1/events/{event_id}/cancel',
   '/chamber/admin/v1/events/{event_id}/checkin-token',
-  '/chamber/admin/v1/events/{event_id}/checkins/manual'
+  '/chamber/admin/v1/events/{event_id}/checkins/manual',
+  '/chamber/v1/me/notifications',
+  '/chamber/v1/me/notifications/{notification_id}/read',
+  '/chamber/v1/me/appointments',
+  '/chamber/v1/experts/{expert_id}/appointments',
+  '/chamber/v1/experts/appointments/{appointment_id}/cancel',
+  '/chamber/admin/v1/notifications',
+  '/chamber/admin/v1/notifications/{notification_id}',
+  '/chamber/admin/v1/settlement/rules',
+  '/chamber/admin/v1/settlement/settlements',
+  '/chamber/admin/v1/settlement/balances',
+  '/chamber/admin/v1/settlement/run-due',
+  '/chamber/admin/v1/settlement/settle',
 ]
 actual_paths = spec.fetch('paths', {}).keys.sort
 errors << "paths must contain only #{expected_paths.join(', ')}" unless actual_paths == expected_paths.sort
@@ -200,7 +212,22 @@ expected_operations = [
   ['/chamber/admin/v1/events/{event_id}/publish', 'post', 'publishEventForAdmin', 'planned', '200', 'CrmebAdminBearerAuth', 'chamber.event.manage'],
   ['/chamber/admin/v1/events/{event_id}/cancel', 'post', 'cancelEventForAdmin', 'planned', '200', 'CrmebAdminBearerAuth', 'chamber.event.manage'],
   ['/chamber/admin/v1/events/{event_id}/checkin-token', 'post', 'issueEventCheckinTokenForAdmin', 'planned', '201', 'CrmebAdminBearerAuth', 'chamber.event.checkin'],
-  ['/chamber/admin/v1/events/{event_id}/checkins/manual', 'post', 'createManualEventCheckinForAdmin', 'planned', '201', 'CrmebAdminBearerAuth', 'chamber.event.checkin']
+  ['/chamber/admin/v1/events/{event_id}/checkins/manual', 'post', 'createManualEventCheckinForAdmin', 'planned', '201', 'CrmebAdminBearerAuth', 'chamber.event.checkin'],
+  ['/chamber/v1/me/notifications', 'get', 'listMyNotifications', 'implemented', '200', 'CrmebBearerAuth'],
+  ['/chamber/v1/me/notifications/{notification_id}/read', 'post', 'markNotificationRead', 'implemented', '200', 'CrmebBearerAuth'],
+  ['/chamber/v1/me/appointments', 'get', 'listMyAppointments', 'implemented', '200', 'CrmebBearerAuth'],
+  ['/chamber/v1/experts/{expert_id}/appointments', 'post', 'createAppointment', 'implemented', '200', 'CrmebBearerAuth'],
+  ['/chamber/v1/experts/appointments/{appointment_id}/cancel', 'post', 'cancelAppointment', 'implemented', '200', 'CrmebBearerAuth'],
+  ['/chamber/admin/v1/notifications', 'get', 'listNotificationsForAdmin', 'implemented', '200', 'CrmebAdminBearerAuth', 'chamber.notification.read'],
+  ['/chamber/admin/v1/notifications', 'post', 'createNotificationForAdmin', 'implemented', '200', 'CrmebAdminBearerAuth', 'chamber.notification.write'],
+  ['/chamber/admin/v1/notifications/{notification_id}', 'patch', 'updateNotificationForAdmin', 'implemented', '200', 'CrmebAdminBearerAuth', 'chamber.notification.write'],
+  ['/chamber/admin/v1/notifications/{notification_id}', 'delete', 'deleteNotificationForAdmin', 'implemented', '200', 'CrmebAdminBearerAuth', 'chamber.notification.delete'],
+  ['/chamber/admin/v1/settlement/rules', 'get', 'getSettlementRulesForAdmin', 'implemented', '200', 'CrmebAdminBearerAuth', 'chamber.settlement.read'],
+  ['/chamber/admin/v1/settlement/rules', 'put', 'saveSettlementRulesForAdmin', 'implemented', '200', 'CrmebAdminBearerAuth', 'chamber.settlement.rule.write'],
+  ['/chamber/admin/v1/settlement/settlements', 'get', 'listSettlementsForAdmin', 'implemented', '200', 'CrmebAdminBearerAuth', 'chamber.settlement.read'],
+  ['/chamber/admin/v1/settlement/balances', 'get', 'getSettlementBalancesForAdmin', 'implemented', '200', 'CrmebAdminBearerAuth', 'chamber.settlement.read'],
+  ['/chamber/admin/v1/settlement/run-due', 'post', 'runSettlementDueForAdmin', 'implemented', '200', 'CrmebAdminBearerAuth', 'chamber.settlement.retry'],
+  ['/chamber/admin/v1/settlement/settle', 'post', 'settleOrderForAdmin', 'implemented', '200', 'CrmebAdminBearerAuth', 'chamber.settlement.manual_adjust'],
 ]
 expected_operation_contracts = {
   ['/chamber/health', 'get'] => {
@@ -323,7 +350,67 @@ expected_operation_contracts = {
   ['/chamber/admin/v1/events/{event_id}/checkins/manual', 'post'] => {
     request_schema: '#/components/schemas/AdminManualEventCheckinRequest',
     success_response: '#/components/responses/AdminEventManualCheckinCreated'
-  }
+  },
+  ['/chamber/v1/me/notifications', 'get'] => {
+    request_schema: nil,
+    success_response: '#/components/responses/NotificationListSuccess'
+  },
+  ['/chamber/v1/me/notifications/{notification_id}/read', 'post'] => {
+    request_schema: nil,
+    success_response: '#/components/responses/NotificationReadSuccess'
+  },
+  ['/chamber/v1/me/appointments', 'get'] => {
+    request_schema: nil,
+    success_response: '#/components/responses/AppointmentListSuccess'
+  },
+  ['/chamber/v1/experts/{expert_id}/appointments', 'post'] => {
+    request_schema: '#/components/schemas/AppointmentCreateRequest',
+    success_response: '#/components/responses/AppointmentCreated'
+  },
+  ['/chamber/v1/experts/appointments/{appointment_id}/cancel', 'post'] => {
+    request_schema: nil,
+    success_response: '#/components/responses/AppointmentCancelled'
+  },
+  ['/chamber/admin/v1/notifications', 'get'] => {
+    request_schema: nil,
+    success_response: '#/components/responses/AdminNotificationListSuccess'
+  },
+  ['/chamber/admin/v1/notifications', 'post'] => {
+    request_schema: '#/components/schemas/NotificationCreateRequest',
+    success_response: '#/components/responses/NotificationCreated'
+  },
+  ['/chamber/admin/v1/notifications/{notification_id}', 'patch'] => {
+    request_schema: '#/components/schemas/NotificationUpdateRequest',
+    success_response: '#/components/responses/NotificationUpdated'
+  },
+  ['/chamber/admin/v1/notifications/{notification_id}', 'delete'] => {
+    request_schema: nil,
+    success_response: '#/components/responses/NotificationDeleted'
+  },
+  ['/chamber/admin/v1/settlement/rules', 'get'] => {
+    request_schema: nil,
+    success_response: '#/components/responses/SettlementRulesSuccess'
+  },
+  ['/chamber/admin/v1/settlement/rules', 'put'] => {
+    request_schema: '#/components/schemas/SettlementRulesSaveRequest',
+    success_response: '#/components/responses/SettlementRulesSaved'
+  },
+  ['/chamber/admin/v1/settlement/settlements', 'get'] => {
+    request_schema: nil,
+    success_response: '#/components/responses/SettlementListSuccess'
+  },
+  ['/chamber/admin/v1/settlement/balances', 'get'] => {
+    request_schema: nil,
+    success_response: '#/components/responses/SettlementBalancesSuccess'
+  },
+  ['/chamber/admin/v1/settlement/run-due', 'post'] => {
+    request_schema: nil,
+    success_response: '#/components/responses/SettlementRunSuccess'
+  },
+  ['/chamber/admin/v1/settlement/settle', 'post'] => {
+    request_schema: '#/components/schemas/SettlementSettleRequest',
+    success_response: '#/components/responses/SettlementSettled'
+  },
 }
 operation_ids = []
 expected_operations.each do |path, method, operation_id, implementation_status, success_status, security_scheme, admin_permission|
