@@ -103,26 +103,28 @@ final class MemberAdminController
             $data['certified_time'] = $now;
         }
 
-        Db::table('ch_tenant_member')
-            ->where('tenant_id', $tenantId)
-            ->where('id', $member_id)
-            ->update($data);
+        Db::transaction(function () use ($tenantId, $member_id, $member, $data, $tier, $action, $remark, $now) {
+            Db::table('ch_tenant_member')
+                ->where('tenant_id', $tenantId)
+                ->where('id', $member_id)
+                ->update($data);
 
-        // 落一条订单流水（manual 手动开通/调整，便于对账）
-        Db::table('ch_membership_order')->insert([
-            'tenant_id'       => $tenantId,
-            'member_id'       => $member_id,
-            'uid'             => (int) $member['uid'],
-            'order_no'        => 'ADM' . date('YmdHis') . rand(1000, 9999),
-            'tier'            => $tier,
-            'amount'          => 0,
-            'pay_type'        => 'manual',
-            'status'          => 1,
-            'expire_time'     => $data['tier_expire_time'] ?? 0,
-            'remark'          => $remark ?: ($tier === 4 && $action === 'certify' ? 'L4 人工认证指定' : '管理员等级调整'),
-            'add_time'        => $now,
-            'update_time'     => $now,
-        ]);
+            // 落一条订单流水（manual 手动开通/调整，便于对账）
+            Db::table('ch_membership_order')->insert([
+                'tenant_id'       => $tenantId,
+                'member_id'       => $member_id,
+                'uid'             => (int) $member['uid'],
+                'order_no'        => 'ADM' . date('YmdHis') . rand(1000, 9999),
+                'tier'            => $tier,
+                'amount'          => 0,
+                'pay_type'        => 'manual',
+                'status'          => 1,
+                'expire_time'     => $data['tier_expire_time'] ?? 0,
+                'remark'          => $remark ?: ($tier === 4 && $action === 'certify' ? 'L4 人工认证指定' : '管理员等级调整'),
+                'add_time'        => $now,
+                'update_time'     => $now,
+            ]);
+        });
 
         return json(['code' => 0, 'msg' => 'ok', 'data' => [
             'tier'             => $tier,

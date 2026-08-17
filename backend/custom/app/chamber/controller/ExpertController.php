@@ -214,9 +214,10 @@ final class ExpertController
             $data['tenant_id'] = $tenantId;
             $data['add_time'] = $now;
             $data['update_time'] = $now;
-            $expert_id = (int) Db::table('ch_expert')->insertGetId($data);
-
-            $this->syncShowcases($tenantId, $expert_id, $body);
+            Db::transaction(function () use (&$expert_id, $tenantId, $data, $body) {
+                $expert_id = (int) Db::table('ch_expert')->insertGetId($data);
+                $this->syncShowcases($tenantId, $expert_id, $body);
+            });
 
             return json(['code' => 0, 'msg' => 'ok', 'data' => ['id' => $expert_id, 'created' => true]]);
         }
@@ -230,12 +231,14 @@ final class ExpertController
         }
 
         $data['update_time'] = $now;
-        Db::table('ch_expert')
-            ->where('tenant_id', $tenantId)
-            ->where('id', $expert_id)
-            ->update($data);
+        Db::transaction(function () use ($tenantId, $expert_id, $data, $body) {
+            Db::table('ch_expert')
+                ->where('tenant_id', $tenantId)
+                ->where('id', $expert_id)
+                ->update($data);
 
-        $this->syncShowcases($tenantId, $expert_id, $body);
+            $this->syncShowcases($tenantId, $expert_id, $body);
+        });
 
         return json(['code' => 0, 'msg' => 'ok', 'data' => ['id' => $expert_id, 'created' => false]]);
     }
