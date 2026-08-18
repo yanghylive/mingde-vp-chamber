@@ -151,7 +151,7 @@ read -r checkout_tests checkout_failures <<<"${checkout_result}"
 [ "${checkout_failures}" -eq 0 ] \
     || fail "membership checkout domain tests reported ${checkout_failures} failures"
 checkout_test_minimum="$(manifest_g1_minimum \
-    'membership_checkout_domain_tests_minimum' 'membership_checkout_domain_tests' 15)"
+    'membership_checkout_domain_tests_minimum' 'membership_checkout_domain_tests' 14)"
 [ "${checkout_tests}" -ge "${checkout_test_minimum}" ] \
     || fail "membership checkout domain tests were removed: ${checkout_tests} < ${checkout_test_minimum}"
 

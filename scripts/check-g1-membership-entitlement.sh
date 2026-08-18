@@ -65,7 +65,7 @@ checkout() {
         -H "Authorization: Bearer ${TOKEN}" \
         -H "Idempotency-Key: ${key}" \
         -H 'Content-Type: application/json' \
-        --data '{"plan_code":"L3_ANNUAL","plan_version":1,"expected_amount":"1000.00","currency":"CNY"}' \
+        --data '{"plan_code":"L3_ANNUAL","plan_version":1,"expected_amount":"5000.00","currency":"CNY"}' \
         "${BASE_URL}/chamber/v1/membership/checkouts")"
     [ "${status}" = '201' ] || fail "${name} returned HTTP ${status}"
     assert_json "${TMP_DIR}/${name}.json" data.order_status pending_payment
