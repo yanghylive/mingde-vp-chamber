@@ -117,10 +117,45 @@ try {
     ]);
 
     $summary4 = $service->runDue(50);
-    assertSame(0, $summary4['done'], 'payout success 收敛不应再计入 done（claim 跳过）');
+    assertSame(1, $summary4['recovered_unknown'], '场景 3 的 unknown（payout 无单号）应在本轮被对账回收');
+    assertSame(1, $summary4['done'], '场景 3 回收后同轮重试成功计入 done');
     assertSame('success', detailStatus($sid4), 'payout success 时明细应幂等补 success');
     assertSame('CH_NO_4', detailChannelRef($sid4), 'channel_ref 应回填渠道单号');
     assertSame('done', settlementStatus($sid4), '补成功后结算单应 done');
+
+    // ---------- 场景 5：unknown 对账收敛（payout pending 无渠道单号=崩溃于调用前）→ 回收重试 → done ----------
+    $r5 = $service->settle($tenantId, 'membership_fee', 'ORD5_' . $runId, '100.00');
+    $sid5 = (int) $r5['id'];
+    $did5 = detailId($sid5);
+    crashIntoProcessing($did5, $now);
+    // 模拟崩溃于渠道调用前：payout pending + 无渠道单号 + detail 已置 unknown
+    $idemKey5 = hash('sha256', implode(':', ['settlement_payout', $tenantId, $did5]));
+    Db::table('ch_payout_record')->insert([
+        'settlement_detail_id' => $did5,
+        'tenant_id' => $tenantId,
+        'channel' => 'merchant_transfer',
+        'channel_order_no' => '',
+        'amount' => '50.00',
+        'status' => 'pending',
+        'idempotency_key' => $idemKey5,
+        'request_payload_hash' => str_repeat('c', 64),
+        'raw_response' => '',
+        'add_time' => $now,
+        'update_time' => $now,
+    ]);
+    Db::table('ch_settlement_detail')->where('id', $did5)->update([
+        'status' => 'unknown',
+        'fail_reason' => 'payout 记录为 pending（渠道状态不明），需对账确认后收敛',
+        'claim_token' => '',
+        'update_time' => $now,
+    ]);
+
+    // runDue：unknown 被对账回收为 failed 后，同轮扫描即重新打款成功 → 结算单 done
+    $summary5 = $service->runDue(50);
+    assertSame(1, $summary5['recovered_unknown'], 'unknown 应被对账回收');
+    assertSame('success', detailStatus($sid5), '回收后同轮重试应 success');
+    assertSame('done', settlementStatus($sid5), '重试完成后结算单应 done');
+    assertSame(1, payoutCount($did5), '旧无意义 payout 已删，重试应新建一条成功 payout');
 
     echo 'PASS settlement state machine database service (' . $assertions . " assertions; fixtures removed)\n";
 } catch (Throwable $e) {
@@ -286,23 +321,31 @@ function cleanupFixtures(int $tenantId, string $runId, array $channelIds, array 
         foreach ($channelIds as $cid) {
             Db::table('ch_channel')->where('id', $cid)->delete();
         }
-        // order_no 在 ch_settlement，detail/payout 通过 settlement 关联清理
+        // 按 receiver_name 前缀兜底清理（防历史 runId 泄漏）：detail.receiver_name 带 '状态机测试-'
+        $legacySettlementIds = Db::table('ch_settlement_detail')
+            ->where('receiver_name', 'like', '状态机测试-%')
+            ->column('settlement_id');
+        // 按本次 runId 精确清理（order_no 在 ch_settlement）
         $settlementIds = Db::table('ch_settlement')
             ->where('tenant_id', $tenantId)
             ->whereLike('order_no', 'ORD%_' . $runId)
             ->column('id');
-        if ($settlementIds) {
+        $allIds = array_values(array_unique(array_merge(
+            array_map('intval', $legacySettlementIds ?: []),
+            array_map('intval', $settlementIds ?: [])
+        )));
+        if ($allIds) {
             $detailIds = Db::table('ch_settlement_detail')
-                ->whereIn('settlement_id', $settlementIds)
+                ->whereIn('settlement_id', $allIds)
                 ->column('id');
             Db::table('ch_payout_record')
                 ->whereIn('settlement_detail_id', $detailIds ?: [0])
                 ->delete();
             Db::table('ch_settlement_detail')
-                ->whereIn('settlement_id', $settlementIds)
+                ->whereIn('settlement_id', $allIds)
                 ->delete();
             Db::table('ch_settlement')
-                ->whereIn('id', $settlementIds)
+                ->whereIn('id', $allIds)
                 ->delete();
         }
         Db::table('ch_settlement_balance')

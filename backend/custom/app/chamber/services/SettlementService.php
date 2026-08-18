@@ -210,6 +210,10 @@ final class SettlementService
     public function runDue(int $limit = 50): array
     {
         $now = time();
+        // 0. 对账：回收可安全重试的 unknown 明细（崩溃于渠道调用前，payout 无渠道单号），
+        //    否则 unknown 永远卡在对账态无人处理（真实通道 query() 接入前的最低收敛）
+        $recoveredUnknown = $this->reconcileUnknown($now);
+
         $rows = Db::table('ch_settlement_detail')
             ->where('retry_count', '<', self::MAX_ATTEMPTS)
             ->where(function ($q) use ($now) {
@@ -265,7 +269,49 @@ final class SettlementService
 
         $this->closeCompleted($now);
 
-        return ['scanned' => count($rows), 'done' => $done, 'failed' => $failed, 'unknown' => $unknown];
+        return ['scanned' => count($rows), 'done' => $done, 'failed' => $failed, 'unknown' => $unknown, 'recovered_unknown' => $recoveredUnknown];
+    }
+
+    /**
+     * unknown 对账收敛：崩溃于「渠道调用前」（payout pending 且无渠道单号）的 unknown
+     * 明细，渠道从未收到打款请求 → 删除无意义 payout，回 failed 让 runDue 重新打款。
+     * payout 有渠道单号（渠道可能已发出）→ 保持 unknown，待真实通道 query() 接入后
+     * 由对账任务收敛（当前可人工对账）。
+     */
+    private function reconcileUnknown(int $now): int
+    {
+        $recovered = 0;
+        $rows = Db::table('ch_settlement_detail')
+            ->where('status', 'unknown')
+            ->limit(50)
+            ->select()
+            ->toArray();
+        foreach ($rows as $detail) {
+            $detailId = (int) $detail['id'];
+            $payout = Db::table('ch_payout_record')
+                ->where('settlement_detail_id', $detailId)
+                ->order('id', 'desc')
+                ->find();
+            if (!is_array($payout)) {
+                continue;
+            }
+            if ((string) $payout['status'] !== 'pending' || (string) $payout['channel_order_no'] !== '') {
+                continue; // 渠道可能已发出 → 保持 unknown，不可自动重打
+            }
+
+            // 渠道从未被调用：删除无意义的 payout（避免后续 insert 撞唯一键），明细回 failed 重试
+            Db::table('ch_payout_record')->where('id', (int) $payout['id'])->delete();
+            Db::table('ch_settlement_detail')->where('id', $detailId)->update([
+                'status' => 'failed',
+                'fail_reason' => '对账：渠道未发出（崩溃于调用前），已回收重试',
+                'claim_token' => '',
+                'next_retry_time' => $now,
+                'update_time' => $now,
+            ]);
+            $recovered++;
+        }
+
+        return $recovered;
     }
 
     /** 退款下期抵扣：接收方应退金额记入抵扣余额，下次结算少分。事务 + 行锁原子化。 */
