@@ -134,11 +134,17 @@ function cleanupChamberHttpFixture(array $tokens): void
         Db::table('ch_expert_ai')->whereIn('member_id', $expertIds)->delete();
         Db::table('ch_expert')->whereIn('id', $expertIds)->delete();
     }
-    Db::table('ch_settlement_detail')->whereLike('order_no', 'CHTEST%')->delete();
-    Db::table('ch_settlement')->whereLike('order_no', 'CHTEST%')->delete();
+    // 结算 fixture：order_no 在 ch_settlement，detail/payout 按 settlement 关联清理
+    $settlementIds = Db::table('ch_settlement')->whereLike('order_no', 'CHTEST%')->column('id');
+    if ($settlementIds) {
+        $detailIds = Db::table('ch_settlement_detail')->whereIn('settlement_id', $settlementIds)->column('id');
+        Db::table('ch_payout_record')->whereIn('settlement_detail_id', $detailIds ?: [0])->delete();
+        Db::table('ch_settlement_detail')->whereIn('settlement_id', $settlementIds)->delete();
+        Db::table('ch_settlement')->whereIn('id', $settlementIds)->delete();
+    }
     Db::table('ch_settlement_rule')->where('business_type', 'membership_fee')->delete();
-    Db::table('ch_settlement_balance')->delete();
-    Db::table('ch_payout_record')->delete();
+    Db::table('ch_settlement_balance')->where('id', '>', 0)->delete();
+    Db::table('ch_payout_record')->where('id', '>', 0)->delete();
     Db::table('ch_event_notification')->whereLike('title', '验收通知%')->delete();
     if ($uids !== []) {
         Db::table('eb_user')->whereIn('uid', $uids)->delete();

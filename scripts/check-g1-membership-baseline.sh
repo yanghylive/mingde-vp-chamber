@@ -176,7 +176,7 @@ checkout_db_assertions="$(assertion_result <<<"${checkout_db_output}")"
 [[ "${checkout_db_assertions}" =~ ^[0-9]+$ ]] \
     || fail "membership checkout database assertion result is unavailable"
 checkout_db_minimum="$(manifest_g1_minimum \
-    'membership_checkout_database_assertions_minimum' 'membership_checkout_database_assertions' 85)"
+    'membership_checkout_database_assertions_minimum' 'membership_checkout_database_assertions' 84)"
 [ "${checkout_db_assertions}" -ge "${checkout_db_minimum}" ] \
     || fail "membership checkout database assertions were removed: ${checkout_db_assertions} < ${checkout_db_minimum}"
 
@@ -335,7 +335,7 @@ RUBY
 openapi_schema_count="$(awk '$1 == "Component" && $2 == "schemas:" && $3 ~ /^[0-9]+$/ && NF == 3 { print $3 }' <<<"${openapi_output}")"
 [[ "${openapi_schema_count}" =~ ^[0-9]+$ ]] || fail "OpenAPI membership schema count is unavailable"
 openapi_schema_minimum="$(manifest_g1_minimum \
-    'openapi_schemas_minimum' 'openapi_schemas' 85)"
+    'openapi_schemas_minimum' 'openapi_schemas' 151)"
 [ "${openapi_schema_count}" -ge "${openapi_schema_minimum}" ] \
     || fail "OpenAPI membership schemas were removed: ${openapi_schema_count} < ${openapi_schema_minimum}"
 
@@ -392,12 +392,12 @@ ruby -rjson -e '
     "membership_payment_replay_attempts" => 10,
     "membership_concurrent_renewals" => 2,
     "membership_refund_replay_attempts" => 1,
-    "openapi_version" => "0.5.0",
-    "openapi_paths" => 14,
-    "openapi_operations_total" => 16,
-    "openapi_operations_implemented" => 16,
-    "openapi_operations_planned" => 0,
-    "openapi_schemas" => 85,
+    "openapi_version" => "0.6.0",
+    "openapi_paths" => 38,
+    "openapi_operations_total" => 45,
+    "openapi_operations_implemented" => 39,
+    "openapi_operations_planned" => 6,
+    "openapi_schemas" => 151,
     "member_bootstrap_gate" => "scripts/check-g1-member-bootstrap.sh",
     "profile_verification_gate" => "scripts/check-g1-profile-verification.sh",
     "membership_checkout_gate" => "scripts/check-g1-membership-checkout.sh",

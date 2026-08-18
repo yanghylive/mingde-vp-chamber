@@ -119,7 +119,8 @@ test('keeps the shared activity-ui module wired to the new event pages', functio
   var detail = fs.readFileSync(path.join(__dirname, '../pages/events/detail/index.vue'), 'utf8');
   var checkin = fs.readFileSync(path.join(__dirname, '../pages/events/checkin/index.vue'), 'utf8');
   assert.match(activityUiSource, /expected_amount/);
-  assert.match(membership, /activity-ui/);
+  // 会籍购买已改微信直连支付（APIv3，不再跳 CRMEB 收银台）——验证新支付链路接线
+  assert.match(membership, /wechatPayOrder|requestWechatPayment/);
   assert.match(detail, /onRegister\(/);
   assert.match(checkin, /checkin|scanQRCode/);
 });

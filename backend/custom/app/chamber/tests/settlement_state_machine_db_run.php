@@ -47,7 +47,7 @@ try {
 
     // ---------- 场景 1：正常结算闭环（pending → runDue → success → 结算单 done） ----------
     createRule($tenantId, $runId, $ruleIds);
-    $r1 = $service->settle($tenantId, 'membership_fee', 'ORD1_' . $runId, '100.00');
+    $r1 = $service->settle($tenantId, 'state_machine_test', 'ORD1_' . $runId, '100.00');
     assertSame(false, $r1['skipped']);
     $sid1 = (int) $r1['id'];
     assertSame(1, detailCount($sid1), 'settle 应生成 1 条明细');
@@ -59,7 +59,7 @@ try {
     assertSame('done', settlementStatus($sid1), '正常结算单应 done');
 
     // ---------- 场景 2：processing 崩溃残留（claim 过期）→ runDue 回收打款 → 结算单 done ----------
-    $r2 = $service->settle($tenantId, 'membership_fee', 'ORD2_' . $runId, '100.00');
+    $r2 = $service->settle($tenantId, 'state_machine_test', 'ORD2_' . $runId, '100.00');
     $sid2 = (int) $r2['id'];
     $did2 = detailId($sid2);
     crashIntoProcessing($did2, $now);
@@ -70,7 +70,7 @@ try {
     assertSame('done', settlementStatus($sid2), '回收完成后结算单应 done');
 
     // ---------- 场景 3：payout pending（渠道状态不明）→ detail 置 unknown，结算单不 done，不重打 ----------
-    $r3 = $service->settle($tenantId, 'membership_fee', 'ORD3_' . $runId, '100.00');
+    $r3 = $service->settle($tenantId, 'state_machine_test', 'ORD3_' . $runId, '100.00');
     $sid3 = (int) $r3['id'];
     $did3 = detailId($sid3);
     crashIntoProcessing($did3, $now);
@@ -97,7 +97,7 @@ try {
     assertSame(1, payoutCount($did3), '不能新增第二条 payout（防重复打款）');
 
     // ---------- 场景 4：payout success（渠道已打款）→ detail 幂等补成功 ----------
-    $r4 = $service->settle($tenantId, 'membership_fee', 'ORD4_' . $runId, '100.00');
+    $r4 = $service->settle($tenantId, 'state_machine_test', 'ORD4_' . $runId, '100.00');
     $sid4 = (int) $r4['id'];
     $did4 = detailId($sid4);
     crashIntoProcessing($did4, $now);
@@ -124,7 +124,7 @@ try {
     assertSame('done', settlementStatus($sid4), '补成功后结算单应 done');
 
     // ---------- 场景 5：unknown 对账收敛（payout pending 无渠道单号=崩溃于调用前）→ 回收重试 → done ----------
-    $r5 = $service->settle($tenantId, 'membership_fee', 'ORD5_' . $runId, '100.00');
+    $r5 = $service->settle($tenantId, 'state_machine_test', 'ORD5_' . $runId, '100.00');
     $sid5 = (int) $r5['id'];
     $did5 = detailId($sid5);
     crashIntoProcessing($did5, $now);
@@ -243,7 +243,7 @@ function createRule(int $tenantId, string $runId, array &$ruleIds): void
     $now = time();
     $id = (int) Db::table('ch_settlement_rule')->insertGetId([
         'tenant_id' => $tenantId,
-        'business_type' => 'membership_fee',
+        'business_type' => 'state_machine_test',
         'receiver_type' => 'company',
         'receiver_id' => 1,
         'receiver_name' => '状态机测试-' . $runId,
