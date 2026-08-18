@@ -377,5 +377,5 @@ Route::group('admin/v1', function () {
     Route::post('settlement/settle', 'SettlementAdminController/settle');
 })->middleware(RequestTraceMiddleware::class)
     ->middleware(ChamberCorsMiddleware::class)
-    ->middleware(CrmebAdminAuthTokenMiddleware::class)
-    ->middleware(TenantContextMiddleware::class, true);
+    ->middleware(TenantContextMiddleware::class, true)
+    ->middleware(CrmebAdminAuthTokenMiddleware::class);

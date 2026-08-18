@@ -7,6 +7,7 @@ namespace app\chamber\middleware;
 use app\Request;
 use app\chamber\identity\AuthenticatedAdminContext;
 use app\chamber\identity\BearerTokenExtractor;
+use app\chamber\tenancy\TenantContext;
 use app\services\system\admin\AdminAuthServices;
 use Closure;
 use crmeb\exceptions\AuthException;
@@ -50,9 +51,17 @@ final class CrmebAdminAuthTokenMiddleware implements MiddlewareInterface
                 || (int) $activeAdmin['level'] !== (int) ($adminInfo['level'] ?? -1)) {
                 throw new InvalidArgumentException('CRMEB administrator is inactive');
             }
-            // 从 ch_admin_permission 加载动作级权限点（超管 level=0 自动全放行）
+            // 从 ch_admin_permission 加载动作级权限点（超管 level=0 自动全放行）。
+            // 权限表唯一键是 (tenant_id, admin_id, permission)——必须按当前租户过滤，
+            // 否则同一 admin 跨租户权限会合并串权（租户 A 管理员继承租户 B 权限）。
             $adminId = (int) ($adminInfo['id'] ?? 0);
+            $tenantContext = $request->tenantContext;
+            if (!$tenantContext instanceof TenantContext) {
+                throw new InvalidArgumentException('Tenant context must be resolved before admin authentication');
+            }
+            $tenantId = $tenantContext->tenantId();
             $permissions = Db::table('ch_admin_permission')
+                ->where('tenant_id', $tenantId)
                 ->where('admin_id', $adminId)
                 ->column('permission');
             $context = AuthenticatedAdminContext::fromAuthInfo($adminInfo, $permissions ?: []);

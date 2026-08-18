@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace app\chamber\controller;
 
 use app\Request;
+use app\chamber\identity\AuthenticatedAdminContext;
 use app\chamber\tenancy\TenantContext;
 use think\facade\Db;
 use think\Response;
@@ -42,8 +43,9 @@ final class ProductAdminController
         return json(['code' => 0, 'msg' => 'ok', 'data' => ['items' => $items, 'total' => count($items)]]);
     }
 
-    public function update(int $product_id, Request $request, TenantContext $tenant): Response
+    public function update(int $product_id, Request $request, TenantContext $tenant, AuthenticatedAdminContext $admin): Response
     {
+        $admin->assertPermission('chamber.product.write');
         unset($tenant);
 
         $body = json_decode((string) $request->getContent(), true);

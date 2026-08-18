@@ -3,6 +3,7 @@
 namespace app\chamber\controller;
 
 use app\Request;
+use app\chamber\identity\AuthenticatedAdminContext;
 use app\chamber\tenancy\TenantContext;
 use think\facade\Db;
 use think\Response;
@@ -178,8 +179,9 @@ final class ExpertController
     }
 
     /** 保存大咖资料（expert_id=0 新增 / >0 更新），含角色 + 角色化资料 + 案例/资质/课程 */
-    public function updateProfile(int $expert_id, Request $request, TenantContext $tenant): Response
+    public function updateProfile(int $expert_id, Request $request, TenantContext $tenant, AuthenticatedAdminContext $admin): Response
     {
+        $admin->assertPermission('chamber.expert.write');
         $tenantId = $tenant->tenantId();
         $body = json_decode((string) $request->getContent(), true);
         if (!is_array($body)) {
@@ -335,8 +337,9 @@ final class ExpertController
     }
 
     /** 保存定价（admin） */
-    public function updatePricing(int $expert_id, Request $request, TenantContext $tenant): Response
+    public function updatePricing(int $expert_id, Request $request, TenantContext $tenant, AuthenticatedAdminContext $admin): Response
     {
+        $admin->assertPermission('chamber.expert.write');
         $tenantId = $tenant->tenantId();
         $row = Db::table('ch_expert')
             ->where('tenant_id', $tenantId)

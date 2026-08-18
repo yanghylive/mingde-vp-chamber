@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace app\chamber\controller;
 
 use app\Request;
+use app\chamber\identity\AuthenticatedAdminContext;
 use app\chamber\services\AiTwinService;
 use app\chamber\services\KnowledgeFileParser;
 use app\chamber\tenancy\TenantContext;
@@ -146,8 +147,9 @@ final class AiTwinAdminController
     }
 
     /** 保存人设配置（admin 手动编辑，与对话训练互补） */
-    public function update(Request $request, TenantContext $tenant, $member_id): Response
+    public function update(Request $request, TenantContext $tenant, $member_id, AuthenticatedAdminContext $admin): Response
     {
+        $admin->assertPermission('chamber.ai_twin.write');
         $memberId = (int) $member_id;
         $body = $this->decodeJson($request);
         $ai = $this->twin->ensureAi($tenant->tenantId(), $memberId);
@@ -178,8 +180,9 @@ final class AiTwinAdminController
     }
 
     /** 删除记忆 */
-    public function deleteMemory(Request $request, TenantContext $tenant, $member_id, $memory_id): Response
+    public function deleteMemory(Request $request, TenantContext $tenant, $member_id, $memory_id, AuthenticatedAdminContext $admin): Response
     {
+        $admin->assertPermission('chamber.ai_twin.write');
         unset($request);
         $memberId = (int) $member_id;
         $memoryId = (int) $memory_id;
@@ -209,8 +212,9 @@ final class AiTwinAdminController
     }
 
     /** 新增知识条目 */
-    public function addKnowledge(Request $request, TenantContext $tenant, $member_id): Response
+    public function addKnowledge(Request $request, TenantContext $tenant, $member_id, AuthenticatedAdminContext $admin): Response
     {
+        $admin->assertPermission('chamber.ai_twin.write');
         $memberId = (int) $member_id;
         $body = $this->decodeJson($request);
         if (isset($body['_too_large'])) {
@@ -226,8 +230,9 @@ final class AiTwinAdminController
      * 上传文档解析为知识草稿（PDF/Word/TXT，multipart file 字段）。
      * 返回解析出的标题/内容，由前端确认后调 addKnowledge 入库（source=file, source_file=原文件名）。
      */
-    public function uploadKnowledge(Request $request, TenantContext $tenant, $member_id): Response
+    public function uploadKnowledge(Request $request, TenantContext $tenant, $member_id, AuthenticatedAdminContext $admin): Response
     {
+        $admin->assertPermission('chamber.ai_twin.write');
         $memberId = (int) $member_id;
         $file = $request->file('file');
         if ($file === null) {
@@ -247,8 +252,9 @@ final class AiTwinAdminController
     }
 
     /** 删除知识条目 */
-    public function deleteKnowledge(Request $request, TenantContext $tenant, $member_id, $knowledge_id): Response
+    public function deleteKnowledge(Request $request, TenantContext $tenant, $member_id, $knowledge_id, AuthenticatedAdminContext $admin): Response
     {
+        $admin->assertPermission('chamber.ai_twin.write');
         unset($request);
         $memberId = (int) $member_id;
         $knowledgeId = (int) $knowledge_id;

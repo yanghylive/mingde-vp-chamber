@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace app\chamber\controller;
 
 use app\Request;
+use app\chamber\identity\AuthenticatedAdminContext;
 use app\chamber\tenancy\TenantContext;
 use think\facade\Db;
 use think\Response;
@@ -31,8 +32,9 @@ final class SiteConfigAdminController
         return json(['code' => 0, 'msg' => 'ok', 'data' => $data]);
     }
 
-    public function update(Request $request, TenantContext $tenant): Response
+    public function update(Request $request, TenantContext $tenant, AuthenticatedAdminContext $admin): Response
     {
+        $admin->assertPermission('chamber.site_config.write');
         unset($tenant);
         $raw = $request->getContent();
         if (strlen($raw) > self::MAX_BODY_BYTES) {

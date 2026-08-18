@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace app\chamber\controller;
 
 use app\Request;
+use app\chamber\identity\AuthenticatedAdminContext;
 use app\chamber\tenancy\TenantContext;
 use think\facade\Db;
 use think\Response;
@@ -57,8 +58,9 @@ final class PointsPathsAdminController
     }
 
     /** 保存配置（全量覆盖） */
-    public function update(Request $request, TenantContext $tenant): Response
+    public function update(Request $request, TenantContext $tenant, AuthenticatedAdminContext $admin): Response
     {
+        $admin->assertPermission('chamber.points_paths.write');
         unset($tenant);
         $body = json_decode($request->getContent(), true);
         $items = is_array($body['items'] ?? null) ? $body['items'] : null;

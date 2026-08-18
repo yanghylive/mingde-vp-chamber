@@ -61,8 +61,9 @@ final class MemberAdminController
     }
 
     /** 等级调整：L4 人工指定 / 手动开通·续费（年费） / 降级 */
-    public function update(int $member_id, Request $request, TenantContext $tenant): Response
+    public function update(int $member_id, Request $request, TenantContext $tenant, AuthenticatedAdminContext $admin): Response
     {
+        $admin->assertPermission('chamber.member.update');
         $tenantId = $tenant->tenantId();
         $member = Db::table('ch_tenant_member')
             ->where('tenant_id', $tenantId)

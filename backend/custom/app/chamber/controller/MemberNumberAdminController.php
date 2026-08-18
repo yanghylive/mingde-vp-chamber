@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace app\chamber\controller;
 
 use app\Request;
+use app\chamber\identity\AuthenticatedAdminContext;
 use app\chamber\tenancy\TenantContext;
 use think\facade\Db;
 use think\Response;
@@ -42,8 +43,9 @@ final class MemberNumberAdminController
         return json(['code' => 0, 'msg' => 'ok', 'data' => ['items' => $items, 'total' => count($items)]]);
     }
 
-    public function store(int $member_id, Request $request, TenantContext $tenant): Response
+    public function store(int $member_id, Request $request, TenantContext $tenant, AuthenticatedAdminContext $admin): Response
     {
+        $admin->assertPermission('chamber.member.number.write');
         $tenantId = $tenant->tenantId();
         $member = Db::table('ch_tenant_member')
             ->where('tenant_id', $tenantId)
