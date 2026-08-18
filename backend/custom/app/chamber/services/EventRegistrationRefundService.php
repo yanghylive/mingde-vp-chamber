@@ -18,6 +18,7 @@ use app\chamber\identity\AuthenticatedUserContext;
 use app\chamber\membership\BootstrapIdempotency;
 use app\chamber\membership\OrderContextState;
 use app\chamber\tenancy\TenantContext;
+use app\chamber\tenancy\TenantRecord;
 use think\facade\Db;
 
 /** Initiates trusted CRMEB refunds for paid event registrations. */
@@ -305,6 +306,116 @@ final class EventRegistrationRefundService
                 $this->member($tenant, $auth, false);
             }
         );
+    }
+
+    /**
+     * 查询待确认退款：扫描 processing/unknown 且 next_query_time 到期的退款尝试，
+     * 调渠道 query() 收敛（成功 → 最终确认 + 事件投影推进下游；仍挂起 → 更新下次查询时间）。
+     *
+     * 第三方已接受但本地超时的退款（提交时 PROCESSING/UNKNOWN）必须靠本任务最终收敛，
+     * 否则退款永远停在中间态。由 EventReservationRepairJob 定期调用。
+     */
+    public function queryPending(int $limit = 50): array
+    {
+        $now = call_user_func($this->clock);
+        $rows = Db::table('ch_refund_attempt')
+            ->whereIn('status', [RefundAttemptState::PROCESSING, RefundAttemptState::UNKNOWN])
+            ->where('next_query_time', '>', 0)
+            ->where('next_query_time', '<=', $now)
+            ->where(function ($q) use ($now) {
+                $q->where('lease_token', '')
+                    ->whereOr('lease_expire_time', '<', $now);
+            })
+            ->order('id', 'asc')
+            ->limit($limit)
+            ->select()
+            ->toArray();
+
+        $succeeded = 0;
+        $stillPending = 0;
+        $failed = 0;
+        foreach ($rows as $attempt) {
+            $attemptId = (int) $attempt['id'];
+            try {
+                // 原子认领（lease）：并发 job 只有一个能查同一笔，防重复查询/重复收敛
+                $leaseToken = bin2hex(random_bytes(16));
+                $claimed = Db::table('ch_refund_attempt')
+                    ->where('id', $attemptId)
+                    ->whereIn('status', [RefundAttemptState::PROCESSING, RefundAttemptState::UNKNOWN])
+                    ->where(function ($q) use ($now) {
+                        $q->where('lease_token', '')
+                            ->whereOr('lease_expire_time', '<', $now);
+                    })
+                    ->update([
+                        'lease_token' => $leaseToken,
+                        'lease_expire_time' => $now + 300,
+                        'query_retry_count' => Db::raw('query_retry_count + 1'),
+                        'last_query_time' => $now,
+                        'update_time' => $now,
+                    ]);
+                if ($claimed !== 1) {
+                    continue;
+                }
+
+                $context = Db::table('ch_order_context')
+                    ->where('id', (int) $attempt['order_context_id'])
+                    ->find();
+                $registration = Db::table('ch_event_registration')
+                    ->where('id', (int) $attempt['source_id'])
+                    ->find();
+                if (!is_array($context) || !is_array($registration)) {
+                    throw $this->inconsistent();
+                }
+
+                $result = $this->refunds->query($attempt);
+                $this->applyGatewayResult(
+                    $this->tenantFromAttempt($attempt),
+                    new AuthenticatedUserContext((int) $attempt['requester_uid'], true, 'api'),
+                    $context,
+                    $registration,
+                    $attemptId,
+                    (string) $attempt['refund_no'],
+                    (string) $attempt['provider_refund_no'],
+                    (string) $attempt['paid_amount'],
+                    (string) $attempt['amount'],
+                    $now,
+                    $result
+                );
+
+                if ($result->status() === RefundAttemptState::SUCCEEDED) {
+                    $succeeded++;
+                } else {
+                    $stillPending++;
+                }
+            } catch (\Throwable $e) {
+                $failed++;
+                // 查询/收敛异常：释放 lease 让下次再查（不推进状态，防卡死）
+                Db::table('ch_refund_attempt')->where('id', $attemptId)->update([
+                    'lease_token' => '',
+                    'update_time' => $now,
+                ]);
+            }
+        }
+
+        return ['scanned' => count($rows), 'succeeded' => $succeeded, 'still_pending' => $stillPending, 'failed' => $failed];
+    }
+
+    /** 从退款尝试行重建租户上下文（后台 job 无请求上下文）。 */
+    private function tenantFromAttempt(array $attempt): TenantContext
+    {
+        $tenantRow = Db::table('ch_tenant')->where('id', (int) $attempt['tenant_id'])->find();
+        $channelRow = Db::table('ch_channel')->where('id', (int) $attempt['channel_id'])->find();
+        if (!is_array($tenantRow) || !is_array($channelRow)) {
+            throw $this->inconsistent();
+        }
+
+        return new TenantContext(new TenantRecord(
+            (int) $tenantRow['id'],
+            (string) $tenantRow['slug'],
+            (int) $channelRow['id'],
+            (string) $channelRow['code'],
+            true
+        ), 'refund_query_job');
     }
 
     private function applyGatewayResult(
