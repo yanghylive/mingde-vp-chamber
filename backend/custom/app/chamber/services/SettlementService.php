@@ -273,6 +273,55 @@ final class SettlementService
     }
 
     /**
+     * 人工重试单条明细（retry_count 封顶后的恢复通道）：
+     * - failed 明细：重置 retry_count/退避，让 runDue 重新扫描打款
+     * - unknown 明细：仅当关联 payout 无渠道单号（渠道未发出）才重置；
+     *   payout 有渠道单号（渠道可能已发出）拒绝重试，防止重复打款
+     * @return bool true=已重置，false=明细不存在/状态不允许
+     */
+    public function retryDetail(int $tenantId, int $detailId): bool
+    {
+        $detail = Db::table('ch_settlement_detail')
+            ->where('id', $detailId)
+            ->where('tenant_id', $tenantId)
+            ->find();
+        if (!is_array($detail)) {
+            return false;
+        }
+        $status = (string) $detail['status'];
+        if (!in_array($status, ['failed', 'unknown'], true)) {
+            return false;
+        }
+
+        $now = time();
+        if ($status === 'unknown') {
+            $payout = Db::table('ch_payout_record')
+                ->where('settlement_detail_id', $detailId)
+                ->order('id', 'desc')
+                ->find();
+            if (is_array($payout) && (string) $payout['channel_order_no'] !== '') {
+                return false; // 渠道可能已发出，禁止自动重打（需人工对账）
+            }
+            if (is_array($payout)) {
+                Db::table('ch_payout_record')->where('id', (int) $payout['id'])->delete();
+            }
+        }
+
+        Db::table('ch_settlement_detail')
+            ->where('id', $detailId)
+            ->update([
+                'status' => 'failed',
+                'fail_reason' => '人工重置重试',
+                'retry_count' => 0,
+                'claim_token' => '',
+                'next_retry_time' => $now,
+                'update_time' => $now,
+            ]);
+
+        return true;
+    }
+
+    /**
      * unknown 对账收敛：崩溃于「渠道调用前」（payout pending 且无渠道单号）的 unknown
      * 明细，渠道从未收到打款请求 → 删除无意义 payout，回 failed 让 runDue 重新打款。
      * payout 有渠道单号（渠道可能已发出）→ 保持 unknown，待真实通道 query() 接入后

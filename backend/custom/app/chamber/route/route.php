@@ -116,6 +116,7 @@ foreach ([
     'admin/v1/settlement/settlements',
     'admin/v1/settlement/balances',
     'admin/v1/settlement/run-due',
+    'admin/v1/settlement/details/:detail_id/retry',
     'admin/v1/settlement/settle',
     'v1/ai-twin/me',
     'v1/ai-twin/train',
@@ -384,6 +385,8 @@ Route::group('admin/v1', function () {
     Route::get('settlement/settlements', 'SettlementAdminController/settlements');
     Route::get('settlement/balances', 'SettlementAdminController/balances');
     Route::post('settlement/run-due', 'SettlementAdminController/runDue');
+    Route::post('settlement/details/:detail_id/retry', 'SettlementAdminController/retry')
+        ->pattern(['detail_id' => '\\d+']);
     Route::post('settlement/settle', 'SettlementAdminController/settle');
 })->middleware(RequestTraceMiddleware::class)
     ->middleware(ChamberCorsMiddleware::class)

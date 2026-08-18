@@ -138,6 +138,25 @@ final class SettlementAdminController
         return json(['code' => 0, 'msg' => 'ok', 'data' => $this->settlement->runDue()]);
     }
 
+    /** 人工重试单条明细（retry_count 封顶后的恢复通道） */
+    public function retry(Request $request, TenantContext $tenant, AuthenticatedAdminContext $admin, $detail_id): Response
+    {
+        $admin->assertPermission('chamber.settlement.retry');
+        unset($request);
+        $detailId = (int) $detail_id;
+        if ($detailId <= 0) {
+            return json(['code' => 422, 'msg' => 'detail_id 必须是正整数']);
+        }
+
+        $ok = $this->settlement->retryDetail($tenant->tenantId(), $detailId);
+
+        return json([
+            'code' => $ok ? 0 : 409,
+            'msg' => $ok ? 'ok' : '明细不存在或状态不允许重试（unknown 且渠道可能已发出时禁止自动重打）',
+            'data' => ['retried' => $ok],
+        ]);
+    }
+
     /** 手动补单结算（某笔订单漏结算时运营补触发，也用于测试） */
     public function settle(Request $request, TenantContext $tenant, AuthenticatedAdminContext $admin): Response
     {
