@@ -123,6 +123,10 @@ foreach ([
     'v1/ai-twin/train/history',
     'v1/ai-twin/:expert_member_id/profile',
     'v1/ai-twin/:expert_member_id/chat',
+    'v1/wechat-pay/orders',
+    'v1/wechat-pay/orders/:out_trade_no',
+    'v1/wechat-pay/notify',
+    'v1/wechat-pay/config-status',
 ] as $route) {
     Route::options($route, $preflight)
         ->middleware(RequestTraceMiddleware::class)
@@ -201,6 +205,21 @@ Route::group('v1/ai-twin', function () {
     ->middleware(ChamberCorsMiddleware::class)
     ->middleware(CrmebAuthTokenMiddleware::class)
     ->middleware(TenantContextMiddleware::class, true);
+
+// ===== 微信支付（APIv3 直连，与 3010 ai-content 同一套逻辑） =====
+Route::group('v1/wechat-pay', function () {
+    Route::post('orders', 'ChamberWechatPayController/orders');
+    Route::get('orders/:out_trade_no', 'ChamberWechatPayController/order');
+    Route::get('config-status', 'ChamberWechatPayController/configStatus');
+})->middleware(RequestTraceMiddleware::class)
+    ->middleware(ChamberCorsMiddleware::class)
+    ->middleware(CrmebAuthTokenMiddleware::class)
+    ->middleware(TenantContextMiddleware::class, true);
+
+// 回调（微信服务器调用 → 公开，无 tenant 上下文；out_trade_no 反查租户）
+Route::post('v1/wechat-pay/notify', 'ChamberWechatPayController/notify')
+    ->middleware(RequestTraceMiddleware::class)
+    ->middleware(ChamberCorsMiddleware::class);
 
 // ===== 浏览类公开读接口（可选鉴权：游客可浏览，登录后返回个性化数据） =====
 Route::group('v1/products', function () {

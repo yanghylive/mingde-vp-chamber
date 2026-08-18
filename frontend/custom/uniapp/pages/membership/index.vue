@@ -112,7 +112,7 @@
 
 <script>
 import chamber from '@/api/chamber'
-import eventUi from '@/chamber/activity-ui.js'
+import { requestWechatPayment, pollWechatPayStatus } from '@/common/pay'
 import { checkLogin } from '@/libs/login'
 import { TIERS, tierToNumber, applyTierConfig } from '@/common/tier'
 import { toDate } from '@/common/format'
@@ -193,7 +193,7 @@ export default {
         })
         return
       }
-      // 创建会员开通订单（幂等）→ 跳 CRMEB 收银台支付
+      // 创建会员开通订单（幂等）→ 微信支付（APIv3 直连，与 3010 ai-content 同一套逻辑）
       uni.showLoading({ title: '创建订单...', mask: true })
       chamber
         .membershipCheckout({
@@ -202,15 +202,51 @@ export default {
           expected_amount: String(plan.price),
           currency: plan.currency || 'CNY'
         })
-        .then((res) => {
+        .then(async (res) => {
           uni.hideLoading()
           const orderNo = (res && res.order_no) || ''
-          const path = eventUi.paymentPath(orderNo)
-          if (!path) {
+          if (!orderNo) {
             uni.showToast({ title: '订单创建异常，请稍后重试', icon: 'none' })
             return
           }
-          uni.navigateTo({ url: path })
+          // 拉取支付单（JSAPI）→ wx.requestPayment → 回调确认 → 轮询到 paid
+          const payRes = await chamber.wechatPayOrder({
+            business_type: 'membership',
+            order_no: orderNo,
+            amount_cents: Math.round(Number((res && res.payable_amount) || 0) * 100),
+            idempotency_key: 'wxpay:' + orderNo,
+            description: '明德商会会籍 ' + (plan.name || '')
+          }).catch(() => null)
+          if (!payRes || payRes.status === 'need_config') {
+            uni.showToast({ title: (payRes && payRes.message) || '微信支付未配置完成，暂不可用', icon: 'none' })
+            return
+          }
+          if (payRes.status === 'order_failed' || payRes.status === 'order_pending_retry') {
+            uni.showToast({ title: (payRes && payRes.message) || '下单失败，请稍后重试', icon: 'none' })
+            return
+          }
+          uni.showLoading({ title: '拉起支付...', mask: true })
+          const payResult = await requestWechatPayment(payRes.pay_params)
+          uni.hideLoading()
+          if (payResult.status === 'paid') {
+            uni.showToast({ title: '支付成功，权益已开通', icon: 'success' })
+            this.loadPlans()
+            return
+          }
+          if (payResult.status === 'cancelled') {
+            uni.showToast({ title: '已取消支付', icon: 'none' })
+            return
+          }
+          // 可能已支付但回调未到：轮询确认
+          uni.showLoading({ title: '确认支付结果...', mask: true })
+          const polled = await pollWechatPayStatus(payRes.out_trade_no)
+          uni.hideLoading()
+          if (polled.status === 'paid') {
+            uni.showToast({ title: '支付成功，权益已开通', icon: 'success' })
+            this.loadPlans()
+          } else {
+            uni.showToast({ title: '支付未完成，可在订单中继续', icon: 'none' })
+          }
         })
         .catch((error) => {
           uni.hideLoading()

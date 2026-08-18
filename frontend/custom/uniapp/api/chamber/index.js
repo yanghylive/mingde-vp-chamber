@@ -92,6 +92,16 @@ export const chamber = {
       data: { points_cost: Number(pointsCost || 0), cash_cost: String(cashCost || '0.00') }
     }),
 
+  // ---- 微信支付（APIv3 直连，与 3010 ai-content 同一套逻辑）----
+  /** 创建支付单（JSAPI 拉起支付）。membership 传 order_no；exchange 传 business_ref=兑换订单 id */
+  wechatPayOrder: (payload) =>
+    request('/chamber/v1/wechat-pay/orders', {
+      method: 'POST',
+      data: payload
+    }),
+  /** 查询支付单状态 */
+  wechatPayStatus: (outTradeNo) => request('/chamber/v1/wechat-pay/orders/' + encodeURIComponent(outTradeNo)),
+
   // ---- 站点配置 ----
   siteConfig: () => request('/chamber/v1/site-config', { auth: false }),
 
