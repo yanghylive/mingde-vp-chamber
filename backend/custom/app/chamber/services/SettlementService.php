@@ -211,12 +211,24 @@ final class SettlementService
     {
         $now = time();
         $rows = Db::table('ch_settlement_detail')
-            ->whereIn('status', ['pending', 'failed'])
             ->where('retry_count', '<', self::MAX_ATTEMPTS)
-            ->where('next_retry_time', '<=', $now)
             ->where(function ($q) use ($now) {
-                $q->where('claim_token', '')
-                    ->whereOr('claim_expire_time', '<', $now);
+                // 分支 A：pending/failed 正常待执行（退避到期 + claim 空闲或过期）
+                $q->where(function ($q2) use ($now) {
+                    $q2->whereIn('status', ['pending', 'failed'])
+                        ->where('next_retry_time', '<=', $now)
+                        ->where(function ($q3) use ($now) {
+                            $q3->where('claim_token', '')
+                                ->whereOr('claim_expire_time', '<', $now);
+                        });
+                })
+                // 分支 B：processing 崩溃回收（worker 认领后未释放即死亡，claim 已过期）
+                //   不能只等 claim 过期不回收——否则明细永久卡在 processing 无法打款。
+                ->whereOr(function ($q4) use ($now) {
+                    $q4->where('status', 'processing')
+                        ->where('claim_expire_time', '>', 0)
+                        ->where('claim_expire_time', '<', $now);
+                });
             })
             ->order('id', 'asc')
             ->limit($limit)
@@ -225,10 +237,16 @@ final class SettlementService
 
         $done = 0;
         $failed = 0;
+        $unknown = 0;
         foreach ($rows as $detail) {
             try {
-                if ($this->executeDetail((int) $detail['id'], $now)) {
+                $result = $this->executeDetail((int) $detail['id'], $now);
+                if ($result === 1) {
                     $done++;
+                } elseif ($result === -2) {
+                    $unknown++;
+                } elseif ($result === -1) {
+                    $failed++;
                 }
             } catch (\Throwable $e) {
                 $failed++;
@@ -247,7 +265,7 @@ final class SettlementService
 
         $this->closeCompleted($now);
 
-        return ['scanned' => count($rows), 'done' => $done, 'failed' => $failed];
+        return ['scanned' => count($rows), 'done' => $done, 'failed' => $failed, 'unknown' => $unknown];
     }
 
     /** 退款下期抵扣：接收方应退金额记入抵扣余额，下次结算少分。事务 + 行锁原子化。 */
@@ -364,18 +382,26 @@ final class SettlementService
         return $detailMinor - $debit;
     }
 
-    /** 执行单条明细打款（claim/lease + 幂等 + 失败退避）。返回 true=成功，false=未处理/失败。 */
-    private function executeDetail(int $detailId, int $now): bool
+    /** 执行单条明细打款（claim/lease + 幂等 + 失败退避）。返回 1=成功，0=跳过，-1=失败，-2=unknown（待对账）。 */
+    private function executeDetail(int $detailId, int $now): int
     {
-        // 1. 原子认领（claim/lease）：只有 claim_token 为空或已过期的行才能被认领，
-        //    不依赖事务行锁，并发 worker 只有一个能 claim 成功（受影响行数=1）
+        // 1. 原子认领（claim/lease）：只有 claim_token 为空或已过期、或 processing 且 claim 已过期的行
+        //    才能被认领，不依赖事务行锁，并发 worker 只有一个能 claim 成功（受影响行数=1）
         $token = bin2hex(random_bytes(16));
         $claimed = Db::table('ch_settlement_detail')
             ->where('id', $detailId)
-            ->whereIn('status', ['pending', 'failed'])
             ->where(function ($q) use ($now) {
-                $q->where('claim_token', '')
-                    ->whereOr('claim_expire_time', '<', $now);
+                $q->where(function ($q2) use ($now) {
+                    $q2->whereIn('status', ['pending', 'failed'])
+                        ->where(function ($q3) use ($now) {
+                            $q3->where('claim_token', '')
+                                ->whereOr('claim_expire_time', '<', $now);
+                        });
+                })->whereOr(function ($q4) use ($now) {
+                    $q4->where('status', 'processing')
+                        ->where('claim_expire_time', '>', 0)
+                        ->where('claim_expire_time', '<', $now);
+                });
             })
             ->update([
                 'status' => 'processing',
@@ -384,12 +410,12 @@ final class SettlementService
                 'update_time' => $now,
             ]);
         if ($claimed !== 1) {
-            return false;
+            return 0;
         }
 
         $detail = Db::table('ch_settlement_detail')->where('id', $detailId)->find();
         if (!is_array($detail)) {
-            return false;
+            return 0;
         }
 
         $channel = (string) $detail['channel'];
@@ -418,12 +444,32 @@ final class SettlementService
                 'update_time' => $now,
             ]);
         } catch (\Throwable $e) {
-            // duplicate key：已有 payout_record，说明该明细已处理过，释放 claim 跳过
-            Db::table('ch_settlement_detail')
-                ->where('id', $detailId)
-                ->update(['claim_token' => '', 'update_time' => $now]);
+            // 只把「唯一键冲突」当作已处理过；其他数据库异常（连接失败/字段错误等）
+            // 必须上抛让 runDue 记 failed，不能当作重复记录静默吞掉。
+            if (!$this->isDuplicateKey($e)) {
+                Db::table('ch_settlement_detail')
+                    ->where('id', $detailId)
+                    ->update([
+                        'status' => 'failed',
+                        'fail_reason' => mb_substr($e->getMessage(), 0, 255),
+                        'claim_token' => '',
+                        'update_time' => $now,
+                    ]);
+                throw $e;
+            }
 
-            return false;
+            // duplicate key：已有 payout_record，说明该明细此前被处理过（可能崩溃在半路），
+            // 按 payout 记录状态收敛，绝不能盲重重发（防重复打款）。
+            $existing = Db::table('ch_payout_record')
+                ->where('idempotency_key', $idempotencyKey)
+                ->find();
+            if (is_array($existing)) {
+                $payoutStatus = $this->reconcileExistingPayout($detailId, $existing, $now);
+
+                return $payoutStatus === 'unknown' ? -2 : 0;
+            }
+
+            return 0;
         }
 
         // 3. 调渠道
@@ -456,7 +502,7 @@ final class SettlementService
                     'update_time' => $now,
                 ]);
 
-            return false;
+            return -1;
         }
 
         // 4. 回写成功
@@ -480,7 +526,68 @@ final class SettlementService
                 'update_time' => $now,
             ]);
 
-        return true;
+        return 1;
+    }
+
+    /**
+     * 明细已有 payout_record 时的收敛（崩溃恢复场景），防止重复打款。返回收敛后 detail 状态：
+     * - payout success：渠道已打款成功 → detail 幂等补成功，返回 'success'
+     * - payout failed：上次渠道调用失败 → detail 回 failed 继续退避重试，返回 'failed'
+     * - payout pending：渠道调用前/中崩溃，状态不明 → detail 置 unknown（对账态），返回 'unknown'。
+     *   不能盲目重打；待真实通道接入 query() 后由对账任务查询渠道收敛。
+     */
+    private function reconcileExistingPayout(int $detailId, array $payout, int $now): string
+    {
+        $status = (string) $payout['status'];
+        $base = ['claim_token' => '', 'update_time' => $now];
+
+        if ($status === 'success') {
+            Db::table('ch_settlement_detail')
+                ->where('id', $detailId)
+                ->update($base + [
+                    'status' => 'success',
+                    'channel_ref' => (string) $payout['channel_order_no'],
+                    'settled_time' => $now,
+                ]);
+            return 'success';
+        }
+
+        if ($status === 'failed') {
+            Db::table('ch_settlement_detail')
+                ->where('id', $detailId)
+                ->update($base + [
+                    'status' => 'failed',
+                    'fail_reason' => '上次打款失败，等待退避重试',
+                    'retry_count' => Db::raw('retry_count + 1'),
+                    'next_retry_time' => $now + self::RETRY_BACKOFF,
+                ]);
+            return 'failed';
+        }
+
+        // pending：崩溃于渠道调用前/中，渠道状态不明 → 对账态，禁止自动重打
+        Db::table('ch_settlement_detail')
+            ->where('id', $detailId)
+            ->update($base + [
+                'status' => 'unknown',
+                'fail_reason' => 'payout 记录为 pending（渠道状态不明），需对账确认后收敛',
+            ]);
+
+        return 'unknown';
+    }
+
+    /** 判断异常是否为唯一键冲突（仅此场景可安全当作「已处理过」）。 */
+    private function isDuplicateKey(\Throwable $e): bool
+    {
+        if ($e instanceof \PDOException) {
+            $code = (string) $e->getCode();
+            if ($code === '1062' || $code === '23000') {
+                return true;
+            }
+            if (is_array($e->errorInfo) && isset($e->errorInfo[1]) && (int) $e->errorInfo[1] === 1062) {
+                return true;
+            }
+        }
+        return stripos($e->getMessage(), 'Duplicate entry') !== false;
     }
 
     /** 是否启用真实通道（config settlement.live，商户号开通后置 true） */
@@ -504,18 +611,19 @@ final class SettlementService
         }
     }
 
-    /** 分账单全部明细成功后关闭 */
+    /** 分账单全部明细成功后关闭。未完成态含 pending/failed/processing/unknown——processing（认领中/崩溃残留）
+     *  和 unknown（待对账）绝不能算完成，否则会把仍欠款的单子错误置 done。 */
     private function closeCompleted(int $now): void
     {
         $open = Db::table('ch_settlement')
             ->whereIn('status', ['pending', 'processing'])
             ->column('id');
         foreach ($open as $sid) {
-            $pendingCount = (int) Db::table('ch_settlement_detail')
+            $openCount = (int) Db::table('ch_settlement_detail')
                 ->where('settlement_id', (int) $sid)
-                ->whereIn('status', ['pending', 'failed'])
+                ->whereIn('status', ['pending', 'failed', 'processing', 'unknown'])
                 ->count();
-            if ($pendingCount === 0) {
+            if ($openCount === 0) {
                 Db::table('ch_settlement')
                     ->where('id', (int) $sid)
                     ->update(['status' => 'done', 'settle_time' => $now, 'update_time' => $now]);

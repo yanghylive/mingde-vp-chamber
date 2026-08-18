@@ -132,4 +132,11 @@ status="$(request settle-list -X GET -H "Authorization: Bearer ${ADMIN_TOKEN}" \
 [ "${status}" = '200' ] || fail "settlement list returned HTTP ${status}"
 assert_json "${TMP_DIR}/settle-list.json" data.items.0.status done
 
+# 3.5 分账状态机 DB 测试：processing 崩溃回收 + payout pending→unknown 对账态 + 结算单关闭正确性
+settlement_state_output="$(docker compose -f "${COMPOSE_FILE}" exec -T phpfpm \
+    php /var/www/app/chamber/tests/settlement_state_machine_db_run.php)"
+printf '%s\n' "${settlement_state_output}"
+grep -Fq 'PASS settlement state machine database service' <<<"${settlement_state_output}" \
+    || fail 'Settlement state machine database gate failed'
+
 echo "PASS: chamber HTTP acceptance (notification read isolation + appointment idempotency + settlement claim)"
