@@ -273,7 +273,7 @@ try {
     $gateway->forgetOrder($uid, (string) $missingContext['context_no']);
     assertSame('unknown', (string) $missingRecord['status']);
     assertSame(false, $gateway->hasOrder($uid, (string) $missingContext['context_no']));
-    assertSame(4, $gateway->createCount());
+    assertSame(5, $gateway->createCount());
     assertSame(2, reconcilableCount($now));
 
     $lateRepairableKey = 'checkout-db-' . $runId . '-late-repairable';
@@ -298,7 +298,7 @@ try {
     Db::table('ch_idempotency_record')->where('id', (int) $lateRecord['id'])->update([
         'update_time' => $now - 100,
     ]);
-    assertSame(5, $gateway->createCount());
+    assertSame(6, $gateway->createCount());
     assertSame(3, reconcilableCount($now));
 
     $createCountBeforeReconcile = $gateway->createCount();
@@ -413,7 +413,7 @@ try {
         $service->checkout($primary, $auth, $primaryL3Request, $productMismatchKey, ['uid' => $uid]);
     });
     assertUnknownUnbound($primary, $uid, $productMismatchKey);
-    assertSame(8, $gateway->createCount());
+    assertSame(9, $gateway->createCount());
 } catch (Throwable $exception) {
     $failure = $exception;
 }

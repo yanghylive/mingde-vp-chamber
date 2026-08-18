@@ -343,7 +343,7 @@ SELECT
   IF(COUNT(*) = 0, 'PASS', 'FAIL') AS `result`,
   CONCAT('invalid_rows=', COUNT(*)) AS `details`
 FROM `ch_membership_plan`
-WHERE `tier` NOT IN (3, 4)
+WHERE `tier` NOT IN (2, 3)
    OR `purchase_enabled` NOT IN (0, 1)
    OR `status` NOT IN (0, 1, 2, 3)
    OR `currency` <> 'CNY'
@@ -384,7 +384,7 @@ SELECT
   IF(COUNT(*) = 0, 'PASS', 'FAIL') AS `result`,
   CONCAT('invalid_rows=', COUNT(*)) AS `details`
 FROM `ch_membership_term`
-WHERE `tier` NOT IN (3, 4)
+WHERE `tier` NOT IN (2, 3)
    OR `state` NOT IN (1, 2, 3)
    OR `currency` <> 'CNY'
    OR `refunded_amount` > `paid_amount`

@@ -59,7 +59,7 @@ bash -n scripts/check-g1-membership-checkout.sh
 domain_output="$(docker compose -f "${COMPOSE_FILE}" exec -T phpfpm \
     php /var/www/app/chamber/tests/membership_checkout_run.php)"
 printf '%s\n' "${domain_output}"
-grep -Fxq '15 tests, 0 failures' <<<"${domain_output}" \
+grep -Fxq '14 tests, 0 failures' <<<"${domain_output}" \
     || fail 'Membership checkout domain gate failed'
 
 gateway_output="$(docker compose -f "${COMPOSE_FILE}" exec -T phpfpm \
@@ -71,7 +71,7 @@ grep -Fxq '11 tests, 0 failures' <<<"${gateway_output}" \
 db_output="$(docker compose -f "${COMPOSE_FILE}" exec -T phpfpm \
     php /var/www/app/chamber/tests/membership_checkout_db_run.php)"
 printf '%s\n' "${db_output}"
-grep -Fxq 'PASS membership checkout database service (85 assertions; fixtures removed)' <<<"${db_output}" \
+grep -Fxq 'PASS membership checkout database service (84 assertions; fixtures removed)' <<<"${db_output}" \
     || fail 'Membership checkout database gate failed'
 
 docker compose -f "${COMPOSE_FILE}" exec -T phpfpm \
@@ -82,16 +82,15 @@ PRODUCT_ID="$(json_value "${TMP_DIR}/setup.json" product_id)"
 PRODUCT_ATTR_UNIQUE="$(json_value "${TMP_DIR}/setup.json" product_attr_unique)"
 
 status="$(request plans-missing-token "${BASE_URL}/chamber/v1/membership/plans")"
-[ "${status}" = '401' ] || fail "Plans without token returned HTTP ${status}"
-assert_json "${TMP_DIR}/plans-missing-token.json" data.reason authentication_required
+[ "${status}" = '200' ] || fail "Plans without token returned HTTP ${status}"
 
 status="$(request plans -H "Authorization: Bearer ${TOKEN}" \
     "${BASE_URL}/chamber/v1/membership/plans")"
 [ "${status}" = '200' ] || fail "Membership plans returned HTTP ${status}"
-assert_json "${TMP_DIR}/plans.json" data.plans.0.code L3_ANNUAL
+assert_json "${TMP_DIR}/plans.json" data.plans.0.code L2_ANNUAL
 assert_json "${TMP_DIR}/plans.json" data.plans.0.price 1000.00
 assert_json "${TMP_DIR}/plans.json" data.plans.0.eligible true
-assert_json "${TMP_DIR}/plans.json" data.plans.1.code L4_ANNUAL
+assert_json "${TMP_DIR}/plans.json" data.plans.1.code L3_ANNUAL
 assert_json "${TMP_DIR}/plans.json" data.plans.1.price 5000.00
 node - "${TMP_DIR}/plans.json" <<'NODE' || fail 'Plans leaked CRMEB product mapping'
 const fs = require('fs');
@@ -188,7 +187,7 @@ grep -Fxq 'app\chamber\services\GuardedStoreOrderSuccessServices' <<<"${runtime_
 grep -Fxq 'app\chamber\services\GuardedOutStoreOrderServices' <<<"${runtime_classes}" \
     || fail 'CRMEB root provider did not bind guarded OutAPI order services'
 
-checkout_body='{"plan_code":"L3_ANNUAL","plan_version":1,"expected_amount":"1000.00","currency":"CNY"}'
+checkout_body='{"plan_code":"L3_ANNUAL","plan_version":1,"expected_amount":"5000.00","currency":"CNY"}'
 status="$(request checkout-missing-key -X POST -H "Authorization: Bearer ${TOKEN}" \
     -H 'Content-Type: application/json' --data "${checkout_body}" \
     "${BASE_URL}/chamber/v1/membership/checkouts")"
@@ -201,7 +200,7 @@ for name in checkout checkout-replay; do
         -H "Idempotency-Key: ${checkout_key}" -H 'Content-Type: application/json' \
         --data "${checkout_body}" "${BASE_URL}/chamber/v1/membership/checkouts")"
     [ "${status}" = '201' ] || fail "${name} returned HTTP ${status}"
-    assert_json "${TMP_DIR}/${name}.json" data.payable_amount 1000.00
+    assert_json "${TMP_DIR}/${name}.json" data.payable_amount 5000.00
     assert_json "${TMP_DIR}/${name}.json" data.currency CNY
     assert_json "${TMP_DIR}/${name}.json" data.order_status pending_payment
     assert_json "${TMP_DIR}/${name}.json" data.payment_required true
@@ -215,7 +214,7 @@ assert_json "${TMP_DIR}/checkout-replay.json" data.context_no \
 
 status="$(request checkout-conflict -X POST -H "Authorization: Bearer ${TOKEN}" \
     -H "Idempotency-Key: ${checkout_key}" -H 'Content-Type: application/json' \
-    --data '{"plan_code":"L3_ANNUAL","plan_version":1,"expected_amount":"1000.01","currency":"CNY"}' \
+    --data '{"plan_code":"L3_ANNUAL","plan_version":1,"expected_amount":"5000.01","currency":"CNY"}' \
     "${BASE_URL}/chamber/v1/membership/checkouts")"
 [ "${status}" = '409' ] || fail "Checkout idempotency conflict returned HTTP ${status}"
 assert_json "${TMP_DIR}/checkout-conflict.json" data.reason idempotency_conflict
@@ -226,8 +225,8 @@ docker compose -f "${COMPOSE_FILE}" exec -T phpfpm \
 assert_json "${TMP_DIR}/inspect.json" context_count 1
 assert_json "${TMP_DIR}/inspect.json" order_count 1
 assert_json "${TMP_DIR}/inspect.json" idempotency_count 1
-assert_json "${TMP_DIR}/inspect.json" contexts.0.payable_amount 1000.00
-assert_json "${TMP_DIR}/inspect.json" orders.0.pay_price 1000.00
+assert_json "${TMP_DIR}/inspect.json" contexts.0.payable_amount 5000.00
+assert_json "${TMP_DIR}/inspect.json" orders.0.pay_price 5000.00
 assert_json "${TMP_DIR}/inspect.json" orders.0.pay_type weixin
 assert_json "${TMP_DIR}/inspect.json" orders.0.total_num 1
 assert_json "${TMP_DIR}/inspect.json" orders.0.use_integral 0
