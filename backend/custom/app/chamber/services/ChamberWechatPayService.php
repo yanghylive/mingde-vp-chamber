@@ -36,6 +36,9 @@ final class ChamberWechatPayService
     public const BUSINESS_MEMBERSHIP = 'membership';
     public const BUSINESS_EXCHANGE = 'exchange';
 
+    /** 支付单挂起超时（秒）：超时未支付本地单自动 closed（微信侧同 2h 自然失效） */
+    public const ORDER_EXPIRE_SECONDS = 7200;
+
     private const WXPAY_BASE = 'https://api.mch.weixin.qq.com';
 
     /** @var MembershipPaymentCompletionService|null */
@@ -142,6 +145,13 @@ final class ChamberWechatPayService
         $tenantId = $tenant->tenantId();
         $now = time();
 
+        // 惰性过期：创建超 2 小时仍 pending 的挂起单标 closed（微信侧同款 2h 自然失效，
+        // 防止垃圾单累积 + 幂等键被死单占位）
+        Db::table('ch_wechat_pay_order')
+            ->where('status', 'pending')
+            ->where('add_time', '<', $now - self::ORDER_EXPIRE_SECONDS)
+            ->update(['status' => 'closed', 'update_time' => $now]);
+
         // 幂等：同 out_trade_no 已存在返回原单（对齐 ai-content）
         // 指纹校验：同 key 换业务/金额/归属 → 409 拒绝（防串单）
         $existing = Db::table('ch_wechat_pay_order')
@@ -155,8 +165,13 @@ final class ChamberWechatPayService
                 || (int) $existing['user_id'] !== $uid) {
                 throw new MemberTransactionException(409, 'idempotency_conflict', '幂等键已被其他支付请求占用');
             }
-
-            return $this->orderPayload($existing);
+            // closed 单（下单失败/超时/取消）：删除旧行重建，允许用户重新支付
+            if ((string) $existing['status'] === 'closed') {
+                Db::table('ch_wechat_pay_order')->where('id', (int) $existing['id'])->delete();
+                $existing = null;
+            } else {
+                return $this->orderPayload($existing);
+            }
         }
 
         $orderId = (int) Db::table('ch_wechat_pay_order')->insertGetId([
@@ -406,6 +421,23 @@ final class ChamberWechatPayService
         }
 
         if ($businessType === self::BUSINESS_EXCHANGE) {
+            $exchangeOrder = Db::table('ch_product_exchange_order')
+                ->where('id', $businessRef)
+                ->where('tenant_id', $tenantId)
+                ->find();
+            if (!is_array($exchangeOrder)) {
+                throw new RuntimeException('exchange order missing');
+            }
+            // 兑换单已 cancelled（用户取消后支付才到账的竞态）：钱已收但业务单已取消，
+            // 拒绝入账并记录异常单（避免微信回调无限重试；运营人工处理退款）
+            if ((string) $exchangeOrder['status'] === 'cancelled') {
+                Log::warning('chamber.wechat_pay.exchange_cancelled_but_paid', [
+                    'out_trade_no' => (string) ($exchangeOrder['idempotency_key'] ?? ''),
+                    'exchange_order_id' => $businessRef,
+                ]);
+
+                return;
+            }
             $updated = Db::table('ch_product_exchange_order')
                 ->where('id', $businessRef)
                 ->where('tenant_id', $tenantId)
