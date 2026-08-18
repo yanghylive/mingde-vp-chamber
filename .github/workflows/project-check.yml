@@ -30,3 +30,87 @@ jobs:
 
       - name: Verify G2 activity domain and OpenAPI contract
         run: bash scripts/check-g2-activity-core.sh ci
+
+  syntax:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout project and CRMEB submodule
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 1
+
+      - name: Set up PHP 7.4
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '7.4'
+          coverage: none
+
+      - name: PHP lint (chamber business code)
+        run: |
+          find backend/custom/app -name '*.php' -print0 | xargs -0 -n1 php -l
+
+  static-analysis:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # 首次引入 PHPStan 会暴露存量告警，先作信息性检查不阻断，随清理逐步收紧为阻断。
+    continue-on-error: true
+    steps:
+      - name: Checkout project and CRMEB submodule
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 1
+
+      - name: Set up PHP 7.4
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '7.4'
+          coverage: none
+          tools: composer
+
+      - name: Run PHPStan (informational)
+        run: |
+          curl -sL https://github.com/phpstan/phpstan/releases/download/1.10.67/phpstan.phar -o phpstan.phar
+          php phpstan.phar analyse --no-progress --error-format=table || true
+
+      - name: Run PHP CS Fixer (dry-run, informational)
+        run: |
+          curl -sL https://github.com/PHP-CS-Fixer/PHP-CS-Fixer/releases/download/v3.49.0/php-cs-fixer.phar -o php-cs-fixer.phar
+          php php-cs-fixer.phar fix --dry-run --diff --using-cache=no || true
+
+  dependency-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout project and CRMEB submodule
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 1
+
+      - name: Set up PHP 7.4 + Composer
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '7.4'
+          coverage: none
+          tools: composer
+
+      - name: Composer audit (CRMEB upstream dependencies)
+        working-directory: backend/crmeb/crmeb
+        run: composer audit --no-dev
+
+  secret-scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout full history for secret scanning
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Gitleaks secret scan
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

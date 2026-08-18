@@ -1,0 +1,22 @@
+# ai-service 依赖骨架
+#
+# 说明：ai-service 目前为空骨架（app/** 全为 .gitkeep，无实现代码）。
+# 此清单为落地实现时的依赖基线，版本号需在首次实现时通过 `pip freeze` 锁定，
+# 并纳入 CI 的 pip-audit / safety 漏洞扫描。
+#
+# 架构定位（对应目录）：api / auth / guardrails / rag / tools / usage / models
+# 预期技术栈：FastAPI 异步 Web 服务，httpx 直调 OpenAI 兼容模型网关（如 kaypal 模型网关）。
+
+fastapi>=0.110,<1.0
+uvicorn[standard]>=0.29,<1.0
+pydantic>=2.6,<3.0
+pydantic-settings>=2.2,<3.0
+httpx>=0.27,<1.0
+python-multipart>=0.0.9,<1.0
+
+# 开发 / 测试（不随生产镜像安装，建议用 dev extras 隔离）
+# pytest>=8.0
+# pytest-asyncio>=0.23
+# respx>=0.21
+# ruff>=0.4
+# bandit>=1.7

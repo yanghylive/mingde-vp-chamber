@@ -1,0 +1,25 @@
+parameters:
+    level: 4
+    phpVersion: 70400
+    paths:
+        - backend/custom/app/chamber
+    bootstrapFiles:
+        - backend/crmeb/crmeb/vendor/autoload.php
+    excludePaths:
+        analyse:
+            - backend/custom/app/chamber/tests
+            - backend/custom/app/chamber/libs
+        analyseAndScan:
+            - backend/custom/app/chamber/libs/pdfparser
+    scanFiles:
+        - backend/custom/app/chamber/provider.php
+        - backend/custom/app/api/provider.php
+        - backend/custom/app/provider.php
+    ignoreErrors:
+        # ThinkPHP 框架的魔法调用与动态属性在业务侧广泛使用，先按框架约定豁免，随 level 提升逐步收紧。
+        - '#Call to an undefined method think\\#'
+        - '#Call to an undefined method crmeb\\#'
+        - '#Access to an undefined property#'
+        - '#Dynamic call to static method#'
+        - '#Method [a-zA-Z0-9_\\]+::[a-zA-Z0-9_]+\(\) invoked with [0-9]+ parameter#'
+    reportUnmatchedIgnoredErrors: false
