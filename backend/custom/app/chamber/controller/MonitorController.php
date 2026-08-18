@@ -39,8 +39,6 @@ final class MonitorController
     {
         $dbOk = $this->dbPing();
         $cron = $this->cronHealth();
-        $errorCount = $this->recentErrorCount();
-        $settlement = $this->settlementMetrics();
 
         $healthy = $dbOk && $cron['healthy'];
 
@@ -51,8 +49,6 @@ final class MonitorController
             'overall' => $healthy ? 'ok' : 'degraded',
             'db' => ['ok' => $dbOk],
             'cron' => $cron,
-            'errors_last_24h' => $errorCount,
-            'settlement' => $settlement,
         ];
 
         if (!$healthy) {
@@ -95,11 +91,10 @@ final class MonitorController
             $type = trim($type) !== '' ? trim($type) : 'wecom';
 
             $text = sprintf(
-                "【明德商会监控告警】%s\nDB: %s · Cron: %s · 近24h错误: %s",
+                "【明德商会监控告警】%s\nDB: %s · Cron: %s",
                 date('Y-m-d H:i:s'),
                 $payload['db']['ok'] ? '正常' : '异常',
-                $payload['cron']['healthy'] ? '正常' : '失联',
-                $payload['errors_last_24h']
+                $payload['cron']['healthy'] ? '正常' : '失联'
             );
 
             $body = json_encode(
@@ -115,8 +110,21 @@ final class MonitorController
                 CURLOPT_TIMEOUT => 5,
                 CURLOPT_RETURNTRANSFER => true,
             ]);
-            curl_exec($ch);
+            $raw = curl_exec($ch);
+            $curlErrno = curl_errno($ch);
+            $httpCode = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
             curl_close($ch);
+
+            // 必须确认发送成功（curl 无错误且 HTTP 2xx）才记录冷却——
+            // 否则失败也进冷却期，下一周期不再告警，告警被静默吞掉。
+            if ($curlErrno !== 0 || $httpCode < 200 || $httpCode >= 300) {
+                throw new RuntimeException(sprintf(
+                    'webhook delivery failed (http %d, curl %d): %s',
+                    $httpCode,
+                    $curlErrno,
+                    mb_substr((string) $raw, 0, 200)
+                ));
+            }
 
             // 发送成功后记录冷却
             $this->markFired('health', 'degraded', $now);
@@ -155,38 +163,6 @@ final class MonitorController
             'age_seconds' => $age,
             'threshold' => self::CRON_STALE_SECONDS,
         ];
-    }
-
-    private function recentErrorCount(): int
-    {
-        try {
-            $since = time() - 86400;
-            return (int) Db::table('ch_client_error')
-                ->where('add_time', '>=', $since)
-                ->count();
-        } catch (\Throwable $e) {
-            return -1;
-        }
-    }
-
-    /** 结算指标：pending/processing/uncertain 明细数（结算卡单可观测） */
-    private function settlementMetrics(): array
-    {
-        try {
-            $count = static function (string $status): int {
-                return (int) Db::table('ch_settlement_detail')
-                    ->where('status', $status)
-                    ->count();
-            };
-
-            return [
-                'pending' => $count('pending'),
-                'processing' => $count('processing'),
-                'uncertain' => $count('uncertain'),
-            ];
-        } catch (\Throwable $e) {
-            return ['pending' => -1, 'processing' => -1, 'uncertain' => -1];
-        }
     }
 
     /** 告警冷却：同一 (component, error_code) 冷却期内不重复 */

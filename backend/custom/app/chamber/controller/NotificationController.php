@@ -109,7 +109,9 @@ final class NotificationController
             return json(['code' => 404, 'msg' => '通知不存在']);
         }
 
-        // 幂等写已读（唯一键 notification_id+member_id，重复读忽略）
+        // 幂等写已读（唯一键 notification_id+member_id，重复读忽略）。
+        // 只吞唯一键冲突：数据库连接失败/字段错误等异常必须上抛，
+        // 否则用户以为已读成功但实际没写入（前端红点不清）。
         $now = time();
         try {
             Db::table('ch_notification_read')->insert([
@@ -120,6 +122,9 @@ final class NotificationController
                 'add_time' => $now,
             ]);
         } catch (\Throwable $e) {
+            if (!$this->isDuplicateKey($e)) {
+                throw $e;
+            }
             // duplicate key：已读过，忽略
         }
 
@@ -133,5 +138,21 @@ final class NotificationController
             'msg' => 'ok',
             'data' => $data,
         ], 'json', 200);
+    }
+
+    /** 判断异常是否为唯一键冲突（仅此场景可安全忽略） */
+    private function isDuplicateKey(\Throwable $e): bool
+    {
+        if ($e instanceof \PDOException) {
+            $code = (string) $e->getCode();
+            if ($code === '1062' || $code === '23000') {
+                return true;
+            }
+            if (is_array($e->errorInfo) && isset($e->errorInfo[1]) && (int) $e->errorInfo[1] === 1062) {
+                return true;
+            }
+        }
+
+        return stripos($e->getMessage(), 'Duplicate entry') !== false;
     }
 }
