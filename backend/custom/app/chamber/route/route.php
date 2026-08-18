@@ -104,6 +104,7 @@ foreach ([
     'admin/v1/experts/:expert_id/pricing',
     'admin/v1/ai-twins',
     'admin/v1/ai-twins/:member_id',
+    'admin/v1/ai-twins/:member_id/listed',
     'admin/v1/ai-twins/:member_id/memories',
     'admin/v1/ai-twins/:member_id/memories/:memory_id',
     'admin/v1/ai-twins/:member_id/chats',
@@ -378,6 +379,8 @@ Route::group('admin/v1', function () {
     Route::get('ai-twins/:member_id', 'AiTwinAdminController/show')
         ->pattern(['member_id' => '\\d+']);
     Route::put('ai-twins/:member_id', 'AiTwinAdminController/update')
+        ->pattern(['member_id' => '\\d+']);
+    Route::patch('ai-twins/:member_id/listed', 'AiTwinAdminController/setListed')
         ->pattern(['member_id' => '\\d+']);
     Route::get('ai-twins/:member_id/memories', 'AiTwinAdminController/memories')
         ->pattern(['member_id' => '\\d+']);

@@ -169,6 +169,30 @@ final class AiTwinAdminController
         return json(['code' => 0, 'msg' => 'ok', 'data' => ['updated' => true]]);
     }
 
+    /** 上架/下架分身：上架后可被其他会员搜索/对话（对外商品维度，admin 审核） */
+    public function setListed(Request $request, TenantContext $tenant, $member_id, AuthenticatedAdminContext $admin): Response
+    {
+        $admin->assertPermission('chamber.ai_twin.write');
+        $memberId = (int) $member_id;
+        $body = $this->decodeJson($request);
+        $listed = (int) ($body['is_listed'] ?? -1);
+        if ($listed !== 0 && $listed !== 1) {
+            return json(['code' => 400, 'msg' => 'is_listed 必须为 0 或 1']);
+        }
+
+        $ai = $this->twin->ensureAi($tenant->tenantId(), $memberId);
+        if (!$ai) {
+            return json(['code' => 404, 'msg' => '该会员尚未开通 AI 分身']);
+        }
+
+        Db::table('ch_expert_ai')->where('id', (int) $ai['id'])->update([
+            'is_listed' => $listed,
+            'update_time' => time(),
+        ]);
+
+        return json(['code' => 0, 'msg' => 'ok', 'data' => ['member_id' => $memberId, 'is_listed' => $listed === 1]]);
+    }
+
     /** 记忆列表 */
     public function memories(Request $request, TenantContext $tenant, $member_id): Response
     {

@@ -487,6 +487,10 @@ PROMPT;
         if (!$ai) {
             throw new MemberTransactionException(404, 'expert_not_found', '大咖不存在或尚未开通 AI 分身');
         }
+        // 上架门槛：未上架的分身仅本人可训练，不可被其他会员对话（对外商品维度）
+        if ((int) ($ai['is_listed'] ?? 0) !== 1) {
+            throw new MemberTransactionException(409, 'expert_not_listed', '该大咖分身尚未上架，暂不可对话');
+        }
         $aiId = (int) $ai['id'];
         $cost = max(1, (int) $ai['chat_points_cost']);
 
@@ -769,6 +773,7 @@ PROMPT;
             'catchphrases' => (string) $ai['catchphrases'],
             'training_status' => (int) $ai['training_status'],
             'training_progress' => (int) $ai['training_progress'],
+            'is_listed' => (int) ($ai['is_listed'] ?? 0) === 1,
             'chat_points_cost' => (int) $ai['chat_points_cost'],
             'chat_count' => (int) $ai['chat_count'],
             'memory_count' => $memoryCount,
@@ -781,6 +786,9 @@ PROMPT;
     {
         $twinMemberId = $this->resolveTwinMemberId($tenantId, $expertMemberId);
         $ai = $this->ensureAi($tenantId, $twinMemberId);
+        if (!$ai || (int) ($ai['is_listed'] ?? 0) !== 1) {
+            throw new MemberTransactionException(404, 'expert_not_found', '大咖分身不存在或尚未上架');
+        }
 
         // 隐私：不返回训练记忆原文，只返回数量（原文仅服务端注入 AI 时使用）
         $memoryCount = (int) Db::table('ch_expert_ai_memory')

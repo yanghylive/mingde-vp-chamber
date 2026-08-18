@@ -17,6 +17,10 @@
       <view class="status-tip">
         和训练师聊天，它会记住你的身份、风格、观点和口头禅，自动沉淀成记忆。聊得越多，分身越像你。
       </view>
+      <view class="{{'listed-bar ' + (twin.is_listed ? 'listed-on' : 'listed-off')}}">
+        <text v-if="twin.is_listed">已上架 · 其他会员可搜索并与你的分身对话（赚积分）</text>
+        <text v-else>未上架 · 仅自己可见，可联系管理员申请上架</text>
+      </view>
     </view>
 
     <!-- 训练对话区 -->
@@ -198,6 +202,21 @@ export default {
   color: rgba(255, 255, 255, 0.45);
   font-size: 22rpx;
   line-height: 1.6;
+}
+.listed-bar {
+  margin-top: 16rpx;
+  padding: 12rpx 20rpx;
+  border-radius: 12rpx;
+  font-size: 22rpx;
+  line-height: 1.5;
+}
+.listed-on {
+  color: #1d9e75;
+  background: rgba(29, 158, 117, 0.14);
+}
+.listed-off {
+  color: rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.08);
 }
 .chat-area {
   flex: 1;
