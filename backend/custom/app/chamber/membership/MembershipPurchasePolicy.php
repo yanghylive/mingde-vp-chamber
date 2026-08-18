@@ -8,19 +8,14 @@ use InvalidArgumentException;
 
 final class MembershipPurchasePolicy
 {
-    public const VERIFICATION_REQUIRED = 'membership_verification_required';
     public const PLAN_UNAVAILABLE = 'membership_plan_unavailable';
     public const DOWNGRADE_NOT_ALLOWED = 'membership_downgrade_not_allowed';
 
     public static function ineligibleReason(
         MembershipPlanSnapshot $plan,
-        $graduateApproved,
         $effectiveTier,
         int $now
     ): ?string {
-        if (!is_bool($graduateApproved)) {
-            throw new InvalidArgumentException('Graduate approval evidence must be boolean');
-        }
         MemberTier::assertValid($effectiveTier);
         if ($now <= 0) {
             throw new InvalidArgumentException('Purchase evaluation time must be positive');
@@ -29,10 +24,8 @@ final class MembershipPurchasePolicy
         if (!$plan->isAvailableAt($now)) {
             return self::PLAN_UNAVAILABLE;
         }
-        if (!$graduateApproved || $effectiveTier === MemberTier::L1) {
-            return self::VERIFICATION_REQUIRED;
-        }
-        if ($effectiveTier === MemberTier::L4 && $plan->tier() === MemberTier::L3) {
+        // 降级拦截：会员不能购买低于自己当前档位的计划（L4 不能买 L2/L3，L3 不能买 L2）
+        if (MemberTier::rank($effectiveTier) > MemberTier::rank($plan->tier())) {
             return self::DOWNGRADE_NOT_ALLOWED;
         }
 
@@ -41,11 +34,10 @@ final class MembershipPurchasePolicy
 
     public static function isEligible(
         MembershipPlanSnapshot $plan,
-        $graduateApproved,
         $effectiveTier,
         int $now
     ): bool {
-        return self::ineligibleReason($plan, $graduateApproved, $effectiveTier, $now) === null;
+        return self::ineligibleReason($plan, $effectiveTier, $now) === null;
     }
 
     public static function assertRequestMatchesPlan(

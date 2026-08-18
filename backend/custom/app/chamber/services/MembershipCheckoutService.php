@@ -9,7 +9,6 @@ use app\chamber\exceptions\MemberTransactionException;
 use app\chamber\identity\AuthenticatedUserContext;
 use app\chamber\membership\BootstrapIdempotency;
 use app\chamber\membership\EncryptedIdempotencyResult;
-use app\chamber\membership\GraduateVerificationState;
 use app\chamber\membership\MemberTier;
 use app\chamber\membership\MembershipCheckoutIdempotency;
 use app\chamber\membership\MembershipCheckoutRequest;
@@ -81,12 +80,8 @@ final class MembershipCheckoutService
             ->toArray();
 
         if ($anonymous) {
-            $approved = false;
             $effectiveTier = MemberTier::L1;
         } else {
-            $approved = (int) $member['verification_status'] === GraduateVerificationState::toDatabase(
-                GraduateVerificationState::APPROVED
-            );
             $effectiveTier = $this->memberTier($member);
         }
         $plans = [];
@@ -94,7 +89,6 @@ final class MembershipCheckoutService
             $plan = $this->planFromRow($row);
             $reason = MembershipPurchasePolicy::ineligibleReason(
                 $plan,
-                $approved,
                 $effectiveTier,
                 $now
             );
@@ -834,22 +828,13 @@ final class MembershipCheckoutService
                 'Selected membership plan changed; refresh plans and retry'
             );
         }
-        $approved = (int) $member['verification_status'] === GraduateVerificationState::toDatabase(
-            GraduateVerificationState::APPROVED
-        );
+        $effectiveTier = $this->memberTier($member);
         if (!$requireCurrentAvailability) {
-            if (!$approved || $this->memberTier($member) === MemberTier::L1) {
-                throw new MemberTransactionException(
-                    403,
-                    MembershipPurchasePolicy::VERIFICATION_REQUIRED,
-                    'Approved graduate verification is required for membership purchase'
-                );
-            }
-            if ($this->memberTier($member) === MemberTier::L4 && $plan->tier() === MemberTier::L3) {
+            if (MemberTier::rank($effectiveTier) > MemberTier::rank($plan->tier())) {
                 throw new MemberTransactionException(
                     409,
                     MembershipPurchasePolicy::DOWNGRADE_NOT_ALLOWED,
-                    'Downgrading from L4 to L3 is not allowed'
+                    'Downgrading membership tier is not allowed'
                 );
             }
             return;
@@ -857,22 +842,14 @@ final class MembershipCheckoutService
 
         $reason = MembershipPurchasePolicy::ineligibleReason(
             $plan,
-            $approved,
-            $this->memberTier($member),
+            $effectiveTier,
             $now
         );
         if ($reason === null) {
             return;
         }
-        if ($reason === MembershipPurchasePolicy::VERIFICATION_REQUIRED) {
-            throw new MemberTransactionException(
-                403,
-                $reason,
-                'Approved graduate verification is required for membership purchase'
-            );
-        }
         if ($reason === MembershipPurchasePolicy::DOWNGRADE_NOT_ALLOWED) {
-            throw new MemberTransactionException(409, $reason, 'Downgrading from L4 to L3 is not allowed');
+            throw new MemberTransactionException(409, $reason, 'Downgrading membership tier is not allowed');
         }
         throw new MemberTransactionException(409, $reason, 'Selected membership plan is unavailable');
     }

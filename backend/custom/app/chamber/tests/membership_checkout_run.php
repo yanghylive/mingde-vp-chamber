@@ -113,7 +113,10 @@ $tests['plan snapshot rejects incomplete internal mappings and unsupported tiers
         membershipPlan(['product_attr_unique' => '']);
     });
     expectException(InvalidArgumentException::class, function (): void {
-        membershipPlan(['tier' => MemberTier::L2]);
+        membershipPlan(['tier' => MemberTier::L1]);
+    });
+    expectException(InvalidArgumentException::class, function (): void {
+        membershipPlan(['tier' => MemberTier::L4]);
     });
 };
 
@@ -147,51 +150,60 @@ $tests['availability uses a half-open configured interval'] = function (): void 
     assertSame(false, membershipPlan(['status' => 2])->isAvailableAt(150));
 };
 
-$tests['purchase requires approved graduate evidence rather than tier alone'] = function (): void {
-    $plan = membershipPlan();
-
-    assertSame(
-        MembershipPurchasePolicy::VERIFICATION_REQUIRED,
-        MembershipPurchasePolicy::ineligibleReason($plan, false, MemberTier::L4, 150)
-    );
-    assertSame(
-        MembershipPurchasePolicy::VERIFICATION_REQUIRED,
-        MembershipPurchasePolicy::ineligibleReason($plan, true, MemberTier::L1, 150)
-    );
-};
-
-$tests['purchase permits L2 and L3 purchases and L3 to L4 upgrades'] = function (): void {
+$tests['purchase permits L2 and L3 purchases and tier upgrades'] = function (): void {
+    // L1（初始档）可买 L2、L3（升级）
+    assertSame(true, MembershipPurchasePolicy::isEligible(
+        membershipPlan(['tier' => MemberTier::L2, 'code' => 'annual.l2', 'price' => '1000.00']),
+        MemberTier::L1,
+        150
+    ));
     assertSame(true, MembershipPurchasePolicy::isEligible(
         membershipPlan(),
-        true,
+        MemberTier::L1,
+        150
+    ));
+    // L2 可买 L2（续费）和 L3（升级）
+    assertSame(true, MembershipPurchasePolicy::isEligible(
+        membershipPlan(['tier' => MemberTier::L2, 'code' => 'annual.l2', 'price' => '1000.00']),
         MemberTier::L2,
         150
     ));
     assertSame(true, MembershipPurchasePolicy::isEligible(
         membershipPlan(),
-        true,
-        MemberTier::L3,
+        MemberTier::L2,
         150
     ));
+    // L3 可买 L3（续费）
     assertSame(true, MembershipPurchasePolicy::isEligible(
-        membershipPlan(['tier' => MemberTier::L4, 'code' => 'annual.l4', 'price' => '5000.00']),
-        true,
+        membershipPlan(),
         MemberTier::L3,
         150
     ));
 };
 
-$tests['purchase rejects L4 to L3 downgrade but permits L4 renewal'] = function (): void {
+$tests['purchase rejects downgrades (a member buying a lower tier)'] = function (): void {
+    // L4 不能买 L2、L3（降级）
     assertSame(
         MembershipPurchasePolicy::DOWNGRADE_NOT_ALLOWED,
-        MembershipPurchasePolicy::ineligibleReason(membershipPlan(), true, MemberTier::L4, 150)
+        MembershipPurchasePolicy::ineligibleReason(
+            membershipPlan(['tier' => MemberTier::L2, 'code' => 'annual.l2', 'price' => '1000.00']),
+            MemberTier::L4,
+            150
+        )
     );
-    assertSame(true, MembershipPurchasePolicy::isEligible(
-        membershipPlan(['tier' => MemberTier::L4, 'code' => 'annual.l4', 'price' => '5000.00']),
-        true,
-        MemberTier::L4,
-        150
-    ));
+    assertSame(
+        MembershipPurchasePolicy::DOWNGRADE_NOT_ALLOWED,
+        MembershipPurchasePolicy::ineligibleReason(membershipPlan(), MemberTier::L4, 150)
+    );
+    // L3 不能买 L2（降级）
+    assertSame(
+        MembershipPurchasePolicy::DOWNGRADE_NOT_ALLOWED,
+        MembershipPurchasePolicy::ineligibleReason(
+            membershipPlan(['tier' => MemberTier::L2, 'code' => 'annual.l2', 'price' => '1000.00']),
+            MemberTier::L3,
+            150
+        )
+    );
 };
 
 $tests['unavailable plan fails before member purchase rules'] = function (): void {
@@ -199,22 +211,18 @@ $tests['unavailable plan fails before member purchase rules'] = function (): voi
         MembershipPurchasePolicy::PLAN_UNAVAILABLE,
         MembershipPurchasePolicy::ineligibleReason(
             membershipPlan(['purchase_enabled' => false]),
-            false,
             MemberTier::L1,
             150
         )
     );
 };
 
-$tests['purchase policy rejects weak verification and invalid time evidence'] = function (): void {
+$tests['purchase policy rejects invalid tier and time evidence'] = function (): void {
     expectException(InvalidArgumentException::class, function (): void {
-        MembershipPurchasePolicy::ineligibleReason(membershipPlan(), 1, MemberTier::L2, 150);
+        MembershipPurchasePolicy::ineligibleReason(membershipPlan(), MemberTier::L2, 0);
     });
     expectException(InvalidArgumentException::class, function (): void {
-        MembershipPurchasePolicy::ineligibleReason(membershipPlan(), true, MemberTier::L2, 0);
-    });
-    expectException(InvalidArgumentException::class, function (): void {
-        MembershipPurchasePolicy::ineligibleReason(membershipPlan(), true, 'VIP', 150);
+        MembershipPurchasePolicy::ineligibleReason(membershipPlan(), 'VIP', 150);
     });
 };
 

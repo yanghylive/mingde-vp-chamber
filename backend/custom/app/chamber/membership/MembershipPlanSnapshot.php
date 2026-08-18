@@ -182,7 +182,6 @@ final class MembershipPlanSnapshot
             throw new InvalidArgumentException('Membership plan eligibility result is inconsistent');
         }
         if ($ineligibleReason !== null && !in_array($ineligibleReason, [
-            MembershipPurchasePolicy::VERIFICATION_REQUIRED,
             MembershipPurchasePolicy::PLAN_UNAVAILABLE,
             MembershipPurchasePolicy::DOWNGRADE_NOT_ALLOWED,
         ], true)) {

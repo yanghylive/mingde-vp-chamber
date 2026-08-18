@@ -62,7 +62,7 @@ try {
     createMemberFixture($primary, $l4Uid, 4, true, $now, $fixture);
 
     $planCode = 'DB3_' . strtoupper($runId);
-    $l4PlanCode = 'DB4_' . strtoupper($runId);
+    $l2PlanCode = 'DB2_' . strtoupper($runId);
     $primaryL3 = createPlanFixture(
         $primary,
         $planCode,
@@ -73,13 +73,13 @@ try {
         $now,
         $fixture
     );
-    $primaryL4 = createPlanFixture(
+    $primaryL2 = createPlanFixture(
         $primary,
-        $l4PlanCode,
-        4,
-        '5000.00',
+        $l2PlanCode,
+        2,
+        '1000.00',
         1200000000 + random_int(1, 999999),
-        'db4' . substr($runId, 0, 12),
+        'db2' . substr($runId, 0, 12),
         $now,
         $fixture
     );
@@ -96,7 +96,7 @@ try {
 
     $gateway = new FakeMembershipOrderGateway([
         productKey($primaryL3),
-        productKey($primaryL4),
+        productKey($primaryL2),
         productKey($secondaryL3),
     ], unusedOrderPk(), $runId);
     $leaseSequence = 0;
@@ -114,7 +114,7 @@ try {
     $primaryPlans = $service->listPlans($primary, $auth);
     assertSame(['plans'], array_keys($primaryPlans));
     assertSame(2, count($primaryPlans['plans']));
-    assertSame([$planCode, $l4PlanCode], array_column($primaryPlans['plans'], 'code'));
+    assertSame([$l2PlanCode, $planCode], array_column($primaryPlans['plans'], 'code'));
     assertSame([true, true], array_column($primaryPlans['plans'], 'eligible'));
     assertSame(false, array_key_exists('product_id', $primaryPlans['plans'][0]));
     assertSame(false, array_key_exists('product_attr_unique', $primaryPlans['plans'][0]));
@@ -128,7 +128,7 @@ try {
     });
 
     $primaryL3Request = checkoutRequest($planCode, '1000.00');
-    $primaryL4Request = checkoutRequest($l4PlanCode, '5000.00');
+    $primaryL2Request = checkoutRequest($l2PlanCode, '1000.00');
     $secondaryL3Request = checkoutRequest($planCode, '1200.00');
     $successCallerKey = 'checkout-db-' . $runId . '-success';
     registerKey($fixture, $primary, $uid, $successCallerKey);
@@ -174,11 +174,11 @@ try {
         $service,
         $primary,
         $auth,
-        $primaryL4Request,
+        $primaryL2Request,
         $successCallerKey,
         $uid
     ): void {
-        $service->checkout($primary, $auth, $primaryL4Request, $successCallerKey, ['uid' => $uid]);
+        $service->checkout($primary, $auth, $primaryL2Request, $successCallerKey, ['uid' => $uid]);
     });
     assertSame(1, $gateway->createCount());
 
@@ -202,24 +202,15 @@ try {
     $unverifiedAuth = new AuthenticatedUserContext($unverifiedUid, true, 'api');
     $unverifiedKey = 'checkout-db-' . $runId . '-unverified';
     registerKey($fixture, $primary, $unverifiedUid, $unverifiedKey);
-    expectReason('membership_verification_required', 403, function () use (
-        $service,
+    $unverifiedCreated = $service->checkout(
         $primary,
         $unverifiedAuth,
         $primaryL3Request,
         $unverifiedKey,
-        $unverifiedUid
-    ): void {
-        $service->checkout(
-            $primary,
-            $unverifiedAuth,
-            $primaryL3Request,
-            $unverifiedKey,
-            ['uid' => $unverifiedUid]
-        );
-    });
-    assertSame(null, optionalRecordForKey($primary, $unverifiedUid, $unverifiedKey));
-    assertSame(2, $gateway->createCount());
+        ['uid' => $unverifiedUid]
+    );
+    assertSame('1000.00', $unverifiedCreated['payable_amount']);
+    assertSame(3, $gateway->createCount());
 
     $l4Auth = new AuthenticatedUserContext($l4Uid, true, 'api');
     $downgradeKey = 'checkout-db-' . $runId . '-downgrade';
@@ -235,7 +226,7 @@ try {
         $service->checkout($primary, $l4Auth, $primaryL3Request, $downgradeKey, ['uid' => $l4Uid]);
     });
     assertSame(null, optionalRecordForKey($primary, $l4Uid, $downgradeKey));
-    assertSame(2, $gateway->createCount());
+    assertSame(3, $gateway->createCount());
 
     $afterOrderCommitted = function (): void {
         throw new RuntimeException('simulated post-order commit failure');
