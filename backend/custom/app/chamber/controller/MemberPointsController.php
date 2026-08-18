@@ -55,6 +55,7 @@ final class MemberPointsController
         $query = Db::table('ch_point_ledger')
             ->where('tenant_id', $tenantId)
             ->where('member_id', $memberId)
+            ->where('status', 1) // status=0 为待补偿记录（如 AI 退款失败留痕），不展示给用户
             ->order('id', 'desc');
 
         $total = (clone $query)->count();

@@ -49,6 +49,11 @@ import { track } from '@/libs/track'
 
 let idSeq = 1
 
+// 幂等键生成（uuid 风格，请求级唯一）
+function genIdemKey() {
+  return 'chat-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 12)
+}
+
 export default {
   data() {
     return {
@@ -122,7 +127,16 @@ export default {
 
       // 大咖 AI 分身对话：真实接口（非流式，按分身积分价计费）
       if (this.expertId) {
-        const twinHeaders = { 'Content-Type': 'application/json' }
+        // 幂等键：5xx/网络失败（可能已扣费）后用户重发同一条消息时复用，
+        // 服务端按 key 幂等——重放上次结果或退款，绝不重复扣费
+        let idemKey = ''
+        if (this._retryContent === content && this._retryKey) {
+          idemKey = this._retryKey
+          this._retryContent = null
+        } else {
+          idemKey = genIdemKey()
+        }
+        const twinHeaders = { 'Content-Type': 'application/json', 'Idempotency-Key': idemKey }
         if (token) twinHeaders['Authori-zation'] = 'Bearer ' + token
         uni.request({
           url: HTTP_REQUEST_URL + '/chamber/v1/ai-twin/' + this.expertId + '/chat',
@@ -136,16 +150,30 @@ export default {
               // 积分不足降级：引导完成新手任务赚积分（S1 第三件）
               const reason = (body && body.data && body.data.reason) || ''
               if (reason === 'points_required' || reason === 'insufficient_points') {
+                this._retryKey = null
+                this._retryContent = null
                 this.finishAssistant('积分不足，先去完成新人大礼包任务赚积分吧')
                 this.guidePointsTask()
+              } else if (res.statusCode >= 500) {
+                // 5xx 可能已扣费：保留 key，用户重发同一条时复用
+                this._retryKey = idemKey
+                this._retryContent = content
+                this.finishAssistant(msg)
               } else {
+                this._retryKey = null
+                this._retryContent = null
                 this.finishAssistant(msg)
               }
             } else {
+              this._retryKey = null
+              this._retryContent = null
               this.finishAssistant(extractAnswer(res.data))
             }
           },
           fail: () => {
+            // 网络失败可能已扣费：保留 key，用户重发同一条时复用
+            this._retryKey = idemKey
+            this._retryContent = content
             this.finishAssistant('抱歉，服务暂时不可用，请稍后再试。')
           },
           complete: () => {

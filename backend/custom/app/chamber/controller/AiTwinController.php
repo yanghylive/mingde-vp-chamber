@@ -78,6 +78,15 @@ final class AiTwinController
     public function chat(Request $request, TenantContext $tenant, AuthenticatedUserContext $auth, $expert_member_id): Response
     {
         $expertMemberId = $this->positiveId($expert_member_id);
+        $idempotencyKey = trim((string) $request->header('Idempotency-Key', ''));
+        if ($idempotencyKey === '' || strlen($idempotencyKey) > 128) {
+            throw new MemberTransactionException(
+                422,
+                'idempotency_key_required',
+                'Idempotency-Key header is required (same key on retry prevents double charging)'
+            );
+        }
+
         $body = $this->decodeJson($request);
         $message = trim((string) ($body['message'] ?? ''));
         if ($message === '') {
@@ -87,7 +96,7 @@ final class AiTwinController
             return json(['code' => 400, 'msg' => '消息过长（限 2000 字）']);
         }
 
-        $data = $this->twin->chat($tenant, $auth, $expertMemberId, $message);
+        $data = $this->twin->chat($tenant, $auth, $expertMemberId, $message, $idempotencyKey);
 
         return json(['code' => 0, 'msg' => 'ok', 'data' => $data]);
     }
