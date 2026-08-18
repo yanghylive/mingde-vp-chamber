@@ -27,6 +27,10 @@ use think\facade\Log;
  * 业务入账：回调验签解密 + 金额一致性校验 + 幂等（out_trade_no）后，
  * 按 business_type 调对应事实确认（membership→MembershipPaymentCompletionService::complete，
  * exchange→兑换订单置 paid）。
+ *
+ * @deprecated 自 2026-08-18 废弃：资金链路统一到汇付天下（唯一通道），不再单独使用微信支付收款。
+ *             冻结待下线：汇付 adapter（PR-02~05）上线并切流完成后再清理本类。
+ *             替代：汇付 SPIN 小程序支付（HuifuPaymentChannel + HuifuClient）。
  */
 final class ChamberWechatPayService
 {

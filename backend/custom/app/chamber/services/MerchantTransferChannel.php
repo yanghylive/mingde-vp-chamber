@@ -18,6 +18,10 @@ use think\facade\Db;
  *
  * 前置：微信支付商户号已配置（pay_weixin_mchid + v3 证书 + v3_pay_public_key），
  *      且接收方（大咖）已在 eb_wechat_user 绑定 openid（小程序登录即绑定）。
+ *
+ * @deprecated 自 2026-08-18 废弃：资金链路统一到汇付天下，微信商家转账（对私）不再单独使用。
+ *             冻结待下线：汇付 adapter（PR-02~05）上线并切流完成后再清理本类。
+ *             替代：汇付结算。
  */
 final class MerchantTransferChannel implements SettlementChannelInterface
 {

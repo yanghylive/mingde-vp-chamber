@@ -22,6 +22,10 @@ use app\chamber\exceptions\MemberTransactionException;
  *   3. 分账默认上限 30%，4:4:2 的 40% 需向微信申请提额
  *   4. 查询分账  GET /v3/profitsharing/orders/{out_order_no}
  *   5. 签名走微信 APIv3（商户号 + 证书私钥 + 序列号）
+ *
+ * @deprecated 自 2026-08-18 废弃：资金链路统一到汇付天下，微信分账不再接入。
+ *             冻结待下线：汇付 adapter（PR-02~05）上线后再清理本类。
+ *             替代：汇付实时商户分账（4:4:2）。
  */
 final class WechatSplitChannel implements SettlementChannelInterface
 {
