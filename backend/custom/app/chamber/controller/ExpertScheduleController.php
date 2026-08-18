@@ -165,11 +165,17 @@ final class ExpertScheduleController
         $tenantId = $tenant->tenantId();
         $now = time();
 
-        // 客户端幂等键：同一 Idempotency-Key 重试返回第一次创建的预约，不重复扣积分
+        // 客户端幂等键：同一 Idempotency-Key 重试返回第一次创建的预约，不重复扣积分。
+        // 必填：此前缺 key 时随机生成 'gen:' 前缀键，唯一约束失去防重复意义（每次随机=每次新预约）
         $idemKey = trim((string) $request->header('Idempotency-Key', ''));
-        $bookingKey = $idemKey !== ''
-            ? hash('sha256', $idemKey)
-            : 'gen:' . bin2hex(random_bytes(12));
+        if ($idemKey === '' || strlen($idemKey) > 128) {
+            throw new MemberTransactionException(
+                422,
+                'idempotency_key_required',
+                'Idempotency-Key header is required (same key on retry returns the same appointment)'
+            );
+        }
+        $bookingKey = hash('sha256', $idemKey);
 
         $appointment = Db::transaction(function () use (
             $tenantId,
