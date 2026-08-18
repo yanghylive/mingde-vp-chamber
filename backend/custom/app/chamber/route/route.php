@@ -119,6 +119,8 @@ foreach ([
     'admin/v1/settlement/run-due',
     'admin/v1/settlement/details/:detail_id/retry',
     'admin/v1/settlement/settle',
+    'admin/v1/admin-permissions',
+    'admin/v1/admin-permissions/:admin_id',
     'v1/ai-twin/me',
     'v1/ai-twin/train',
     'v1/ai-twin/train/history',
@@ -412,6 +414,10 @@ Route::group('admin/v1', function () {
     Route::post('settlement/details/:detail_id/retry', 'SettlementAdminController/retry')
         ->pattern(['detail_id' => '\\d+']);
     Route::post('settlement/settle', 'SettlementAdminController/settle');
+    // ---- admin 动作级权限授权 ----
+    Route::post('admin-permissions', 'AdminPermissionController/grant');
+    Route::get('admin-permissions/:admin_id', 'AdminPermissionController/show')
+        ->pattern(['admin_id' => '\\d+']);
 })->middleware(RequestTraceMiddleware::class)
     ->middleware(ChamberCorsMiddleware::class)
     ->middleware(TenantContextMiddleware::class, true)

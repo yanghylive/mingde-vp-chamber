@@ -17,9 +17,10 @@ use think\Response;
  */
 final class MemberNumberAdminController
 {
-    public function index(int $member_id, Request $request, TenantContext $tenant): Response
+    public function index(int $member_id, Request $request, TenantContext $tenant, AuthenticatedAdminContext $admin): Response
     {
         unset($request);
+        $admin->assertPermission('chamber.member.read');
         $tenantId = $tenant->tenantId();
         $rows = Db::table('ch_member_number')
             ->where('tenant_id', $tenantId)

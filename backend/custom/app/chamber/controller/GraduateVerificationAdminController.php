@@ -28,6 +28,7 @@ final class GraduateVerificationAdminController
         TenantContext $tenant,
         AuthenticatedAdminContext $admin
     ): Response {
+        $admin->assertPermission('chamber.graduate_verification.read');
         try {
             $query = GraduateVerificationAdminQuery::fromArray((array) $request->get());
         } catch (GraduateVerificationValidationException $exception) {
@@ -49,6 +50,7 @@ final class GraduateVerificationAdminController
         $application_id
     ): Response {
         unset($request);
+        $admin->assertPermission('chamber.graduate_verification.read');
 
         return $this->response($this->service->detailForAdmin(
             $tenant,

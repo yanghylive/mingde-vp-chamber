@@ -18,10 +18,11 @@ use Throwable;
  */
 final class MemberAdminController
 {
-    /** 会员列表：等级/到期时间/认证状态/姓名/手机号 */
-    public function index(Request $request, TenantContext $tenant): Response
+    /** 会员列表：等级/到期时间/认证状态/姓名/手机号（敏感数据，需 chamber.member.read） */
+    public function index(Request $request, TenantContext $tenant, AuthenticatedAdminContext $admin): Response
     {
         unset($request);
+        $admin->assertPermission('chamber.member.read');
         $tenantId = $tenant->tenantId();
 
         $members = Db::table('ch_tenant_member')
@@ -133,10 +134,11 @@ final class MemberAdminController
         ]]);
     }
 
-    /** 订单列表（会员收入/对账） */
-    public function orders(Request $request, TenantContext $tenant): Response
+    /** 订单列表（会员收入/对账，敏感，需 chamber.member.read） */
+    public function orders(Request $request, TenantContext $tenant, AuthenticatedAdminContext $admin): Response
     {
         unset($request);
+        $admin->assertPermission('chamber.member.read');
         $tenantId = $tenant->tenantId();
         $orders = Db::table('ch_membership_order')
             ->where('tenant_id', $tenantId)

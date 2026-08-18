@@ -36,10 +36,11 @@ final class AiTwinAdminController
         $this->twin = $twin ?: new AiTwinService();
     }
 
-    /** 大咖列表 + 分身状态 */
-    public function index(Request $request, TenantContext $tenant): Response
+    /** 大咖列表 + 分身状态（敏感：人设/训练信息，需 chamber.ai_twin.read） */
+    public function index(Request $request, TenantContext $tenant, AuthenticatedAdminContext $admin): Response
     {
         unset($request);
+        $admin->assertPermission('chamber.ai_twin.read');
         $tenantId = $tenant->tenantId();
 
         // 大咖角色（mentor/coach/industry_leader）
@@ -119,10 +120,11 @@ final class AiTwinAdminController
         return json(['code' => 0, 'msg' => 'ok', 'data' => ['items' => $items, 'total' => count($items)]]);
     }
 
-    /** 分身配置详情 */
-    public function show(Request $request, TenantContext $tenant, $member_id): Response
+    /** 分身配置详情（敏感：记忆/人设，需 chamber.ai_twin.read） */
+    public function show(Request $request, TenantContext $tenant, AuthenticatedAdminContext $admin, $member_id): Response
     {
         unset($request);
+        $admin->assertPermission('chamber.ai_twin.read');
         $memberId = (int) $member_id;
         $ai = $this->twin->ensureAi($tenant->tenantId(), $memberId);
 
@@ -193,10 +195,11 @@ final class AiTwinAdminController
         return json(['code' => 0, 'msg' => 'ok', 'data' => ['member_id' => $memberId, 'is_listed' => $listed === 1]]);
     }
 
-    /** 记忆列表 */
-    public function memories(Request $request, TenantContext $tenant, $member_id): Response
+    /** 记忆列表（隐私原文，需 chamber.ai_twin.read） */
+    public function memories(Request $request, TenantContext $tenant, AuthenticatedAdminContext $admin, $member_id): Response
     {
         unset($request);
+        $admin->assertPermission('chamber.ai_twin.read');
         $memberId = (int) $member_id;
         $items = $this->twin->memories($tenant->tenantId(), $memberId);
 
@@ -216,9 +219,10 @@ final class AiTwinAdminController
     }
 
     /** 训练对话回放 */
-    public function chats(Request $request, TenantContext $tenant, $member_id): Response
+    public function chats(Request $request, TenantContext $tenant, AuthenticatedAdminContext $admin, $member_id): Response
     {
         unset($request);
+        $admin->assertPermission('chamber.ai_twin.read');
         $memberId = (int) $member_id;
         $items = $this->twin->trainHistory($tenant->tenantId(), $memberId);
 
@@ -226,9 +230,10 @@ final class AiTwinAdminController
     }
 
     /** 知识库列表 */
-    public function knowledge(Request $request, TenantContext $tenant, $member_id): Response
+    public function knowledge(Request $request, TenantContext $tenant, AuthenticatedAdminContext $admin, $member_id): Response
     {
         unset($request);
+        $admin->assertPermission('chamber.ai_twin.read');
         $memberId = (int) $member_id;
         $items = $this->twin->knowledgeList($tenant->tenantId(), $memberId);
 

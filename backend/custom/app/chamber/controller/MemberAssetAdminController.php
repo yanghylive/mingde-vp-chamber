@@ -28,6 +28,7 @@ final class MemberAssetAdminController
         AuthenticatedAdminContext $admin,
         $asset_id
     ): Response {
+        $admin->assertPermission('chamber.member.read');
         $query = MemberAssetContentResponder::parseAdminQuery(
             (array) $request->get(),
             $request->query()

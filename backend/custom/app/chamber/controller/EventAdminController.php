@@ -32,6 +32,7 @@ final class EventAdminController
         TenantContext $tenant,
         AuthenticatedAdminContext $admin
     ): Response {
+        $admin->assertPermission('chamber.event.read');
         $filters = EventListQuery::fromArray((array) $request->get());
 
         return $this->ok($this->service->listForAdmin($tenant, $admin, $filters));
@@ -44,6 +45,7 @@ final class EventAdminController
         $event_id
     ): Response {
         unset($request);
+        $admin->assertPermission('chamber.event.read');
 
         return $this->ok($this->service->detailForAdmin(
             $tenant,
@@ -57,6 +59,7 @@ final class EventAdminController
         TenantContext $tenant,
         AuthenticatedAdminContext $admin
     ): Response {
+        $admin->assertPermission('chamber.event.write');
         $callerKey = $this->requireIdempotencyKey($request);
         $payload = $this->decodeJsonObject($request);
 
@@ -69,7 +72,8 @@ final class EventAdminController
         AuthenticatedAdminContext $admin,
         $event_id
     ): Response {
-        $callerKey = $this->requireIdempotencyKey($request);
+                $admin->assertPermission('chamber.event.write');
+$callerKey = $this->requireIdempotencyKey($request);
         $payload = $this->decodeJsonObject($request);
 
         return $this->ok($this->service->update(
@@ -87,6 +91,7 @@ final class EventAdminController
         AuthenticatedAdminContext $admin,
         $event_id
     ): Response {
+        $admin->assertPermission('chamber.event.manage');
         $callerKey = $this->requireIdempotencyKey($request);
 
         return $this->ok($this->service->publish(
@@ -103,7 +108,8 @@ final class EventAdminController
         AuthenticatedAdminContext $admin,
         $event_id
     ): Response {
-        $callerKey = $this->requireIdempotencyKey($request);
+                $admin->assertPermission('chamber.event.manage');
+$callerKey = $this->requireIdempotencyKey($request);
         $payload = $this->decodeJsonObject($request);
         $this->assertAllowedFields($payload, ['reason']);
         $reason = $this->optionalString($payload, 'reason', 500);
@@ -123,6 +129,7 @@ final class EventAdminController
         AuthenticatedAdminContext $admin,
         $event_id
     ): Response {
+        $admin->assertPermission('chamber.event.checkin');
         $callerKey = $this->requireIdempotencyKey($request);
         $payload = $this->decodeJsonObject($request);
         $this->assertAllowedFields($payload, ['ttl_seconds']);
@@ -143,7 +150,8 @@ final class EventAdminController
         AuthenticatedAdminContext $admin,
         $event_id
     ): Response {
-        $callerKey = $this->requireIdempotencyKey($request);
+                $admin->assertPermission('chamber.event.checkin');
+$callerKey = $this->requireIdempotencyKey($request);
         $payload = $this->decodeJsonObject($request);
         $this->assertAllowedFields($payload, ['registration_id', 'reason']);
 
