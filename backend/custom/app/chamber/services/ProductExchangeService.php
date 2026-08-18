@@ -8,6 +8,7 @@ use app\chamber\exceptions\MemberTransactionException;
 use app\chamber\identity\AuthenticatedUserContext;
 use app\chamber\tenancy\TenantContext;
 use think\facade\Db;
+use Throwable;
 
 /**
  * Owns points-based product exchange: balance check -> point deduction ->
@@ -21,6 +22,8 @@ use think\facade\Db;
  */
 final class ProductExchangeService
 {
+    /** 含现金补差订单的支付超时（秒）：超时未支付自动取消并退积分 */
+    public const EXCHANGE_PAY_TIMEOUT = 1800;
     /** @var MemberIdentityService */
     private $identity;
 
@@ -157,6 +160,24 @@ final class ProductExchangeService
         $member = $this->identity->resolve($tenant, $auth);
         $memberId = (int) $member['id'];
         $tenantId = $tenant->tenantId();
+        $now = time();
+
+        // lazy 超时释放：含现金补差的 pending 订单超过 30 分钟未支付 → 自动取消并退积分
+        // （修复：此前扣积分后支付取消/放弃，积分永久滞留无释放路径）
+        $expired = Db::table('ch_product_exchange_order')
+            ->where('tenant_id', $tenantId)
+            ->where('member_id', $memberId)
+            ->where('status', 'pending')
+            ->where('cash_cost', '>', 0)
+            ->where('created_at', '<', $now - self::EXCHANGE_PAY_TIMEOUT)
+            ->column('id');
+        foreach ($expired as $expiredId) {
+            try {
+                $this->cancelById($tenantId, $memberId, (int) $expiredId, true);
+            } catch (Throwable $e) {
+                // 并发取消/已支付：忽略，下次扫描处理
+            }
+        }
 
         $query = Db::table('ch_product_exchange_order')
             ->where('tenant_id', $tenantId)
@@ -189,6 +210,94 @@ final class ProductExchangeService
             'limit' => $limit,
             'total' => $total,
         ];
+    }
+
+    /** 取消未支付的兑换订单（含现金补差）：退积分 + 关支付单。幂等：已取消返回原结果。 */
+    public function cancel(TenantContext $tenant, AuthenticatedUserContext $auth, int $orderId): array
+    {
+        $member = $this->identity->resolve($tenant, $auth);
+        $memberId = (int) $member['id'];
+
+        return $this->cancelById($tenant->tenantId(), $memberId, $orderId, false);
+    }
+
+    /** @param bool $autoExpire true=lazy 超时释放（静默失败，日志不抛） */
+    private function cancelById(int $tenantId, int $memberId, int $orderId, bool $autoExpire): array
+    {
+        return Db::transaction(function () use ($tenantId, $memberId, $orderId, $autoExpire): array {
+            $order = Db::table('ch_product_exchange_order')
+                ->where('tenant_id', $tenantId)
+                ->where('member_id', $memberId)
+                ->where('id', $orderId)
+                ->lock(true)
+                ->find();
+            if (!is_array($order)) {
+                throw new MemberTransactionException(404, 'exchange_order_not_found', '兑换订单不存在');
+            }
+            if ((string) $order['status'] === 'cancelled') {
+                return ['id' => $orderId, 'status' => 'cancelled', 'points_refunded' => 0, 'replayed' => true];
+            }
+            if ((string) $order['status'] !== 'pending') {
+                throw new MemberTransactionException(409, 'exchange_order_not_cancellable', '当前订单状态不允许取消');
+            }
+            $pointsCost = (int) $order['points_cost'];
+            $now = time();
+
+            // 1. 原扣减账本（product_exchange, source_id=orderId）——不存在则视为 0 积分（异常防御）
+            $deduction = Db::table('ch_point_ledger')
+                ->where('tenant_id', $tenantId)
+                ->where('member_id', $memberId)
+                ->where('source_type', 'product_exchange')
+                ->where('source_id', (string) $orderId)
+                ->where('status', 1)
+                ->find();
+
+            // 2. 积分回补（乐观锁）
+            $account = $this->identity->pointsAccount($tenantId, ['id' => $memberId, 'uid' => $order['uid'] ?? 0], true);
+            $refund = is_array($deduction) ? (int) $deduction['delta'] * -1 : $pointsCost;
+            if ($refund > 0) {
+                $balance = (int) $account['balance'];
+                $newBalance = $balance + $refund;
+                $updated = Db::table('ch_point_account')
+                    ->where('id', (int) $account['id'])
+                    ->where('tenant_id', $tenantId)
+                    ->where('version', (int) $account['version'])
+                    ->update([
+                        'balance' => $newBalance,
+                        'version' => (int) $account['version'] + 1,
+                        'update_time' => $now,
+                    ]);
+                if ($updated !== 1) {
+                    throw new MemberTransactionException(409, 'points_conflict', '积分账户已变动，请重试');
+                }
+                Db::table('ch_point_ledger')->insert([
+                    'tenant_id' => $tenantId,
+                    'account_id' => (int) $account['id'],
+                    'member_id' => $memberId,
+                    'uid' => (int) ($order['uid'] ?? 0),
+                    'delta' => $refund,
+                    'balance_after' => $newBalance,
+                    'source_type' => 'product_exchange_cancel',
+                    'source_id' => (string) $orderId,
+                    'idempotency_key' => hash('sha256', 'product_exchange_cancel:' . $tenantId . ':' . $orderId . ':points'),
+                    'status' => 1,
+                    'reversal_id' => is_array($deduction) ? (int) $deduction['id'] : 0,
+                    'add_time' => $now,
+                ]);
+            }
+
+            // 3. 订单置 cancelled + 关闭关联微信支付单（未支付挂起单）
+            Db::table('ch_product_exchange_order')
+                ->where('id', $orderId)
+                ->update(['status' => 'cancelled']);
+            Db::table('ch_wechat_pay_order')
+                ->where('business_type', 'exchange')
+                ->where('business_ref', $orderId)
+                ->where('status', 'pending')
+                ->update(['status' => 'closed', 'update_time' => $now]);
+
+            return ['id' => $orderId, 'status' => 'cancelled', 'points_refunded' => $refund];
+        });
     }
 
     private function orderPayload(int $orderId, array $product, int $pointsCost, string $cashCost, int $now, string $status = 'paid'): array

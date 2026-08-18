@@ -74,6 +74,18 @@ final class ProductExchangeController
         return $this->success($order);
     }
 
+    /** 取消未支付的兑换订单（退积分 + 关支付单） */
+    public function cancelExchangeOrder(
+        Request $request,
+        TenantContext $tenant,
+        AuthenticatedUserContext $auth,
+        $order_id
+    ): Response {
+        unset($request);
+
+        return $this->success($this->service->cancel($tenant, $auth, $this->positiveId($order_id)));
+    }
+
     public function orders(
         Request $request,
         TenantContext $tenant,

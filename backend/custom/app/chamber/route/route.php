@@ -71,6 +71,7 @@ foreach ([
     'v1/me/appointments',
     'v1/points/paths',
     'v1/products/:product_id/exchange',
+    'v1/products/exchange-orders/:order_id/cancel',
     'v1/products',
     'v1/experts',
     'v1/experts/:expert_id',
@@ -237,6 +238,8 @@ Route::group('v1/products', function () {
 Route::group('v1/products', function () {
     Route::post(':product_id/exchange', 'ProductExchangeController/exchange')
         ->pattern(['product_id' => '\\d+']);
+    Route::post('exchange-orders/:order_id/cancel', 'ProductExchangeController/cancelExchangeOrder')
+        ->pattern(['order_id' => '\\d+']);
 })->middleware(RequestTraceMiddleware::class)
     ->middleware(ChamberCorsMiddleware::class)
     ->middleware(CrmebAuthTokenMiddleware::class)
