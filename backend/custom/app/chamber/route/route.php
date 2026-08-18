@@ -34,6 +34,15 @@ Route::options('v1/me/bootstrap', $preflight)
     ->middleware(ChamberCorsMiddleware::class);
 
 foreach ([
+    'v1/bootstrap',
+    'v1/site-config',
+    'v1/client/errors',
+    'v1/client/events',
+    'v1/coaching/today',
+    'v1/coaching/morning',
+    'v1/coaching/respond',
+    'v1/coaching/evening',
+    'v1/coaching/status',
     'v1/me/profile',
     'v1/me/assets',
     'v1/me/assets/:asset_id/content',
@@ -100,6 +109,7 @@ foreach ([
     'admin/v1/ai-twins/:member_id/chats',
     'admin/v1/ai-twins/:member_id/knowledge',
     'admin/v1/ai-twins/:member_id/knowledge/:knowledge_id',
+    'admin/v1/ai-twins/:member_id/knowledge/upload',
     'admin/v1/notifications',
     'admin/v1/notifications/:notification_id',
     'admin/v1/settlement/rules',

@@ -11,8 +11,16 @@ info:
 
     Every operation declares `x-implementation-status`. G0/G1 member operations
     and the implemented G2 activity reads, registration, and check-in operations
-    are live. Administration write routes remain outside the delivered contract
-    until their HTTP acceptance gate is complete.
+    are live. Administration operations that gate member outcomes
+    (graduate-verification review, member-asset content) are part of this
+    contract and carry `x-admin-permission` / `x-admin-scope` markers.
+
+    Remaining administration write routes (member tier adjustment, site config,
+    products, points paths, expert profiles, AI twin management, notifications,
+    settlement) exist in the runtime and are covered by the HTTP acceptance gate
+    (`scripts/check-chamber-http.sh`); they are intentionally not enumerated as
+    fine-grained operations in this document because they are internal
+    operator endpoints rather than public-facing API surface.
 
     All response envelopes contain `status`, `msg`, `data`, and `request_id`.
     The G0 request tracing middleware returns independent request/correlation IDs
