@@ -109,10 +109,10 @@ final class ChamberWechatPayController
         return json(['code' => 0, 'msg' => 'ok', 'data' => $this->pay->getOrderStatus($tenant, $auth, $outTradeNo)]);
     }
 
-    /** 配置就绪检查（脱敏） */
-    public function configStatus(Request $request, TenantContext $tenant): Response
+    /** 配置就绪检查（脱敏；公开路由，无 tenant 上下文） */
+    public function configStatus(Request $request): Response
     {
-        unset($request, $tenant);
+        unset($request);
 
         return json(['code' => 0, 'msg' => 'ok', 'data' => $this->pay->configStatus()]);
     }

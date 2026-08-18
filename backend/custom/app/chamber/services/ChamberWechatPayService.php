@@ -54,13 +54,13 @@ final class ChamberWechatPayService
     public function config(): array
     {
         return [
-            'mchid' => (string) (getenv('WXPAY_MCHID') ?: self::MCHID),
-            'appid' => (string) (getenv('WXPAY_APP_ID') ?: ''),
-            'apiV3Key' => (string) (getenv('WXPAY_APIV3_KEY') ?: ''),
-            'serialNo' => (string) (getenv('WXPAY_SERIAL_NO') ?: ''),
-            'privateKeyPath' => (string) (getenv('WXPAY_PRIVATE_KEY_PATH') ?: ''),
-            'notifyUrl' => (string) (getenv('WXPAY_NOTIFY_URL') ?: ''),
-            'platformCertPath' => (string) (getenv('WXPAY_PLATFORM_CERT_PATH') ?: ''),
+            'mchid' => (string) (getenv('WXPAY_MCHID') ?: env('WXPAY_MCHID', self::MCHID)),
+            'appid' => (string) (getenv('WXPAY_APP_ID') ?: env('WXPAY_APP_ID', '')),
+            'apiV3Key' => (string) (getenv('WXPAY_APIV3_KEY') ?: env('WXPAY_APIV3_KEY', '')),
+            'serialNo' => (string) (getenv('WXPAY_SERIAL_NO') ?: env('WXPAY_SERIAL_NO', '')),
+            'privateKeyPath' => (string) (getenv('WXPAY_PRIVATE_KEY_PATH') ?: env('WXPAY_PRIVATE_KEY_PATH', '')),
+            'notifyUrl' => (string) (getenv('WXPAY_NOTIFY_URL') ?: env('WXPAY_NOTIFY_URL', '')),
+            'platformCertPath' => (string) (getenv('WXPAY_PLATFORM_CERT_PATH') ?: env('WXPAY_PLATFORM_CERT_PATH', '')),
         ];
     }
 

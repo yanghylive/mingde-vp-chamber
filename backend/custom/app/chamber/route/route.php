@@ -210,14 +210,16 @@ Route::group('v1/ai-twin', function () {
 Route::group('v1/wechat-pay', function () {
     Route::post('orders', 'ChamberWechatPayController/orders');
     Route::get('orders/:out_trade_no', 'ChamberWechatPayController/order');
-    Route::get('config-status', 'ChamberWechatPayController/configStatus');
 })->middleware(RequestTraceMiddleware::class)
     ->middleware(ChamberCorsMiddleware::class)
     ->middleware(CrmebAuthTokenMiddleware::class)
     ->middleware(TenantContextMiddleware::class, true);
 
-// 回调（微信服务器调用 → 公开，无 tenant 上下文；out_trade_no 反查租户）
+// 回调 + 配置检查（微信服务器/运维调用 → 公开）
 Route::post('v1/wechat-pay/notify', 'ChamberWechatPayController/notify')
+    ->middleware(RequestTraceMiddleware::class)
+    ->middleware(ChamberCorsMiddleware::class);
+Route::get('v1/wechat-pay/config-status', 'ChamberWechatPayController/configStatus')
     ->middleware(RequestTraceMiddleware::class)
     ->middleware(ChamberCorsMiddleware::class);
 
