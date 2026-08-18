@@ -342,6 +342,15 @@ final class ExpertScheduleController
             if (!is_array($appointment)) {
                 throw new MemberTransactionException(404, 'appointment_not_found', '预约不存在');
             }
+            if ((string) $appointment['status'] === 'cancelled') {
+                // 幂等：已取消的预约重试返回原结果（网络超时重试不再 409）
+                return [
+                    'id' => $appointmentId,
+                    'status' => 'cancelled',
+                    'points_refunded' => 0,
+                    'replayed' => true,
+                ];
+            }
             if ((string) $appointment['status'] !== 'confirmed') {
                 throw new MemberTransactionException(409, 'appointment_not_cancellable', '当前预约状态不允许取消');
             }

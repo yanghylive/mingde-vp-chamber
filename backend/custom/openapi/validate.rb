@@ -178,6 +178,11 @@ expected_paths = [
   '/chamber/admin/v1/settlement/balances',
   '/chamber/admin/v1/settlement/run-due',
   '/chamber/admin/v1/settlement/settle',
+  '/chamber/v1/wechat-pay/orders',
+  '/chamber/v1/wechat-pay/notify',
+  '/chamber/v1/wechat-pay/orders/{out_trade_no}',
+  '/chamber/v1/wechat-pay/config-status',
+  '/chamber/admin/v1/ai-twins/{member_id}/listed',
 ]
 actual_paths = spec.fetch('paths', {}).keys.sort
 errors << "paths must contain only #{expected_paths.join(', ')}" unless actual_paths == expected_paths.sort
@@ -227,6 +232,11 @@ expected_operations = [
   ['/chamber/admin/v1/settlement/settlements', 'get', 'listSettlementsForAdmin', 'implemented', '200', 'CrmebAdminBearerAuth', 'chamber.settlement.read'],
   ['/chamber/admin/v1/settlement/balances', 'get', 'getSettlementBalancesForAdmin', 'implemented', '200', 'CrmebAdminBearerAuth', 'chamber.settlement.read'],
   ['/chamber/admin/v1/settlement/run-due', 'post', 'runSettlementDueForAdmin', 'implemented', '200', 'CrmebAdminBearerAuth', 'chamber.settlement.retry'],
+  ['/chamber/v1/wechat-pay/orders', 'post', 'createWechatPayOrder', 'implemented', '200', 'CrmebBearerAuth'],
+  ['/chamber/v1/wechat-pay/notify', 'post', 'wechatPayNotify', 'implemented', '200', nil],
+  ['/chamber/v1/wechat-pay/orders/{out_trade_no}', 'get', 'getWechatPayOrder', 'implemented', '200', 'CrmebBearerAuth'],
+  ['/chamber/v1/wechat-pay/config-status', 'get', 'wechatPayConfigStatus', 'implemented', '200', nil],
+  ['/chamber/admin/v1/ai-twins/{member_id}/listed', 'patch', 'setAiTwinListed', 'implemented', '200', 'CrmebAdminBearerAuth', 'chamber.ai_twin.write'],
   ['/chamber/admin/v1/settlement/settle', 'post', 'settleOrderForAdmin', 'implemented', '200', 'CrmebAdminBearerAuth', 'chamber.settlement.manual_adjust'],
 ]
 expected_operation_contracts = {
@@ -406,6 +416,26 @@ expected_operation_contracts = {
   ['/chamber/admin/v1/settlement/run-due', 'post'] => {
     request_schema: nil,
     success_response: '#/components/responses/SettlementRunSuccess'
+  },
+  ['/chamber/v1/wechat-pay/orders', 'post'] => {
+    request_schema: '#/components/schemas/WechatPayOrderRequest',
+    success_response: '#/components/responses/WechatPayOrderSuccess'
+  },
+  ['/chamber/v1/wechat-pay/notify', 'post'] => {
+    request_schema: '#/components/schemas/WechatPayNotifyRequest',
+    success_response: '#/components/responses/WechatPayNotifySuccess'
+  },
+  ['/chamber/v1/wechat-pay/orders/{out_trade_no}', 'get'] => {
+    request_schema: nil,
+    success_response: '#/components/responses/WechatPayStatusSuccess'
+  },
+  ['/chamber/v1/wechat-pay/config-status', 'get'] => {
+    request_schema: nil,
+    success_response: '#/components/responses/WechatPayConfigSuccess'
+  },
+  ['/chamber/admin/v1/ai-twins/{member_id}/listed', 'patch'] => {
+    request_schema: '#/components/schemas/AiTwinListedRequest',
+    success_response: '#/components/responses/AiTwinListedSuccess'
   },
   ['/chamber/admin/v1/settlement/settle', 'post'] => {
     request_schema: '#/components/schemas/SettlementSettleRequest',

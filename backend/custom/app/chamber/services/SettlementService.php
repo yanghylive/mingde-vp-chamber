@@ -207,15 +207,23 @@ final class SettlementService
      * T+1 结算执行：扫 pending/failed 的明细，按通道打款。
      * 由 cron 调用（可幂等重复跑）。
      */
-    public function runDue(int $limit = 50): array
+    /**
+     * 扫描并执行到期结算明细。
+     * @param int|null $tenantId 指定租户时只处理该租户（admin 手动触发防串租户）；null=全局（定时任务）
+     */
+    public function runDue(int $limit = 50, ?int $tenantId = null): array
     {
         $now = time();
         // 0. 对账：回收可安全重试的 unknown 明细（崩溃于渠道调用前，payout 无渠道单号），
         //    否则 unknown 永远卡在对账态无人处理（真实通道 query() 接入前的最低收敛）
-        $recoveredUnknown = $this->reconcileUnknown($now);
+        $recoveredUnknown = $this->reconcileUnknown($now, $tenantId);
 
-        $rows = Db::table('ch_settlement_detail')
-            ->where('retry_count', '<', self::MAX_ATTEMPTS)
+        $query = Db::table('ch_settlement_detail')
+            ->where('retry_count', '<', self::MAX_ATTEMPTS);
+        if ($tenantId !== null) {
+            $query->where('tenant_id', $tenantId);
+        }
+        $rows = $query
             ->where(function ($q) use ($now) {
                 // 分支 A：pending/failed 正常待执行（退避到期 + claim 空闲或过期）
                 $q->where(function ($q2) use ($now) {
@@ -327,11 +335,15 @@ final class SettlementService
      * payout 有渠道单号（渠道可能已发出）→ 保持 unknown，待真实通道 query() 接入后
      * 由对账任务收敛（当前可人工对账）。
      */
-    private function reconcileUnknown(int $now): int
+    private function reconcileUnknown(int $now, ?int $tenantId = null): int
     {
         $recovered = 0;
-        $rows = Db::table('ch_settlement_detail')
-            ->where('status', 'unknown')
+        $query = Db::table('ch_settlement_detail')
+            ->where('status', 'unknown');
+        if ($tenantId !== null) {
+            $query->where('tenant_id', $tenantId);
+        }
+        $rows = $query
             ->limit(50)
             ->select()
             ->toArray();

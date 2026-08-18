@@ -1962,6 +1962,173 @@ paths:
           $ref: '#/components/responses/InternalServerError'
         '503':
           $ref: '#/components/responses/TenantServiceUnavailable'
+  /chamber/v1/wechat-pay/orders:
+    post:
+      tags:
+        - WechatPay
+      summary: Create a Wechat Pay order (JSAPI/NATIVE) for membership or exchange cash top-up
+      operationId: createWechatPayOrder
+      security:
+        - CrmebBearerAuth: []
+      x-implementation-status: implemented
+      x-requirement-id: CH-WXPAY-001
+      x-tenant-context: required
+      x-signed-headers-all-or-none: true
+      parameters:
+        - $ref: '#/components/parameters/RequestIdHeader'
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+        - $ref: '#/components/parameters/ChamberTenantHeader'
+        - $ref: '#/components/parameters/ChamberChannelHeader'
+        - $ref: '#/components/parameters/ChamberTimestampHeader'
+        - $ref: '#/components/parameters/ChamberNonceHeader'
+        - $ref: '#/components/parameters/ChamberSignatureHeader'
+        - $ref: '#/components/parameters/IdempotencyKeyHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WechatPayOrderRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/WechatPayOrderSuccess'
+        '400':
+          $ref: '#/components/responses/ChamberRequestError'
+        '401':
+          $ref: '#/components/responses/ChamberRequestError'
+        '403':
+          $ref: '#/components/responses/ChamberRequestError'
+        '409':
+          $ref: '#/components/responses/MemberTransactionError'
+        '422':
+          $ref: '#/components/responses/MemberTransactionError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/TenantServiceUnavailable'
+  /chamber/v1/wechat-pay/notify:
+    post:
+      tags:
+        - WechatPay
+      summary: Wechat Pay V3 callback (verifies signature, decrypts resource, credits business)
+      operationId: wechatPayNotify
+      x-implementation-status: implemented
+      x-requirement-id: CH-WXPAY-002
+      x-tenant-context: optional
+      parameters:
+        - $ref: '#/components/parameters/RequestIdHeader'
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WechatPayNotifyRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/WechatPayNotifySuccess'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /chamber/v1/wechat-pay/orders/{out_trade_no}:
+    get:
+      tags:
+        - WechatPay
+      summary: Query a Wechat Pay order status
+      operationId: getWechatPayOrder
+      security:
+        - CrmebBearerAuth: []
+      x-implementation-status: implemented
+      x-requirement-id: CH-WXPAY-003
+      x-tenant-context: required
+      x-signed-headers-all-or-none: true
+      parameters:
+        - $ref: '#/components/parameters/RequestIdHeader'
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+        - $ref: '#/components/parameters/ChamberTenantHeader'
+        - $ref: '#/components/parameters/ChamberChannelHeader'
+        - $ref: '#/components/parameters/ChamberTimestampHeader'
+        - $ref: '#/components/parameters/ChamberNonceHeader'
+        - $ref: '#/components/parameters/ChamberSignatureHeader'
+        - name: out_trade_no
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          $ref: '#/components/responses/WechatPayStatusSuccess'
+        '400':
+          $ref: '#/components/responses/ChamberRequestError'
+        '401':
+          $ref: '#/components/responses/ChamberRequestError'
+        '403':
+          $ref: '#/components/responses/ChamberRequestError'
+        '404':
+          $ref: '#/components/responses/MemberTransactionError'
+        '409':
+          $ref: '#/components/responses/MemberTransactionError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/TenantServiceUnavailable'
+  /chamber/v1/wechat-pay/config-status:
+    get:
+      tags:
+        - WechatPay
+      summary: Wechat Pay configuration readiness (sanitized)
+      operationId: wechatPayConfigStatus
+      x-implementation-status: implemented
+      x-requirement-id: CH-WXPAY-004
+      x-tenant-context: optional
+      parameters:
+        - $ref: '#/components/parameters/RequestIdHeader'
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+      responses:
+        '200':
+          $ref: '#/components/responses/WechatPayConfigSuccess'
+  /chamber/admin/v1/ai-twins/{member_id}/listed:
+    patch:
+      tags:
+        - AiTwinAdmin
+      summary: List or unlist an AI twin (admin gate for external chat availability)
+      operationId: setAiTwinListed
+      security:
+        - CrmebAdminBearerAuth: []
+      x-implementation-status: implemented
+      x-requirement-id: CH-AITWIN-006
+      x-tenant-context: required
+      x-admin-permission: chamber.ai_twin.write
+      x-signed-headers-all-or-none: true
+      parameters:
+        - $ref: '#/components/parameters/RequestIdHeader'
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+        - $ref: '#/components/parameters/ChamberTenantHeader'
+        - $ref: '#/components/parameters/ChamberChannelHeader'
+        - $ref: '#/components/parameters/ChamberTimestampHeader'
+        - $ref: '#/components/parameters/ChamberNonceHeader'
+        - $ref: '#/components/parameters/ChamberSignatureHeader'
+        - $ref: '#/components/parameters/IdempotencyKeyHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AiTwinListedRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/AiTwinListedSuccess'
+        '400':
+          $ref: '#/components/responses/ChamberRequestError'
+        '401':
+          $ref: '#/components/responses/ChamberRequestError'
+        '403':
+          $ref: '#/components/responses/ChamberRequestError'
+        '409':
+          $ref: '#/components/responses/MemberTransactionError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/TenantServiceUnavailable'
 components:
   securitySchemes:
     CrmebBearerAuth:
@@ -2806,6 +2973,67 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/SettlementRunEnvelope'
+    WechatPayOrderSuccess:
+      description: WechatPayOrderSuccess
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestIdResponseHeader'
+        X-Correlation-Id:
+          $ref: '#/components/headers/CorrelationIdResponseHeader'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/WechatPayOrderEnvelope'
+    WechatPayNotifySuccess:
+      description: WechatPayNotifySuccess
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestIdResponseHeader'
+        X-Correlation-Id:
+          $ref: '#/components/headers/CorrelationIdResponseHeader'
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              code:
+                type: string
+                enum: [SUCCESS]
+              message:
+                type: string
+    WechatPayStatusSuccess:
+      description: WechatPayStatusSuccess
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestIdResponseHeader'
+        X-Correlation-Id:
+          $ref: '#/components/headers/CorrelationIdResponseHeader'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/WechatPayStatusEnvelope'
+    WechatPayConfigSuccess:
+      description: WechatPayConfigSuccess
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestIdResponseHeader'
+        X-Correlation-Id:
+          $ref: '#/components/headers/CorrelationIdResponseHeader'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/WechatPayConfigEnvelope'
+    AiTwinListedSuccess:
+      description: AiTwinListedSuccess
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestIdResponseHeader'
+        X-Correlation-Id:
+          $ref: '#/components/headers/CorrelationIdResponseHeader'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GenericOkEnvelope'
     SettlementSettled:
       description: SettlementSettled
       headers:
@@ -5833,6 +6061,132 @@ components:
               const: ok
             data:
               $ref: '#/components/schemas/SettlementRunData'
+    WechatPayNotifyRequest:
+      type: object
+      additionalProperties: true
+    AiTwinListedRequest:
+      type: object
+      required:
+        - is_listed
+      properties:
+        is_listed:
+          type: integer
+          enum: [0, 1]
+    WechatPayOrderRequest:
+      type: object
+      required:
+        - business_type
+        - idempotency_key
+      properties:
+        business_type:
+          type: string
+          enum: [membership, exchange]
+        order_no:
+          type: string
+          description: CRMEB order number (required for membership)
+        business_ref:
+          type: integer
+          description: Exchange order id (required for exchange)
+        idempotency_key:
+          type: string
+        trade_type:
+          type: string
+          enum: [JSAPI, NATIVE]
+          default: JSAPI
+    WechatPayOrderEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelopeBase'
+        - type: object
+          required:
+            - data
+          properties:
+            status:
+              const: 200
+            msg:
+              const: ok
+            data:
+              type: object
+              properties:
+                status:
+                  type: string
+                out_trade_no:
+                  type: string
+                amount_cents:
+                  type: integer
+                pay_params:
+                  type: object
+                code_url:
+                  type: string
+                message:
+                  type: string
+    WechatPayStatusEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelopeBase'
+        - type: object
+          required:
+            - data
+          properties:
+            status:
+              const: 200
+            msg:
+              const: ok
+            data:
+              type: object
+              properties:
+                status:
+                  type: string
+                amount_cents:
+                  type: integer
+                business_type:
+                  type: string
+                business_ref:
+                  type: integer
+                paid_at:
+                  type: integer
+                transaction_id:
+                  type: string
+    WechatPayConfigEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelopeBase'
+        - type: object
+          required:
+            - data
+          properties:
+            status:
+              const: 200
+            msg:
+              const: ok
+            data:
+              type: object
+              properties:
+                mchid:
+                  type: string
+                items:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      key:
+                        type: string
+                      ready:
+                        type: boolean
+                      hint:
+                        type: string
+                ready:
+                  type: boolean
+    GenericOkEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelopeBase'
+        - type: object
+          required:
+            - data
+          properties:
+            status:
+              const: 200
+            msg:
+              const: ok
+            data:
+              type: object
     SettlementSettledEnvelope:
       allOf:
         - $ref: '#/components/schemas/ResponseEnvelopeBase'

@@ -335,7 +335,7 @@ RUBY
 openapi_schema_count="$(awk '$1 == "Component" && $2 == "schemas:" && $3 ~ /^[0-9]+$/ && NF == 3 { print $3 }' <<<"${openapi_output}")"
 [[ "${openapi_schema_count}" =~ ^[0-9]+$ ]] || fail "OpenAPI membership schema count is unavailable"
 openapi_schema_minimum="$(manifest_g1_minimum \
-    'openapi_schemas_minimum' 'openapi_schemas' 151)"
+    'openapi_schemas_minimum' 'openapi_schemas' 158)"
 [ "${openapi_schema_count}" -ge "${openapi_schema_minimum}" ] \
     || fail "OpenAPI membership schemas were removed: ${openapi_schema_count} < ${openapi_schema_minimum}"
 
@@ -393,11 +393,11 @@ ruby -rjson -e '
     "membership_concurrent_renewals" => 2,
     "membership_refund_replay_attempts" => 1,
     "openapi_version" => "0.6.0",
-    "openapi_paths" => 38,
-    "openapi_operations_total" => 45,
-    "openapi_operations_implemented" => 39,
+    "openapi_paths" => 43,
+    "openapi_operations_total" => 50,
+    "openapi_operations_implemented" => 44,
     "openapi_operations_planned" => 6,
-    "openapi_schemas" => 151,
+    "openapi_schemas" => 158,
     "member_bootstrap_gate" => "scripts/check-g1-member-bootstrap.sh",
     "profile_verification_gate" => "scripts/check-g1-profile-verification.sh",
     "membership_checkout_gate" => "scripts/check-g1-membership-checkout.sh",

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace app\chamber\controller;
 
 use app\Request;
+use app\chamber\commerce\Money;
 use app\chamber\exceptions\MemberTransactionException;
 use app\chamber\identity\AuthenticatedUserContext;
 use app\chamber\services\ChamberWechatPayService;
@@ -39,28 +40,58 @@ final class ChamberWechatPayController
     public function orders(Request $request, TenantContext $tenant, AuthenticatedUserContext $auth): Response
     {
         $body = $this->decodeJson($request);
-        $amountCents = (int) ($body['amount_cents'] ?? 0);
         $idempotencyKey = trim((string) ($body['idempotency_key'] ?? ''));
         $businessType = (string) ($body['business_type'] ?? '');
         $businessRef = (int) ($body['business_ref'] ?? 0);
         $orderNo = trim((string) ($body['order_no'] ?? ''));
         $openid = trim((string) ($body['openid'] ?? ''));
         $tradeType = (string) ($body['trade_type'] ?? 'JSAPI');
-        $description = trim((string) ($body['description'] ?? '微信支付'));
+        $uid = $auth->uid();
+        $memberId = $this->memberId($tenant, $auth);
 
-        // membership：按 CRMEB 订单号解析 order_pk；openid 后端按 uid 反查（小程序登录已存）
+        // 安全约束：金额与订单归属一律由服务端从业务单计算，不信任客户端 amount_cents
+        $amountCents = 0;
         if ($businessType === ChamberWechatPayService::BUSINESS_MEMBERSHIP) {
             if ($orderNo === '') {
                 throw new MemberTransactionException(422, 'order_no_required', '会员支付需要订单号');
             }
-            $orderPk = (int) Db::table('eb_store_order')
+            // 归属校验：订单必须属于当前用户，防替他人订单买单/低价开通
+            $order = Db::table('eb_store_order')
                 ->where('order_id', $orderNo)
+                ->where('uid', $uid)
                 ->where('is_del', 0)
-                ->value('id');
-            if ($orderPk <= 0) {
-                throw new MemberTransactionException(404, 'order_not_found', '订单不存在');
+                ->find();
+            if (!is_array($order)) {
+                throw new MemberTransactionException(404, 'order_not_found', '订单不存在或不属于当前账号');
             }
-            $businessRef = $orderPk;
+            if ((int) $order['paid'] === 1) {
+                throw new MemberTransactionException(409, 'order_already_paid', '订单已支付');
+            }
+            $businessRef = (int) $order['id'];
+            // 应付金额：以 CRMEB 订单 pay_price 为准（客户端 amount_cents 一律忽略）
+            $amountCents = Money::toMinor((string) ($order['pay_price'] ?? '0.00'));
+        } elseif ($businessType === ChamberWechatPayService::BUSINESS_EXCHANGE) {
+            if ($businessRef <= 0) {
+                throw new MemberTransactionException(422, 'business_ref_required', '兑换支付需要订单号');
+            }
+            // 归属校验：兑换订单必须属于当前会员
+            $exchangeOrder = Db::table('ch_product_exchange_order')
+                ->where('id', $businessRef)
+                ->where('tenant_id', $tenant->tenantId())
+                ->where('member_id', $memberId)
+                ->find();
+            if (!is_array($exchangeOrder)) {
+                throw new MemberTransactionException(404, 'exchange_order_not_found', '兑换订单不存在或不属于当前账号');
+            }
+            if ((string) $exchangeOrder['status'] !== 'pending') {
+                throw new MemberTransactionException(409, 'exchange_order_not_payable', '当前兑换订单状态不允许支付');
+            }
+            $amountCents = Money::toMinor((string) ($exchangeOrder['cash_cost'] ?? '0.00'));
+        } else {
+            throw new MemberTransactionException(422, 'invalid_business_type', 'Business type 非法');
+        }
+        if ($amountCents <= 0) {
+            throw new MemberTransactionException(409, 'zero_amount', '该订单应付金额为 0，无需支付');
         }
         if ($openid === '') {
             $openid = $this->memberOpenid($auth);
@@ -70,7 +101,7 @@ final class ChamberWechatPayController
             $tenant,
             $auth,
             $amountCents,
-            $description,
+            $this->description($businessType, $amountCents),
             $idempotencyKey,
             $businessType,
             $businessRef,
@@ -138,5 +169,23 @@ final class ChamberWechatPayController
         $openid = (string) Db::table('eb_user')->where('uid', $uid)->value('openid');
 
         return trim($openid);
+    }
+
+    /** 当前会员 id（ch_tenant_member.id） */
+    private function memberId(TenantContext $tenant, AuthenticatedUserContext $auth): int
+    {
+        $member = (new MemberIdentityService())->resolve($tenant, $auth);
+
+        return (int) $member['id'];
+    }
+
+    /** 支付单描述（服务端生成，不信任客户端） */
+    private function description(string $businessType, int $amountCents): string
+    {
+        if ($businessType === ChamberWechatPayService::BUSINESS_MEMBERSHIP) {
+            return '明德商会会籍费 ¥' . number_format($amountCents / 100, 2, '.', '');
+        }
+
+        return '积分兑换补差价 ¥' . number_format($amountCents / 100, 2, '.', '');
     }
 }

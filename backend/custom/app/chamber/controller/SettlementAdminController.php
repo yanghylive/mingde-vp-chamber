@@ -135,7 +135,8 @@ final class SettlementAdminController
         $admin->assertPermission('chamber.settlement.retry');
         unset($request);
 
-        return json(['code' => 0, 'msg' => 'ok', 'data' => $this->settlement->runDue()]);
+        // 按当前租户扫描（防 admin 触发全局扫描串租户）；定时任务走全局
+        return json(['code' => 0, 'msg' => 'ok', 'data' => $this->settlement->runDue(50, $tenant->tenantId())]);
     }
 
     /** 人工重试单条明细（retry_count 封顶后的恢复通道） */

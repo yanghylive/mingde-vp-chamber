@@ -143,10 +143,19 @@ final class ChamberWechatPayService
         $now = time();
 
         // 幂等：同 out_trade_no 已存在返回原单（对齐 ai-content）
+        // 指纹校验：同 key 换业务/金额/归属 → 409 拒绝（防串单）
         $existing = Db::table('ch_wechat_pay_order')
             ->where('out_trade_no', $idempotencyKey)
             ->find();
         if (is_array($existing)) {
+            if ((string) $existing['business_type'] !== $businessType
+                || (int) $existing['business_ref'] !== $businessRef
+                || (int) $existing['amount_cents'] !== $amountCents
+                || (int) $existing['tenant_id'] !== $tenantId
+                || (int) $existing['user_id'] !== $uid) {
+                throw new MemberTransactionException(409, 'idempotency_conflict', '幂等键已被其他支付请求占用');
+            }
+
             return $this->orderPayload($existing);
         }
 
@@ -259,7 +268,8 @@ final class ChamberWechatPayService
             return ['code' => 'FAIL', 'message' => '回调不是合法 JSON'];
         }
 
-        // 验签（APIv3：时间戳新鲜度 + 平台证书公钥 RSA 验签；无平台证书 → 仅时间戳，记录告警）
+        // 验签（APIv3：时间戳新鲜度 + 平台证书公钥 RSA 验签）
+        // 安全策略：无平台证书 → 拒绝入账（真实回调无法验证签名，绝不静默放行）。
         $signature = $this->headerValue($headers, 'wechatpay-signature');
         $timestamp = $this->headerValue($headers, 'wechatpay-timestamp');
         $nonce = $this->headerValue($headers, 'wechatpay-nonce');
@@ -271,22 +281,52 @@ final class ChamberWechatPayService
         if ($ts <= 0 || abs(time() - $ts) > 300) {
             return ['code' => 'FAIL', 'message' => '回调时间戳过期'];
         }
-        if ($config['platformCertPath'] !== '' && $serial !== '') {
-            if (!$this->verifyPlatformSignature($config['platformCertPath'], $rawBody, $timestamp, $nonce, $signature)) {
-                Log::warning('chamber.wechat_pay.verify_failed', ['serial' => $serial]);
-
-                return ['code' => 'FAIL', 'message' => '验签失败'];
-            }
-        } elseif ($config['apiV3Key'] !== '') {
+        if ($config['platformCertPath'] === '') {
             Log::warning('chamber.wechat_pay.platform_cert_missing', ['serial' => $serial]);
+
+            return ['code' => 'FAIL', 'message' => '平台证书未配置，拒绝处理回调'];
+        }
+        if (!$this->verifyPlatformSignature($config['platformCertPath'], $rawBody, $timestamp, $nonce, $signature)) {
+            Log::warning('chamber.wechat_pay.verify_failed', ['serial' => $serial]);
+
+            return ['code' => 'FAIL', 'message' => '验签失败'];
         }
 
-        // 解密 resource（AES-256-GCM，key=apiV3Key）
+        // 事件类型：仅处理支付成功事件
+        $eventType = (string) ($payload['event_type'] ?? '');
+        if ($eventType !== '' && $eventType !== 'TRANSACTION.SUCCESS') {
+            Log::warning('chamber.wechat_pay.unexpected_event', ['event_type' => $eventType]);
+
+            return ['code' => 'FAIL', 'message' => '非支付成功事件'];
+        }
+
+        // 解密 resource（AES-256-GCM，key=apiV3Key）——订单号/金额/状态都在解密后的明文里
         $resource = is_array($payload['resource'] ?? null) ? $payload['resource'] : null;
-        $outTradeNo = (string) ($resource['out_trade_no'] ?? $payload['out_trade_no'] ?? '');
-        $transactionId = (string) ($resource['transaction_id'] ?? $payload['transaction_id'] ?? '');
+        if ($config['apiV3Key'] === ''
+            || !isset($resource['ciphertext'], $resource['nonce'], $resource['associated_data'])) {
+            Log::warning('chamber.wechat_pay.reject_unverifiable', ['resource_type' => (string) ($payload['resource_type'] ?? '')]);
+
+            return ['code' => 'FAIL', 'message' => '回调资源不可验，拒绝入账'];
+        }
+        try {
+            $transaction = $this->decryptResource($resource, $config['apiV3Key']);
+        } catch (RuntimeException $e) {
+            Log::warning('chamber.wechat_pay.decrypt_failed', ['err' => $e->getMessage()]);
+
+            return ['code' => 'FAIL', 'message' => '解密失败'];
+        }
+
+        $outTradeNo = (string) ($transaction['out_trade_no'] ?? '');
+        $transactionId = (string) ($transaction['transaction_id'] ?? '');
         if ($outTradeNo === '') {
             return ['code' => 'FAIL', 'message' => '缺少订单号'];
+        }
+        // 交易状态：仅 SUCCESS 才入账
+        $tradeState = strtoupper((string) ($transaction['trade_state'] ?? ''));
+        if ($tradeState !== 'SUCCESS') {
+            Log::warning('chamber.wechat_pay.trade_not_success', ['out_trade_no' => $outTradeNo, 'trade_state' => $tradeState]);
+
+            return ['code' => 'FAIL', 'message' => '交易未成功'];
         }
 
         // 幂等：已 paid 直接返回成功
@@ -306,22 +346,9 @@ final class ChamberWechatPayService
             'update_time' => time(),
         ]);
 
-        // 安全约束（对齐 ai-content）：无 apiV3Key 或 resource 不完整 → 拒绝入账
-        if ($config['apiV3Key'] === ''
-            || !isset($resource['ciphertext'], $resource['nonce'], $resource['associated_data'])) {
-            Log::warning('chamber.wechat_pay.reject_unverifiable', ['out_trade_no' => $outTradeNo]);
-
-            return ['code' => 'FAIL', 'message' => '回调资源不可验，拒绝入账'];
-        }
-        try {
-            $paidCents = $this->decryptAmount($resource, $config['apiV3Key']);
-        } catch (RuntimeException $e) {
-            Log::warning('chamber.wechat_pay.decrypt_failed', ['out_trade_no' => $outTradeNo, 'err' => $e->getMessage()]);
-
-            return ['code' => 'FAIL', 'message' => '解密失败'];
-        }
-        // 金额一致性：微信返回金额 ≠ 订单金额 → 拒绝（防篡改）
-        if ($paidCents !== (int) $order['amount_cents']) {
+        // 金额一致性：解密明文金额 ≠ 本地支付单金额 → 拒绝（本地支付单金额由服务端按订单应付生成）
+        $paidCents = (int) ($transaction['amount']['total'] ?? -1);
+        if ($paidCents <= 0 || $paidCents !== (int) $order['amount_cents']) {
             Log::warning('chamber.wechat_pay.amount_mismatch', [
                 'out_trade_no' => $outTradeNo,
                 'order' => (int) $order['amount_cents'],
@@ -521,7 +548,8 @@ final class ChamberWechatPayService
     }
 
     /** AES-256-GCM 解密微信回调 resource（返回金额分） */
-    private function decryptAmount(array $resource, string $apiV3Key): int
+    /** AES-256-GCM 解密微信回调 resource，返回解密后的完整交易明文（订单号/金额/状态都在里面） */
+    private function decryptResource(array $resource, string $apiV3Key): array
     {
         $key = $apiV3Key;
         $ciphertext = base64_decode((string) $resource['ciphertext'], true);
@@ -537,11 +565,11 @@ final class ChamberWechatPayService
             throw new RuntimeException('aes decrypt failed');
         }
         $parsed = json_decode($decrypted, true);
-        if (!is_array($parsed) || !isset($parsed['amount']['total'])) {
+        if (!is_array($parsed)) {
             throw new RuntimeException('decrypted payload invalid');
         }
 
-        return (int) $parsed['amount']['total'];
+        return $parsed;
     }
 
     private function readPrivateKey(string $path): string

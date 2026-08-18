@@ -4,6 +4,7 @@
 
 开始开发前请阅读：
 
+- [核心能力质量升级开发指导](./docs/CORE-CAPABILITY-QUALITY-UPGRADE.md)
 - [PRD v2.0](./docs/PRD-v2.0.html)
 - [CRMEB 二次开发说明书](./docs/CRMEB-二次开发说明书-v1.0.html)
 - [CRMEB API 资料索引](./docs/CRMEB-API资料索引.html)
