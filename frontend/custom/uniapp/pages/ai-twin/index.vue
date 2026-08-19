@@ -32,6 +32,7 @@
         </view>
         <view v-for="(m, i) in messages" :key="i" :id="'msg-' + i" class="msg-row {{m.role === 'user' ? 'row-user' : 'row-ai'}}">
           <view class="bubble {{m.role === 'user' ? 'bubble-user' : 'bubble-ai'}}">
+            <view v-if="m.role !== 'user'" class="bubble-tag">AI 生成</view>
             <text class="bubble-text">{{ m.content }}</text>
           </view>
         </view>
@@ -270,6 +271,16 @@ export default {
   background: #f2efe8;
   color: #2e2a24;
   border-bottom-left-radius: 4rpx;
+}
+.bubble-tag {
+  display: inline-block;
+  font-size: 20rpx;
+  color: #8a7d5c;
+  background: rgba(138, 125, 92, 0.12);
+  border: 1rpx solid rgba(138, 125, 92, 0.3);
+  border-radius: 8rpx;
+  padding: 2rpx 10rpx;
+  margin-bottom: 8rpx;
 }
 .typing { color: #999; }
 .input-bar {

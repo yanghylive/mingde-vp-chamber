@@ -19,7 +19,7 @@
         class="{{'msg' + (m.role === 'user' ? ' msg-user' : ' msg-ai')}}"
         :id="'msg-' + m.id"
       >
-        <view class="bubble">{{ m.content }}<text v-if="m.streaming" class="cursor">▍</text></view>
+        <view class="bubble"><text v-if="m.role !== 'user'" class="ai-tag">AI 生成</text>{{ m.content }}<text v-if="m.streaming" class="cursor">▍</text></view>
       </view>
     </scroll-view>
 
@@ -529,6 +529,17 @@ function extractAnswer(body) {
   color: #2c2c28;
   border-bottom-left-radius: 8rpx;
   box-shadow: 0 4rpx 14rpx rgba(39, 35, 28, 0.05);
+}
+.ai-tag {
+  display: inline-block;
+  font-size: 20rpx;
+  color: #7a6a4d;
+  background: rgba(122, 106, 77, 0.1);
+  border: 1rpx solid rgba(122, 106, 77, 0.25);
+  border-radius: 8rpx;
+  padding: 2rpx 10rpx;
+  margin-right: 10rpx;
+  vertical-align: middle;
 }
 
 .cursor {
