@@ -72,9 +72,9 @@
     </view>
     <view class="card menu">
       <view
-        v-for="(m, i) in MENU_MAIN"
+        v-for="(m, i) in menuMain"
         :key="m.label"
-        class="{{'menu-item' + (i < MENU_MAIN.length - 1 ? ' menu-item-border' : '')}}"
+        class="{{'menu-item' + (i < menuMain.length - 1 ? ' menu-item-border' : '')}}"
         @tap="goTo(m.to)"
       >
         <view class="{{'mi-icon' + (' ' + m.color)}}"><view class="ic ic-md {{m.icon}}" /></view>
@@ -227,6 +227,7 @@ import { checkLogin } from '@/libs/login'
 import { TIERS, tierToNumber, applyTierConfig } from '@/common/tier'
 import { toDate, formatPoints as _formatPoints } from '@/common/format'
 import { fetchSiteConfig } from '@/common/site-config'
+import { AI_DISABLED } from '@/config/app'
 
 const MENU_MAIN = [
   { label: '我的分销码', sub: '推荐新会员注册得积分', icon: 'ic-link-2-orange', color: 'c-orange', to: '/pages/mine/distribution/index' },
@@ -267,6 +268,10 @@ export default {
     }
   },
   computed: {
+    // 审核期下掉 AI 分身训练入口（深度合成合规）
+    menuMain() {
+      return AI_DISABLED ? MENU_MAIN.filter((m) => m.to !== '/pages/ai-twin/index') : MENU_MAIN
+    },
     avatarText() {
       return (this.displayName || '明').slice(0, 1)
     },

@@ -82,7 +82,7 @@
               <image class="ic ic-sm" src="/static/icons/ic-calendar-check-white.png" mode="aspectFit" />
               <text>预约 1v1</text>
             </view>
-            <view class="ex-btn ex-btn-ghost" @tap.stop="goChat(e.id)">
+            <view v-if="!AI_DISABLED" class="ex-btn ex-btn-ghost" @tap.stop="goChat(e.id)">
               <image class="ic ic-sm" src="/static/icons/ic-bot-gold.png" mode="aspectFit" />
               <text>大咖 AI 对话</text>
             </view>
@@ -92,7 +92,7 @@
     </view>
 
     <!-- 与平台 AI 助手对话（对齐 H5） -->
-    <view class="ai-card glass-dark" @tap="goChat">
+    <view v-if="!AI_DISABLED" class="ai-card glass-dark" @tap="goChat">
       <view class="ai-icon"><image class="ic ic-md" src="/static/icons/ic-bot-white.png" mode="aspectFit" /></view>
       <view class="ai-info">
         <text class="ai-title">与平台 AI 助手对话</text>
@@ -118,6 +118,7 @@
 import chamber from '@/api/chamber'
 import { formatMoney, formatPoints } from '@/common/format'
 import Skeleton from '@/components/Skeleton.vue'
+import { AI_DISABLED } from '@/config/app'
 
 const CATEGORIES = ['全部', '知名导师', '知名教练', '行业领袖']
 const ROLE_KEYWORDS = {
@@ -130,6 +131,7 @@ export default {
   components: { Skeleton },
   data() {
     return {
+      AI_DISABLED: AI_DISABLED,
       experts: [],
       loading: true,
       search: '',

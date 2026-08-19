@@ -14,7 +14,7 @@
             <text v-if="expert.industry" class="hero-industry">{{ expert.industry }}</text>
           </view>
           <text class="hero-title">{{ expert.title || '明德大咖' }}{{ expert.company ? ' · ' + expert.company : '' }}</text>
-          <view class="hero-ai" @tap="goAiChat">
+          <view v-if="!AI_DISABLED" class="hero-ai" @tap="goAiChat">
             <image class="ic ic-sm" src="/static/icons/ic-bot-gold.png" mode="aspectFit" />
             <text>大咖 AI 对话</text>
           </view>
@@ -144,11 +144,13 @@ import chamber from '@/api/chamber'
 import { checkLogin } from '@/libs/login'
 import { tierGuide } from '@/libs/tier-guide'
 import { toDate } from '@/common/format'
+import { AI_DISABLED } from '@/config/app'
 
 export default {
   components: { PageHeader },
   data() {
     return {
+      AI_DISABLED: AI_DISABLED,
       expertId: 0,
       expert: null,
       loading: true,

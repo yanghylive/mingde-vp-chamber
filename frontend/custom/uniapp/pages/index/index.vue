@@ -75,7 +75,7 @@
 
     <!-- ===== 小薇 · 今日 3 问（首屏第一动作） ===== -->
     <view class="section px-4">
-      <view class="xw-card card" @tap="goCoaching">
+      <view v-if="!AI_DISABLED" class="xw-card card" @tap="goCoaching">
         <view class="xw-head">
           <view class="xw-avatar">
             <image class="ic ic-sm" src="/static/icons/ic-sparkles-gold.png" mode="aspectFit" />
@@ -309,6 +309,7 @@ import { TIERS, tierToNumber, applyTierConfig } from '@/common/tier'
 import { toDate, fmtZhDateTime, fmtHHmm, formatMoney } from '@/common/format'
 import Calendar from '@/components/Calendar.vue'
 import Skeleton from '@/components/Skeleton.vue'
+import { VIRTUAL_PAY_DISABLED, AI_DISABLED } from '@/config/app'
 
 const EVENT_META = {
   personal_growth: { label: '个人成长', glyph: '成', tone: 'tone-growth', icon: 'graduation-cap' },
@@ -327,6 +328,7 @@ export default {
   components: { Calendar, Skeleton },
   data() {
     return {
+      AI_DISABLED: AI_DISABLED,
       events: [],
       filteredEvents: [],
       displayEvents: [],
@@ -406,9 +408,9 @@ export default {
           this.grids = hg.map((g) => {
             const def = DEFAULT_GRIDS.find((d) => d.to === g.to || d.to.indexOf(g.to) >= 0) || DEFAULT_GRIDS[0]
             return { label: (g.label || def.label), to: def.to, icon: def.icon }
-          })
+          }).filter((g) => !AI_DISABLED || g.to !== '/pages/ai-ecosystem/index')
         } else {
-          this.grids = DEFAULT_GRIDS
+          this.grids = DEFAULT_GRIDS.filter((g) => !AI_DISABLED || g.to !== '/pages/ai-ecosystem/index')
         }
       })
 

@@ -20,10 +20,15 @@ const TIMEOUT = 15000
 // （会籍购买 / 付费活动报名 / 积分兑换补差）。审核通过后置回 false 即恢复。
 const VIRTUAL_PAY_DISABLED = true
 
+// 微信审核整改（2026-08-19）：深度合成类目/合作协议未就绪前，临时下掉 AI 问答服务入口
+// （AI 分身训练 / 平台 AI 助手 / 大咖 AI 对话 / 小薇问答 / AI 生态）。资质到位后置回 false 即恢复。
+const AI_DISABLED = true
+
 module.exports = {
   HTTP_REQUEST_URL,
   HEADER,
   TOKENNAME,
   TIMEOUT,
-  VIRTUAL_PAY_DISABLED
+  VIRTUAL_PAY_DISABLED,
+  AI_DISABLED
 }
