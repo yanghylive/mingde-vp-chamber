@@ -57,7 +57,8 @@
           <text class="p-points">{{ formatPoints(p.integral_price) }}<text class="p-unit"> 积分</text></text>
           <text v-if="Number(p.price) > 0" class="p-cash">{{ fmtCash(p) }}</text>
         </view>
-        <view class="{{'p-btn' + (Number(p.integral_price) <= 0 ? ' p-btn-disabled' : '')}}" @tap.stop="openConfirm(p)">{{ Number(p.integral_price) <= 0 ? '不支持兑换' : '立即兑换' }}</view>
+        <view v-if="!VIRTUAL_PAY_DISABLED" class="{{'p-btn' + (Number(p.integral_price) <= 0 ? ' p-btn-disabled' : '')}}" @tap.stop="openConfirm(p)">{{ Number(p.integral_price) <= 0 ? '不支持兑换' : '立即兑换' }}</view>
+        <view v-else class="p-btn p-btn-disabled">即将开放</view>
       </view>
     </view>
 
@@ -147,6 +148,7 @@ import { checkLogin } from '@/libs/login'
 import { tierGuide } from '@/libs/tier-guide'
 import { fetchSiteConfig } from '@/common/site-config'
 import Skeleton from '@/components/Skeleton.vue'
+import { VIRTUAL_PAY_DISABLED } from '@/config/app'
 
 const CATEGORY_ALIAS = {
   course: '课程', courses: '课程', curriculum: '课程', training: '课程', workshop: '课程', lesson: '课程',
@@ -165,6 +167,7 @@ export default {
   components: { Skeleton },
   data() {
     return {
+      VIRTUAL_PAY_DISABLED: VIRTUAL_PAY_DISABLED,
       list: [],
       paths: [],
       points: null,

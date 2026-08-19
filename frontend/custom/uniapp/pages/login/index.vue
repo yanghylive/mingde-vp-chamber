@@ -1,5 +1,8 @@
 <template>
   <view class="login-page">
+    <!-- 显著可取消入口（微信审核要求：登录必须可拒绝/返回） -->
+    <view class="login-close" @tap="close">×</view>
+
     <!-- 品牌 -->
     <view class="brand">
       <view class="brand-logo">
@@ -135,6 +138,14 @@ export default {
     this.refreshCaptcha()
   },
   methods: {
+    close() {
+      // 显著可取消入口：返回上一页；无上一页（直达）则回首页
+      uni.navigateBack({
+        fail() {
+          uni.reLaunch({ url: '/pages/index/index' })
+        }
+      })
+    },
     switchMode(m) {
       this.mode = m
       this.error = ''
@@ -356,6 +367,21 @@ export default {
   padding: 128rpx 48rpx 48rpx;
   background: linear-gradient(180deg, #1b2a4a, #0e1830);
   box-sizing: border-box;
+}
+.login-close {
+  position: fixed;
+  top: calc(env(safe-area-inset-top) + 40rpx);
+  right: 40rpx;
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1rpx solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  font-size: 44rpx;
+  line-height: 60rpx;
+  text-align: center;
+  z-index: 100;
 }
 .brand {
   display: flex;

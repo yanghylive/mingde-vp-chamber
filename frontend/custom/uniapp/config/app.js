@@ -16,9 +16,14 @@ const TOKENNAME = 'Authori-zation'
 // 网络抖动时由 request.js 自动重试兜底，避免长时间白屏
 const TIMEOUT = 15000
 
+// 微信审核整改（2026-08-19）：临时下掉小程序内虚拟商品现金支付入口
+// （会籍购买 / 付费活动报名 / 积分兑换补差）。审核通过后置回 false 即恢复。
+const VIRTUAL_PAY_DISABLED = true
+
 module.exports = {
   HTTP_REQUEST_URL,
   HEADER,
   TOKENNAME,
-  TIMEOUT
+  TIMEOUT,
+  VIRTUAL_PAY_DISABLED
 }

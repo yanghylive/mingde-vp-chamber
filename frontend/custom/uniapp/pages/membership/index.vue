@@ -99,14 +99,15 @@
               <text>{{ b }}</text>
             </view>
           </view>
-          <view class="{{'plan-buy' + (planTierNum(plan) <= tierNum ? ' plan-buy-owned' : '')}}" @tap="onBuy(plan)">
+          <view v-if="!VIRTUAL_PAY_DISABLED" class="{{'plan-buy' + (planTierNum(plan) <= tierNum ? ' plan-buy-owned' : '')}}" @tap="onBuy(plan)">
             {{ planTierNum(plan) <= tierNum ? '当前等级' : '开通 ' + plan.name + '（¥' + priceNum(plan.price) + '/年）' }}
           </view>
+          <view v-else class="plan-buy plan-buy-owned">即将开放</view>
         </view>
       </view>
     </block>
 
-    <view class="notice">支付通道开通中，开通后自动升级会员等级</view>
+    <view class="notice">支付通道整改中，开通功能即将开放，敬请期待</view>
   </view>
 </template>
 
@@ -117,10 +118,12 @@ import { checkLogin } from '@/libs/login'
 import { TIERS, tierToNumber, applyTierConfig } from '@/common/tier'
 import { toDate } from '@/common/format'
 import { fetchSiteConfig } from '@/common/site-config'
+import { VIRTUAL_PAY_DISABLED } from '@/config/app'
 
 export default {
   data() {
     return {
+      VIRTUAL_PAY_DISABLED: VIRTUAL_PAY_DISABLED,
       profile: null,
       membership: null,
       plans: [],
@@ -145,10 +148,7 @@ export default {
     }
   },
   onLoad() {
-    if (!checkLogin()) {
-      uni.navigateTo({ url: '/pages/login/index' })
-      return
-    }
+    // 游客可浏览会籍计划，购买时才要求登录（微信审核：不得强制登录才能体验）
     this.loadData()
   },
   methods: {
@@ -156,15 +156,17 @@ export default {
       fetchSiteConfig().then((cfg) => {
         if (cfg) this.ladder = applyTierConfig(cfg)
       })
-      const jobs = [chamber.meProfile(), chamber.meMembership(), chamber.membershipPlans()]
+      const logged = checkLogin()
+      const jobs = [chamber.membershipPlans()]
+      if (logged) jobs.push(chamber.meProfile(), chamber.meMembership())
       const results = await Promise.allSettled(jobs)
-      if (results[0].status === 'fulfilled') this.profile = results[0].value
-      if (results[1].status === 'fulfilled') {
-        this.membership = results[1].value
-        this.tierNum = tierToNumber(this.membership && this.membership.effective_tier, 1)
+      if (results[0].status === 'fulfilled') {
+        this.plans = (results[0].value || []).filter((p) => p.eligible !== false)
       }
-      if (results[2].status === 'fulfilled') {
-        this.plans = (results[2].value || []).filter((p) => p.eligible !== false)
+      if (logged && results[1].status === 'fulfilled') this.profile = results[1].value
+      if (logged && results[2].status === 'fulfilled') {
+        this.membership = results[2].value
+        this.tierNum = tierToNumber(this.membership && this.membership.effective_tier, 1)
       }
     },
     planTierNum(plan) {
@@ -182,6 +184,10 @@ export default {
       return t ? t.rights.slice(0, 3) : []
     },
     onBuy(plan) {
+      if (!checkLogin()) {
+        uni.navigateTo({ url: '/pages/login/index' })
+        return
+      }
       const pt = this.planTierNum(plan)
       if (pt <= this.tierNum) return
       if (plan.eligible === false) {

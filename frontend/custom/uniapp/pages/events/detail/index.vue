@@ -55,9 +55,10 @@
               <text v-if="t.integral_price > 0" class="tk-integral">积 {{ t.integral_price }} 积分</text>
               <text class="tk-cash">{{ priceText(t) }}</text>
             </view>
-            <view class="{{'tk-btn' + ((registered || registering) ? ' tk-btn-disabled' : '')}}" @tap="onRegister(t.id)">
+            <view v-if="!VIRTUAL_PAY_DISABLED || isFreeTicket(t)" class="{{'tk-btn' + ((registered || registering) ? ' tk-btn-disabled' : '')}}" @tap="onRegister(t.id)">
               {{ registered ? '已报名' : registering ? '提交中…' : '报名' }}
             </view>
+            <view v-else class="tk-btn tk-btn-disabled">即将开放</view>
           </view>
         </view>
       </view>
@@ -93,6 +94,7 @@ import chamber from '@/api/chamber'
 import { checkLogin } from '@/libs/login'
 import { toDate, fmtZhDateTime } from '@/common/format'
 import Skeleton from '@/components/Skeleton.vue'
+import { VIRTUAL_PAY_DISABLED } from '@/config/app'
 
 const TYPE_META = {
   personal_growth: { label: '个人成长', tone: 'tone-growth' },
@@ -107,6 +109,7 @@ export default {
   components: { PageHeader, Skeleton },
   data() {
     return {
+      VIRTUAL_PAY_DISABLED: VIRTUAL_PAY_DISABLED,
       eventId: 0,
       event: null,
       loading: true,
@@ -159,6 +162,9 @@ export default {
     priceText(t) {
       const p = Number(t.price || 0)
       return p > 0 ? (Number.isInteger(p) ? '¥' + p : '¥' + p.toFixed(2)) : '免费'
+    },
+    isFreeTicket(t) {
+      return Number(t.price || 0) <= 0 && Number(t.integral_price || 0) <= 0
     },
     navigate() {
       const ev = this.event
