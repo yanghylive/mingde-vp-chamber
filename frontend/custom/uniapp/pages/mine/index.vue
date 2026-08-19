@@ -313,7 +313,15 @@ export default {
       uni.navigateTo({ url: '/pages/login/index' })
       return
     }
-    this.loadData()
+    // 新人大礼包「完善个人资料」跳转：加载完成后自动打开编辑弹窗
+    let enterEdit = false
+    try {
+      enterEdit = uni.getStorageSync('mine_enter_edit') === '1'
+      if (enterEdit) uni.removeStorageSync('mine_enter_edit')
+    } catch (e) {}
+    this.loadData().then(() => {
+      if (enterEdit) this.openEditor()
+    })
   },
   methods: {
     iconPath(name) { return '/static/icons/' + name + '.png' },

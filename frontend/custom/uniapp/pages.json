@@ -183,13 +183,6 @@
         "navigationBarTitleText": "小薇 · 每日认知刷新",
         "navigationStyle": "custom"
       }
-    },
-    {
-      "path": "pages/welcome/index",
-      "style": {
-        "navigationBarTitleText": "欢迎",
-        "navigationStyle": "custom"
-      }
     }
   ],
   "globalStyle": {

@@ -371,12 +371,7 @@ export default {
     if (options && options.invite) {
       try { uni.setStorageSync('invite_code', options.invite) } catch (e) {}
     }
-    // 首启欢迎引导：仅第一次进入展示，之后永久跳过
-    try {
-      if (!uni.getStorageSync('welcome_seen')) {
-        uni.redirectTo({ url: '/pages/welcome/index' })
-      }
-    } catch (e) {}
+    // 首启欢迎引导已下线（2026-08-18 大王决策：去掉整个开屏页，直接进首页）
   },
   onShow() {
     this.loadData()
@@ -471,7 +466,18 @@ export default {
     goTask(t) {
       if (t.done) return
       track('task_click', { key: t.key })
-      if (t.to) uni.navigateTo({ url: t.to })
+      if (!t.to) return
+      const path = t.to.split('?')[0]
+      const tabPages = ['/pages/index/index', '/pages/events/index', '/pages/mall/index', '/pages/experts/index', '/pages/mine/index']
+      if (tabPages.includes(path)) {
+        // tabBar 页面必须 switchTab（navigateTo 会静默失败）；profile 编辑意图经 storage 传递
+        if (t.key === 'profile') {
+          try { uni.setStorageSync('mine_enter_edit', '1') } catch (e) {}
+        }
+        uni.switchTab({ url: path })
+      } else {
+        uni.navigateTo({ url: t.to })
+      }
     },
     applyChip() {
       if (this.chip === null) {
