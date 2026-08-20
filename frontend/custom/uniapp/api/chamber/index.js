@@ -102,6 +102,16 @@ export const chamber = {
   /** 查询支付单状态 */
   wechatPayStatus: (outTradeNo) => request('/chamber/v1/wechat-pay/orders/' + encodeURIComponent(outTradeNo)),
 
+  // ---- 微信小程序虚拟支付（Midas / 虚拟商品合规通道）----
+  /** 创建虚拟支付单，返回 { signData, paySig, signature, mode } 供 wx.requestVirtualPayment */
+  vpayCreateOrder: (payload) =>
+    request('/chamber/v1/vpay/orders', {
+      method: 'POST',
+      data: payload
+    }),
+  /** 虚拟支付配置就绪检查（公开） */
+  vpayConfigStatus: () => request('/chamber/v1/vpay/config-status', { auth: false }),
+
   // ---- 站点配置 ----
   siteConfig: () => request('/chamber/v1/site-config', { auth: false }),
 

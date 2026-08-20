@@ -405,6 +405,12 @@ final class ChamberWechatPayService
         return ['code' => 'SUCCESS', 'message' => 'OK'];
     }
 
+    /** 公开发货入口：虚拟支付（VpayService 回调）等其他通道复用同一业务事实确认 */
+    public function settleBusiness(int $tenantId, string $businessType, int $businessRef, string $transactionId): void
+    {
+        $this->applyBusiness($tenantId, $businessType, $businessRef, $transactionId);
+    }
+
     /** 业务事实确认：membership→支付完成事件（会员升级）；exchange→兑换订单置 paid */
     private function applyBusiness(int $tenantId, string $businessType, int $businessRef, string $transactionId): void
     {

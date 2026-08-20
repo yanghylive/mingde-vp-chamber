@@ -143,6 +143,7 @@
 <script>
 import chamber from '@/api/chamber'
 import { requestWechatPayment, pollWechatPayStatus } from '@/common/pay'
+import { requestVirtualPayment } from '@/common/vpay'
 import { formatMoney as _formatMoney, formatPoints as _formatPoints } from '@/common/format'
 import { checkLogin } from '@/libs/login'
 import { tierGuide } from '@/libs/tier-guide'
@@ -305,34 +306,23 @@ export default {
             uni.showToast({ title: '订单创建异常，请稍后重试', icon: 'none' })
             return
           }
-          const payRes = await chamber.wechatPayOrder({
+          const payRes = await chamber.vpayCreateOrder({
             business_type: 'exchange',
             business_ref: exchangeOrderId,
-            amount_cents: Math.round(Number(needCash) * 100),
-            idempotency_key: 'wxpay:ex:' + exchangeOrderId,
-            description: '积分兑换补差价 ' + this.formatMoney(needCash)
+            idempotency_key: 'vpay:ex:' + exchangeOrderId
           }).catch(() => null)
-          if (!payRes || payRes.status === 'need_config') {
-            uni.showToast({ title: (payRes && payRes.message) || '微信支付未配置完成，暂不可用', icon: 'none' })
-            this.loadData()
-            return
-          }
-          if (payRes.status === 'order_failed' || payRes.status === 'order_pending_retry') {
-            uni.showToast({ title: (payRes && payRes.message) || '下单失败，请稍后重试', icon: 'none' })
+          if (!payRes || !payRes.signData) {
+            uni.showToast({ title: (payRes && payRes.message) || '虚拟支付未配置完成，暂不可用', icon: 'none' })
             this.loadData()
             return
           }
           uni.showLoading({ title: '拉起支付...', mask: true })
-          const payResult = await requestWechatPayment(payRes.pay_params)
+          const payResult = await requestVirtualPayment(payRes)
           uni.hideLoading()
           if (payResult.status !== 'paid') {
-            // 取消或失败：轮询确认是否已支付（回调可能未到）
-            const polled = await pollWechatPayStatus(payRes.out_trade_no, 30000)
-            if (polled.status !== 'paid') {
-              uni.showToast({ title: payResult.status === 'cancelled' ? '已取消支付' : '支付未完成', icon: 'none' })
-              this.loadData()
-              return
-            }
+            uni.showToast({ title: payResult.status === 'cancelled' ? '已取消支付' : '支付未完成', icon: 'none' })
+            this.loadData()
+            return
           }
         }
 

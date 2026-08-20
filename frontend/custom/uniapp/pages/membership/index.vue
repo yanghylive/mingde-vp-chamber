@@ -114,6 +114,7 @@
 <script>
 import chamber from '@/api/chamber'
 import { requestWechatPayment, pollWechatPayStatus } from '@/common/pay'
+import { requestVirtualPayment } from '@/common/vpay'
 import { checkLogin } from '@/libs/login'
 import { TIERS, tierToNumber, applyTierConfig } from '@/common/tier'
 import { toDate } from '@/common/format'
@@ -215,24 +216,18 @@ export default {
             uni.showToast({ title: '订单创建异常，请稍后重试', icon: 'none' })
             return
           }
-          // 拉取支付单（JSAPI）→ wx.requestPayment → 回调确认 → 轮询到 paid
-          const payRes = await chamber.wechatPayOrder({
+          // 拉取虚拟支付单（Midas）→ wx.requestVirtualPayment → 回调确认 → 轮询到 paid
+          const payRes = await chamber.vpayCreateOrder({
             business_type: 'membership',
             order_no: orderNo,
-            amount_cents: Math.round(Number((res && res.payable_amount) || 0) * 100),
-            idempotency_key: 'wxpay:' + orderNo,
-            description: '明德商会会籍 ' + (plan.name || '')
+            idempotency_key: 'vpay:' + orderNo
           }).catch(() => null)
-          if (!payRes || payRes.status === 'need_config') {
-            uni.showToast({ title: (payRes && payRes.message) || '微信支付未配置完成，暂不可用', icon: 'none' })
-            return
-          }
-          if (payRes.status === 'order_failed' || payRes.status === 'order_pending_retry') {
-            uni.showToast({ title: (payRes && payRes.message) || '下单失败，请稍后重试', icon: 'none' })
+          if (!payRes || !payRes.signData) {
+            uni.showToast({ title: (payRes && payRes.message) || '虚拟支付未配置完成，暂不可用', icon: 'none' })
             return
           }
           uni.showLoading({ title: '拉起支付...', mask: true })
-          const payResult = await requestWechatPayment(payRes.pay_params)
+          const payResult = await requestVirtualPayment(payRes)
           uni.hideLoading()
           if (payResult.status === 'paid') {
             uni.showToast({ title: '支付成功，权益已开通', icon: 'success' })

@@ -227,6 +227,22 @@ Route::get('v1/wechat-pay/config-status', 'ChamberWechatPayController/configStat
     ->middleware(RequestTraceMiddleware::class)
     ->middleware(ChamberCorsMiddleware::class);
 
+// ===== 微信小程序虚拟支付（Midas / wx.requestVirtualPayment，虚拟商品合规通道） =====
+Route::group('v1/vpay', function () {
+    Route::post('orders', 'ChamberVpayController/orders');
+})->middleware(RequestTraceMiddleware::class)
+    ->middleware(ChamberCorsMiddleware::class)
+    ->middleware(CrmebAuthTokenMiddleware::class)
+    ->middleware(TenantContextMiddleware::class, true);
+
+// 回调 + 配置检查（Midas 服务器/运维调用 → 公开）
+Route::post('v1/vpay/notify', 'ChamberVpayController/notify')
+    ->middleware(RequestTraceMiddleware::class)
+    ->middleware(ChamberCorsMiddleware::class);
+Route::get('v1/vpay/config-status', 'ChamberVpayController/configStatus')
+    ->middleware(RequestTraceMiddleware::class)
+    ->middleware(ChamberCorsMiddleware::class);
+
 // ===== 浏览类公开读接口（可选鉴权：游客可浏览，登录后返回个性化数据） =====
 Route::group('v1/products', function () {
     Route::get('/', 'ProductController/index');
