@@ -196,6 +196,7 @@ export default {
       uni.navigateTo({ url: '/pages/experts/detail/index?id=' + id })
     },
     goChat(expertId) {
+      if (AI_DISABLED) return
       uni.navigateTo({ url: '/pages/chat/index' + (expertId ? '?expert=' + expertId : '') })
     },
     pricingReady(e) {

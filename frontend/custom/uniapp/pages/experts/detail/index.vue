@@ -287,6 +287,7 @@ export default {
         })
     },
     goAiChat() {
+      if (AI_DISABLED) return
       uni.navigateTo({ url: '/pages/chat/index?expert=' + this.expertId })
     }
   }

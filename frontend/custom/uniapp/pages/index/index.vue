@@ -395,6 +395,7 @@ export default {
     },
 
     goCoaching() {
+      if (AI_DISABLED) return
       uni.navigateTo({ url: "/pages/coaching/index" })
     },
 
@@ -459,7 +460,7 @@ export default {
       this.tasks = [
         { key: 'profile', name: '完善个人资料', desc: '让大咖认识你', done: profileDone, to: '/pages/mine/index?edit=1' },
         { key: 'register', name: '报名一场活动', desc: '开启商会第一步', done: regDone, to: '/pages/events/index' },
-        { key: 'twin', name: '和大咖 AI 聊一次', desc: '体验 AI 分身', done: twinDone, to: '/pages/experts/index' }
+        { key: 'twin', name: '认识行业大咖', desc: '浏览导师/教练/行业领袖主页', done: twinDone, to: '/pages/experts/index' }
       ]
       if (this.taskDone >= this.tasks.length) {
         try { uni.removeStorageSync('task_card_dismissed') } catch (e) {}

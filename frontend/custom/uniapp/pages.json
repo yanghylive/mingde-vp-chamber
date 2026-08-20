@@ -155,34 +155,6 @@
         "navigationBarTitleText": "搜索",
         "navigationStyle": "custom"
       }
-    },
-    {
-      "path": "pages/ai-ecosystem/index",
-      "style": {
-        "navigationBarTitleText": "AI 生态",
-        "navigationStyle": "custom"
-      }
-    },
-    {
-      "path": "pages/chat/index",
-      "style": {
-        "navigationBarTitleText": "AI 对话",
-        "navigationStyle": "custom"
-      }
-    },
-    {
-      "path": "pages/ai-twin/index",
-      "style": {
-        "navigationBarTitleText": "AI 分身训练",
-        "navigationStyle": "custom"
-      }
-    },
-    {
-      "path": "pages/coaching/index",
-      "style": {
-        "navigationBarTitleText": "小薇 · 每日认知刷新",
-        "navigationStyle": "custom"
-      }
     }
   ],
   "globalStyle": {
