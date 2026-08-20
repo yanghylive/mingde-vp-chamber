@@ -50,6 +50,7 @@ final class ChamberVpayController
         $orderNo = trim((string) ($body['order_no'] ?? ''));
         $businessRef = (int) ($body['business_ref'] ?? 0);
         $idempotencyKey = trim((string) ($body['idempotency_key'] ?? ''));
+        $planTier = (int) ($body['plan_tier'] ?? 0);
         $uid = $auth->uid();
         $memberId = $this->memberId($tenant, $auth);
 
@@ -115,7 +116,7 @@ final class ChamberVpayController
             } else {
                 // 已存在 pending 单：本地签名可重放，直接返回新签名
                 return json(['code' => 0, 'msg' => 'ok', 'data' => $this->vpay->buildPayParams(
-                    $this->payParams($businessType, $amountCents, $outTradeNo),
+                    $this->payParams($businessType, $amountCents, $outTradeNo, $planTier),
                     $this->sessionKey($uid)
                 )]);
             }
@@ -141,7 +142,7 @@ final class ChamberVpayController
         ]);
 
         $params = $this->vpay->buildPayParams(
-            $this->payParams($businessType, $amountCents, $outTradeNo),
+            $this->payParams($businessType, $amountCents, $outTradeNo, $planTier),
             $this->sessionKey($uid)
         );
 
@@ -248,12 +249,19 @@ final class ChamberVpayController
     }
 
     /** 虚拟支付道具映射（productId 需在微信虚拟支付后台配置对应道具） */
-    private function payParams(string $businessType, int $amountCents, string $outTradeNo): array
+    private function payParams(string $businessType, int $amountCents, string $outTradeNo, int $planTier = 0): array
     {
+        $productId = 'vip_yearly';
+        if ($businessType === ChamberWechatPayService::BUSINESS_MEMBERSHIP) {
+            // 会籍按档位映射道具（后台需建 vip_yearly_t2 / vip_yearly_t3 等道具）
+            $productId = 'vip_yearly_t' . max(1, min(9, $planTier));
+        } elseif ($businessType === ChamberWechatPayService::BUSINESS_EXCHANGE) {
+            // 积分补差为动态金额，道具直购模式不适用，暂未启用
+            $productId = 'exchange_cash';
+        }
+
         return [
-            'product_id' => $businessType === ChamberWechatPayService::BUSINESS_EXCHANGE
-                ? 'exchange_cash'
-                : 'vip_yearly',
+            'product_id' => $productId,
             'amount_cents' => $amountCents,
             'out_trade_no' => $outTradeNo,
             'attach' => $businessType

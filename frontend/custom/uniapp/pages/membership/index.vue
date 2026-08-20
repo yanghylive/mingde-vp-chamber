@@ -220,7 +220,8 @@ export default {
           const payRes = await chamber.vpayCreateOrder({
             business_type: 'membership',
             order_no: orderNo,
-            idempotency_key: 'vpay:' + orderNo
+            idempotency_key: 'vpay:' + orderNo,
+            plan_tier: this.planTierNum(plan)
           }).catch(() => null)
           if (!payRes || !payRes.signData) {
             uni.showToast({ title: (payRes && payRes.message) || '虚拟支付未配置完成，暂不可用', icon: 'none' })
