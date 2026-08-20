@@ -149,9 +149,25 @@ final class ChamberVpayController
         return json(['code' => 0, 'msg' => 'ok', 'data' => $params]);
     }
 
-    /** Midas 回调 xpay_goods_deliver_notify（公开）：验签 → 幂等 → 发货 */
+    /** Midas 回调 xpay_goods_deliver_notify（公开）：GET 握手 → 验签 → 幂等 → 发货 */
     public function notify(Request $request): Response
     {
+        // URL 握手验证：微信后台配置发货推送地址时发送 GET（signature/timestamp/nonce/echostr）
+        if (strtoupper((string) $request->method()) === 'GET') {
+            $signature = (string) $request->get('signature', '');
+            $timestamp = (string) $request->get('timestamp', '');
+            $nonce = (string) $request->get('nonce', '');
+            $echostr = (string) $request->get('echostr', '');
+            $token = trim((string) env('pay.vpay_push_token', ''));
+            if ($token === '' || !$this->vpay->verifyPushHandshake($token, $signature, $timestamp, $nonce)) {
+                Log::warning('chamber.vpay.push_handshake_fail', ['signature' => $signature]);
+
+                return response('', 403);
+            }
+
+            return response($echostr);
+        }
+
         $raw = (string) $request->getContent();
         $payload = json_decode($raw, true);
         if (!is_array($payload)) {

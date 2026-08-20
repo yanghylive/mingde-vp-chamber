@@ -52,6 +52,18 @@ final class VpayService
         return $this->env;
     }
 
+    /** URL 握手验证（微信配置发货推送地址时 GET 请求）：signature == SHA1(sort(token,timestamp,nonce)) */
+    public function verifyPushHandshake(string $token, string $signature, string $timestamp, string $nonce): bool
+    {
+        if ($token === '' || $signature === '') {
+            return false;
+        }
+        $tmp = [$token, $timestamp, $nonce];
+        sort($tmp, SORT_STRING);
+
+        return hash_equals(sha1(implode('', $tmp)), $signature);
+    }
+
     /**
      * 构建虚拟支付三要素（前端 wx.requestVirtualPayment 使用）
      *

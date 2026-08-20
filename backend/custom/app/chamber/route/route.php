@@ -236,6 +236,10 @@ Route::group('v1/vpay', function () {
     ->middleware(TenantContextMiddleware::class, true);
 
 // 回调 + 配置检查（Midas 服务器/运维调用 → 公开）
+// 发货推送：GET=URL 握手验证（echostr），POST=消息推送（xpay_goods_deliver_notify）
+Route::get('v1/vpay/notify', 'ChamberVpayController/notify')
+    ->middleware(RequestTraceMiddleware::class)
+    ->middleware(ChamberCorsMiddleware::class);
 Route::post('v1/vpay/notify', 'ChamberVpayController/notify')
     ->middleware(RequestTraceMiddleware::class)
     ->middleware(ChamberCorsMiddleware::class);
