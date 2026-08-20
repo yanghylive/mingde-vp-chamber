@@ -16,9 +16,11 @@ const TOKENNAME = 'Authori-zation'
 // 网络抖动时由 request.js 自动重试兜底，避免长时间白屏
 const TIMEOUT = 15000
 
-// 微信审核整改（2026-08-19）：临时下掉小程序内虚拟商品现金支付入口
-// （会籍购买 / 付费活动报名 / 积分兑换补差）。审核通过后置回 false 即恢复。
-const VIRTUAL_PAY_DISABLED = true
+// 微信审核整改（2026-08-19）：虚拟支付已接入（Midas），会籍购买恢复；积分补差/付费活动待道具就绪
+const VIRTUAL_PAY_DISABLED = false
+
+// 积分兑换补差：动态金额不适用虚拟支付道具模式，道具/方案未就绪前保持隐藏
+const EXCHANGE_VPAY_READY = false
 
 // 微信审核整改（2026-08-19）：深度合成类目/合作协议未就绪前，临时下掉 AI 问答服务入口
 // （AI 分身训练 / 平台 AI 助手 / 大咖 AI 对话 / 小薇问答 / AI 生态）。资质到位后置回 false 即恢复。
@@ -30,5 +32,6 @@ module.exports = {
   TOKENNAME,
   TIMEOUT,
   VIRTUAL_PAY_DISABLED,
+  EXCHANGE_VPAY_READY,
   AI_DISABLED
 }
