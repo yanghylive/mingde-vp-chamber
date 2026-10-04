@@ -315,8 +315,8 @@ expected_baseline = {
   'openapi_version' => '0.9.0',
   'openapi_paths' => 45,
   'openapi_operations_total' => 51,
-  'openapi_operations_implemented' => 45,
-  'openapi_operations_planned' => 6,
+  'openapi_operations_implemented' => 51,
+  'openapi_operations_planned' => 0,
   'openapi_schemas' => 156,
   'profile_verification_gate' => 'scripts/check-g1-profile-verification.sh',
   'membership_checkout_gate' => 'scripts/check-g1-membership-checkout.sh',
@@ -344,7 +344,7 @@ if project['status'].start_with?('g2-')
     g2['activity_database_assertions'] + g2['registration_database_assertions'] +
     g2['registration_concurrency_assertions'] + g2['reward_reversal_database_assertions'] +
     g2['admin_read_database_assertions'] + g2['refund_admin_database_assertions'] +
-    g2['waitlist_database_assertions'] == g2['database_assertions_total']
+    g2['waitlist_database_assertions'] + g2['admin_write_database_assertions'] == g2['database_assertions_total']
   errors << 'g2_activity_baseline.gate differs' unless g2['gate'] == 'scripts/check-g2-activity-core.sh'
 end
 abort "PROJECT_MANIFEST baseline drift: #{errors.join('; ')}" unless errors.empty?

@@ -133,6 +133,8 @@ if [ "${MODE}" = 'local' ]; then
         php /var/www/app/chamber/tests/event_refund_admin_db_run.php)"
     waitlist_output="$(docker compose -f "${COMPOSE_FILE}" exec -T phpfpm \
         php /var/www/app/chamber/tests/event_waitlist_db_run.php)"
+    admin_write_output="$(docker compose -f "${COMPOSE_FILE}" exec -T phpfpm \
+        php /var/www/app/chamber/tests/event_admin_write_db_run.php)"
     registration_http_output="$(./scripts/check-g2-event-registration-http.sh)"
 else
     for file in "${activity_php_files[@]}"; do
@@ -147,6 +149,7 @@ else
     admin_read_output='SKIP: admin activity reads require the local Docker gate'
     refund_admin_output='SKIP: refund admin integration requires the local Docker gate'
     waitlist_output='SKIP: event waitlist integration requires the local Docker gate'
+    admin_write_output='SKIP: event admin write integration requires the local Docker gate'
     registration_http_output='SKIP: registration HTTP acceptance requires the local Docker gate'
 fi
 
@@ -234,9 +237,22 @@ if [ "${MODE}" = 'local' ]; then
     waitlist_minimum="$(manifest_g2_value waitlist_database_assertions_minimum 61)"
     [ "${waitlist_assertions}" -ge "${waitlist_minimum}" ] \
         || fail "G2 event waitlist assertions were removed: ${waitlist_assertions} < ${waitlist_minimum}"
+    printf '%s\n' "${admin_write_output}"
+    admin_write_assertions="$(sed -nE \
+        's/^Activity admin write integration passed \(([0-9]+) assertions\)\.$/\1/p' \
+        <<<"${admin_write_output}")"
+    [[ "${admin_write_assertions:-}" =~ ^[0-9]+$ ]] \
+        || fail 'G2 admin write assertion result is unavailable'
+    admin_write_minimum="$(manifest_g2_value admin_write_database_assertions_minimum 68)"
+    [ "${admin_write_assertions}" -ge "${admin_write_minimum}" ] \
+        || fail "G2 admin write assertions were removed: ${admin_write_assertions} < ${admin_write_minimum}"
     printf '%s\n' "${registration_http_output}"
     grep -Fxq 'G2 event registration HTTP gate OK' <<<"${registration_http_output}" \
         || fail 'G2 registration HTTP gate failed'
+    admin_http_output="$(./scripts/check-g2-event-admin-http.sh)"
+    printf '%s\n' "${admin_http_output}"
+    grep -Fxq 'G2 event admin write HTTP gate OK' <<<"${admin_http_output}" \
+        || fail 'G2 admin write HTTP gate failed'
 else
     printf '%s\n' "${database_test_output}"
     printf '%s\n' "${registration_database_output}"
@@ -245,6 +261,7 @@ else
     printf '%s\n' "${admin_read_output}"
     printf '%s\n' "${refund_admin_output}"
     printf '%s\n' "${waitlist_output}"
+    printf '%s\n' "${admin_write_output}"
     printf '%s\n' "${registration_http_output}"
 fi
 
@@ -284,12 +301,12 @@ expected = {
   'createEventCheckin' => 'implemented',
   'listEventsForAdmin' => 'implemented',
   'showEventForAdmin' => 'implemented',
-  'createEventForAdmin' => 'planned',
-  'updateEventForAdmin' => 'planned',
-  'publishEventForAdmin' => 'planned',
-  'cancelEventForAdmin' => 'planned',
-  'issueEventCheckinTokenForAdmin' => 'planned',
-  'createManualEventCheckinForAdmin' => 'planned'
+  'createEventForAdmin' => 'implemented',
+  'updateEventForAdmin' => 'implemented',
+  'publishEventForAdmin' => 'implemented',
+  'cancelEventForAdmin' => 'implemented',
+  'issueEventCheckinTokenForAdmin' => 'implemented',
+  'createManualEventCheckinForAdmin' => 'implemented'
 }
 actual = {}
 spec.fetch('paths', {}).each_value do |path_item|
@@ -319,6 +336,7 @@ if [ "${MODE}" = 'local' ]; then
     printf 'Admin reads: %s assertions\n' "${admin_read_assertions}"
     printf 'Refund admin: %s assertions\n' "${refund_admin_assertions}"
     printf 'Event waitlist: %s assertions\n' "${waitlist_assertions}"
+    printf 'Admin write: %s assertions\n' "${admin_write_assertions}"
     printf 'HTTP: authentication, idempotency, four pricing modes, native isolation and payment projection passed\n'
 else
     printf 'Database: migration triplets inventoried; runtime assertions delegated to local mode\n'

@@ -73,7 +73,7 @@ final class EventAdminController
         $event_id
     ): Response {
                 $admin->assertPermission('chamber.event.write');
-$callerKey = $this->requireIdempotencyKey($request);
+        $callerKey = $this->requireIdempotencyKey($request);
         $payload = $this->decodeJsonObject($request);
 
         return $this->ok($this->service->update(
@@ -109,7 +109,7 @@ $callerKey = $this->requireIdempotencyKey($request);
         $event_id
     ): Response {
                 $admin->assertPermission('chamber.event.manage');
-$callerKey = $this->requireIdempotencyKey($request);
+        $callerKey = $this->requireIdempotencyKey($request);
         $payload = $this->decodeJsonObject($request);
         $this->assertAllowedFields($payload, ['reason']);
         $reason = $this->optionalString($payload, 'reason', 500);
@@ -151,7 +151,7 @@ $callerKey = $this->requireIdempotencyKey($request);
         $event_id
     ): Response {
                 $admin->assertPermission('chamber.event.checkin');
-$callerKey = $this->requireIdempotencyKey($request);
+        $callerKey = $this->requireIdempotencyKey($request);
         $payload = $this->decodeJsonObject($request);
         $this->assertAllowedFields($payload, ['registration_id', 'reason']);
 

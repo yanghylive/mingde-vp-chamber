@@ -1233,7 +1233,7 @@ paths:
       operationId: createEventForAdmin
       security:
         - CrmebAdminBearerAuth: []
-      x-implementation-status: planned
+      x-implementation-status: implemented
       x-requirement-id: ACT-001
       x-tenant-context: required
       x-signed-headers-all-or-none: true
@@ -1320,7 +1320,7 @@ paths:
       operationId: updateEventForAdmin
       security:
         - CrmebAdminBearerAuth: []
-      x-implementation-status: planned
+      x-implementation-status: implemented
       x-requirement-id: ACT-001
       x-tenant-context: required
       x-signed-headers-all-or-none: true
@@ -1373,7 +1373,7 @@ paths:
       operationId: publishEventForAdmin
       security:
         - CrmebAdminBearerAuth: []
-      x-implementation-status: planned
+      x-implementation-status: implemented
       x-requirement-id: ACT-001,ACT-003
       x-tenant-context: required
       x-signed-headers-all-or-none: true
@@ -1420,7 +1420,7 @@ paths:
       operationId: cancelEventForAdmin
       security:
         - CrmebAdminBearerAuth: []
-      x-implementation-status: planned
+      x-implementation-status: implemented
       x-requirement-id: ACT-001,ACT-005
       x-tenant-context: required
       x-signed-headers-all-or-none: true
@@ -1473,7 +1473,7 @@ paths:
       operationId: issueEventCheckinTokenForAdmin
       security:
         - CrmebAdminBearerAuth: []
-      x-implementation-status: planned
+      x-implementation-status: implemented
       x-requirement-id: ACT-007
       x-tenant-context: required
       x-signed-headers-all-or-none: true
@@ -1526,7 +1526,7 @@ paths:
       operationId: createManualEventCheckinForAdmin
       security:
         - CrmebAdminBearerAuth: []
-      x-implementation-status: planned
+      x-implementation-status: implemented
       x-requirement-id: ACT-007,ACT-008
       x-tenant-context: required
       x-signed-headers-all-or-none: true
