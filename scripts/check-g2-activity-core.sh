@@ -131,6 +131,8 @@ if [ "${MODE}" = 'local' ]; then
         php /var/www/app/chamber/tests/event_admin_read_db_run.php)"
     refund_admin_output="$(docker compose -f "${COMPOSE_FILE}" exec -T phpfpm \
         php /var/www/app/chamber/tests/event_refund_admin_db_run.php)"
+    waitlist_output="$(docker compose -f "${COMPOSE_FILE}" exec -T phpfpm \
+        php /var/www/app/chamber/tests/event_waitlist_db_run.php)"
     registration_http_output="$(./scripts/check-g2-event-registration-http.sh)"
 else
     for file in "${activity_php_files[@]}"; do
@@ -144,6 +146,7 @@ else
     reward_reversal_output='SKIP: reward reversal integration requires the local Docker gate'
     admin_read_output='SKIP: admin activity reads require the local Docker gate'
     refund_admin_output='SKIP: refund admin integration requires the local Docker gate'
+    waitlist_output='SKIP: event waitlist integration requires the local Docker gate'
     registration_http_output='SKIP: registration HTTP acceptance requires the local Docker gate'
 fi
 
@@ -222,6 +225,15 @@ if [ "${MODE}" = 'local' ]; then
     refund_admin_minimum="$(manifest_g2_value refund_admin_database_assertions_minimum 68)"
     [ "${refund_admin_assertions}" -ge "${refund_admin_minimum}" ] \
         || fail "G2 refund admin assertions were removed: ${refund_admin_assertions} < ${refund_admin_minimum}"
+    printf '%s\n' "${waitlist_output}"
+    waitlist_assertions="$(sed -nE \
+        's/^Event waitlist database integration passed \(([0-9]+) assertions\)\.$/\1/p' \
+        <<<"${waitlist_output}")"
+    [[ "${waitlist_assertions:-}" =~ ^[0-9]+$ ]] \
+        || fail 'G2 event waitlist database assertion result is unavailable'
+    waitlist_minimum="$(manifest_g2_value waitlist_database_assertions_minimum 61)"
+    [ "${waitlist_assertions}" -ge "${waitlist_minimum}" ] \
+        || fail "G2 event waitlist assertions were removed: ${waitlist_assertions} < ${waitlist_minimum}"
     printf '%s\n' "${registration_http_output}"
     grep -Fxq 'G2 event registration HTTP gate OK' <<<"${registration_http_output}" \
         || fail 'G2 registration HTTP gate failed'
@@ -232,6 +244,7 @@ else
     printf '%s\n' "${reward_reversal_output}"
     printf '%s\n' "${admin_read_output}"
     printf '%s\n' "${refund_admin_output}"
+    printf '%s\n' "${waitlist_output}"
     printf '%s\n' "${registration_http_output}"
 fi
 
@@ -305,6 +318,7 @@ if [ "${MODE}" = 'local' ]; then
     printf 'Reward reversal: %s assertions\n' "${reward_reversal_assertions}"
     printf 'Admin reads: %s assertions\n' "${admin_read_assertions}"
     printf 'Refund admin: %s assertions\n' "${refund_admin_assertions}"
+    printf 'Event waitlist: %s assertions\n' "${waitlist_assertions}"
     printf 'HTTP: authentication, idempotency, four pricing modes, native isolation and payment projection passed\n'
 else
     printf 'Database: migration triplets inventoried; runtime assertions delegated to local mode\n'

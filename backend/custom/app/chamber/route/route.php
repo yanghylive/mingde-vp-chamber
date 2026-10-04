@@ -171,6 +171,9 @@ Route::group('v1/me', function () {
         ->pattern(['registration_id' => '\\d+']);
     Route::post('event-registrations/:registration_id/refunds', 'EventRegistrationController/refund')
         ->pattern(['registration_id' => '\\d+']);
+    Route::get('waitlist', 'EventWaitlistController/index');
+    Route::delete('waitlist/:waitlist_id', 'EventWaitlistController/destroy')
+        ->pattern(['waitlist_id' => '\\d+']);
     Route::get('friends', 'MemberFriendController/index');
     Route::post('friends/:friend_id/accept', 'MemberFriendController/accept')
         ->pattern(['friend_id' => '\\d+']);

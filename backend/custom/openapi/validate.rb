@@ -137,7 +137,7 @@ unless spec.is_a?(Hash)
 end
 
 errors << 'openapi must equal 3.1.0' unless spec['openapi'] == '3.1.0'
-errors << 'info.version must equal 0.8.0' unless dig_hash(spec, 'info', 'version') == '0.8.0'
+errors << 'info.version must equal 0.9.0' unless dig_hash(spec, 'info', 'version') == '0.9.0'
 
 expected_paths = [
   '/chamber/health',
@@ -161,6 +161,9 @@ expected_paths = [
   '/chamber/v1/me/event-registrations/{registration_id}',
   '/chamber/v1/me/event-registrations/{registration_id}/refunds',
   '/chamber/v1/events/{event_id}/checkins',
+  '/chamber/v1/events/{event_id}/waitlist',
+  '/chamber/v1/me/waitlist',
+  '/chamber/v1/me/waitlist/{waitlist_id}',
   '/chamber/admin/v1/events',
   '/chamber/admin/v1/events/{event_id}',
   '/chamber/admin/v1/events/{event_id}/publish',
@@ -210,6 +213,9 @@ expected_operations = [
   ['/chamber/v1/me/event-registrations/{registration_id}', 'get', 'showMyEventRegistration', 'implemented', '200', 'CrmebBearerAuth'],
   ['/chamber/v1/me/event-registrations/{registration_id}/refunds', 'post', 'createEventRegistrationRefund', 'implemented', '201', 'CrmebBearerAuth'],
   ['/chamber/v1/events/{event_id}/checkins', 'post', 'createEventCheckin', 'implemented', '201', 'CrmebBearerAuth'],
+  ['/chamber/v1/events/{event_id}/waitlist', 'post', 'joinEventWaitlist', 'implemented', '201', 'CrmebBearerAuth'],
+  ['/chamber/v1/me/waitlist', 'get', 'listMyWaitlist', 'implemented', '200', 'CrmebBearerAuth'],
+  ['/chamber/v1/me/waitlist/{waitlist_id}', 'delete', 'leaveEventWaitlist', 'implemented', '200', 'CrmebBearerAuth'],
   ['/chamber/admin/v1/events', 'get', 'listEventsForAdmin', 'implemented', '200', 'CrmebAdminBearerAuth', 'chamber.event.manage'],
   ['/chamber/admin/v1/events', 'post', 'createEventForAdmin', 'planned', '201', 'CrmebAdminBearerAuth', 'chamber.event.manage'],
   ['/chamber/admin/v1/events/{event_id}', 'get', 'showEventForAdmin', 'implemented', '200', 'CrmebAdminBearerAuth', 'chamber.event.manage'],
@@ -325,6 +331,18 @@ expected_operation_contracts = {
   ['/chamber/v1/me/event-registrations/{registration_id}/refunds', 'post'] => {
     request_schema: '#/components/schemas/RefundCreateRequest',
     success_response: '#/components/responses/EventRegistrationSuccess'
+  },
+  ['/chamber/v1/events/{event_id}/waitlist', 'post'] => {
+    request_schema: '#/components/schemas/WaitlistJoinRequest',
+    success_response: '#/components/responses/WaitlistJoinSuccess'
+  },
+  ['/chamber/v1/me/waitlist', 'get'] => {
+    request_schema: nil,
+    success_response: '#/components/responses/WaitlistListSuccess'
+  },
+  ['/chamber/v1/me/waitlist/{waitlist_id}', 'delete'] => {
+    request_schema: nil,
+    success_response: '#/components/responses/WaitlistItemSuccess'
   },
   ['/chamber/v1/events/{event_id}/checkins', 'post'] => {
     request_schema: '#/components/schemas/EventCheckinRequest',

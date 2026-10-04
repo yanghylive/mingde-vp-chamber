@@ -522,6 +522,7 @@ final class EventService
                 'reserved_count' => (int) $ticket['reserved_count'],
                 'paid_count' => (int) $ticket['paid_count'],
                 'remaining' => $remaining,
+                'waitlist_enabled' => (int) ($ticket['waitlist_enabled'] ?? 0) === 1,
                 'min_tier' => (int) $ticket['min_tier'],
                 'eligibility' => EventEligibility::normalizeRules($ticket['eligibility_json'] ?? []),
                 'refund_policy' => $this->refundPolicy($ticket['refund_policy_json'] ?? null),

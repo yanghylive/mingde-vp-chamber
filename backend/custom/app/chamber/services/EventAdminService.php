@@ -615,6 +615,7 @@ final class EventAdminService
                 'product_id' => $ticket['product_id'],
                 'product_attr_unique' => $ticket['product_attr_unique'],
                 'capacity' => $ticket['capacity'],
+                'waitlist_enabled' => $ticket['waitlist_enabled'],
                 'reserved_count' => 0,
                 'paid_count' => 0,
                 'min_tier' => $ticket['min_tier'],
@@ -770,7 +771,7 @@ final class EventAdminService
             if (!is_array($ticket)) {
                 throw $this->validation('ticket must be an object', [['field' => 'tickets[' . $index . ']', 'code' => 'invalid_value']]);
             }
-            $allowed = ['name', 'price', 'integral_price', 'product_id', 'product_attr_unique', 'capacity', 'min_tier', 'eligibility', 'refund_policy', 'sale_start_time', 'sale_end_time', 'status', 'sort'];
+            $allowed = ['name', 'price', 'integral_price', 'product_id', 'product_attr_unique', 'capacity', 'min_tier', 'eligibility', 'refund_policy', 'sale_start_time', 'sale_end_time', 'status', 'sort', 'waitlist_enabled'];
             foreach (array_keys($ticket) as $key) {
                 if (!in_array($key, $allowed, true)) {
                     throw $this->validation('Unknown ticket field: ' . $key);
@@ -799,6 +800,7 @@ final class EventAdminService
                 'sale_end_time' => $this->nonNegativeInt($ticket['sale_end_time'] ?? 0, 'ticket.sale_end_time'),
                 'status' => ((int) ($ticket['status'] ?? 1) === 0 ? 0 : 1),
                 'sort' => $this->nonNegativeInt($ticket['sort'] ?? 0, 'ticket.sort'),
+                'waitlist_enabled' => (int) ($ticket['waitlist_enabled'] ?? 0) === 1 ? 1 : 0,
             ];
         }
 
@@ -841,6 +843,7 @@ final class EventAdminService
                     'price' => (string) $ticket['price'],
                     'integral_price' => (int) $ticket['integral_price'],
                     'capacity' => (int) $ticket['capacity'],
+                    'waitlist_enabled' => (int) ($ticket['waitlist_enabled'] ?? 0) === 1,
                     'reserved_count' => (int) $ticket['reserved_count'],
                     'paid_count' => (int) $ticket['paid_count'],
                     'remaining' => (int) $ticket['capacity'] > 0

@@ -22,6 +22,8 @@ use app\chamber\tenancy\TenantContext;
 use app\chamber\tenancy\TenantRecord;
 use InvalidArgumentException;
 use think\facade\Db;
+use think\facade\Log;
+use Throwable;
 
 /** Initiates trusted CRMEB refunds for paid event registrations. */
 final class EventRegistrationRefundService
@@ -301,6 +303,7 @@ final class EventRegistrationRefundService
                     $now,
                     $result
                 );
+                $this->promoteAfterSeatRelease((int) $registration['ticket_id']);
 
                 return $this->events->registrationDetail($tenant, $auth, (int) $registration['id']);
             },
@@ -386,6 +389,7 @@ final class EventRegistrationRefundService
 
                 if ($result->status() === RefundAttemptState::SUCCEEDED) {
                     $succeeded++;
+                    $this->promoteAfterSeatRelease((int) $registration['ticket_id']);
                 } else {
                     $stillPending++;
                 }
@@ -400,6 +404,26 @@ final class EventRegistrationRefundService
         }
 
         return ['scanned' => count($rows), 'succeeded' => $succeeded, 'still_pending' => $stillPending, 'failed' => $failed];
+    }
+
+    /**
+     * 全额退款冲正后席位释放：按候补顺序自动转正下一位。
+     * 部分退款不释放席位（票种 paid_count 不变），promoteForTicket 内部按容量判断。
+     */
+    private function promoteAfterSeatRelease(int $ticketId): void
+    {
+        if ($ticketId <= 0) {
+            return;
+        }
+        try {
+            (new EventWaitlistService())->promoteForTicket($ticketId);
+        } catch (Throwable $e) {
+            // 候补转正失败不得回滚已确认的退款事实，交由 repair job 重试。
+            Log::error('chamber.waitlist_promote_failed', [
+                'ticket_id' => $ticketId,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     /** 从退款尝试行重建租户上下文（后台 job 无请求上下文）。 */

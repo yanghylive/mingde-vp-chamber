@@ -2,7 +2,7 @@ openapi: 3.1.0
 jsonSchemaDialect: https://json-schema.org/draft/2020-12/schema
 info:
   title: Mingde VP Chamber API
-  version: 0.8.0
+  version: 0.9.0
   summary: Chamber overlay G0/G1 runtime and G2 activity vertical
   description: |
     This document is the source-controlled contract for the independently developed
@@ -986,6 +986,136 @@ paths:
       responses:
         '201':
           $ref: '#/components/responses/EventRegistrationSuccess'
+        '400':
+          $ref: '#/components/responses/ChamberRequestError'
+        '401':
+          $ref: '#/components/responses/ChamberRequestError'
+        '403':
+          $ref: '#/components/responses/ChamberRequestError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/TenantServiceUnavailable'
+        '404':
+          $ref: '#/components/responses/MemberTransactionError'
+        '409':
+          $ref: '#/components/responses/MemberTransactionError'
+        '422':
+          $ref: '#/components/responses/MemberTransactionError'
+  /chamber/v1/events/{event_id}/waitlist:
+    post:
+      tags:
+        - Activity
+      summary: Join the waitlist of a sold-out event ticket
+      description: Available only when the ticket has waitlist enabled and is sold out. No points are held and no order is created; a seat is held for the member only after automatic promotion.
+      operationId: joinEventWaitlist
+      security:
+        - CrmebBearerAuth: []
+      x-implementation-status: implemented
+      x-requirement-id: ACT-005
+      x-tenant-context: required
+      x-signed-headers-all-or-none: true
+      parameters:
+        - name: event_id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/PositiveId'
+        - $ref: '#/components/parameters/RequestIdHeader'
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+        - $ref: '#/components/parameters/ChamberTenantHeader'
+        - $ref: '#/components/parameters/ChamberChannelHeader'
+        - $ref: '#/components/parameters/ChamberTimestampHeader'
+        - $ref: '#/components/parameters/ChamberNonceHeader'
+        - $ref: '#/components/parameters/ChamberSignatureHeader'
+        - $ref: '#/components/parameters/IdempotencyKeyHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WaitlistJoinRequest'
+      responses:
+        '201':
+          $ref: '#/components/responses/WaitlistJoinSuccess'
+        '400':
+          $ref: '#/components/responses/ChamberRequestError'
+        '401':
+          $ref: '#/components/responses/ChamberRequestError'
+        '403':
+          $ref: '#/components/responses/ChamberRequestError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/TenantServiceUnavailable'
+        '404':
+          $ref: '#/components/responses/MemberTransactionError'
+        '409':
+          $ref: '#/components/responses/MemberTransactionError'
+        '422':
+          $ref: '#/components/responses/MemberTransactionError'
+  /chamber/v1/me/waitlist:
+    get:
+      tags:
+        - Activity
+      summary: List the authenticated member's waitlist entries
+      operationId: listMyWaitlist
+      security:
+        - CrmebBearerAuth: []
+      x-implementation-status: implemented
+      x-requirement-id: ACT-005
+      x-tenant-context: required
+      x-signed-headers-all-or-none: true
+      parameters:
+        - $ref: '#/components/parameters/RequestIdHeader'
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+        - $ref: '#/components/parameters/ChamberTenantHeader'
+        - $ref: '#/components/parameters/ChamberChannelHeader'
+        - $ref: '#/components/parameters/ChamberTimestampHeader'
+        - $ref: '#/components/parameters/ChamberNonceHeader'
+        - $ref: '#/components/parameters/ChamberSignatureHeader'
+      responses:
+        '200':
+          $ref: '#/components/responses/WaitlistListSuccess'
+        '400':
+          $ref: '#/components/responses/ChamberRequestError'
+        '401':
+          $ref: '#/components/responses/ChamberRequestError'
+        '403':
+          $ref: '#/components/responses/ChamberRequestError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/TenantServiceUnavailable'
+  /chamber/v1/me/waitlist/{waitlist_id}:
+    delete:
+      tags:
+        - Activity
+      summary: Leave a waitlist entry that is still waiting
+      description: Only waiting entries can be cancelled. A promoted entry keeps its seat hold and must be settled by registering or by the promotion window expiring.
+      operationId: leaveEventWaitlist
+      security:
+        - CrmebBearerAuth: []
+      x-implementation-status: implemented
+      x-requirement-id: ACT-005
+      x-tenant-context: required
+      x-signed-headers-all-or-none: true
+      parameters:
+        - name: waitlist_id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/PositiveId'
+        - $ref: '#/components/parameters/RequestIdHeader'
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+        - $ref: '#/components/parameters/ChamberTenantHeader'
+        - $ref: '#/components/parameters/ChamberChannelHeader'
+        - $ref: '#/components/parameters/ChamberTimestampHeader'
+        - $ref: '#/components/parameters/ChamberNonceHeader'
+        - $ref: '#/components/parameters/ChamberSignatureHeader'
+      responses:
+        '200':
+          $ref: '#/components/responses/WaitlistItemSuccess'
         '400':
           $ref: '#/components/responses/ChamberRequestError'
         '401':
@@ -2987,6 +3117,39 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/RefundConfirmEnvelope'
+    WaitlistJoinSuccess:
+      description: WaitlistJoinSuccess
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestIdResponseHeader'
+        X-Correlation-Id:
+          $ref: '#/components/headers/CorrelationIdResponseHeader'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/WaitlistJoinEnvelope'
+    WaitlistListSuccess:
+      description: WaitlistListSuccess
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestIdResponseHeader'
+        X-Correlation-Id:
+          $ref: '#/components/headers/CorrelationIdResponseHeader'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/WaitlistListEnvelope'
+    WaitlistItemSuccess:
+      description: WaitlistItemSuccess
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestIdResponseHeader'
+        X-Correlation-Id:
+          $ref: '#/components/headers/CorrelationIdResponseHeader'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/WaitlistItemEnvelope'
   schemas:
     RequestId:
       type: string
@@ -6073,3 +6236,116 @@ components:
               const: ok
             data:
               $ref: '#/components/schemas/RefundConfirmData'
+    WaitlistJoinRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - ticket_id
+      properties:
+        ticket_id:
+          type: integer
+          minimum: 1
+    WaitlistItem:
+      type: object
+      additionalProperties: false
+      required:
+        - waitlist_id
+        - event_id
+        - ticket_id
+        - status
+        - promote_expire_time
+        - registration_id
+        - add_time
+        - update_time
+      properties:
+        waitlist_id:
+          type: integer
+        event_id:
+          type: integer
+        ticket_id:
+          type: integer
+        status:
+          type: string
+          enum:
+            - waiting
+            - promoted
+            - expired
+            - cancelled
+            - converted
+        promote_expire_time:
+          type: integer
+        registration_id:
+          type: integer
+        add_time:
+          type: integer
+        update_time:
+          type: integer
+    WaitlistJoinData:
+      type: object
+      additionalProperties: false
+      required:
+        - waitlist_id
+        - status
+        - position
+        - already_joined
+      properties:
+        waitlist_id:
+          type: integer
+        status:
+          type: string
+          enum:
+            - waiting
+            - promoted
+        position:
+          type: integer
+        already_joined:
+          type: boolean
+    WaitlistListData:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/WaitlistItem'
+    WaitlistJoinEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelopeBase'
+        - type: object
+          required:
+            - data
+          properties:
+            status:
+              const: 201
+            msg:
+              const: created
+            data:
+              $ref: '#/components/schemas/WaitlistJoinData'
+    WaitlistListEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelopeBase'
+        - type: object
+          required:
+            - data
+          properties:
+            status:
+              const: 200
+            msg:
+              const: ok
+            data:
+              $ref: '#/components/schemas/WaitlistListData'
+    WaitlistItemEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelopeBase'
+        - type: object
+          required:
+            - data
+          properties:
+            status:
+              const: 200
+            msg:
+              const: ok
+            data:
+              $ref: '#/components/schemas/WaitlistItem'

@@ -14,9 +14,13 @@ final class EventReservationRepairService
     /** @var EventOrderGatewayInterface */
     private $orders;
 
-    public function __construct(EventOrderGatewayInterface $orders)
+    /** @var EventWaitlistService */
+    private $waitlist;
+
+    public function __construct(EventOrderGatewayInterface $orders, EventWaitlistService $waitlist = null)
     {
         $this->orders = $orders;
+        $this->waitlist = $waitlist ?: new EventWaitlistService();
     }
 
     public function releaseExpired(int $limit = 50): array
@@ -41,6 +45,15 @@ final class EventReservationRepairService
                 }
                 if ($this->release((int) $candidate['id'])) {
                     $summary['released']++;
+                    // 席位释放：按候补顺序自动转正下一位（不冻结资金，仅锁定席位+支付窗口）
+                    $registration = Db::table('ch_event_registration')
+                        ->where('id', (int) $candidate['id'])->find();
+                    if (is_array($registration)) {
+                        $summary['waitlist'] = array_merge(
+                            $summary['waitlist'] ?? ['promoted' => 0],
+                            $this->waitlist->promoteForTicket((int) $registration['ticket_id'])
+                        );
+                    }
                 }
             } catch (Throwable $exception) {
                 $summary['failed']++;
