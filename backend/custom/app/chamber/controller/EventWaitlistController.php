@@ -30,7 +30,6 @@ final class EventWaitlistController
         AuthenticatedUserContext $auth,
         $event_id
     ): Response {
-        unset($request);
         $eventId = $this->positiveId($event_id, 'event_id');
         $body = EventRegistrationRequest::fromArray($this->decodeJsonObject($request));
         // 复用票种解析：直接按 event_id + ticket_id 加入

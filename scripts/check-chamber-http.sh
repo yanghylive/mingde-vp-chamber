@@ -114,10 +114,6 @@ status="$(request refund-list-anon -X GET \
     "${BASE_URL}/chamber/admin/v1/refunds")"
 [ "${status}" = '401' ] || fail "refund list without auth returned HTTP ${status}"
 
-status="$(request refund-list-member -X GET -H "Authorization: Bearer ${TOKEN}" \
-    "${BASE_URL}/chamber/admin/v1/refunds")"
-[ "${status}" = '401' ] || fail "refund list with member token returned HTTP ${status}"
-
 status="$(request refund-list-admin -X GET -H "Authorization: Bearer ${ADMIN_TOKEN}" \
     "${BASE_URL}/chamber/admin/v1/refunds")"
 [ "${status}" = '200' ] || fail "refund list with admin token returned HTTP ${status}"
@@ -133,4 +129,34 @@ status="$(request refund-confirm-missing -X POST -H "Authorization: Bearer ${ADM
 [ "${status}" = '404' ] || fail "refund confirm on missing attempt returned HTTP ${status}"
 assert_json "${TMP_DIR}/refund-confirm-missing.json" data.reason refund_attempt_not_found
 
-echo "PASS: chamber HTTP acceptance (notification read isolation + appointment idempotency + refund admin permissions)"
+# ---------------------------------------------------------------------------
+# 2.6 候补：路由/鉴权/校验连通（完整转正流程由 event_waitlist_db_run 覆盖）
+# ---------------------------------------------------------------------------
+status="$(request waitlist-anon -X POST -H 'Idempotency-Key: ch-wl-anon' \
+    -H 'Content-Type: application/json' --data '{"ticket_id":1}' \
+    "${BASE_URL}/chamber/v1/events/1/waitlist")"
+[ "${status}" = '401' ] || fail "waitlist join without token returned HTTP ${status}"
+
+status="$(request waitlist-mine -X GET -H "Authorization: Bearer ${TOKEN}" \
+    "${BASE_URL}/chamber/v1/me/waitlist")"
+[ "${status}" = '200' ] || fail "my waitlist returned HTTP ${status}: $(cat "${TMP_DIR}/waitlist-mine.json")"
+node - "${TMP_DIR}/waitlist-mine.json" <<'NODE' || fail 'Waitlist list envelope is invalid'
+const fs = require('fs');
+const body = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+if (body.status !== 200 || !Array.isArray(body.data.items)) process.exit(1);
+NODE
+
+status="$(request waitlist-missing-ticket -X POST -H "Authorization: Bearer ${TOKEN}" \
+    -H 'Idempotency-Key: ch-wl-missing' -H 'Content-Type: application/json' \
+    --data '{"ticket_id":2147483647}' \
+    "${BASE_URL}/chamber/v1/events/1/waitlist")"
+[ "${status}" = '404' ] || fail "waitlist join on missing ticket returned HTTP ${status}"
+assert_json "${TMP_DIR}/waitlist-missing-ticket.json" data.reason ticket_not_found
+
+# 会员 token 打 admin 路由：CRMEB admin 鉴权解析失败会清掉该 token 的缓存，
+# 因此这条负向断言必须放在所有会员请求之后，否则会毒化 ${TOKEN}。
+status="$(request refund-list-member -X GET -H "Authorization: Bearer ${TOKEN}" \
+    "${BASE_URL}/chamber/admin/v1/refunds")"
+[ "${status}" = '401' ] || fail "refund list with member token returned HTTP ${status}"
+
+echo "PASS: chamber HTTP acceptance (notification read isolation + appointment idempotency + refund admin permissions + waitlist routing)"

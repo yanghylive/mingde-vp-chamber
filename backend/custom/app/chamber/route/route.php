@@ -57,6 +57,9 @@ foreach ([
     'v1/events/:event_id',
     'v1/events/:event_id/registrations',
     'v1/events/:event_id/checkins',
+    'v1/events/:event_id/waitlist',
+    'v1/me/waitlist',
+    'v1/me/waitlist/:waitlist_id',
     'v1/me/friends',
     'v1/me/friends/:friend_id/accept',
     'v1/me/distribution',
@@ -320,6 +323,8 @@ Route::group('v1/events', function () {
     Route::post(':event_id/registrations', 'EventRegistrationController/store')
         ->pattern(['event_id' => '\\d+']);
     Route::post(':event_id/checkins', 'EventCheckinController/store')
+        ->pattern(['event_id' => '\\d+']);
+    Route::post(':event_id/waitlist', 'EventWaitlistController/join')
         ->pattern(['event_id' => '\\d+']);
 })->middleware(RequestTraceMiddleware::class)
     ->middleware(ChamberCorsMiddleware::class)
