@@ -137,7 +137,7 @@ unless spec.is_a?(Hash)
 end
 
 errors << 'openapi must equal 3.1.0' unless spec['openapi'] == '3.1.0'
-errors << 'info.version must equal 0.6.0' unless dig_hash(spec, 'info', 'version') == '0.6.0'
+errors << 'info.version must equal 0.7.0' unless dig_hash(spec, 'info', 'version') == '0.7.0'
 
 expected_paths = [
   '/chamber/health',
@@ -173,11 +173,6 @@ expected_paths = [
   '/chamber/v1/experts/appointments/{appointment_id}/cancel',
   '/chamber/admin/v1/notifications',
   '/chamber/admin/v1/notifications/{notification_id}',
-  '/chamber/admin/v1/settlement/rules',
-  '/chamber/admin/v1/settlement/settlements',
-  '/chamber/admin/v1/settlement/balances',
-  '/chamber/admin/v1/settlement/run-due',
-  '/chamber/admin/v1/settlement/settle',
   '/chamber/v1/wechat-pay/orders',
   '/chamber/v1/wechat-pay/notify',
   '/chamber/v1/wechat-pay/orders/{out_trade_no}',
@@ -227,17 +222,11 @@ expected_operations = [
   ['/chamber/admin/v1/notifications', 'post', 'createNotificationForAdmin', 'implemented', '200', 'CrmebAdminBearerAuth', 'chamber.notification.write'],
   ['/chamber/admin/v1/notifications/{notification_id}', 'patch', 'updateNotificationForAdmin', 'implemented', '200', 'CrmebAdminBearerAuth', 'chamber.notification.write'],
   ['/chamber/admin/v1/notifications/{notification_id}', 'delete', 'deleteNotificationForAdmin', 'implemented', '200', 'CrmebAdminBearerAuth', 'chamber.notification.delete'],
-  ['/chamber/admin/v1/settlement/rules', 'get', 'getSettlementRulesForAdmin', 'implemented', '200', 'CrmebAdminBearerAuth', 'chamber.settlement.read'],
-  ['/chamber/admin/v1/settlement/rules', 'put', 'saveSettlementRulesForAdmin', 'implemented', '200', 'CrmebAdminBearerAuth', 'chamber.settlement.rule.write'],
-  ['/chamber/admin/v1/settlement/settlements', 'get', 'listSettlementsForAdmin', 'implemented', '200', 'CrmebAdminBearerAuth', 'chamber.settlement.read'],
-  ['/chamber/admin/v1/settlement/balances', 'get', 'getSettlementBalancesForAdmin', 'implemented', '200', 'CrmebAdminBearerAuth', 'chamber.settlement.read'],
-  ['/chamber/admin/v1/settlement/run-due', 'post', 'runSettlementDueForAdmin', 'implemented', '200', 'CrmebAdminBearerAuth', 'chamber.settlement.retry'],
   ['/chamber/v1/wechat-pay/orders', 'post', 'createWechatPayOrder', 'implemented', '200', 'CrmebBearerAuth'],
   ['/chamber/v1/wechat-pay/notify', 'post', 'wechatPayNotify', 'implemented', '200', nil],
   ['/chamber/v1/wechat-pay/orders/{out_trade_no}', 'get', 'getWechatPayOrder', 'implemented', '200', 'CrmebBearerAuth'],
   ['/chamber/v1/wechat-pay/config-status', 'get', 'wechatPayConfigStatus', 'implemented', '200', nil],
   ['/chamber/admin/v1/ai-twins/{member_id}/listed', 'patch', 'setAiTwinListed', 'implemented', '200', 'CrmebAdminBearerAuth', 'chamber.ai_twin.write'],
-  ['/chamber/admin/v1/settlement/settle', 'post', 'settleOrderForAdmin', 'implemented', '200', 'CrmebAdminBearerAuth', 'chamber.settlement.manual_adjust'],
 ]
 expected_operation_contracts = {
   ['/chamber/health', 'get'] => {
@@ -397,26 +386,6 @@ expected_operation_contracts = {
     request_schema: nil,
     success_response: '#/components/responses/NotificationDeleted'
   },
-  ['/chamber/admin/v1/settlement/rules', 'get'] => {
-    request_schema: nil,
-    success_response: '#/components/responses/SettlementRulesSuccess'
-  },
-  ['/chamber/admin/v1/settlement/rules', 'put'] => {
-    request_schema: '#/components/schemas/SettlementRulesSaveRequest',
-    success_response: '#/components/responses/SettlementRulesSaved'
-  },
-  ['/chamber/admin/v1/settlement/settlements', 'get'] => {
-    request_schema: nil,
-    success_response: '#/components/responses/SettlementListSuccess'
-  },
-  ['/chamber/admin/v1/settlement/balances', 'get'] => {
-    request_schema: nil,
-    success_response: '#/components/responses/SettlementBalancesSuccess'
-  },
-  ['/chamber/admin/v1/settlement/run-due', 'post'] => {
-    request_schema: nil,
-    success_response: '#/components/responses/SettlementRunSuccess'
-  },
   ['/chamber/v1/wechat-pay/orders', 'post'] => {
     request_schema: '#/components/schemas/WechatPayOrderRequest',
     success_response: '#/components/responses/WechatPayOrderSuccess'
@@ -436,10 +405,6 @@ expected_operation_contracts = {
   ['/chamber/admin/v1/ai-twins/{member_id}/listed', 'patch'] => {
     request_schema: '#/components/schemas/AiTwinListedRequest',
     success_response: '#/components/responses/AiTwinListedSuccess'
-  },
-  ['/chamber/admin/v1/settlement/settle', 'post'] => {
-    request_schema: '#/components/schemas/SettlementSettleRequest',
-    success_response: '#/components/responses/SettlementSettled'
   },
 }
 operation_ids = []
