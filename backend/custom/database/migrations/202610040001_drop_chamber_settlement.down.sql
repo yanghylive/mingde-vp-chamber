@@ -1,7 +1,7 @@
--- 分账系统数据模型（5 张表）
--- 场景：① 会员费 → 三公司 4:4:2 对公分账；② 平台收入 → 给大咖（个人）结算
-
--- 1. 分账规则（配置化，比例可改）
+-- Local/CI rollback only: restores the 5 settlement tables dropped by the
+-- 202610040001 up migration (structure as of 202608160011 + 202608160013).
+-- Run manually: mysql < this file. Business behavior is NOT restored
+-- (settlement services/controllers were removed in the same change).
 CREATE TABLE IF NOT EXISTS ch_settlement_rule (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     tenant_id INT UNSIGNED NOT NULL DEFAULT 0,
@@ -20,7 +20,6 @@ CREATE TABLE IF NOT EXISTS ch_settlement_rule (
     KEY idx_tenant_biz (tenant_id, business_type)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='分账规则';
 
--- 2. 分账单（每笔订单一张）
 CREATE TABLE IF NOT EXISTS ch_settlement (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     tenant_id INT UNSIGNED NOT NULL DEFAULT 0,
@@ -37,7 +36,6 @@ CREATE TABLE IF NOT EXISTS ch_settlement (
     KEY idx_tenant_status (tenant_id, status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='分账单';
 
--- 3. 分账明细（每个接收方一行）
 CREATE TABLE IF NOT EXISTS ch_settlement_detail (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     settlement_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
@@ -53,14 +51,18 @@ CREATE TABLE IF NOT EXISTS ch_settlement_detail (
     fail_reason VARCHAR(255) NOT NULL DEFAULT '',
     retry_count TINYINT UNSIGNED NOT NULL DEFAULT 0,
     settled_time INT UNSIGNED NOT NULL DEFAULT 0,
+    claim_token VARCHAR(64) NOT NULL DEFAULT '' COMMENT '认领令牌（lease）',
+    claim_expire_time INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '认领过期时间',
+    next_retry_time INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '下次重试时间（失败退避）',
     add_time INT UNSIGNED NOT NULL DEFAULT 0,
     update_time INT UNSIGNED NOT NULL DEFAULT 0,
     PRIMARY KEY (id),
     KEY idx_settlement (settlement_id),
-    KEY idx_status (tenant_id, status)
+    KEY idx_status (tenant_id, status),
+    KEY idx_due (tenant_id, status, next_retry_time, id),
+    KEY idx_claim (status, claim_expire_time)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='分账明细';
 
--- 4. 打款记录（通道级幂等 + 对账）
 CREATE TABLE IF NOT EXISTS ch_payout_record (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     settlement_detail_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
@@ -71,6 +73,9 @@ CREATE TABLE IF NOT EXISTS ch_payout_record (
     status VARCHAR(16) NOT NULL DEFAULT 'pending' COMMENT 'pending/success/failed',
     idempotency_key VARCHAR(64) NOT NULL DEFAULT '',
     raw_response TEXT,
+    request_payload_hash CHAR(64) NOT NULL DEFAULT '' COMMENT '请求体哈希（对账）',
+    query_count INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '渠道查询次数',
+    last_query_time INT UNSIGNED NOT NULL DEFAULT 0,
     add_time INT UNSIGNED NOT NULL DEFAULT 0,
     update_time INT UNSIGNED NOT NULL DEFAULT 0,
     PRIMARY KEY (id),
@@ -78,7 +83,6 @@ CREATE TABLE IF NOT EXISTS ch_payout_record (
     KEY idx_detail (settlement_detail_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='打款记录';
 
--- 5. 抵扣余额（退款下期抵扣：退款不追回已分账，记负余额下期少分）
 CREATE TABLE IF NOT EXISTS ch_settlement_balance (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     tenant_id INT UNSIGNED NOT NULL DEFAULT 0,

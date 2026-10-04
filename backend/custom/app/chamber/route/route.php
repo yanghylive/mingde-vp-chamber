@@ -114,12 +114,6 @@ foreach ([
     'admin/v1/ai-twins/:member_id/knowledge/upload',
     'admin/v1/notifications',
     'admin/v1/notifications/:notification_id',
-    'admin/v1/settlement/rules',
-    'admin/v1/settlement/settlements',
-    'admin/v1/settlement/balances',
-    'admin/v1/settlement/run-due',
-    'admin/v1/settlement/details/:detail_id/retry',
-    'admin/v1/settlement/settle',
     'admin/v1/admin-permissions',
     'admin/v1/admin-permissions/:admin_id',
     'v1/ai-twin/me',
@@ -428,15 +422,6 @@ Route::group('admin/v1', function () {
         ->pattern(['notification_id' => '\\d+']);
     Route::delete('notifications/:notification_id', 'NotificationAdminController/destroy')
         ->pattern(['notification_id' => '\\d+']);
-    // ---- 分账 ----
-    Route::get('settlement/rules', 'SettlementAdminController/rules');
-    Route::put('settlement/rules', 'SettlementAdminController/saveRules');
-    Route::get('settlement/settlements', 'SettlementAdminController/settlements');
-    Route::get('settlement/balances', 'SettlementAdminController/balances');
-    Route::post('settlement/run-due', 'SettlementAdminController/runDue');
-    Route::post('settlement/details/:detail_id/retry', 'SettlementAdminController/retry')
-        ->pattern(['detail_id' => '\\d+']);
-    Route::post('settlement/settle', 'SettlementAdminController/settle');
     // ---- admin 动作级权限授权 ----
     Route::post('admin-permissions', 'AdminPermissionController/grant');
     Route::get('admin-permissions/:admin_id', 'AdminPermissionController/show')

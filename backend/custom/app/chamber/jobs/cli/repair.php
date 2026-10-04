@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 use app\chamber\jobs\EventReservationRepairJob;
 use app\chamber\jobs\MembershipOrderContextRepairJob;
-use app\chamber\jobs\SettlementSettleJob;
 
 /**
  * 商会修复任务 CLI 入口（供 crontab 定时调用）。
@@ -14,7 +13,7 @@ use app\chamber\jobs\SettlementSettleJob;
  * 等业务缺陷。本脚本直接调用 doJob 绕过队列，crontab 定时执行即可，不依赖常驻队列 worker。
  *
  * 用法：
- *   php app/chamber/jobs/cli/repair.php [event|membership|settlement|all] [limit]
+ *   php app/chamber/jobs/cli/repair.php [event|membership|all] [limit]
  *   例：php app/chamber/jobs/cli/repair.php all 50
  */
 
@@ -63,14 +62,6 @@ if (in_array($which, ['membership', 'all'], true)) {
         $ok = app()->make(MembershipOrderContextRepairJob::class)->doJob($limit) && $ok;
     } catch (Throwable $e) {
         fwrite(STDERR, 'membership repair failed: ' . $e->getMessage() . PHP_EOL);
-        $ok = false;
-    }
-}
-if (in_array($which, ['settlement', 'all'], true)) {
-    try {
-        $ok = app()->make(SettlementSettleJob::class)->doJob($limit) && $ok;
-    } catch (Throwable $e) {
-        fwrite(STDERR, 'settlement settle failed: ' . $e->getMessage() . PHP_EOL);
         $ok = false;
     }
 }

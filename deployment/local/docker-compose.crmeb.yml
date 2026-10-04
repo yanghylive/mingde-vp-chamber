@@ -4,6 +4,12 @@ services:
     image: ccr.ccs.tencentyun.com/crmebky_php/mysql:v8.0.45
     command:
       - --sql-mode=STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION
+      # 本地开发精简内存：CI/笔记本 Docker 内存不足时 MySQL 8 初始化会被 OOM
+      - --innodb-buffer-pool-size=128M
+      - --innodb-log-file-size=32M
+      - --performance-schema=off
+      # Docker Desktop (macOS) 上 libaio 不可用会导致临时实例启动失败
+      - --innodb-use-native-aio=0
     ports:
       - "127.0.0.1:${CRMEB_MYSQL_PORT:-33061}:3306"
     environment:

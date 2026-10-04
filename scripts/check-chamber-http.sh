@@ -107,36 +107,4 @@ status="$(request appt-cancel -X POST -H "Authorization: Bearer ${TOKEN}" \
 [ "${status}" = '200' ] || fail "appointment cancel returned HTTP ${status}"
 assert_json "${TMP_DIR}/appt-cancel.json" data.points_refunded 10000
 
-# ---------------------------------------------------------------------------
-# 3. 结算：配规则 → settle → run-due → 分账单 done
-# ---------------------------------------------------------------------------
-status="$(request settle-rule -X PUT -H "Authorization: Bearer ${ADMIN_TOKEN}" \
-    -H 'Content-Type: application/json' \
-    --data '{"business_type":"membership_fee","rules":[{"receiver_type":"company","receiver_id":9001,"receiver_name":"验收公司A","ratio":40,"channel":"bank"},{"receiver_type":"company","receiver_id":9002,"receiver_name":"验收公司B","ratio":40,"channel":"bank"},{"receiver_type":"company","receiver_id":9003,"receiver_name":"验收公司C","ratio":20,"channel":"bank"}]}' \
-    "${BASE_URL}/chamber/admin/v1/settlement/rules")"
-[ "${status}" = '200' ] || fail "settlement rule save returned HTTP ${status}"
-
-status="$(request settle-create -X POST -H "Authorization: Bearer ${ADMIN_TOKEN}" \
-    -H 'Content-Type: application/json' \
-    --data '{"business_type":"membership_fee","order_no":"CHTEST001","order_amount":"100.00"}' \
-    "${BASE_URL}/chamber/admin/v1/settlement/settle")"
-[ "${status}" = '200' ] || fail "settle returned HTTP ${status}"
-
-status="$(request settle-run -X POST -H "Authorization: Bearer ${ADMIN_TOKEN}" \
-    "${BASE_URL}/chamber/admin/v1/settlement/run-due")"
-[ "${status}" = '200' ] || fail "run-due returned HTTP ${status}"
-assert_json "${TMP_DIR}/settle-run.json" data.done 3
-
-status="$(request settle-list -X GET -H "Authorization: Bearer ${ADMIN_TOKEN}" \
-    "${BASE_URL}/chamber/admin/v1/settlement/settlements")"
-[ "${status}" = '200' ] || fail "settlement list returned HTTP ${status}"
-assert_json "${TMP_DIR}/settle-list.json" data.items.0.status done
-
-# 3.5 分账状态机 DB 测试：processing 崩溃回收 + payout pending→unknown 对账态 + 结算单关闭正确性
-settlement_state_output="$(docker compose -f "${COMPOSE_FILE}" exec -T phpfpm \
-    php /var/www/app/chamber/tests/settlement_state_machine_db_run.php)"
-printf '%s\n' "${settlement_state_output}"
-grep -Fq 'PASS settlement state machine database service' <<<"${settlement_state_output}" \
-    || fail 'Settlement state machine database gate failed'
-
-echo "PASS: chamber HTTP acceptance (notification read isolation + appointment idempotency + settlement claim)"
+echo "PASS: chamber HTTP acceptance (notification read isolation + appointment idempotency)"
