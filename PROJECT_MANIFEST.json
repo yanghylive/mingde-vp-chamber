@@ -3,6 +3,7 @@
     "code": "mingde-vp-chamber",
     "name": "VP 毕业生同学会数字平台",
     "status": "g2-activity-main-journey-complete",
+    "settlement_retired_on": "2026-10-04",
     "established_on": "2026-07-17",
     "default_branch": "main",
     "repository_visibility": "private"

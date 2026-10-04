@@ -61,7 +61,7 @@ pre{margin:16px 0 24px;padding:20px;overflow:auto;border-radius:6px;background:#
         <li><a href="#domain">领域与数据模型</a></li>
         <li><a href="#membership">会员与关系改造</a></li>
         <li><a href="#event">活动与签到改造</a></li>
-        <li><a href="#commerce">商城、审核与分账</a></li>
+        <li><a href="#commerce">商城、审核与结算</a></li>
         <li><a href="#expert">大咖与预约</a></li>
         <li><a href="#ai">AI 服务</a></li>
         <li><a href="#api">API 与事件契约</a></li>
@@ -96,7 +96,7 @@ pre{margin:16px 0 24px;padding:20px;overflow:auto;border-radius:6px;background:#
           <li>渠道双壳使用新租户领域，不把 CRMEB 事业部/分销代理当作数据租户。</li>
           <li>活动不复用 <code class="inline">eb_store_activity</code>，该表服务于秒杀活动。</li>
           <li>AI 网关独立部署，只通过受控 API 操作 CRMEB，不直接写业务数据库。</li>
-          <li>所有支付、积分、贡献值、退款和分账使用追加式账本与冲正。</li>
+          <li>所有支付、积分、贡献值和退款使用追加式账本与冲正。</li>
         </ul>
 
         <div class="callout risk"><strong>核心警告：</strong>类名“会员、好友、活动、事业部”与 PRD 用词相似，但实际语义不同。AI 编码前必须查阅本说明书的能力矩阵，禁止仅根据文件名判断可复用性。</div>
@@ -253,7 +253,7 @@ pre{margin:16px 0 24px;padding:20px;overflow:auto;border-radius:6px;background:#
 │ Auth / Product / Order   Tenant / Membership / Profile  │
 │ Pay / Refund / Writeoff  Friendship / Contribution      │
 │ Customer / RBAC          Event / Expert / Appointment    │
-│ Distribution / Notice    Submission / Settlement        │
+│ Distribution / Notice    Submission / FinanceExport     │
 └──────────────┬──────────────────────┬────────────────────┘
                │                      │ signed service API
        ┌───────▼────────┐     ┌───────▼────────────────────┐
@@ -268,7 +268,7 @@ pre{margin:16px 0 24px;padding:20px;overflow:auto;border-radius:6px;background:#
           <thead><tr><th>系统</th><th>拥有的数据</th><th>禁止事项</th></tr></thead>
           <tbody>
             <tr><td>CRMEB Core</td><td>用户账号、商品、订单、支付、退款、客服、平台权限</td><td>不得让 AI 服务直接修改</td></tr>
-            <tr><td>Chamber Domain</td><td>租户、会籍、角色、活动、好友、贡献值、大咖、档期、分账</td><td>不得写入 CRMEB 核心含义相近但语义不同的字段</td></tr>
+            <tr><td>Chamber Domain</td><td>租户、会籍、角色、活动、好友、贡献值、大咖、档期</td><td>不得写入 CRMEB 核心含义相近但语义不同的字段</td></tr>
             <tr><td>AI Gateway</td><td>助手配置、知识库索引、对话、配额、调用与成本</td><td>不得成为会员/积分/订单事实来源</td></tr>
             <tr><td>云 OSS</td><td>头像、证明材料、活动资料、课程文件和知识库原文</td><td>不得公开暴露私有对象 URL</td></tr>
           </tbody>
@@ -334,8 +334,8 @@ ai-service/
             <tr><td>活动</td><td><code>ch_event</code>, <code>ch_event_ticket</code>, <code>ch_event_registration</code>, <code>ch_event_checkin</code></td><td>三类活动；票种关联 CRMEB product；报名关联 order</td></tr>
             <tr><td>商品审核</td><td><code>ch_product_submission</code>, <code>ch_product_scope</code>, <code>ch_fulfillment</code></td><td>提交版本、审核日志、商品所有者、租户可见范围</td></tr>
             <tr><td>大咖</td><td><code>ch_expert_profile</code>, <code>ch_expert_slot</code>, <code>ch_appointment</code></td><td>档期唯一；下单锁定；线上/线下履约状态</td></tr>
-            <tr><td>分账</td><td><code>ch_settlement_rule</code>, <code>ch_settlement_ledger</code></td><td>规则快照；平台/渠道/服务方/推荐人；退款冲正</td></tr>
-            <tr><td>订单上下文</td><td><code>ch_order_context</code></td><td>关联 eb_store_order，保存 tenant/channel/业务类型/分账规则</td></tr>
+            <tr><td>结算</td><td>财务导出与对账（无分账表，单方收款）</td><td>订单/退款/积分流水可导出，财务人工对账</td></tr>
+            <tr><td>订单上下文</td><td><code>ch_order_context</code></td><td>关联 eb_store_order，保存 tenant/channel/业务类型/结算规则</td></tr>
             <tr><td>AI</td><td><code>ch_ai_assistant</code>, <code>ch_ai_conversation</code>, <code>ch_ai_usage</code></td><td>授权状态、模型、Token、成本、删除状态</td></tr>
           </tbody>
         </table></div>
@@ -345,7 +345,7 @@ ai-service/
           <li>所有 <code>ch_*</code> 私域表必须含 <code>tenant_id</code>，后台查询必须同时受管理员数据范围限制。</li>
           <li>任何余额类字段必须能由账本重放验证，禁止只改余额不写账。</li>
           <li>业务关联 CRMEB 订单时保存数字主键和业务订单号，不能只保存展示字符串。</li>
-          <li>订单、会籍、分账和权益保存下单时快照，配置修改不得改变历史订单。</li>
+          <li>订单、会籍和权益保存下单时快照，配置修改不得改变历史订单。</li>
           <li>软删除用于内容；账本、支付、退款、审核和安全日志禁止物理删除。</li>
         </ul>
       </section>
@@ -419,7 +419,7 @@ ai-service/
 
       <section id="commerce">
         <p class="label">12 / COMMERCE</p>
-        <h2>商城、会员上架、履约与分账</h2>
+        <h2>商城、会员上架、履约与结算</h2>
 
         <h3>12.1 商品类型扩展</h3>
         <p>不修改 CRMEB SPU/SKU 主结构，使用 <code>ch_product_scope.business_type</code> 扩展业务类型：</p>
@@ -443,13 +443,12 @@ ai-service/
   └─RETURNED─┘             └─REJECTED─┘           └─SUSPENDED</pre>
         <p>开源版不是多商户平台。L2+ 用户提交的是 <code>ch_product_submission</code>，审核通过后由平台服务账号创建 <code>eb_store_product</code>，并在 <code>ch_product_scope</code> 记录 owner_uid、tenant_id 和结算规则。用户不能直接获得 CRMEB 商品管理后台权限。</p>
 
-        <h3>12.3 分账台账</h3>
+        <h3>12.3 财务导出与对账（单方收款，不做自动分账）</h3>
         <ol>
-          <li>下单时冻结平台、渠道、服务方、推荐人的比例与金额快照。</li>
-          <li>支付成功只记“待结算”，不得立即提现。</li>
-          <li>履约确认或售后期结束后转为“可结算”。</li>
-          <li>退款按原规则生成负向账本，不修改历史记录。</li>
-          <li>首发人工结算导出；微信自动分账开通后由 Job 执行并回写渠道单号。</li>
+          <li>下单时冻结价格、权益快照，配置修改不得改变历史订单。</li>
+          <li>订单、退款、积分流水支持财务导出，财务人工对账。</li>
+          <li>退款生成负向账本冲正，不修改历史记录。</li>
+          <li>渠道及服务方款项走线下约定，不在系统内自动拆分。</li>
         </ol>
       </section>
 
@@ -541,13 +540,13 @@ ai-service/
           <thead><tr><th>现有事件</th><th>我方监听器</th><th>用途</th></tr></thead>
           <tbody>
             <tr><td>UserRegisterListener</td><td>ChamberMemberBootstrapListener</td><td>创建租户会员上下文与默认 L1</td></tr>
-            <tr><td>OrderCreateAfterListener</td><td>ChamberOrderContextListener</td><td>保存活动/会籍/预约/分账上下文</td></tr>
+            <tr><td>OrderCreateAfterListener</td><td>ChamberOrderContextListener</td><td>保存活动/会籍/预约上下文</td></tr>
             <tr><td>OrderPaySuccessListener</td><td>ChamberPaymentSignalAdapter + ReconcileJob</td><td>只作为商品在线/余额/零元的加速信号；重读订单并落唯一 inbox 后产生统一完成事件</td></tr>
             <tr><td>线下确认 / OtherOrder</td><td>ChamberOrderReconcileJob</td><td>现有统一支付事件不覆盖，必须由订单扫描补发，不直接挂权益</td></tr>
-            <tr><td>OrderRefundCreateAfterListener</td><td>ChamberRefundFreezeListener</td><td>冻结权益与分账</td></tr>
+            <tr><td>OrderRefundCreateAfterListener</td><td>ChamberRefundFreezeListener</td><td>冻结权益、名额与奖励</td></tr>
             <tr><td>OrderRefundCancelAfterListener</td><td>ChamberRefundRestoreListener</td><td>恢复权益</td></tr>
             <tr><td>admin_order_refund_success</td><td>ChamberRefundProcessingAdapter</td><td>只记渠道请求已受理/本地已写状态，不代表外部资金完成</td></tr>
-            <tr><td>渠道查询成功 / 余额事务提交 / 人工财务确认</td><td>ChamberRefundFinalizeListener + ReconcileJob</td><td>产生真实完成事件，再生成积分、权益、名额和分账的最终冲正</td></tr>
+            <tr><td>渠道查询成功 / 余额事务提交 / 人工财务确认</td><td>ChamberRefundFinalizeListener + ReconcileJob</td><td>产生真实完成事件，再生成积分、权益、名额和奖励的最终冲正</td></tr>
             <tr><td>CustomNoticeListener</td><td>ChamberNoticePayload</td><td>活动、审核、预约消息</td></tr>
           </tbody>
         </table></div>
@@ -619,7 +618,7 @@ ai-service/
             <tr><td>L2+ 会员</td><td>本租户会员目录和会员内容</td><td>好友、活动、上架申请、购买</td></tr>
             <tr><td>导师/教练/领袖</td><td>本人主页、档期、订单</td><td>编辑资料、管理档期、确认履约</td></tr>
             <tr><td>渠道运营</td><td>本渠道会员、活动、商品、订单</td><td>审核与运营，不可改平台配置</td></tr>
-            <tr><td>财务</td><td>订单、退款、分账和导出</td><td>对账、结算、冻结</td></tr>
+            <tr><td>财务</td><td>订单、退款和导出</td><td>对账、结算、冻结</td></tr>
             <tr><td>超级管理员</td><td>全平台</td><td>租户配置、跨租户共享与审计</td></tr>
           </tbody>
         </table></div>
@@ -639,7 +638,7 @@ ai-service/
         <div class="table-wrap"><table>
           <thead><tr><th>层级</th><th>范围</th><th>门禁</th></tr></thead>
           <tbody>
-            <tr><td>PHP 单元</td><td>会籍、积分、贡献值、资格、分账、状态机</td><td>关键领域分支覆盖 ≥ 80%</td></tr>
+            <tr><td>PHP 单元</td><td>会籍、积分、贡献值、资格、状态机</td><td>关键领域分支覆盖 ≥ 80%</td></tr>
             <tr><td>API 集成</td><td>Token、TenantContext、订单事件、退款、审核</td><td>P0 API 100% 覆盖</td></tr>
             <tr><td>数据库</td><td>迁移、索引、唯一键、并发、账本重放</td><td>空库与升级库均成功</td></tr>
             <tr><td>前端组件</td><td>表单、列表、状态、权限、错误反馈</td><td>主流微信版本真机通过</td></tr>
@@ -654,7 +653,7 @@ ai-service/
           <li>支付回调重复 10 次只开通一次会籍/报名/预约。</li>
           <li>同一档期并发下单只能成功到容量上限。</li>
           <li>积分扣除后支付失败可完整补偿。</li>
-          <li>退款后积分、权益、名额、分账全部冲正。</li>
+          <li>退款后积分、权益、名额、奖励全部冲正。</li>
           <li>渠道管理员无法通过修改 ID 读取另一渠道数据。</li>
           <li>AI 工具调用超时、模型限流或余额不足时不影响 CRMEB 主链路。</li>
         </ul>
@@ -711,7 +710,7 @@ ai-service/
             <tr><td>7/17-7/19</td><td>overlay PoC、TenantContext、迁移框架</td><td>品牌壳和页面路由 PoC</td><td>仓库、CI、AI 鉴权 PoC</td><td>基线评审</td></tr>
             <tr><td>7/20-7/26</td><td>租户会员、认证、会籍、积分/贡献、商品上下文</td><td>登录、认证、会籍、会员中心、商城类型</td><td>环境、监控骨架</td><td>注册与会费支付</td></tr>
             <tr><td>7/27-8/2</td><td>活动、好友、上架审核、大咖、档期、预约</td><td>活动、同学、大咖、创作者页面</td><td>AI 对话、工具和配额</td><td>五模块可运行</td></tr>
-            <tr><td>8/3-8/7</td><td>退款冲正、分账台账、通知、统计</td><td>后台审核、发布会内容、真机修复</td><td>护栏、日志、H5 兜底</td><td>候选版本</td></tr>
+            <tr><td>8/3-8/7</td><td>退款冲正、财务导出、通知、统计</td><td>后台审核、发布会内容、真机修复</td><td>护栏、日志、H5 兜底</td><td>候选版本</td></tr>
             <tr><td>8/8-8/10</td><td>只修 P0</td><td>发布会演练与上线</td><td>告警、值守、降级</td><td>发布会全量版</td></tr>
             <tr><td>8/11-9/15</td><td>生产加固、第二品牌、完整履约</td><td>体验优化和增长功能</td><td>压测、安全、成本治理</td><td>生产稳定版</td></tr>
           </tbody>
@@ -729,7 +728,7 @@ ai-service/
           <li>Controller 不直接操作数据库；跨表写入必须在 Services 事务内完成。</li>
           <li>每个私域查询明确 tenant_id；每个写操作声明权限、幂等键和审计事件。</li>
           <li>金额只使用字符串 decimal 与 BCMath；时间统一存 Unix 秒并明确时区。</li>
-          <li>支付、退款、积分、贡献和分账必须先写测试，再写实现。</li>
+          <li>支付、退款、积分和贡献必须先写测试，再写实现。</li>
           <li>新增 API 同时提交路由、验证器、权限菜单、错误码和 HTML 文档更新。</li>
           <li>数据库迁移只能追加，不直接编辑 CRMEB 安装 SQL。</li>
           <li>任何真实会员资料、会议纪要和密钥不得上传到外部模型。</li>

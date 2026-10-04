@@ -42,7 +42,7 @@
     <div class="callout risk"><strong>不做假加速：</strong>Agent 可以并行编码、测试和分析，但不能缩短微信主体/商户审核、真实支付联调、业务规则签字和生产恢复演练。这些外部依赖延误，日期必须同步顺延或增加人工资源。</div>
     <h3>1.1 发布会版的风险收敛</h3>
     <ul>
-      <li>保留全部业务模块，但分账先使用可审计台账 + 人工结算，不在首发日强上自动微信分账。</li>
+      <li>不做分账：单方主体直接收款，财务人工对账；首发日不涉及任何自动分账。</li>
       <li>AI 工具首发只开活动、本人积分、本人订单、课程/服务推荐四类只读工具；写工具在稳定版加入二次确认。</li>
       <li>L3/L4 首发按完整计划购买/续费，不做按天自动补差价；会籍、权益和退款冲正必须完整。</li>
       <li>小程序审核与 H5 同时推进，H5 不是静态展示页，必须覆盖注册、会费、报名、订单、会员、预约和 AI 对话。</li>
@@ -59,7 +59,7 @@
       <article class="role"><span class="pill owner">FRONTEND</span><h3>UniApp/管理端 Agent</h3><p>拥有 <code>frontend/custom</code>：双品牌壳、五大用户模块、我的、创作者中心与 Vue2 运营后台。按“契约→Mock→真 API→异常状态→真机”交付。</p></article>
       <article class="role"><span class="pill owner">AI / DELIVERY</span><h3>AI 平台/测试/运维 Agent</h3><p>拥有 <code>ai-service</code>、<code>deployment</code> 与对应测试：FastAPI、短期令牌、SSE、模型路由、RAG、工具、配额、审计、CI/CD、监控、压测与演练。</p></article>
     </div>
-    <div class="callout dark"><strong>人工保留权：</strong>业务负责人确认会籍权益、价格、分账和内容；财务/安全负责人保管商户、生产密钥和上线签字。Agent 不能自行批准法律授权、真实付款、生产数据删除和公网发布。</div>
+    <div class="callout dark"><strong>人工保留权：</strong>业务负责人确认会籍权益、价格和内容；财务/安全负责人保管商户、生产密钥和上线签字。Agent 不能自行批准法律授权、真实付款、生产数据删除和公网发布。</div>
   </section>
 
   <section id="protocol">
@@ -112,7 +112,7 @@
       <tr><td>7/17–7/19<br>G0 基线</td><td>事件时序、ADR、OpenAPI 骨架、overlay manifest</td><td>构建 PoC、迁移执行器、TenantContext 骨架</td><td>UniApp H5/小程序与 Admin 官方构建、复用清单、Mock 适配器</td><td>FastAPI/SSE/短令牌 PoC、Docker、CI 骨架、威胁模型</td><td>干净子模块；可重复构建；本地环境可运行</td></tr>
       <tr><td>7/20–7/23<br>G1 会员支付</td><td>OrderContext、幂等、账本、支付/退款测试夹具</td><td>租户、会员、认证、L1-L4、权益评估器</td><td>双品牌 bootstrap、登录、认证、会籍购买、我的</td><td>JWT/JWKS、请求追踪、限流、环境与可观测性</td><td>真实小额会费支付；重复回调只开通一次</td></tr>
       <tr><td>7/24–7/28<br>G2 活动/社交</td><td>契约测试、并发名额、退票冻结/恢复/完成适配</td><td>好友/隐私、活动、票种、报名、名额、签到、奖励</td><td>活动月历/报名/地图/签到，会员目录/好友/排行，对应后台</td><td>对话、模型主备路由、配额预占/结算/归还</td><td>活动与同学两条 E2E；满员/越权/重复签到通过</td></tr>
-      <tr><td>7/29–8/2<br>G3 五模块</td><td>商品上下文、履约通用服务、结算快照、跨域联调</td><td>商品提交/审核/发布、分账台账、大咖/档期/预约</td><td>商城/创作者、大咖/预约、AI 生态/流式对话，交易审核后台</td><td>RAG 授权入库、引用、四个只读工具、配额/用量账本</td><td>五大模块在 staging 真 API 可运行，不仅是 Mock</td></tr>
+      <tr><td>7/29–8/2<br>G3 五模块</td><td>商品上下文、履约通用服务、结算快照、跨域联调</td><td>商品提交/审核/发布、财务导出、大咖/档期/预约</td><td>商城/创作者、大咖/预约、AI 生态/流式对话，交易审核后台</td><td>RAG 授权入库、引用、四个只读工具、配额/用量账本</td><td>五大模块在 staging 真 API 可运行，不仅是 Mock</td></tr>
       <tr><td>8/3–8/7<br>G4 候选版</td><td>退款真实完成冲正、部分退款、事件对账、集成与安全审查</td><td>结算导出、审计、通知、统计、补偿 Job、迁移回归</td><td>Mock 全切真接口、两壳内容、弱网、真机、H5 降级和提审</td><td>护栏、脱敏、举报/转人工、SAST/SCA/secret scan、告警和压测</td><td>RC 镜像/前端包/迁移/回滚包；无 P0/高危</td></tr>
       <tr><td>8/8–8/10<br>G5 发布会</td><td colspan="4">范围冻结，四个 Agent 只修 P0 和合规问题；真实支付/退款、现场网络、扫码、告警、H5 切换、备份/回滚完整彩排。</td><td>发布会全量版；五条旅程全通过</td></tr>
       <tr><td>8/11–9/15<br>G6 生产稳定</td><td>真实问题分级、第二品牌、架构工程化和发布评审</td><td>完整履约/部分退款/对账、数据治理与结算加固</td><td>体验、包体/性能、第二壳、增长与可访问性</td><td>写工具确认机制、成本治理、备份恢复、72h staging 与灰度</td><td>99.5% 监控口径、RPO/RTO 演练、第二租户隔离通过</td></tr>

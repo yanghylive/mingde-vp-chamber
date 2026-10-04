@@ -260,7 +260,7 @@ tbody tr:nth-child(even) { background: #f8f9fa; }
           <li><a href="#journeys">核心用户旅程</a></li>
           <li><a href="#requirements">五大模块需求</a></li>
           <li><a href="#platform">双壳与渠道平台</a></li>
-          <li><a href="#business">交易与分账</a></li>
+          <li><a href="#business">交易与结算</a></li>
           <li><a href="#ia">信息架构</a></li>
           <li><a href="#architecture">技术架构</a></li>
           <li><a href="#data">数据模型</a></li>
@@ -301,7 +301,7 @@ tbody tr:nth-child(even) { background: #f8f9fa; }
           <li>把会员等级、人物角色、运营权限拆成三个独立维度。</li>
           <li>写明 L1–L4 的业务含义及 L3/L4 的实际年费。</li>
           <li>补齐会员目录、搜索筛选、好友申请、贡献值和排行榜。</li>
-          <li>补齐会员上架、平台审核、虚拟服务履约和渠道分账。</li>
+          <li>补齐会员上架、平台审核、虚拟服务履约和渠道结算。</li>
           <li>将“渠道定制版 + 九章通用版”升级为底层架构要求。</li>
           <li>将 8 月 10 日发布会版本与 9 月生产稳定版分别定义。</li>
           <li>不再用 Discourse Trust Level 承载付费等级，不让多套系统争夺会员主数据。</li>
@@ -336,7 +336,7 @@ tbody tr:nth-child(even) { background: #f8f9fa; }
               <tr><td>付费会员</td><td>获得更深的连接、权益、课程与咨询</td><td>L3/L4 会籍、专属活动、折扣、预约和 AI 配额</td></tr>
               <tr><td>导师与教练</td><td>建立个人品牌并提供课程和服务</td><td>大咖主页、商品上架、档期、预约、AI 分身</td></tr>
               <tr><td>行业领袖</td><td>展示企业资源并获得合作机会</td><td>行业主页、活动路演、企业咨询、供需对接</td></tr>
-              <tr><td>渠道合作方</td><td>经营自己的毕业生社群并参与收益</td><td>独立品牌壳、渠道数据、商品活动和分账报表</td></tr>
+              <tr><td>渠道合作方</td><td>经营自己的毕业生社群并参与收益</td><td>独立品牌壳、渠道数据、商品活动和结算报表</td></tr>
               <tr><td>九章智能</td><td>沉淀可复制的平台和 AI 交付能力</td><td>通用版平台、共享 AI 工具、课程和运营模板</td></tr>
             </tbody>
           </table>
@@ -550,7 +550,7 @@ tbody tr:nth-child(even) { background: #f8f9fa; }
               <tr><td class="req-id">COM-005</td><td>积分+现金支付</td><td><span class="status p0">P0</span></td><td>运营可设置抵扣比例、上限和适用会籍；订单显示积分与现金组成</td></tr>
               <tr><td class="req-id">COM-006</td><td>会员价格</td><td><span class="status p0">P0</span></td><td>可分别配置 L2/L3/L4 价格、可见性和购买次数</td></tr>
               <tr><td class="req-id">COM-007</td><td>虚拟履约</td><td><span class="status p0">P0</span></td><td>课程和服务订单支持兑换码、链接、预约、核销和交付凭证</td></tr>
-              <tr><td class="req-id">COM-008</td><td>退款与售后</td><td><span class="status p0">P0</span></td><td>根据商品规则申请退款，现金原路退回、积分退回，分账和奖励同步冲正</td></tr>
+              <tr><td class="req-id">COM-008</td><td>退款与售后</td><td><span class="status p0">P0</span></td><td>根据商品规则申请退款，现金原路退回、积分退回，奖励同步冲正</td></tr>
               <tr><td class="req-id">COM-009</td><td>积分规则说明</td><td><span class="status p0">P0</span></td><td>商城与会员中心展示统一规则、有效期、不可提现说明和明细入口</td></tr>
             </tbody>
           </table>
@@ -618,7 +618,7 @@ tbody tr:nth-child(even) { background: #f8f9fa; }
 
       <section id="business">
         <p class="section-label">08 / TRANSACTION &amp; SETTLEMENT</p>
-        <h2>交易、审核与分账</h2>
+        <h2>交易、审核与结算</h2>
 
         <h3>8.1 收入类型</h3>
         <div class="table-wrap">
@@ -634,13 +634,12 @@ tbody tr:nth-child(even) { background: #f8f9fa; }
           </table>
         </div>
 
-        <h3>8.2 分账规则</h3>
+        <h3>8.2 结算与对账（单方收款，不做自动分账）</h3>
         <ul>
-          <li>分账规则使用“平台、渠道、推荐人、服务方”四个角色配置百分比，不在代码里固定具体人员。</li>
-          <li>首发版先生成可审计的分账台账和财务导出，财务人工确认后结算。</li>
-          <li>获得微信支付分账产品能力并完成商户关系配置后，再开启自动分账。</li>
-          <li>退款、拒付或履约争议必须冻结未结算金额，并按原分账比例冲正。</li>
-          <li>任何比例修改只影响新订单，历史订单保存下单时的规则快照。</li>
+          <li>资金由一家主体直接收款，不设“平台、渠道、推荐人、服务方”自动分账比例；渠道及服务方款项走线下约定。</li>
+          <li>订单、退款、积分流水支持财务导出，财务人工对账后结算。</li>
+          <li>退款、拒付或履约争议必须冻结未结算金额，积分与奖励按规则冲正。</li>
+          <li>下单时冻结价格与权益快照，支付后不以当前配置反推历史订单。</li>
         </ul>
 
         <h3>8.3 审核工作台</h3>
@@ -680,7 +679,7 @@ tbody tr:nth-child(even) { background: #f8f9fa; }
         <div class="two-col">
           <div class="panel"><h4>会员经营</h4><p>会员审核、会籍、角色、标签、积分、贡献值、推荐关系、客服和黑名单。</p></div>
           <div class="panel"><h4>内容与活动</h4><p>活动、课程、大咖、首页装修、内容审核、消息通知和发布会模式。</p></div>
-          <div class="panel"><h4>交易与履约</h4><p>商品审核、订单、退款、核销、预约、分账台账和财务导出。</p></div>
+          <div class="panel"><h4>交易与履约</h4><p>商品审核、订单、退款、核销、预约和财务导出。</p></div>
           <div class="panel"><h4>平台与 AI</h4><p>渠道、品牌、权限、AI 工具、知识库、配额、调用日志、成本和安全事件。</p></div>
         </div>
       </section>
@@ -705,7 +704,7 @@ tbody tr:nth-child(even) { background: #f8f9fa; }
 │                                      │  │                    │
 │ 会员 · 会籍 · 积分 · 商品 · 订单      │  │ 对话 · RAG · 工具   │
 │ 活动 · 目录 · 好友 · 大咖 · 预约      │  │ 配额 · 护栏 · 审计   │
-│ 渠道 · 双壳 · 审核 · 分账台账         │  │ 多模型路由           │
+│ 渠道 · 双壳 · 审核 · 财务导出         │  │ 多模型路由           │
 └──────────────┬───────────────┬───────┘  └───┬───────────────┘
                │               │              │
         ┌──────▼──────┐ ┌──────▼──────┐ ┌────▼────────────────┐
@@ -753,9 +752,9 @@ tbody tr:nth-child(even) { background: #f8f9fa; }
               <tr><td>关系</td><td>FriendRequest、Friendship、Referral</td><td>好友关系与推荐关系分表</td></tr>
               <tr><td>激励</td><td>PointAccount、PointLedger、ContributionLedger</td><td>账本只追加、使用冲正，不直接改历史</td></tr>
               <tr><td>活动</td><td>Activity、Ticket、Registration、CheckIn</td><td>报名支付、名额和签到幂等</td></tr>
-              <tr><td>交易</td><td>Product、SKU、Order、Payment、Refund、Fulfillment</td><td>订单保存价格、权益、分账规则快照</td></tr>
+              <tr><td>交易</td><td>Product、SKU、Order、Payment、Refund、Fulfillment</td><td>订单保存价格、权益、结算规则快照</td></tr>
               <tr><td>大咖</td><td>ExpertProfile、Availability、Appointment</td><td>档期锁和订单状态一致</td></tr>
-              <tr><td>结算</td><td>SettlementRule、SettlementLedger</td><td>履约前不可结算，退款自动冲正</td></tr>
+              <tr><td>结算</td><td>财务导出、对账记录</td><td>订单与退款可导出对账，积分与奖励自动冲正</td></tr>
               <tr><td>AI</td><td>Assistant、KnowledgeBase、Conversation、UsageLedger</td><td>记录同意、配额、模型、成本和删除状态</td></tr>
             </tbody>
           </table>
@@ -793,7 +792,7 @@ tbody tr:nth-child(even) { background: #f8f9fa; }
         <div class="timeline">
           <div class="timeline-item">
             <h4>7 月 17–19 日 · 需求与底座冻结</h4>
-            <p>确认品牌、等级、角色、渠道和分账；CRMEB PoC；建立仓库、CI/CD、数据字典和接口契约。</p>
+            <p>确认品牌、等级、角色和渠道；CRMEB PoC；建立仓库、CI/CD、数据字典和接口契约。</p>
           </div>
           <div class="timeline-item">
             <h4>7 月 20–26 日 · 会员与交易主链路</h4>
@@ -805,7 +804,7 @@ tbody tr:nth-child(even) { background: #f8f9fa; }
           </div>
           <div class="timeline-item">
             <h4>8 月 3–7 日 · 集成、内容与真机测试</h4>
-            <p>退款、积分冲正、审核台、分账台账；导入导师、活动、课程和工具；小程序提审与 H5 兜底。</p>
+            <p>退款、积分冲正、审核台、财务导出；导入导师、活动、课程和工具；小程序提审与 H5 兜底。</p>
           </div>
           <div class="timeline-item launch">
             <h4>8 月 8–9 日 · 发布演练</h4>
@@ -823,7 +822,7 @@ tbody tr:nth-child(even) { background: #f8f9fa; }
             <thead><tr><th>阶段</th><th>周期</th><th>重点</th><th>出口条件</th></tr></thead>
             <tbody>
               <tr><td>线上观察</td><td>8/11–8/17</td><td>修复真实用户问题、漏斗埋点、客服工单</td><td>连续 3 天无 P0</td></tr>
-              <tr><td>业务补强</td><td>8/18–8/31</td><td>候补、虚拟履约、每周 AI 个案、课程转化、分账报表</td><td>所有 P0/P1 验收通过</td></tr>
+              <tr><td>业务补强</td><td>8/18–8/31</td><td>候补、虚拟履约、每周 AI 个案、课程转化、财务报表</td><td>所有 P0/P1 验收通过</td></tr>
               <tr><td>平台化</td><td>9/1–9/7</td><td>九章通用版品牌壳、跨渠道共享资源、配置发布</td><td>第二品牌可独立运行</td></tr>
               <tr><td>生产加固</td><td>9/8–9/15</td><td>压测、安全、备份恢复、监控告警和运维手册</td><td>正式生产评审通过</td></tr>
             </tbody>
@@ -858,7 +857,7 @@ tbody tr:nth-child(even) { background: #f8f9fa; }
           <table class="compact">
             <thead><tr><th>测试层</th><th>覆盖内容</th><th>最低门槛</th></tr></thead>
             <tbody>
-              <tr><td>单元测试</td><td>等级、积分、贡献值、价格、分账、状态机</td><td>关键领域逻辑 ≥ 80%</td></tr>
+              <tr><td>单元测试</td><td>等级、积分、贡献值、价格、状态机</td><td>关键领域逻辑 ≥ 80%</td></tr>
               <tr><td>API 测试</td><td>认证、租户隔离、支付回调、退款、审核、AI 配额</td><td>P0 API 100%</td></tr>
               <tr><td>端到端</td><td>入会、活动、商城、大咖、AI 五条主旅程</td><td>每次发布自动运行</td></tr>
               <tr><td>安全测试</td><td>越权、注入、XSS、文件上传、重放、接口刷量</td><td>无高危未修复项</td></tr>
@@ -880,7 +879,7 @@ tbody tr:nth-child(even) { background: #f8f9fa; }
               <tr><td>产品与交付</td><td>杨宏宇、罗坤</td><td>PRD、页面验收、AI 工具整合、课程内容和交付流程</td></tr>
               <tr><td>技术负责人</td><td>杨宏宇</td><td>架构、CRMEB 二开、支付、数据安全、发布和平台迭代</td></tr>
               <tr><td>课程与导师资源</td><td>杨宏宇牵头</td><td>百度培训师等导师团、课程清单、合作方式与首发内容</td></tr>
-              <tr><td>财务与审核</td><td>待指定</td><td>商户号、退款、审核、分账比例、对账和结算确认</td></tr>
+              <tr><td>财务与审核</td><td>待指定</td><td>商户号、退款、审核、对账和结算确认</td></tr>
             </tbody>
           </table>
         </div>
@@ -956,7 +955,7 @@ tbody tr:nth-child(even) { background: #f8f9fa; }
               <tr><td>业务规则确认慢</td><td>高</td><td>每日验收，规则由静雄当日确认，逾期采用本文默认值</td><td>超过 24 小时未确认不阻塞开发</td></tr>
               <tr><td>首发内容不足</td><td>高</td><td>内容团队同步准备 12 位大咖、3 场活动、5 项服务、5 个 AI 入口</td><td>8 月 3 日内容未齐，负责人每日补齐清单</td></tr>
               <tr><td>AI 输出或数据风险</td><td>中高</td><td>授权、护栏、举报、配额、日志、敏感数据脱敏和人工升级</td><td>无法满足告知与授权的数字分身不得上线</td></tr>
-              <tr><td>自动分账资质未完成</td><td>中</td><td>首发使用分账台账与人工结算，后续开通微信分账</td><td>禁止使用个人账户私下自动拆分</td></tr>
+              <tr><td>分账需求取消（单方收款）</td><td>低</td><td>不做自动分账，微信支付只做收款与退款，财务人工对账</td><td>禁止使用个人账户私下拆分</td></tr>
             </tbody>
           </table>
         </div>
@@ -974,7 +973,7 @@ tbody tr:nth-child(even) { background: #f8f9fa; }
         <ul>
           <li>统一对外品牌名称、小程序名称、主体和 Logo。</li>
           <li>L3/L4 各自的最终权益清单、是否允许渠道调整价格。</li>
-          <li>阿雪老师、静雄、九章及服务方的默认分账比例。</li>
+          <li>阿雪老师、静雄、九章及服务方的结算约定。</li>
           <li>首发导师、活动、商品、AI 工具和课程清单。</li>
           <li>微信支付商户号、退款权限、发票与财务负责人。</li>
         </ul>
@@ -997,7 +996,7 @@ tbody tr:nth-child(even) { background: #f8f9fa; }
               <tr><td>微信通讯录暂时隐藏</td><td>MEM-011 功能开关</td><td>已覆盖</td></tr>
               <tr><td>毕业生同学会外壳、AI 服务内核</td><td>2.2 产品定位</td><td>已覆盖</td></tr>
               <tr><td>渠道定制版 + 九章通用版双壳</td><td>TEN-001 至 TEN-007</td><td>已覆盖</td></tr>
-              <tr><td>会员费、服务收入和合作方分账</td><td>第 8 章</td><td>规则待比例确认</td></tr>
+              <tr><td>会员费、服务收入和合作方结算</td><td>第 8 章</td><td>规则待比例确认</td></tr>
               <tr><td>8 月 10 日发布会现场注册付费</td><td>第 13、14 章</td><td>已纳入硬节点</td></tr>
               <tr><td>百度培训师、公开课引流、每周 AI 个案</td><td>AIE-007、AIE-008、第 15 章</td><td>产品已覆盖，资源待落实</td></tr>
             </tbody>

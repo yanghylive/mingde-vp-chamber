@@ -127,7 +127,7 @@ ruby backend/custom/openapi/validate.rb</pre>
         <li>私域 Dao 必须显式带 TenantContext，禁止信任客户端传入的 tenant_id。</li>
         <li>会籍不复用 <code>eb_user.level</code>，好友不复用推荐关系，活动不复用秒杀 <code>store_activity</code>。</li>
         <li>迁移不修改 CRMEB 安装 SQL，表名统一 <code>ch_</code> 前缀。</li>
-        <li>金额用 decimal 字符串 + BCMath，积分、贡献值、分账和退款用追加账本。</li>
+        <li>金额用 decimal 字符串 + BCMath，积分、贡献值和退款用追加账本（不做分账）。</li>
         <li>CRMEB 支付/退款事件只作加速信号；统一事件必须先落持久化 inbox，退款受理不得冒充资金完成。</li>
       </ul>
     </section>

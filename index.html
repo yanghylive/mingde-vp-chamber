@@ -132,7 +132,7 @@
     <ul class="checklist">
       <li>禁止直接修改 CRMEB 子模块；必须走 overlay 或独立服务。</li>
       <li>私域数据查询必须有 TenantContext，跨租户负向测试必须通过。</li>
-      <li>支付、退款、积分、贡献值和分账采用追加账本与冲正。</li>
+      <li>支付、退款、积分和贡献值采用追加账本与冲正（不做分账）。</li>
       <li>新增 API 同步提交路由、鉴权、错误码、OpenAPI 和 HTML 文档。</li>
       <li>活动核心变更执行 <code>scripts/check-g2-activity-core.sh</code>；跨阶段合并同时执行 G1/G0 回归门禁，不得带入子模块未提交修改。</li>
     </ul>

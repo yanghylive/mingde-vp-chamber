@@ -33,7 +33,7 @@
 
 | 能力 | 当前入口 | 施工时必须先读的文件 |
 |---|---|---|
-| 结算 | `SettlementService`、`SettlementAdminController` | `backend/custom/app/chamber/services/SettlementService.php`、`backend/custom/app/chamber/controller/SettlementAdminController.php` |
+| 结算 | 已下线（单方收款，2026-10-04） | 分账子系统整体删除，无入口 |
 | 预约 | `ExpertScheduleController`、`SlotAdminController` | `backend/custom/app/chamber/controller/ExpertScheduleController.php`、`backend/custom/app/chamber/controller/SlotAdminController.php` |
 | AI | `AiTwinService`、`KaypalGateway` | `backend/custom/app/chamber/services/AiTwinService.php`、`backend/custom/app/chamber/coaching/KaypalGateway.php` |
 | 通知 | `NotificationController`、`NotificationAdminController` | `backend/custom/app/chamber/controller/NotificationController.php`、`backend/custom/app/chamber/controller/NotificationAdminController.php` |
@@ -125,16 +125,12 @@ PROJECT_MANIFEST.json
 把以下目录纳入 PHP lint、迁移 inventory、路由存在性和最小数据库测试：
 
 ```text
-backend/custom/app/chamber/services/SettlementService.php
 backend/custom/app/chamber/services/AiTwinService.php
 backend/custom/app/chamber/controller/ExpertScheduleController.php
 backend/custom/app/chamber/controller/SlotAdminController.php
 backend/custom/app/chamber/controller/NotificationController.php
 backend/custom/app/chamber/controller/NotificationAdminController.php
 backend/custom/app/chamber/controller/MonitorController.php
-backend/custom/app/chamber/jobs/SettlementSettleJob.php
-backend/custom/app/chamber/database/migrations/*settlement*
-backend/custom/app/chamber/tests/*settlement*
 backend/custom/app/chamber/tests/*appointment*
 backend/custom/app/chamber/tests/*ai*
 backend/custom/app/chamber/tests/*notification*
@@ -165,6 +161,9 @@ ruby backend/custom/commerce/audit_crmeb_v6.rb
 ```
 
 ## 5. 阶段 1：结算与真实打款安全重构
+
+> **【已作废，2026-10-04】分账子系统整体下线，改为单方主体直接收款（见《分账下线实施方案》）。**
+> 本章保留仅作历史记录，不再执行；`settlement.*` 权限点、路由与 5 张分账表均已删除。
 
 这是最高优先级。没有完成本阶段，`settlement.live` 必须保持关闭。
 
@@ -539,10 +538,6 @@ GET    /admin/v1/notifications/:id/delivery
 当前很多新增管理控制器没有显示调用细粒度权限断言。至少为以下动作建立权限：
 
 ```text
-settlement.read
-settlement.rule.write
-settlement.retry
-settlement.manual_adjust
 appointment.manage
 notification.read
 notification.write
@@ -551,6 +546,7 @@ ai.manage
 ai.memory.read
 monitor.read
 ```
+（注：`settlement.read/rule.write/retry/manual_adjust` 四个权限点已随分账下线删除，2026-10-04。）
 
 每个写操作审计：`admin_id、tenant_id、action、resource_type、resource_id、before、after、reason、request_id、created_at`。
 
@@ -718,9 +714,9 @@ PHP/Docker 环境不可用时，必须在 CI 或本地 Docker 中补跑，不能
 为了让 work buddy 可以立即开工，首批建议按下面的 5 个 PR 拆分：
 
 1. **PR-01 基线统一**：manifest 源码锁、OpenAPI implementation status、OPTIONS 路由、质量门禁覆盖。
-2. **PR-02 结算安全核心**：settlement claim/lease、uncertain、规则快照、余额原子化、自动接入支付事件。
+2. **PR-02 结算安全核心**（**已取消**：分账下线，不再执行）：settlement claim/lease、uncertain、规则快照、余额原子化、自动接入支付事件。
 3. **PR-03 预约一致性**：slot 状态机、重叠校验、预约/取消幂等、快照字段和软删除。
 4. **PR-04 AI 可靠性**：AI request 幂等、积分预占、provider usage、身份披露、记忆权限。
 5. **PR-05 通知与运营**：收件人/已读模型、投递 worker、死信、权限、审计、告警去重。
 
-PR-02 完成并通过故障注入测试之前，`settlement.live` 不得在生产配置中打开。PR-03/04/05 可以并行，但各自必须保留独立迁移和回滚路径。
+PR-02 已取消（分账下线）。PR-03/04/05 可以并行，但各自必须保留独立迁移和回滚路径。
