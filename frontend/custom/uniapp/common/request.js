@@ -7,7 +7,7 @@
  * - 网络层失败（连接断开/超时）自动重试 2 次，抗瞬时抖动
  */
 import { HTTP_REQUEST_URL, HEADER, TOKENNAME, TIMEOUT } from '@/config/app'
-import { checkLogin, toLogin, getToken } from '@/libs/login'
+import { checkLogin, toLogin, getToken, invalidateToken } from '@/libs/login'
 
 /** 网络层失败重试次数（fail 触发：DNS/TCP 失败、超时；请求未达服务器，重试安全） */
 const MAX_RETRY = 2
@@ -57,17 +57,19 @@ export function request(path, options = {}) {
             resolve(body && body.data !== undefined ? body.data : body)
             return
           }
-          // 认证失败
+          // 认证失败：清掉本地失效 token 再跳登录，避免 401 死循环
           if (response.statusCode === 401 && auth) {
+            invalidateToken()
             toLogin()
           }
-          const msg = body.msg || body.message || '请求失败'
+          const rawMsg = body.msg || body.message || ''
           const bizCode = body.code !== undefined ? body.code : (body.data && body.data.reason) || ''
+          const msg = friendlyMessage(response.statusCode, bizCode, rawMsg)
           if (!silent && bizCode !== 'tier_required' && bizCode !== 'tier_expired') {
             // 门禁拦截不 toast（改走升级弹窗），其余正常 toast
             uni.showToast({ title: String(msg).slice(0, 30), icon: 'none' })
           }
-          reject({ status: response.statusCode, code: bizCode, msg })
+          reject({ status: response.statusCode, code: bizCode, msg, raw: rawMsg })
         },
         fail(err) {
           // 网络层失败：重试（带退避）；重试耗尽才报错
@@ -78,7 +80,7 @@ export function request(path, options = {}) {
             }, delay)
             return
           }
-          const msg = (err && err.errMsg) || '网络异常'
+          const msg = friendlyMessage(-1, '', (err && err.errMsg) || '')
           if (!silent) {
             uni.showToast({ title: String(msg).slice(0, 30), icon: 'none' })
           }
@@ -88,6 +90,43 @@ export function request(path, options = {}) {
     })
 
   return doRequest(1)
+}
+
+/**
+ * 后端错误消息 → 面向用户的中文提示。
+ * 审核环境/线上曾直接透出 "Not found" / "Authentication required" 等英文，
+ * 既不符合小程序体验，也会让微信审核判定为「页面报错」。这里统一兜底成中文。
+ */
+const FRIENDLY_BY_CODE = {
+  authentication_required: '请先登录',
+  permission_denied: '没有访问权限',
+  tenant_scope_denied: '当前账号不在该空间内',
+  member_not_found: '会员不存在',
+  idempotency_key_required: '缺少幂等标识，请重试',
+  idempotency_conflict: '请求已提交，请勿重复操作',
+  request_validation_failed: '请求参数有误',
+  resource_state_conflict: '当前状态不可执行该操作'
+}
+
+const FRIENDLY_BY_STATUS = {
+  401: '请先登录',
+  403: '没有访问权限',
+  404: '内容不存在或已下线',
+  409: '当前状态不可执行该操作',
+  422: '请求参数有误',
+  500: '服务开小差了，请稍后重试',
+  503: '服务暂时不可用，请稍后重试',
+  '-1': '网络不稳定，请检查网络后重试'
+}
+
+function friendlyMessage(status, bizCode, rawMsg) {
+  if (bizCode && FRIENDLY_BY_CODE[bizCode]) return FRIENDLY_BY_CODE[bizCode]
+  const byStatus = FRIENDLY_BY_STATUS[String(status)]
+  if (byStatus) return byStatus
+  // 后端已是中文时透传，否则兜底（避免英文/HTML 泄漏到 toast）
+  const text = String(rawMsg || '').trim()
+  if (text && /[一-龥]/.test(text)) return text
+  return FRIENDLY_BY_STATUS['500']
 }
 
 /** 生成幂等 key */
