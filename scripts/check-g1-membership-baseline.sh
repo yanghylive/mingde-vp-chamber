@@ -290,7 +290,7 @@ member_ui_test_minimum="$(manifest_g1_minimum \
 
 openapi_output="$(ruby backend/custom/openapi/validate.rb)"
 printf '%s\n' "${openapi_output}"
-grep -Fxq '  Contract version: 0.7.0' <<<"${openapi_output}" \
+grep -Fxq '  Contract version: 0.8.0' <<<"${openapi_output}" \
     || fail "OpenAPI membership contract version changed"
 ruby -rpsych - backend/custom/openapi/chamber-openapi.yaml <<'RUBY'
 content = File.read(ARGV.fetch(0))
@@ -335,7 +335,7 @@ RUBY
 openapi_schema_count="$(awk '$1 == "Component" && $2 == "schemas:" && $3 ~ /^[0-9]+$/ && NF == 3 { print $3 }' <<<"${openapi_output}")"
 [[ "${openapi_schema_count}" =~ ^[0-9]+$ ]] || fail "OpenAPI membership schema count is unavailable"
 openapi_schema_minimum="$(manifest_g1_minimum \
-    'openapi_schemas_minimum' 'openapi_schemas' 141)"
+    'openapi_schemas_minimum' 'openapi_schemas' 149)"
 [ "${openapi_schema_count}" -ge "${openapi_schema_minimum}" ] \
     || fail "OpenAPI membership schemas were removed: ${openapi_schema_count} < ${openapi_schema_minimum}"
 
@@ -392,12 +392,12 @@ ruby -rjson -e '
     "membership_payment_replay_attempts" => 10,
     "membership_concurrent_renewals" => 2,
     "membership_refund_replay_attempts" => 1,
-    "openapi_version" => "0.7.0",
-    "openapi_paths" => 38,
-    "openapi_operations_total" => 44,
-    "openapi_operations_implemented" => 38,
+    "openapi_version" => "0.8.0",
+    "openapi_paths" => 42,
+    "openapi_operations_total" => 48,
+    "openapi_operations_implemented" => 42,
     "openapi_operations_planned" => 6,
-    "openapi_schemas" => 141,
+    "openapi_schemas" => 149,
     "member_bootstrap_gate" => "scripts/check-g1-member-bootstrap.sh",
     "profile_verification_gate" => "scripts/check-g1-profile-verification.sh",
     "membership_checkout_gate" => "scripts/check-g1-membership-checkout.sh",

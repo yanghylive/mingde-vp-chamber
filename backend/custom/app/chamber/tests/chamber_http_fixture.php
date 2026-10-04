@@ -17,10 +17,12 @@ try {
         setupChamberHttpFixture();
     } elseif ($action === 'inspect') {
         inspectChamberHttpFixture((int) ($argv[2] ?? 0));
+    } elseif ($action === 'refunds') {
+        refundFixtureSummary((int) ($argv[2] ?? 0));
     } elseif ($action === 'cleanup') {
         cleanupChamberHttpFixture(array_slice($argv, 2));
     } else {
-        throw new InvalidArgumentException('Expected setup, inspect, or cleanup action');
+        throw new InvalidArgumentException('Expected setup, inspect, refunds, or cleanup action');
     }
 } catch (Throwable $exception) {
     fwrite(STDERR, 'chamber HTTP fixture failure: ' . $exception->getMessage() . "\n");
@@ -104,6 +106,18 @@ function inspectChamberHttpFixture(int $uid): void
         'appointment_count' => (int) Db::table('ch_appointment')->where('uid', $uid)->count(),
         'notification_read_count' => (int) Db::table('ch_notification_read')
             ->where('member_id', is_array($member) ? (int) $member['id'] : -1)->count(),
+    ]);
+}
+
+function refundFixtureSummary(int $uid): void
+{
+    $member = Db::table('ch_tenant_member')->where('uid', $uid)->where('is_del', 0)->find();
+    $count = is_array($member)
+        ? (int) Db::table('ch_refund_attempt')->where('tenant_id', (int) $member['tenant_id'])->count()
+        : 0;
+    outputChamberJson([
+        'uid' => $uid,
+        'tenant_refund_attempts' => $count,
     ]);
 }
 

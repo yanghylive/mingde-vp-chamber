@@ -137,7 +137,7 @@ unless spec.is_a?(Hash)
 end
 
 errors << 'openapi must equal 3.1.0' unless spec['openapi'] == '3.1.0'
-errors << 'info.version must equal 0.7.0' unless dig_hash(spec, 'info', 'version') == '0.7.0'
+errors << 'info.version must equal 0.8.0' unless dig_hash(spec, 'info', 'version') == '0.8.0'
 
 expected_paths = [
   '/chamber/health',
@@ -159,6 +159,7 @@ expected_paths = [
   '/chamber/v1/events/{event_id}/registrations',
   '/chamber/v1/me/event-registrations',
   '/chamber/v1/me/event-registrations/{registration_id}',
+  '/chamber/v1/me/event-registrations/{registration_id}/refunds',
   '/chamber/v1/events/{event_id}/checkins',
   '/chamber/admin/v1/events',
   '/chamber/admin/v1/events/{event_id}',
@@ -173,6 +174,9 @@ expected_paths = [
   '/chamber/v1/experts/appointments/{appointment_id}/cancel',
   '/chamber/admin/v1/notifications',
   '/chamber/admin/v1/notifications/{notification_id}',
+  '/chamber/admin/v1/refunds',
+  '/chamber/admin/v1/refunds/{attempt_id}',
+  '/chamber/admin/v1/refunds/{attempt_id}/confirm',
   '/chamber/v1/wechat-pay/orders',
   '/chamber/v1/wechat-pay/notify',
   '/chamber/v1/wechat-pay/orders/{out_trade_no}',
@@ -204,6 +208,7 @@ expected_operations = [
   ['/chamber/v1/events/{event_id}/registrations', 'post', 'createEventRegistration', 'implemented', '201', 'CrmebBearerAuth'],
   ['/chamber/v1/me/event-registrations', 'get', 'listMyEventRegistrations', 'implemented', '200', 'CrmebBearerAuth'],
   ['/chamber/v1/me/event-registrations/{registration_id}', 'get', 'showMyEventRegistration', 'implemented', '200', 'CrmebBearerAuth'],
+  ['/chamber/v1/me/event-registrations/{registration_id}/refunds', 'post', 'createEventRegistrationRefund', 'implemented', '201', 'CrmebBearerAuth'],
   ['/chamber/v1/events/{event_id}/checkins', 'post', 'createEventCheckin', 'implemented', '201', 'CrmebBearerAuth'],
   ['/chamber/admin/v1/events', 'get', 'listEventsForAdmin', 'implemented', '200', 'CrmebAdminBearerAuth', 'chamber.event.manage'],
   ['/chamber/admin/v1/events', 'post', 'createEventForAdmin', 'planned', '201', 'CrmebAdminBearerAuth', 'chamber.event.manage'],
@@ -222,6 +227,9 @@ expected_operations = [
   ['/chamber/admin/v1/notifications', 'post', 'createNotificationForAdmin', 'implemented', '200', 'CrmebAdminBearerAuth', 'chamber.notification.write'],
   ['/chamber/admin/v1/notifications/{notification_id}', 'patch', 'updateNotificationForAdmin', 'implemented', '200', 'CrmebAdminBearerAuth', 'chamber.notification.write'],
   ['/chamber/admin/v1/notifications/{notification_id}', 'delete', 'deleteNotificationForAdmin', 'implemented', '200', 'CrmebAdminBearerAuth', 'chamber.notification.delete'],
+  ['/chamber/admin/v1/refunds', 'get', 'listEventRefundsForAdmin', 'implemented', '200', 'CrmebAdminBearerAuth', 'chamber.refund.read'],
+  ['/chamber/admin/v1/refunds/{attempt_id}', 'get', 'showEventRefundForAdmin', 'implemented', '200', 'CrmebAdminBearerAuth', 'chamber.refund.read'],
+  ['/chamber/admin/v1/refunds/{attempt_id}/confirm', 'post', 'confirmEventRefundForAdmin', 'implemented', '200', 'CrmebAdminBearerAuth', 'chamber.refund.confirm'],
   ['/chamber/v1/wechat-pay/orders', 'post', 'createWechatPayOrder', 'implemented', '200', 'CrmebBearerAuth'],
   ['/chamber/v1/wechat-pay/notify', 'post', 'wechatPayNotify', 'implemented', '200', nil],
   ['/chamber/v1/wechat-pay/orders/{out_trade_no}', 'get', 'getWechatPayOrder', 'implemented', '200', 'CrmebBearerAuth'],
@@ -314,6 +322,10 @@ expected_operation_contracts = {
     request_schema: nil,
     success_response: '#/components/responses/EventRegistrationSuccess'
   },
+  ['/chamber/v1/me/event-registrations/{registration_id}/refunds', 'post'] => {
+    request_schema: '#/components/schemas/RefundCreateRequest',
+    success_response: '#/components/responses/EventRegistrationSuccess'
+  },
   ['/chamber/v1/events/{event_id}/checkins', 'post'] => {
     request_schema: '#/components/schemas/EventCheckinRequest',
     success_response: '#/components/responses/EventCheckinCreated'
@@ -385,6 +397,18 @@ expected_operation_contracts = {
   ['/chamber/admin/v1/notifications/{notification_id}', 'delete'] => {
     request_schema: nil,
     success_response: '#/components/responses/NotificationDeleted'
+  },
+  ['/chamber/admin/v1/refunds', 'get'] => {
+    request_schema: nil,
+    success_response: '#/components/responses/RefundAttemptListSuccess'
+  },
+  ['/chamber/admin/v1/refunds/{attempt_id}', 'get'] => {
+    request_schema: nil,
+    success_response: '#/components/responses/RefundAttemptDetailSuccess'
+  },
+  ['/chamber/admin/v1/refunds/{attempt_id}/confirm', 'post'] => {
+    request_schema: '#/components/schemas/RefundConfirmRequest',
+    success_response: '#/components/responses/RefundConfirmSuccess'
   },
   ['/chamber/v1/wechat-pay/orders', 'post'] => {
     request_schema: '#/components/schemas/WechatPayOrderRequest',

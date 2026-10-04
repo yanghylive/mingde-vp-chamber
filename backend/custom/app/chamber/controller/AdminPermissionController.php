@@ -104,6 +104,8 @@ final class AdminPermissionController
             'chamber.event.write',
             'chamber.event.manage',
             'chamber.event.checkin',
+            'chamber.refund.read',
+            'chamber.refund.confirm',
             'chamber.notification.write',
             'chamber.slot.manage',
             'chamber.product.write',

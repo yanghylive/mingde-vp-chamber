@@ -107,4 +107,30 @@ status="$(request appt-cancel -X POST -H "Authorization: Bearer ${TOKEN}" \
 [ "${status}" = '200' ] || fail "appointment cancel returned HTTP ${status}"
 assert_json "${TMP_DIR}/appt-cancel.json" data.points_refunded 10000
 
-echo "PASS: chamber HTTP acceptance (notification read isolation + appointment idempotency)"
+# ---------------------------------------------------------------------------
+# 2.5 退票管理：管理端退款单读取权限与租户范围（人工确认由 DB 门禁覆盖）
+# ---------------------------------------------------------------------------
+status="$(request refund-list-anon -X GET \
+    "${BASE_URL}/chamber/admin/v1/refunds")"
+[ "${status}" = '401' ] || fail "refund list without auth returned HTTP ${status}"
+
+status="$(request refund-list-member -X GET -H "Authorization: Bearer ${TOKEN}" \
+    "${BASE_URL}/chamber/admin/v1/refunds")"
+[ "${status}" = '401' ] || fail "refund list with member token returned HTTP ${status}"
+
+status="$(request refund-list-admin -X GET -H "Authorization: Bearer ${ADMIN_TOKEN}" \
+    "${BASE_URL}/chamber/admin/v1/refunds")"
+[ "${status}" = '200' ] || fail "refund list with admin token returned HTTP ${status}"
+node - "${TMP_DIR}/refund-list-admin.json" <<'NODE' || fail 'Refund list envelope is invalid'
+const fs = require('fs');
+const body = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+if (body.status !== 200 || !Array.isArray(body.data.items) || typeof body.data.total !== 'number') process.exit(1);
+NODE
+
+status="$(request refund-confirm-missing -X POST -H "Authorization: Bearer ${ADMIN_TOKEN}" \
+    -H 'Idempotency-Key: ch-refund-missing-1' -H 'Content-Type: application/json' --data '{"reason":"finance check"}' \
+    "${BASE_URL}/chamber/admin/v1/refunds/999999999/confirm")"
+[ "${status}" = '404' ] || fail "refund confirm on missing attempt returned HTTP ${status}"
+assert_json "${TMP_DIR}/refund-confirm-missing.json" data.reason refund_attempt_not_found
+
+echo "PASS: chamber HTTP acceptance (notification read isolation + appointment idempotency + refund admin permissions)"

@@ -2,7 +2,7 @@ openapi: 3.1.0
 jsonSchemaDialect: https://json-schema.org/draft/2020-12/schema
 info:
   title: Mingde VP Chamber API
-  version: 0.7.0
+  version: 0.8.0
   summary: Chamber overlay G0/G1 runtime and G2 activity vertical
   description: |
     This document is the source-controlled contract for the independently developed
@@ -950,6 +950,58 @@ paths:
           $ref: '#/components/responses/InternalServerError'
         '503':
           $ref: '#/components/responses/TenantServiceUnavailable'
+  /chamber/v1/me/event-registrations/{registration_id}/refunds:
+    post:
+      tags:
+        - Activity
+      summary: Request a refund for a paid event registration owned by the member
+      description: Creates a trusted refund attempt for a paid registration. Channel rejection leaves the order retryable; channel silence converges through query or manual finance confirmation.
+      operationId: createEventRegistrationRefund
+      security:
+        - CrmebBearerAuth: []
+      x-implementation-status: implemented
+      x-requirement-id: ACT-005,ACT-008
+      x-tenant-context: required
+      x-signed-headers-all-or-none: true
+      parameters:
+        - name: registration_id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/PositiveId'
+        - $ref: '#/components/parameters/RequestIdHeader'
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+        - $ref: '#/components/parameters/ChamberTenantHeader'
+        - $ref: '#/components/parameters/ChamberChannelHeader'
+        - $ref: '#/components/parameters/ChamberTimestampHeader'
+        - $ref: '#/components/parameters/ChamberNonceHeader'
+        - $ref: '#/components/parameters/ChamberSignatureHeader'
+        - $ref: '#/components/parameters/IdempotencyKeyHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefundCreateRequest'
+      responses:
+        '201':
+          $ref: '#/components/responses/EventRegistrationSuccess'
+        '400':
+          $ref: '#/components/responses/ChamberRequestError'
+        '401':
+          $ref: '#/components/responses/ChamberRequestError'
+        '403':
+          $ref: '#/components/responses/ChamberRequestError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/TenantServiceUnavailable'
+        '404':
+          $ref: '#/components/responses/MemberTransactionError'
+        '409':
+          $ref: '#/components/responses/MemberTransactionError'
+        '422':
+          $ref: '#/components/responses/MemberTransactionError'
   /chamber/v1/events/{event_id}/checkins:
     post:
       tags:
@@ -1738,6 +1790,153 @@ paths:
           $ref: '#/components/responses/InternalServerError'
         '503':
           $ref: '#/components/responses/TenantServiceUnavailable'
+  /chamber/admin/v1/refunds:
+    get:
+      tags:
+        - Administration
+      summary: List event refund attempts for administration
+      operationId: listEventRefundsForAdmin
+      security:
+        - CrmebAdminBearerAuth: []
+      x-implementation-status: implemented
+      x-requirement-id: ACT-001
+      x-tenant-context: required
+      x-signed-headers-all-or-none: true
+      x-admin-permission: chamber.refund.read
+      parameters:
+        - $ref: '#/components/parameters/RequestIdHeader'
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+        - $ref: '#/components/parameters/ChamberTenantHeader'
+        - $ref: '#/components/parameters/ChamberChannelHeader'
+        - $ref: '#/components/parameters/ChamberTimestampHeader'
+        - $ref: '#/components/parameters/ChamberNonceHeader'
+        - $ref: '#/components/parameters/ChamberSignatureHeader'
+        - $ref: '#/components/parameters/PageQuery'
+        - $ref: '#/components/parameters/LimitQuery'
+        - name: status
+          in: query
+          required: false
+          description: Filter by refund attempt status.
+          schema:
+            type: string
+            enum:
+              - requested
+              - processing
+              - unknown
+              - succeeded
+              - failed
+              - manual
+      responses:
+        '200':
+          $ref: '#/components/responses/RefundAttemptListSuccess'
+        '400':
+          $ref: '#/components/responses/ChamberRequestError'
+        '401':
+          $ref: '#/components/responses/ChamberRequestError'
+        '403':
+          $ref: '#/components/responses/ChamberRequestError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/TenantServiceUnavailable'
+        '422':
+          $ref: '#/components/responses/MemberTransactionError'
+  /chamber/admin/v1/refunds/{attempt_id}:
+    get:
+      tags:
+        - Administration
+      summary: Show one event refund attempt for administration
+      operationId: showEventRefundForAdmin
+      security:
+        - CrmebAdminBearerAuth: []
+      x-implementation-status: implemented
+      x-requirement-id: ACT-001
+      x-tenant-context: required
+      x-signed-headers-all-or-none: true
+      x-admin-permission: chamber.refund.read
+      parameters:
+        - name: attempt_id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/PositiveId'
+        - $ref: '#/components/parameters/RequestIdHeader'
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+        - $ref: '#/components/parameters/ChamberTenantHeader'
+        - $ref: '#/components/parameters/ChamberChannelHeader'
+        - $ref: '#/components/parameters/ChamberTimestampHeader'
+        - $ref: '#/components/parameters/ChamberNonceHeader'
+        - $ref: '#/components/parameters/ChamberSignatureHeader'
+      responses:
+        '200':
+          $ref: '#/components/responses/RefundAttemptDetailSuccess'
+        '400':
+          $ref: '#/components/responses/ChamberRequestError'
+        '401':
+          $ref: '#/components/responses/ChamberRequestError'
+        '403':
+          $ref: '#/components/responses/ChamberRequestError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/TenantServiceUnavailable'
+        '404':
+          $ref: '#/components/responses/MemberTransactionError'
+        '422':
+          $ref: '#/components/responses/MemberTransactionError'
+  /chamber/admin/v1/refunds/{attempt_id}/confirm:
+    post:
+      tags:
+        - Administration
+      summary: Manually confirm a stuck event refund after finance reconciliation
+      description: Transitions a requested/processing/unknown attempt to manual and projects the trusted refund completion. Already-manual attempts replay idempotently; succeeded/failed attempts are rejected.
+      operationId: confirmEventRefundForAdmin
+      security:
+        - CrmebAdminBearerAuth: []
+      x-implementation-status: implemented
+      x-requirement-id: ACT-001
+      x-tenant-context: required
+      x-signed-headers-all-or-none: true
+      x-admin-permission: chamber.refund.confirm
+      parameters:
+        - name: attempt_id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/PositiveId'
+        - $ref: '#/components/parameters/RequestIdHeader'
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+        - $ref: '#/components/parameters/ChamberTenantHeader'
+        - $ref: '#/components/parameters/ChamberChannelHeader'
+        - $ref: '#/components/parameters/ChamberTimestampHeader'
+        - $ref: '#/components/parameters/ChamberNonceHeader'
+        - $ref: '#/components/parameters/ChamberSignatureHeader'
+        - $ref: '#/components/parameters/IdempotencyKeyHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefundConfirmRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/RefundConfirmSuccess'
+        '400':
+          $ref: '#/components/responses/ChamberRequestError'
+        '401':
+          $ref: '#/components/responses/ChamberRequestError'
+        '403':
+          $ref: '#/components/responses/ChamberRequestError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/TenantServiceUnavailable'
+        '404':
+          $ref: '#/components/responses/MemberTransactionError'
+        '409':
+          $ref: '#/components/responses/MemberTransactionError'
+        '422':
+          $ref: '#/components/responses/MemberTransactionError'
   /chamber/v1/wechat-pay/orders:
     post:
       tags:
@@ -2755,6 +2954,39 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/GenericOkEnvelope'
+    RefundAttemptListSuccess:
+      description: RefundAttemptListSuccess
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestIdResponseHeader'
+        X-Correlation-Id:
+          $ref: '#/components/headers/CorrelationIdResponseHeader'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/RefundAttemptListEnvelope'
+    RefundAttemptDetailSuccess:
+      description: RefundAttemptDetailSuccess
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestIdResponseHeader'
+        X-Correlation-Id:
+          $ref: '#/components/headers/CorrelationIdResponseHeader'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/RefundAttemptDetailEnvelope'
+    RefundConfirmSuccess:
+      description: RefundConfirmSuccess
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestIdResponseHeader'
+        X-Correlation-Id:
+          $ref: '#/components/headers/CorrelationIdResponseHeader'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/RefundConfirmEnvelope'
   schemas:
     RequestId:
       type: string
@@ -5624,3 +5856,220 @@ components:
               const: ok
             data:
               type: object
+    RefundCreateRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - reason
+      properties:
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 255
+    RefundConfirmRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - reason
+      properties:
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 255
+          description: Manual finance reconciliation reference.
+    RefundAttempt:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - refund_no
+        - registration_id
+        - order_no
+        - amount
+        - paid_amount
+        - status
+        - provider
+        - provider_status
+        - provider_refund_no
+        - failure_code
+        - final_confirmed
+        - final_confirm_source
+        - manual_operator_id
+        - manual_reference
+        - query_retry_count
+        - request_time
+        - update_time
+      properties:
+          id:
+            type: integer
+          refund_no:
+            type: string
+          registration_id:
+            type: integer
+          order_no:
+            type: string
+          amount:
+            type: string
+          paid_amount:
+            type: string
+          status:
+            type: string
+            enum:
+              - requested
+              - processing
+              - unknown
+              - succeeded
+              - failed
+              - manual
+          provider:
+            type: string
+          provider_status:
+            type: string
+          provider_refund_no:
+            type: string
+          failure_code:
+            type: string
+          final_confirmed:
+            type: boolean
+          final_confirm_source:
+            type: string
+          manual_operator_id:
+            type: integer
+          manual_reference:
+            type: string
+          query_retry_count:
+            type: integer
+          request_time:
+            type: integer
+          update_time:
+            type: integer
+    RefundAttemptListData:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+        - total
+        - page
+        - limit
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/RefundAttempt'
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+    RefundAttemptListEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelopeBase'
+        - type: object
+          required:
+            - data
+          properties:
+            status:
+              const: 200
+            msg:
+              const: ok
+            data:
+              $ref: '#/components/schemas/RefundAttemptListData'
+    RefundAttemptDetailEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelopeBase'
+        - type: object
+          required:
+            - data
+          properties:
+            status:
+              const: 200
+            msg:
+              const: ok
+            data:
+              $ref: '#/components/schemas/RefundAttempt'
+    RefundConfirmData:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - refund_no
+        - registration_id
+        - order_no
+        - amount
+        - paid_amount
+        - status
+        - provider
+        - provider_status
+        - provider_refund_no
+        - failure_code
+        - final_confirmed
+        - final_confirm_source
+        - manual_operator_id
+        - manual_reference
+        - query_retry_count
+        - request_time
+        - update_time
+        - confirmed
+        - replayed
+      properties:
+          id:
+            type: integer
+          refund_no:
+            type: string
+          registration_id:
+            type: integer
+          order_no:
+            type: string
+          amount:
+            type: string
+          paid_amount:
+            type: string
+          status:
+            type: string
+            enum:
+              - requested
+              - processing
+              - unknown
+              - succeeded
+              - failed
+              - manual
+          provider:
+            type: string
+          provider_status:
+            type: string
+          provider_refund_no:
+            type: string
+          failure_code:
+            type: string
+          final_confirmed:
+            type: boolean
+          final_confirm_source:
+            type: string
+          manual_operator_id:
+            type: integer
+          manual_reference:
+            type: string
+          query_retry_count:
+            type: integer
+          request_time:
+            type: integer
+          update_time:
+            type: integer
+          confirmed:
+            type: boolean
+          replayed:
+            type: boolean
+    RefundConfirmEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelopeBase'
+        - type: object
+          required:
+            - data
+          properties:
+            status:
+              const: 200
+            msg:
+              const: ok
+            data:
+              $ref: '#/components/schemas/RefundConfirmData'

@@ -14,11 +14,13 @@ use app\chamber\commerce\RefundAttemptState;
 use app\chamber\contracts\CommerceEventStoreInterface;
 use app\chamber\contracts\EventRefundGatewayInterface;
 use app\chamber\exceptions\MemberTransactionException;
+use app\chamber\identity\AuthenticatedAdminContext;
 use app\chamber\identity\AuthenticatedUserContext;
 use app\chamber\membership\BootstrapIdempotency;
 use app\chamber\membership\OrderContextState;
 use app\chamber\tenancy\TenantContext;
 use app\chamber\tenancy\TenantRecord;
+use InvalidArgumentException;
 use think\facade\Db;
 
 /** Initiates trusted CRMEB refunds for paid event registrations. */
@@ -418,6 +420,224 @@ final class EventRegistrationRefundService
         ), 'refund_query_job');
     }
 
+    /**
+     * 人工财务确认：渠道无法给出最终态的退款（unknown / manual_confirmation_required、
+     * 查询耗尽等）由财务人工核账后确认。REQUESTED/PROCESSING/UNKNOWN → MANUAL，
+     * 落 REFUND_COMPLETED 事件（source=manual）推进积分/席位冲正。
+     * 已 MANUAL 重复确认幂等返回；SUCCEEDED/FAILED 拒绝（409）。
+     */
+    public function confirmManually(
+        TenantContext $tenant,
+        AuthenticatedAdminContext $admin,
+        int $attemptId,
+        string $reference
+    ): array {
+        if ($attemptId <= 0) {
+            throw $this->validation('attempt_id', 'invalid_value', 'attempt_id must be a positive integer');
+        }
+        $reference = trim($reference);
+        if ($reference === '' || strlen($reference) > 255) {
+            throw $this->validation('reason', 'invalid_length', 'reason must contain between 1 and 255 bytes');
+        }
+
+        return Db::transaction(function () use ($tenant, $admin, $attemptId, $reference): array {
+            $now = call_user_func($this->clock);
+            $attempt = Db::table('ch_refund_attempt')
+                ->where('tenant_id', $tenant->tenantId())
+                ->where('id', $attemptId)
+                ->lock(true)
+                ->find();
+            if (!is_array($attempt)) {
+                throw new MemberTransactionException(404, 'refund_attempt_not_found', 'Refund attempt was not found');
+            }
+            if ((string) $attempt['status'] === RefundAttemptState::MANUAL) {
+                $detail = $this->normalizeAttempt($attempt);
+                $detail['confirmed'] = true;
+                $detail['replayed'] = true;
+
+                return $detail;
+            }
+            try {
+                RefundAttemptState::assertTransition((string) $attempt['status'], RefundAttemptState::MANUAL);
+            } catch (InvalidArgumentException $e) {
+                throw $this->conflict('refund_state_conflict', 'Refund attempt cannot be manually confirmed in its current state');
+            }
+
+            $context = Db::table('ch_order_context')
+                ->where('tenant_id', $tenant->tenantId())
+                ->where('id', (int) $attempt['order_context_id'])
+                ->lock(true)
+                ->find();
+            $registration = Db::table('ch_event_registration')
+                ->where('tenant_id', $tenant->tenantId())
+                ->where('id', (int) $attempt['source_id'])
+                ->lock(true)
+                ->find();
+            if (!is_array($context) || !is_array($registration)) {
+                throw $this->inconsistent();
+            }
+            $paidAmount = Money::assertAmount((string) $attempt['paid_amount'], 'paid_amount');
+            $beforeAmount = Money::assertAmount((string) $context['refunded_amount'], 'refunded_amount');
+            $deltaAmount = Money::assertAmount((string) $attempt['amount'], 'amount');
+            $deltaMinor = Money::toMinor($deltaAmount);
+            $cumulativeMinor = Money::toMinor($beforeAmount) + $deltaMinor;
+            if ($deltaMinor <= 0 || $cumulativeMinor > Money::toMinor($paidAmount)) {
+                throw $this->conflict('refund_amount_unsupported', 'Manual confirm amount does not match the paid order');
+            }
+            $delta = number_format($deltaMinor / 100, 2, '.', '');
+            $cumulative = number_format($cumulativeMinor / 100, 2, '.', '');
+            $completionId = 'manual:' . $attemptId;
+            $memberAuth = new AuthenticatedUserContext((int) $attempt['requester_uid'], true, 'api');
+            $completedEvent = $this->refundEvent(
+                CommerceEventType::REFUND_COMPLETED,
+                $tenant,
+                $memberAuth,
+                $context,
+                $registration,
+                (string) $attempt['refund_no'],
+                (string) $attempt['provider_refund_no'],
+                $attemptId,
+                $paidAmount,
+                $now,
+                'completed',
+                'manual_confirmed',
+                $delta,
+                $cumulative,
+                $completionId,
+                RefundAttemptState::SOURCE_MANUAL
+            );
+            $receipt = $this->commerceEvents->record($completedEvent);
+            $inboxId = (int) Db::table('ch_commerce_event_inbox')
+                ->where('event_id', $receipt->eventId())
+                ->value('id');
+            if ($inboxId <= 0) {
+                throw $this->inconsistent();
+            }
+            $version = (int) $attempt['version'] + 1;
+            Db::table('ch_refund_attempt')->where('id', $attemptId)->update([
+                'commerce_event_id' => $inboxId,
+                'status' => RefundAttemptState::MANUAL,
+                'provider_status' => 'manual_confirmed',
+                'last_response_hash' => hash('sha256', implode("\n", [
+                    (string) $attempt['refund_no'], $completionId, $reference,
+                ])),
+                'query_retry_count' => 0,
+                'next_query_time' => 0,
+                'last_query_time' => 0,
+                'lease_token' => '',
+                'lease_expire_time' => 0,
+                'final_confirmed' => 1,
+                'final_confirm_source' => RefundAttemptState::SOURCE_MANUAL,
+                'final_confirm_time' => $now,
+                'failure_code' => '',
+                'manual_operator_id' => $admin->adminId(),
+                'manual_reference' => $reference,
+                'update_time' => $now,
+                'version' => $version,
+            ]);
+            $this->projection->consumeEvent($completedEvent);
+            $this->audit(
+                $tenant->tenantId(),
+                $attemptId,
+                'manual_confirmed',
+                (string) $attempt['status'],
+                RefundAttemptState::MANUAL,
+                $admin->adminId(),
+                $now,
+                'manual_confirmed',
+                hash('sha256', $completionId),
+                hash('sha256', implode("\n", [(string) $attempt['refund_no'], $reference])),
+                '',
+                'admin'
+            );
+
+            $detail = $this->normalizeAttempt(Db::table('ch_refund_attempt')->where('id', $attemptId)->find());
+            $detail['confirmed'] = true;
+            $detail['replayed'] = false;
+
+            return $detail;
+        });
+    }
+
+    /**
+     * 管理端退款单列表（租户隔离，状态筛选 + 分页）。
+     *
+     * @param array{status?:string,page?:int,limit?:int} $filters
+     */
+    public function listAttemptsForAdmin(TenantContext $tenant, array $filters): array
+    {
+        $status = trim((string) ($filters['status'] ?? ''));
+        if ($status !== '') {
+            try {
+                RefundAttemptState::assertStatus($status);
+            } catch (InvalidArgumentException $e) {
+                throw $this->validation('status', 'invalid_value', 'Unknown refund attempt status');
+            }
+        }
+        $page = max(1, (int) ($filters['page'] ?? 1));
+        $limit = (int) ($filters['limit'] ?? 20);
+        if ($limit < 1 || $limit > 100) {
+            throw $this->validation('limit', 'invalid_value', 'limit must be between 1 and 100');
+        }
+        $query = Db::table('ch_refund_attempt')->where('tenant_id', $tenant->tenantId());
+        if ($status !== '') {
+            $query->where('status', $status);
+        }
+        $total = (int) (clone $query)->count();
+        $rows = $query->order('id', 'desc')->page($page, $limit)->select()->toArray();
+
+        return [
+            'items' => array_map(function (array $row): array {
+                return $this->normalizeAttempt($row);
+            }, $rows),
+            'total' => $total,
+            'page' => $page,
+            'limit' => $limit,
+        ];
+    }
+
+    /** 管理端退款单详情（跨租户返回 404，不泄露存在性）。 */
+    public function attemptDetailForAdmin(TenantContext $tenant, int $attemptId): array
+    {
+        if ($attemptId <= 0) {
+            throw $this->validation('attempt_id', 'invalid_value', 'attempt_id must be a positive integer');
+        }
+        $attempt = Db::table('ch_refund_attempt')
+            ->where('tenant_id', $tenant->tenantId())
+            ->where('id', $attemptId)
+            ->find();
+        if (!is_array($attempt)) {
+            throw new MemberTransactionException(404, 'refund_attempt_not_found', 'Refund attempt was not found');
+        }
+
+        return $this->normalizeAttempt($attempt);
+    }
+
+    /** 退款单对外呈现（隐藏渠道原始响应等敏感字段）。 */
+    private function normalizeAttempt(array $attempt): array
+    {
+        return [
+            'id' => (int) $attempt['id'],
+            'refund_no' => (string) $attempt['refund_no'],
+            'registration_id' => (int) $attempt['source_id'],
+            'order_no' => (string) $attempt['crmeb_order_no'],
+            'amount' => (string) $attempt['amount'],
+            'paid_amount' => (string) $attempt['paid_amount'],
+            'status' => (string) $attempt['status'],
+            'provider' => (string) $attempt['provider'],
+            'provider_status' => (string) $attempt['provider_status'],
+            'provider_refund_no' => (string) $attempt['provider_refund_no'],
+            'failure_code' => (string) ($attempt['failure_code'] ?? ''),
+            'final_confirmed' => (int) $attempt['final_confirmed'] === 1,
+            'final_confirm_source' => (string) ($attempt['final_confirm_source'] ?? ''),
+            'manual_operator_id' => (int) ($attempt['manual_operator_id'] ?? 0),
+            'manual_reference' => (string) ($attempt['manual_reference'] ?? ''),
+            'query_retry_count' => (int) $attempt['query_retry_count'],
+            'request_time' => (int) $attempt['request_time'],
+            'update_time' => (int) $attempt['update_time'],
+        ];
+    }
+
     private function applyGatewayResult(
         TenantContext $tenant,
         AuthenticatedUserContext $auth,
@@ -437,6 +657,14 @@ final class EventRegistrationRefundService
             ->find();
         if (!is_array($attempt)) {
             throw $this->inconsistent();
+        }
+        // 终态保护：SUCCEEDED/MANUAL 已由其他路径收敛（人工确认与渠道查询竞态），
+        // 不再覆盖，避免重复推进投影。
+        if (in_array((string) $attempt['status'], [
+            RefundAttemptState::SUCCEEDED,
+            RefundAttemptState::MANUAL,
+        ], true)) {
+            return;
         }
         $status = $result->status();
         $toStatus = $status;
@@ -563,6 +791,35 @@ final class EventRegistrationRefundService
                 'update_time' => $now,
                 'version' => $version,
             ]);
+            // 渠道明确拒绝：推进 REFUND_FAILED 事件，order context 进入
+            // REFUND_FAILED，会员可重新发起；否则 context 永远卡在
+            // requested/processing，既不能重试也无人可处理。
+            $failedEvent = $this->refundEvent(
+                CommerceEventType::REFUND_FAILED,
+                $tenant,
+                $auth,
+                $context,
+                $registration,
+                $refundNo,
+                $providerRefundNo,
+                $attemptId,
+                $paidAmount,
+                $now,
+                'failed',
+                $providerStatus
+            );
+            $receipt = $this->commerceEvents->record($failedEvent);
+            $inboxId = (int) Db::table('ch_commerce_event_inbox')
+                ->where('event_id', $receipt->eventId())
+                ->value('id');
+            if ($inboxId <= 0) {
+                throw $this->inconsistent();
+            }
+            Db::table('ch_refund_attempt')->where('id', $attemptId)->update([
+                'commerce_event_id' => $inboxId,
+                'update_time' => $now,
+            ]);
+            $this->projection->consumeEvent($failedEvent);
             $this->audit(
                 $tenantId,
                 $attemptId,
@@ -810,7 +1067,8 @@ final class EventRegistrationRefundService
         string $providerStatus,
         string $responseHash,
         string $referenceHash,
-        string $failureCode = ''
+        string $failureCode = '',
+        string $actorType = 'member'
     ): void {
         Db::table('ch_refund_attempt_audit')->insert([
             'tenant_id' => $tenantId,
@@ -818,7 +1076,7 @@ final class EventRegistrationRefundService
             'action' => $action,
             'from_status' => $fromStatus,
             'to_status' => $toStatus,
-            'actor_type' => 'member',
+            'actor_type' => $actorType,
             'actor_id' => $actorId,
             'provider_status' => $providerStatus,
             'response_hash' => $responseHash,

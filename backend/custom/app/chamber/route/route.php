@@ -88,6 +88,9 @@ foreach ([
     'admin/v1/events/:event_id/cancel',
     'admin/v1/events/:event_id/checkin-token',
     'admin/v1/events/:event_id/checkins/manual',
+    'admin/v1/refunds',
+    'admin/v1/refunds/:attempt_id',
+    'admin/v1/refunds/:attempt_id/confirm',
     'admin/v1/members',
     'admin/v1/members/:member_id',
     'admin/v1/members/orders',
@@ -360,6 +363,12 @@ Route::group('admin/v1', function () {
         ->pattern(['event_id' => '\\d+']);
     Route::post('events/:event_id/checkins/manual', 'EventAdminController/manualCheckin')
         ->pattern(['event_id' => '\\d+']);
+    // ---- 退票：退款单查询与人工财务确认 ----
+    Route::get('refunds', 'RefundAdminController/index');
+    Route::get('refunds/:attempt_id', 'RefundAdminController/show')
+        ->pattern(['attempt_id' => '\\d+']);
+    Route::post('refunds/:attempt_id/confirm', 'RefundAdminController/confirm')
+        ->pattern(['attempt_id' => '\\d+']);
     Route::get('members', 'MemberAdminController/index');
     Route::patch('members/:member_id', 'MemberAdminController/update')
         ->pattern(['member_id' => '\\d+']);
