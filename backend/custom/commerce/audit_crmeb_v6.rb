@@ -172,7 +172,7 @@ class PhpSource
 end
 
 class CrmebV6Audit
-  LOCKED_COMMIT = "0791fbf8b0d75bb8af0faa25c6305535368559f3"
+  LOCKED_COMMIT = "7dcddffff73ec542d689f159724296351f29ea9a"
   UPSTREAM_COMMIT = "7dcddffff73ec542d689f159724296351f29ea9a"
   UPSTREAM_TAG = "v6.0.0"
 

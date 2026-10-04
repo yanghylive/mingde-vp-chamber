@@ -49,8 +49,32 @@ compose() {
     docker compose -f "${COMPOSE_FILE}" "$@"
 }
 
+# 上游补丁层：把 backend/crmeb-patches/*.patch 按序打到运行副本。
+# 子模块工作区永远保持上游原样；补丁只进运行副本（gitignored）。
+# 任一补丁 dry-run 失败即整体失败，防止上游漂移被静默跳过。
+apply_crmeb_patches() {
+    local patch_dir="${PROJECT_ROOT}/backend/crmeb-patches"
+    local patch_file name applied_list=""
+    [ -d "${patch_dir}" ] || fail "CRMEB patch directory not found: ${patch_dir}"
+
+    for patch_file in "${patch_dir}"/*.patch; do
+        [ -f "${patch_file}" ] || continue
+        name="$(basename "${patch_file}")"
+        patch -p1 -d "${RUNTIME_DIR}" --dry-run --silent < "${patch_file}" \
+            || fail "CRMEB patch does not apply cleanly (upstream drift?): ${name}"
+        patch -p1 -d "${RUNTIME_DIR}" --silent < "${patch_file}" \
+            || fail "CRMEB patch failed to apply: ${name}"
+        applied_list="${applied_list}${name}
+"
+        printf 'PATCH %s\n' "${name}"
+    done
+
+    printf '%s' "${applied_list}" > "${RUNTIME_DIR}/.applied-patches"
+}
+
 prepare_runtime() {
     require_command rsync
+    require_command patch
     [ -d "${SOURCE_DIR}" ] || fail "CRMEB source directory not found: ${SOURCE_DIR}"
     [ -f "${SOURCE_DIR}/public/install/crmeb.sql" ] || fail "CRMEB install SQL not found"
     [ -d "${CUSTOM_APP_DIR}" ] || fail "Chamber overlay not found: ${CUSTOM_APP_DIR}"
@@ -86,6 +110,8 @@ prepare_runtime() {
         "${RUNTIME_DIR}/backup"
     touch "${RUNTIME_DIR}/.env" "${RUNTIME_DIR}/.constant"
     chmod u+rw "${RUNTIME_DIR}/.env" "${RUNTIME_DIR}/.constant"
+
+    apply_crmeb_patches
 
     if git -C "${PROJECT_ROOT}/backend/crmeb" rev-parse HEAD >/dev/null 2>&1; then
         git -C "${PROJECT_ROOT}/backend/crmeb" rev-parse HEAD > "${RUNTIME_DIR}/.source-revision"

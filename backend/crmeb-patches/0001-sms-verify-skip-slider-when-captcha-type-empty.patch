@@ -1,0 +1,42 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: mingde-vp-chamber <chamber@localhost>
+Date: Sat, 04 Oct 2026 00:00:00 +0800
+Subject: [PATCH 1/1] sms: skip slider captcha when captchaType is empty
+
+Upstream CRMEB v6.0.0 `app/api/controller/v1/LoginController::verify()`
+unconditionally calls `aj_captcha_check_two($captchaType, ...)`.
+Mini-program clients that do not enable slider captcha send an empty
+`captchaType`, `aj_get_serevice('')` throws, and SMS sending always fails.
+
+Change: only run the second slider verification when a `captchaType` was
+actually provided. Retired upstream-commit equivalent: 0791fbf8 (local-only,
+unrecoverable; re-expressed here as a vendored patch).
+
+Applies to: CRMEB-KY v6.0.0 (7dcddffff73ec542d689f159724296351f29ea9a)
+Target dir: backend/crmeb/crmeb  (apply with: patch -p1 -d <runtime>)
+---
+ app/api/controller/v1/LoginController.php | 12 +++++++-----
+ 1 file changed, 7 insertions(+), 5 deletions(-)
+
+diff --git a/app/api/controller/v1/LoginController.php b/app/api/controller/v1/LoginController.php
+--- a/app/api/controller/v1/LoginController.php
++++ b/app/api/controller/v1/LoginController.php
+@@ -173,10 +173,12 @@ public function verify(Request $request, SmsService $services)
+ 
+         }
+ 
+-        //二次验证
+-        try {
+-            aj_captcha_check_two($captchaType, $captchaVerification);
+-        } catch (\Throwable $e) {
+-            return app('json')->fail($e->getMessage());
++        //二次验证（captchaType 为空表示客户端未启用滑块验证码，直接跳过）
++        if ($captchaType !== '') {
++            try {
++                aj_captcha_check_two($captchaType, $captchaVerification);
++            } catch (\Throwable $e) {
++                return app('json')->fail($e->getMessage());
++            }
+         }
+ 
+         try {

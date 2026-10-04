@@ -104,14 +104,15 @@ PROJECT_MANIFEST.json
   crmeb_source:
     upstream_tag: v6.0.0
     upstream_commit: 7dcddffff73ec542d689f159724296351f29ea9a
-    project_commit: 0791fbf8b0d75bb8af0faa25c6305535368559f3
+    project_commit: 7dcddffff73ec542d689f159724296351f29ea9a
+    patch_dir: backend/crmeb-patches   # 上游补丁以 .patch 文件存放，打到运行副本，子模块保持原样
 ```
 
 脚本语义要分开：
 
 - `upstream_commit`：用于 CRMEB 兼容性审计。
-- `project_commit`：用于 Chamber 当前工作区和前端构建。
-- 如果必须在上游子模块上保留定制提交，必须明确这是“补丁层”，不能继续假装 HEAD 是 upstream tag。
+- `project_commit`：用于 Chamber 当前工作区和前端构建（2026-10-04 起与上游一致，不再有本地补丁提交）。
+- 如需定制上游行为，必须走 `backend/crmeb-patches/*.patch` 补丁层（见该目录 README），不能继续假装 HEAD 是 upstream tag，也不再允许产生本地补丁提交（本地提交不可复现，2026-10-04 已退役 `7095948e` / `0791fbf`）。
 
 退出标准：
 

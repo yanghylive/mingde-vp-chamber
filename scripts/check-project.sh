@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-EXPECTED_CRMEB_SHA="0791fbf8b0d75bb8af0faa25c6305535368559f3"
+EXPECTED_CRMEB_SHA="7dcddffff73ec542d689f159724296351f29ea9a"
 
 fail() {
   printf 'ERROR: %s\n' "$1" >&2
