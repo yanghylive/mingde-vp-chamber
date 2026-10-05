@@ -71,13 +71,21 @@ ln -sfn "$UNIAPP/vue.config.js" "$BUILD_SRC/vue.config.js"
 pass "构建目录就绪（/tmp/uni-build-src）"
 
 # ---- 3. 真实编译 ----
+# HBuilderX 存在时用其插件目录；否则走纯 npm 工具链（package.json 已钉死
+# webpack4/copy-plugin5 等版本 + postinstall 补齐嵌套依赖，见 scripts/fix-nested-webpack4.js）。
+# 已验证：无 HBuilderX 的机器上可完整编译出 1.3M 可部署产物。
 echo ""
-echo "--- [3/4] 真实编译 mp-weixin（HBuilderX 工具链）---"
+echo "--- [3/4] 真实编译 mp-weixin ---"
 cd "$BUILD_SRC"
+if [ -d "${HBX_PLUGINS}" ]; then
+  export UNI_HBUILDERX_PLUGINS="${HBX_PLUGINS}"
+else
+  unset UNI_HBUILDERX_PLUGINS
+  warn "未检测到 HBuilderX，使用纯 npm 工具链编译"
+fi
 if ! env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy -u NODE_OPTIONS \
     NODE_ENV=production UNI_PLATFORM=mp-weixin UNI_CLI_CONTEXT="$BUILD_SRC" \
     UNI_OUTPUT_DIR="$OUT_DIR" \
-    UNI_HBUILDERX_PLUGINS="$HBX_PLUGINS" \
     "$NODE" node_modules/@vue/cli-service/bin/vue-cli-service.js uni-build \
     > "$BUILD_SRC/build.log" 2>&1; then
   echo "编译日志（末尾 30 行）："
@@ -107,13 +115,25 @@ if grep -rn 'calc(50%' "$OUT_DIR/pages/" 2>/dev/null; then
 fi
 pass "产物无 calc(50% 残留"
 
-# 4c. 关键页面产物齐全
-for p in index events experts mall membership mine login chat ai-ecosystem; do
+# 4c. 关键页面产物齐全（以 pages.json 注册为准；AI 页下线期间不要求 chat/ai-ecosystem）
+registered="$(node - "$UNIAPP/pages.json" <<'NODE'
+const fs = require('fs');
+const text = fs.readFileSync(process.argv[2], 'utf8').replace(/\/\/.*/g, '');
+const pages = JSON.parse(text).pages || [];
+for (const p of pages) {
+  if (p && p.path) console.log(p.path.replace(/\/index$/, ''));
+}
+NODE
+)"
+for p in index events experts mall membership mine login; do
+  if ! grep -qxF "pages/$p" <<<"${registered}"; then
+    fail "pages.json 缺少 tabBar 关键页: pages/$p/"
+  fi
   if [ ! -f "$OUT_DIR/pages/$p/index.js" ] && [ ! -f "$OUT_DIR/pages/$p/index.wxml" ]; then
     fail "缺少关键页面产物: pages/$p/"
   fi
 done
-pass "关键页面产物齐全"
+pass "关键页面产物齐全（tabBar 5 页 + 会员中心/登录）"
 
 # ---- 可选：同步产物 ----
 if [ "$SYNC" = "1" ]; then
