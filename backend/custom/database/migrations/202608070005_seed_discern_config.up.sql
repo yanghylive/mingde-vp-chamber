@@ -5,8 +5,16 @@
 
 SET NAMES utf8mb4;
 
-ALTER TABLE `ch_discern_config`
-  ADD COLUMN `extra` json DEFAULT NULL COMMENT '完整123456789体系（团队/态度/支柱/目的/范畴/领导力）' AFTER `six_beliefs`;
+-- _ch_idempotent_add_column: 条件 DDL，列已存在时跳过（生产手工演进环境兼容）
+SET @ch_ddl := IF(
+  (SELECT COUNT(*) FROM information_schema.columns
+    WHERE table_schema = DATABASE() AND table_name = 'ch_discern_config' AND column_name = 'extra') = 0,
+  'ALTER TABLE `ch_discern_config`
+  ADD COLUMN `extra` json DEFAULT NULL COMMENT ''完整123456789体系（团队/态度/支柱/目的/范畴/领导力）'' AFTER `six_beliefs`;',
+  'DO 0'
+);
+PREPARE ch_stmt FROM @ch_ddl; EXECUTE ch_stmt; DEALLOCATE PREPARE ch_stmt;
+
 
 INSERT INTO `ch_discern_config`
   (`tenant_id`, `brand_name`, `voice_style`, `four_traits`, `five_principles`, `six_beliefs`, `extra`, `push_time`, `evening_time`, `streak_threshold`, `status`, `add_time`, `update_time`)
