@@ -60,6 +60,29 @@ foreach ([
     'v1/events/:event_id/waitlist',
     'v1/me/waitlist',
     'v1/me/waitlist/:waitlist_id',
+    'v1/course-packages',
+    'v1/course-packages/:package_id',
+    'v1/course-packages/:package_id/checkouts',
+    'v1/course-sessions',
+    'v1/course-sessions/:session_id',
+    'v1/course-sessions/:session_id/bookings',
+    'v1/course-sessions/:session_id/checkins',
+    'v1/me/credit',
+    'v1/me/course-bookings',
+    'v1/me/families',
+    'v1/me/families/:family_id/members',
+    'v1/me/course-packages/checkouts/complete',
+    'v1/me/growth',
+    'admin/v1/coaches',
+    'admin/v1/coaches/:coach_id',
+    'admin/v1/course-packages',
+    'admin/v1/course-packages/:package_id',
+    'admin/v1/course-sessions',
+    'admin/v1/course-sessions/:session_id',
+    'admin/v1/course-sessions/:session_id/checkin-token',
+    'admin/v1/course-sessions/:session_id/checkins/manual',
+    'admin/v1/coach-session-reports',
+    'admin/v1/families',
     'v1/me/friends',
     'v1/me/friends/:friend_id/accept',
     'v1/me/distribution',
@@ -195,6 +218,45 @@ Route::group('v1/me', function () {
     Route::post('numbers/:number_id/select', 'MemberNumberController/select')
         ->pattern(['number_id' => '\d+']);
     Route::get('appointments', 'ExpertScheduleController/myAppointments');
+    // ---- 课程线（生产 tenant 2 业务线合入 2026-10-05）----
+    Route::get('credit', 'CreditAccountController/show');
+    Route::get('course-bookings', 'CourseBookingController/index');
+    Route::get('families', 'FamilyController/index');
+    Route::post('families', 'FamilyController/store');
+    Route::post('families/:family_id/members', 'FamilyController/addMember')
+        ->pattern(['family_id' => '\\d+']);
+    Route::post('course-packages/checkouts/complete', 'CoursePackageCheckoutController/complete');
+    Route::get('growth', 'GrowthReportController/show');
+})->middleware(RequestTraceMiddleware::class)
+    ->middleware(ChamberCorsMiddleware::class)
+    ->middleware(CrmebAuthTokenMiddleware::class)
+    ->middleware(TenantContextMiddleware::class, true);
+
+// 课时包：列表 / 详情 —— 游客可浏览（免鉴权，降低转化漏斗第一步门槛）
+Route::group('v1/course-packages', function () {
+    Route::get('', 'CoursePackageController/index');
+    Route::get(':package_id', 'CoursePackageController/show')
+        ->pattern(['package_id' => '\\d+']);
+})->middleware(RequestTraceMiddleware::class)
+    ->middleware(ChamberCorsMiddleware::class)
+    ->middleware(TenantContextMiddleware::class, true);
+
+Route::group('v1/course-packages', function () {
+    Route::post(':package_id/checkouts', 'CoursePackageCheckoutController/store')
+        ->pattern(['package_id' => '\\d+']);
+})->middleware(RequestTraceMiddleware::class)
+    ->middleware(ChamberCorsMiddleware::class)
+    ->middleware(CrmebAuthTokenMiddleware::class)
+    ->middleware(TenantContextMiddleware::class, true);
+
+Route::group('v1/course-sessions', function () {
+    Route::get('', 'CourseSessionController/index');
+    Route::get(':session_id', 'CourseSessionController/show')
+        ->pattern(['session_id' => '\\d+']);
+    Route::post(':session_id/bookings', 'CourseBookingController/store')
+        ->pattern(['session_id' => '\\d+']);
+    Route::post(':session_id/checkins', 'CourseCheckinController/store')
+        ->pattern(['session_id' => '\\d+']);
 })->middleware(RequestTraceMiddleware::class)
     ->middleware(ChamberCorsMiddleware::class)
     ->middleware(CrmebAuthTokenMiddleware::class)
@@ -371,6 +433,31 @@ Route::group('admin/v1', function () {
         ->pattern(['event_id' => '\\d+']);
     Route::post('events/:event_id/checkins/manual', 'EventAdminController/manualCheckin')
         ->pattern(['event_id' => '\\d+']);
+    // ---- 课程线管理端（生产 tenant 2 业务线合入 2026-10-05）----
+    Route::get('coaches', 'CoachAdminController/index');
+    Route::post('coaches', 'CoachAdminController/store');
+    Route::get('coaches/:coach_id', 'CoachAdminController/show')
+        ->pattern(['coach_id' => '\\d+']);
+    Route::patch('coaches/:coach_id', 'CoachAdminController/update')
+        ->pattern(['coach_id' => '\\d+']);
+    Route::get('course-packages', 'CoursePackageAdminController/index');
+    Route::post('course-packages', 'CoursePackageAdminController/store');
+    Route::get('course-packages/:package_id', 'CoursePackageAdminController/show')
+        ->pattern(['package_id' => '\\d+']);
+    Route::patch('course-packages/:package_id', 'CoursePackageAdminController/update')
+        ->pattern(['package_id' => '\\d+']);
+    Route::get('course-sessions', 'CourseSessionAdminController/index');
+    Route::post('course-sessions', 'CourseSessionAdminController/store');
+    Route::get('course-sessions/:session_id', 'CourseSessionAdminController/show')
+        ->pattern(['session_id' => '\\d+']);
+    Route::patch('course-sessions/:session_id', 'CourseSessionAdminController/update')
+        ->pattern(['session_id' => '\\d+']);
+    Route::post('course-sessions/:session_id/checkin-token', 'CourseSessionAdminController/checkinToken')
+        ->pattern(['session_id' => '\\d+']);
+    Route::post('course-sessions/:session_id/checkins/manual', 'CourseSessionAdminController/manualCheckin')
+        ->pattern(['session_id' => '\\d+']);
+    Route::post('coach-session-reports', 'CoachSessionReportAdminController/store');
+    Route::get('families', 'FamilyAdminController/index');
     // ---- 退票：退款单查询与人工财务确认 ----
     Route::get('refunds', 'RefundAdminController/index');
     Route::get('refunds/:attempt_id', 'RefundAdminController/show')

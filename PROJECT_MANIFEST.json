@@ -15,11 +15,20 @@
     "project_commit": "7dcddffff73ec542d689f159724296351f29ea9a",
     "patch_dir": "backend/crmeb-patches",
     "patches": [
-      { "file": "backend/crmeb-patches/0001-sms-verify-skip-slider-when-captcha-type-empty.patch", "note": "短信验证码发送修复——captchaType 为空时跳过滑块校验（原本地提交 0791fbf 已转 vendor patch）" }
+      {
+        "file": "backend/crmeb-patches/0001-sms-verify-skip-slider-when-captcha-type-empty.patch",
+        "note": "短信验证码发送修复——captchaType 为空时跳过滑块校验（原本地提交 0791fbf 已转 vendor patch）"
+      }
     ],
     "retired_local_commits": [
-      { "commit": "7095948e", "note": "chamber 接口前缀/CORS/cookie 兼容调整——已被 overlay（ChamberCorsMiddleware/OPTIONS 白名单/nginx 重写）取代，上游保持原样" },
-      { "commit": "0791fbf", "note": "短信验证码发送修复——已转写为 0001 vendor patch；原提交为本地私有、远端不可取，2026-10-04 退役" }
+      {
+        "commit": "7095948e",
+        "note": "chamber 接口前缀/CORS/cookie 兼容调整——已被 overlay（ChamberCorsMiddleware/OPTIONS 白名单/nginx 重写）取代，上游保持原样"
+      },
+      {
+        "commit": "0791fbf",
+        "note": "短信验证码发送修复——已转写为 0001 vendor patch；原提交为本地私有、远端不可取，2026-10-04 退役"
+      }
     ],
     "submodule_path": "backend/crmeb",
     "source": "https://gitee.com/ZhongBangKeJi/CRMEB.git",
@@ -187,6 +196,8 @@
     "implemented_activity_operations": 14,
     "planned_activity_operations": 0,
     "event_registration_http_gate": "scripts/check-g2-event-registration-http.sh",
-    "gate": "scripts/check-g2-activity-core.sh"
+    "gate": "scripts/check-g2-activity-core.sh",
+    "course_line_database_assertions": 43,
+    "course_line_database_assertions_minimum": 43
   }
 }
