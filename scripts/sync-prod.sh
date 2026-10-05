@@ -7,6 +7,7 @@
 #
 # 用法：
 #   ./scripts/sync-prod.sh diff    # 只对比差异（默认，只读安全）
+#   ./scripts/sync-prod.sh routes  # 只对比路由清单（只读安全，提审前必跑）
 #   ./scripts/sync-prod.sh push    # 本地到生产（增量上传 + prepare + 重启 php）
 #   ./scripts/sync-prod.sh pull    # 生产到本地（增量拉回 + git 提示）
 #
@@ -171,16 +172,42 @@ do_pull() {
   log "  git add backend/custom/ && git commit -m 'sync: 拉取生产演进代码' && git push origin main"
 }
 
+# ---------- 路由清单对比 ----------
+# 列出生产缺失的接口（本地 route.php 有、生产 route.php 无）。
+# 微信审核 3.3 驳回的根因就是这类漂移：小程序调了本地已存在、生产不存在的路由。
+do_routes() {
+  log "对比路由清单（本地 route.php vs 生产 route.php）..."
+  local local_routes prod_routes
+  local_routes="$(grep -oE "Route::(get|post|put|patch|delete)\('[^']+'" "${LOCAL_BASE}/backend/custom/app/chamber/route/route.php" | sort -u)"
+  prod_routes="$(ssh_retry "grep -oE \"Route::(get|post|put|patch|delete)\('[^']+'\" ${PROD_BASE}/backend/custom/app/chamber/route/route.php" | sort -u)" || return 1
+
+  local missing=0
+  while IFS= read -r line; do
+    [ -z "${line}" ] && continue
+    if ! grep -Fqx "${line}" <<<"${prod_routes}"; then
+      echo "    [生产缺失] ${line}"
+      missing=$((missing + 1))
+    fi
+  done <<<"${local_routes}"
+
+  if [ "${missing}" -eq 0 ]; then
+    ok "路由已同步：生产包含本地全部接口"
+  else
+    warn "生产缺失 ${missing} 条路由，部署后需验证它们返回 200/401（而非 404）"
+  fi
+}
+
 # ---------- main ----------
 MODE="${1:-diff}"
 CONFIRM="${2:-}"
 
 case "$MODE" in
   diff) do_diff ;;
+  routes) do_routes ;;
   push) do_push "$CONFIRM" ;;
   pull) do_pull "$CONFIRM" ;;
   *)
-    err "未知模式: ${MODE}（可用: diff / push / pull）"
+    err "未知模式: ${MODE}（可用: diff / push / pull / routes）"
     sed -n '1,18p' "$0"
     exit 1
     ;;
