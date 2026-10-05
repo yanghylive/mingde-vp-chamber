@@ -3,9 +3,21 @@
 -- 2. ch_expert_role_field 角色字段模板表（表驱动，定义每种角色展示哪些字段）
 -- 3. ch_expert_case / ch_expert_credential / ch_expert_course 独立表（可检索/排序/运营）
 
-ALTER TABLE ch_expert
-  ADD COLUMN role varchar(20) NOT NULL DEFAULT 'mentor' COMMENT '角色 mentor/coach/industry_leader' AFTER industry,
-  ADD COLUMN profile_json text COMMENT '角色化资料 key-value JSON（key 对应 ch_expert_role_field.field_key）' AFTER bio;
+-- _ch_idempotent_add_column: 条件 DDL，列已存在时跳过（生产手工演进环境兼容）
+SET @ch_ddl := IF(
+  (SELECT COUNT(*) FROM information_schema.columns
+    WHERE table_schema = DATABASE() AND table_name = 'ch_expert' AND column_name = 'role') = 0,
+  'ALTER TABLE ch_expert ADD COLUMN role varchar(20) NOT NULL DEFAULT ''mentor'' COMMENT ''角色 mentor/coach/industry_leader'' AFTER industry;',
+  'DO 0'
+);
+PREPARE ch_stmt FROM @ch_ddl; EXECUTE ch_stmt; DEALLOCATE PREPARE ch_stmt;
+SET @ch_ddl := IF(
+  (SELECT COUNT(*) FROM information_schema.columns
+    WHERE table_schema = DATABASE() AND table_name = 'ch_expert' AND column_name = 'profile_json') = 0,
+  'ALTER TABLE ch_expert ADD COLUMN profile_json text COMMENT ''角色化资料 key-value JSON（key 对应 ch_expert_role_field.field_key）'' AFTER bio;',
+  'DO 0'
+);
+PREPARE ch_stmt FROM @ch_ddl; EXECUTE ch_stmt; DEALLOCATE PREPARE ch_stmt;
 
 CREATE TABLE IF NOT EXISTS ch_expert_role_field (
   id bigint unsigned NOT NULL AUTO_INCREMENT,
