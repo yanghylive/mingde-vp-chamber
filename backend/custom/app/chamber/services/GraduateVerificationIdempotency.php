@@ -116,7 +116,13 @@ final class GraduateVerificationIdempotency
                 );
             }
 
-            $data = call_user_func($execution, $now);
+            // 2026-10-05 合并生产课程线：课程/课时包结算需要幂等记录 id
+            // （reservePaid 用它绑定订单上下文）。这里按 closure 实际接受的
+            // 参数个数决定是否传入 recordId——已有 1 参 closure 行为不变。
+            $executionArity = $this->callableArity($execution);
+            $data = $executionArity >= 2
+                ? call_user_func($execution, $now, (int) $record['row']['id'])
+                : call_user_func($execution, $now);
             if (!is_array($data)) {
                 throw new RuntimeException('Graduate verification idempotent execution must return an array');
             }
@@ -134,6 +140,18 @@ final class GraduateVerificationIdempotency
 
             return $data;
         });
+    }
+
+    /** 解析 closure 声明的参数个数（无法反射时保守按 1 处理）。 */
+    private function callableArity(callable $execution): int
+    {
+        try {
+            $reflection = new \ReflectionFunction(\Closure::fromCallable($execution));
+        } catch (\ReflectionException $exception) {
+            return 1;
+        }
+
+        return $reflection->getNumberOfParameters();
     }
 
     private function lockRecord(
