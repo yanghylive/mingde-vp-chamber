@@ -5,7 +5,7 @@
       <view class="dc-label">我的分销码</view>
       <view class="dc-code">{{ code || (loading ? '···' : '——') }}</view>
       <view class="dc-hint">{{ code ? '分享该码，好友注册时填写即可绑定推荐关系' : '分销码生成中，请稍后再试' }}</view>
-      <view class="dc-copy {{!code || loading ? 'dc-copy-disabled' : ''}}" @tap="copyCode">
+      <view :class="'dc-copy' + (!code || loading ? ' dc-copy-disabled' : '')" @tap="copyCode">
         {{ copied ? '已复制 OK' : '复制分销码' }}
       </view>
       <button class="dc-share" open-type="share">分享给好友</button>
@@ -40,7 +40,7 @@
           <text class="rc-name">{{ r.invited_name || '明德会员' }}</text>
           <text class="rc-time">{{ r.created_at ? toDateStr(r.created_at) : '' }}</text>
         </view>
-        <text class="{{'rc-status' + (r.status === 'credited' ? ' rc-ok' : '')}}">{{ r.status === 'credited' ? '已到账' : '待确认' }}</text>
+        <text :class="'rc-status' + (r.status === 'credited' ? ' rc-ok' : '')">{{ r.status === 'credited' ? '已到账' : '待确认' }}</text>
       </view>
     </view>
 

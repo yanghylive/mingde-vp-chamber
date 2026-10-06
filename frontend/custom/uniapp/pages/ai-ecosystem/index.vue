@@ -26,16 +26,16 @@
       <view
         v-for="c in cards"
         :key="c.key"
-        class="{{'ai-card card' + (active === c.key ? ' ai-card-open' : '')}}"
+        :class="'ai-card card' + (active === c.key ? ' ai-card-open' : '')"
         @tap="toggle(c.key)"
       >
         <view class="ac-top">
-          <view class="{{'ac-icon tone-' + c.key}}">
+          <view :class="'ac-icon tone-' + c.key">
             <image class="ic ic-md" :src="iconPath(c.icon)" mode="aspectFit" />
           </view>
           <view class="ac-title-row">
             <text class="ac-title">{{ c.title }}</text>
-            <image class="{{'ic ic-xs ac-caret' + (active === c.key ? ' ac-caret-open' : '')}}" src="/static/icons/ic-chevron-down-gray.png" mode="aspectFit" />
+            <image :class="'ic ic-xs ac-caret' + (active === c.key ? ' ac-caret-open' : '')" src="/static/icons/ic-chevron-down-gray.png" mode="aspectFit" />
           </view>
           <text class="ac-desc">{{ c.desc }}</text>
         </view>

@@ -4,7 +4,7 @@
     <view v-if="loading" class="empty">加载中…</view>
     <view v-else-if="list.length === 0" class="empty">暂无预约记录</view>
     <view v-else class="card list">
-      <view v-for="(item, idx) in list" :key="item.id" class="{{'entry' + (idx > 0 ? ' entry-bd' : '')}}">
+      <view v-for="(item, idx) in list" :key="item.id" :class="'entry' + (idx > 0 ? ' entry-bd' : '')">
         <view class="en-top">
           <view class="en-expert">
             <text class="en-avatar">{{ (item.expert_name || '?').charAt(0) }}</text>
@@ -13,7 +13,7 @@
               <text class="en-mode">{{ item.mode === 'offline' ? '线下' : '线上' }} · {{ timeText(item.start_time) }}</text>
             </view>
           </view>
-          <text class="{{'en-status ' + (item.status === 'confirmed' ? 'st-ok' : 'st-cancel')}}">{{ statusText(item.status) }}</text>
+          <text :class="'en-status ' + (item.status === 'confirmed' ? 'st-ok' : 'st-cancel')">{{ statusText(item.status) }}</text>
         </view>
         <view class="en-bottom">
           <text class="en-points">{{ item.points_cost }} 积分</text>

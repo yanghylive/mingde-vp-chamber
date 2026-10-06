@@ -21,7 +21,7 @@
         </view>
       </view>
       <view class="hero-stats">
-        <view v-for="s in stats" :key="s.label" class="{{'hs-item' + (s.border ? ' hs-border' : '')}}">
+        <view v-for="s in stats" :key="s.label" :class="'hs-item' + (s.border ? ' hs-border' : '')">
           <text class="hs-num">{{ loading ? '—' : s.value }}</text>
           <text class="hs-label">{{ s.label }}</text>
         </view>
@@ -43,7 +43,7 @@
         <view
           v-for="c in categories"
           :key="c"
-          class="{{'chip glass-control' + (category === c ? ' glass-control-active' : '')}}"
+          :class="'chip glass-control' + (category === c ? ' glass-control-active' : '')"
           @tap="category = c"
         >
           {{ c }}
@@ -55,7 +55,7 @@
     <view v-else-if="visible.length === 0" class="empty">暂无符合条件的大咖</view>
     <view v-else class="list">
       <view v-for="(e, idx) in visible" :key="e.id" class="expert card">
-        <view class="{{'ex-avatar avatar-' + (idx % 4)}}">{{ e.first }}</view>
+        <view :class="'ex-avatar avatar-' + (idx % 4)">{{ e.first }}</view>
         <view class="ex-info">
           <view class="ex-head">
             <view>

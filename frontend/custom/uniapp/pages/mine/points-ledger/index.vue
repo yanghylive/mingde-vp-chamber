@@ -26,8 +26,8 @@
     <view v-if="loading" class="empty">流水加载中…</view>
     <view v-else-if="list.length === 0" class="empty">暂无积分记录</view>
     <view v-else class="card ledger-list">
-      <view v-for="(item, idx) in list" :key="item.id" class="{{'entry' + (idx > 0 ? ' entry-bd' : '')}}">
-        <view class="{{'en-icon ' + (isEarn(item) ? 'en-earn' : 'en-spend')}}">
+      <view v-for="(item, idx) in list" :key="item.id" :class="'entry' + (idx > 0 ? ' entry-bd' : '')">
+        <view :class="'en-icon ' + (isEarn(item) ? 'en-earn' : 'en-spend')">
           <text>{{ isEarn(item) ? '+' : '-' }}</text>
         </view>
         <view class="en-info">
@@ -35,7 +35,7 @@
           <text class="en-meta">{{ sourceLabel(item) }} · {{ timeText(item.created_at) }}</text>
         </view>
         <view class="en-right">
-          <text class="{{'en-points ' + (isEarn(item) ? 'en-plus' : 'en-minus')}}">
+          <text :class="'en-points ' + (isEarn(item) ? 'en-plus' : 'en-minus')">
             {{ isEarn(item) ? '+' : '' }}{{ formatPoints(getDelta(item)) }}
           </text>
           <text v-if="item.balance_after != null" class="en-balance">余额 {{ formatPoints(item.balance_after) }}</text>

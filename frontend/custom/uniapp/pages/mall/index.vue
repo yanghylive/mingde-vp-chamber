@@ -24,10 +24,11 @@
       <view
         v-for="c in categoryOptions"
         :key="c"
-        class="{{'chip glass-control' + (tab === c ? ' glass-control-active' : '')}}"
+        :class="'chip glass-control' + (tab === c ? ' glass-control-active' : '')"
         @tap="tab = c"
       >
         {{ c }}
+      </view>
       </view>
     </scroll-view>
 
@@ -46,7 +47,7 @@
     <view v-else-if="visible.length === 0" class="empty">暂无相关商品</view>
     <view v-else class="grid">
       <view v-for="p in visible" :key="p.id" class="product card" @tap="openConfirm(p)">
-        <view class="{{'p-img' + (' ' + catTone(p.category))}}">
+        <view :class="'p-img' + (' ' + catTone(p.category))">
           <!-- 商品主图优先；无图或加载失败回退默认商品图 -->
           <image v-if="p.image && !imgFailed[p.id]" class="p-img-main" :src="p.image" mode="aspectFill" lazy-load @error="imgFailed[p.id] = true" />
           <image v-else class="p-img-main" src="/static/default-product.jpg" mode="aspectFill" />
@@ -57,7 +58,7 @@
           <text class="p-points">{{ formatPoints(p.integral_price) }}<text class="p-unit"> 积分</text></text>
           <text v-if="Number(p.price) > 0" class="p-cash">{{ fmtCash(p) }}</text>
         </view>
-        <view v-if="!VIRTUAL_PAY_DISABLED && EXCHANGE_VPAY_READY" class="{{'p-btn' + (Number(p.integral_price) <= 0 ? ' p-btn-disabled' : '')}}" @tap.stop="openConfirm(p)">{{ Number(p.integral_price) <= 0 ? '不支持兑换' : '立即兑换' }}</view>
+        <view v-if="!VIRTUAL_PAY_DISABLED && EXCHANGE_VPAY_READY" :class="'p-btn' + (Number(p.integral_price) <= 0 ? ' p-btn-disabled' : '')" @tap.stop="openConfirm(p)">{{ Number(p.integral_price) <= 0 ? '不支持兑换' : '立即兑换' }}</view>
         <view v-else class="p-btn p-btn-disabled">即将开放</view>
       </view>
     </view>
@@ -74,7 +75,7 @@
       <view class="sh-link" @tap="rulesOpen = true">规则 ></view>
     </view>
     <view class="card paths-card">
-      <view v-for="(p, i) in paths" :key="i" class="{{'path-row' + (i < paths.length - 1 ? ' path-row-border' : '')}}">
+      <view v-for="(p, i) in paths" :key="i" :class="'path-row' + (i < paths.length - 1 ? ' path-row-border' : '')">
         <view class="pr-icon"><image class="ic ic-sm" :src="iconPath(pathIconCls(p.icon))" mode="aspectFit" /></view>
         <view class="pr-info">
           <text class="pr-title">{{ p.title }}</text>
@@ -107,13 +108,13 @@
           </view>
           <view class="sd-row">
             <text class="sd-label">差价现金</text>
-            <text class="{{'sd-value' + (needCash > 0 ? ' sd-gold' : ' sd-green')}}">{{ needCash > 0 ? formatMoney(needCash) : '无需补差价' }}</text>
+            <text :class="'sd-value' + (needCash > 0 ? ' sd-gold' : ' sd-green')">{{ needCash > 0 ? formatMoney(needCash) : '无需补差价' }}</text>
           </view>
         </view>
         <view v-if="needCash > 0" class="sheet-short">积分不足，可补差价 {{ formatMoney(needCash) }}（当前余额 {{ formatPoints(points) }} / 需 {{ formatPoints(needPoints) }}）</view>
         <view class="sheet-btns">
           <view class="btn-secondary sb" @tap="confirmTarget = null">取消</view>
-          <view class="{{'btn-primary sb' + (exchanging ? ' sb-disabled' : '')}}" @tap="handleConfirm">
+          <view :class="'btn-primary sb' + (exchanging ? ' sb-disabled' : '')" @tap="handleConfirm">
             {{ exchanging ? '兑换中…' : needCash > 0 ? '混合支付 · 积分 + ' + formatMoney(needCash) : '积分支付' }}
           </view>
         </view>

@@ -6,7 +6,7 @@
       <view
         v-for="m in modes"
         :key="m.key"
-        class="{{'chip' + (mode === m.key ? ' chip-active' : '')}}"
+        :class="'chip' + (mode === m.key ? ' chip-active' : '')"
         @tap="switchMode(m.key)"
       >
         {{ m.label }}
@@ -18,7 +18,7 @@
       <view
         v-for="v in optionList"
         :key="v"
-        class="{{'chip chip-sub' + (value === v ? ' chip-active' : '')}}"
+        :class="'chip chip-sub' + (value === v ? ' chip-active' : '')"
         @tap="value = v; applyFilter()"
       >
         {{ v }}
@@ -41,7 +41,7 @@
           </view>
           <text class="f-meta">{{ f.region && f.industry ? f.region + ' · ' + f.industry : (f.region || f.industry || f.company_name || '明德精英') }}</text>
         </view>
-        <view class="{{'f-status' + (f.status === 'accepted' ? ' f-accepted' : ' f-pending')}}">
+        <view :class="'f-status' + (f.status === 'accepted' ? ' f-accepted' : ' f-pending')">
           {{ f.status === 'accepted' ? '已通过' : '待确认' }}
         </view>
       </view>

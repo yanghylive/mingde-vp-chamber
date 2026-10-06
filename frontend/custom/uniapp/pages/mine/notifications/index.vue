@@ -11,9 +11,9 @@
       <view
         v-for="n in list"
         :key="n.id"
-        class="{{'notif card' + (!isRead(n) ? ' notif-unread' : '')}}"
+        :class="'notif card' + (!isRead(n) ? ' notif-unread' : '')"
       >
-        <view class="{{'n-icon n-icon-' + notifType(n)}}">
+        <view :class="'n-icon n-icon-' + notifType(n)">
           <text>{{ notifChar(n) }}</text>
         </view>
         <view class="n-info">

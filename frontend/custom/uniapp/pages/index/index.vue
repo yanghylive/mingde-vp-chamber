@@ -59,7 +59,7 @@
           <view class="tpb-fill" :style="'width:' + taskPct + '%'" />
         </view>
         <view v-for="t in tasks" :key="t.key" class="task-item" @tap="goTask(t)">
-          <view class="{{'task-dot' + (t.done ? ' task-dot-done' : '')}}">
+          <view :class="'task-dot' + (t.done ? ' task-dot-done' : '')">
             <text v-if="t.done" class="task-check">✓</text>
           </view>
           <view class="task-info">
@@ -67,7 +67,7 @@
             <text class="task-desc">{{ t.desc }}</text>
           </view>
           <view class="task-go">
-            <text class="{{'task-btn' + (t.done ? ' task-btn-done' : '')}}">{{ t.done ? '已完成' : '去完成' }}</text>
+            <text :class="'task-btn' + (t.done ? ' task-btn-done' : '')">{{ t.done ? '已完成' : '去完成' }}</text>
           </view>
         </view>
       </view>
@@ -119,14 +119,14 @@
           <view
             v-for="t in ladder"
             :key="t.tier"
-            class="ladder-step {{t.tier === tierNum ? 'ladder-step-current' : ''}}"
+            :class="'ladder-step ' + (t.tier === tierNum ? 'ladder-step-current' : '')"
             @tap="goMembership"
           >
             <text v-if="t.tier === tierNum" class="ls-now">当前</text>
-            <view class="{{'ls-dot' + (t.tier <= tierNum ? ' ls-dot-open' : ' ls-dot-locked')}}">
+            <view :class="'ls-dot' + (t.tier <= tierNum ? ' ls-dot-open' : ' ls-dot-locked')">
               {{ t.short }}
             </view>
-            <text class="{{'ls-name' + (t.tier === tierNum ? ' ls-name-current' : '')}}">{{ t.name }}</text>
+            <text :class="'ls-name' + (t.tier === tierNum ? ' ls-name-current' : '')">{{ t.name }}</text>
           </view>
         </view>
         <view class="ladder-foot">当前 L{{ tierNum }} · 持续参与活动、贡献与学习，逐级解锁更丰富权益</view>
@@ -137,7 +137,7 @@
     <view class="section px-4">
       <view class="grids">
         <view v-for="g in grids" :key="g.label" class="grid-item card" @tap="goTo(g.to)">
-          <view class="{{'gi-icon gi-' + (g.icon || 'default')}}">
+          <view :class="'gi-icon gi-' + (g.icon || 'default')">
             <image class="ic ic-md" :src="gridIconSrc(g.icon)" mode="aspectFit" />
           </view>
           <text class="gi-label">{{ g.label }}</text>
@@ -165,7 +165,7 @@
       <scroll-view scroll-x class="chips" enable-flex>
         <view class="chips-inner">
           <view
-            class="{{'chip glass-control' + (chip === null ? ' glass-control-active' : '')}}"
+            :class="'chip glass-control' + (chip === null ? ' glass-control-active' : '')"
             @tap="chip = null; applyChip()"
           >
             全部
@@ -173,7 +173,7 @@
           <view
             v-for="c in CHIPS"
             :key="c.key"
-            class="{{'chip glass-control' + (chip === c.key ? ' glass-control-active' : '')}}"
+            :class="'chip glass-control' + (chip === c.key ? ' glass-control-active' : '')"
             @tap="chip = chip === c.key ? null : c.key; applyChip()"
           >
             {{ c.label }}
@@ -190,7 +190,7 @@
         <view v-else-if="displayEvents.length === 0" class="empty">{{ selectedEvents.length ? '该日暂无活动' : '暂无活动' }}</view>
         <block v-else>
           <view v-for="ev in displayEvents.slice(0, 6)" :key="ev.id" class="ev-card card" @tap="goEventDetail(ev.id)">
-            <view class="{{'ev-left' + (' ' + metaTone(ev.event_type))}}">
+            <view :class="'ev-left' + (' ' + metaTone(ev.event_type))">
               <image class="ic ic-md" :src="iconPath(metaIcon(ev.event_type))" mode="aspectFit" />
             </view>
             <view class="ev-right">
@@ -284,7 +284,7 @@
       <view v-else-if="events.length === 0" class="empty">暂无活动</view>
       <view v-else class="week-grid">
         <view v-for="ev in events.slice(0, 4)" :key="ev.id" class="week-card card" @tap="goEventDetail(ev.id)">
-          <view class="{{'week-thumb ' + metaTone(ev.event_type)}}">
+          <view :class="'week-thumb ' + metaTone(ev.event_type)">
             <image class="ic ic-lg" :src="iconPath(metaIcon(ev.event_type))" mode="aspectFit" />
           </view>
           <view class="week-info">

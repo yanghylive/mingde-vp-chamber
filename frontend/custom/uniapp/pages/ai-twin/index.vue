@@ -17,7 +17,7 @@
       <view class="status-tip">
         和训练师聊天，它会记住你的身份、风格、观点和口头禅，自动沉淀成记忆。聊得越多，分身越像你。
       </view>
-      <view class="{{'listed-bar ' + (twin.is_listed ? 'listed-on' : 'listed-off')}}">
+      <view :class="'listed-bar ' + (twin.is_listed ? 'listed-on' : 'listed-off')">
         <text v-if="twin.is_listed">已上架 · 其他会员可搜索并与你的分身对话（赚积分）</text>
         <text v-else>未上架 · 仅自己可见，可联系管理员申请上架</text>
       </view>
@@ -30,8 +30,8 @@
           <view class="empty-title">你好，我是你的分身训练师</view>
           <view class="empty-sub">先介绍一下你自己吧——职业、经历、擅长的领域，我们慢慢聊</view>
         </view>
-        <view v-for="(m, i) in messages" :key="i" :id="'msg-' + i" class="msg-row {{m.role === 'user' ? 'row-user' : 'row-ai'}}">
-          <view class="bubble {{m.role === 'user' ? 'bubble-user' : 'bubble-ai'}}">
+        <view v-for="(m, i) in messages" :key="i" :id="'msg-' + i" :class="'msg-row ' + (m.role === 'user' ? 'row-user' : 'row-ai')">
+          <view :class="'bubble ' + (m.role === 'user' ? 'bubble-user' : 'bubble-ai')">
             <view v-if="m.role !== 'user'" class="bubble-tag">AI 生成</view>
             <text class="bubble-text">{{ m.content }}</text>
           </view>
@@ -51,7 +51,7 @@
           :disabled="sending"
           @confirm="send"
         />
-        <view class="send-btn {{sending ? 'send-disabled' : ''}}" @tap="send">{{ sending ? '…' : '发送' }}</view>
+        <view :class="'send-btn' + (sending ? ' send-disabled' : '')" @tap="send">{{ sending ? '…' : '发送' }}</view>
       </view>
     </view>
   </view>

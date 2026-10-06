@@ -8,7 +8,7 @@
     </view>
     <block v-else-if="event">
       <!-- 头部封面 -->
-      <view class="{{'hero' + (' ' + metaTone(event.event_type))}}">
+      <view :class="'hero' + (' ' + metaTone(event.event_type))">
         <view class="hero-ring r1" />
         <view class="hero-ring r2" />
         <view class="hero-badge">{{ metaLabel(event.event_type) }}</view>
@@ -55,7 +55,7 @@
               <text v-if="t.integral_price > 0" class="tk-integral">积 {{ t.integral_price }} 积分</text>
               <text class="tk-cash">{{ priceText(t) }}</text>
             </view>
-            <view v-if="!VIRTUAL_PAY_DISABLED || isFreeTicket(t)" class="{{'tk-btn' + ((registered || registering) ? ' tk-btn-disabled' : '')}}" @tap="onRegister(t.id)">
+            <view v-if="!VIRTUAL_PAY_DISABLED || isFreeTicket(t)" :class="'tk-btn' + ((registered || registering) ? ' tk-btn-disabled' : '')" @tap="onRegister(t.id)">
               {{ registered ? '已报名' : registering ? '提交中…' : '报名' }}
             </view>
             <view v-else class="tk-btn tk-btn-disabled">即将开放</view>
@@ -64,7 +64,7 @@
       </view>
 
       <!-- 报名提示 -->
-      <view v-if="msg" class="{{'msg' + (registered ? ' msg-ok' : ' msg-err')}}">{{ msg }}</view>
+      <view v-if="msg" :class="'msg' + (registered ? ' msg-ok' : ' msg-err')">{{ msg }}</view>
 
       <!-- 签到入口 -->
       <view class="checkin-card card" @tap="goCheckin">

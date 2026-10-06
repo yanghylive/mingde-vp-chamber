@@ -37,10 +37,10 @@
       <view
         v-for="t in ladder"
         :key="t.tier"
-        class="{{'ladder-item card' + (t.tier === tierNum ? ' ladder-item-current' : '')}}"
+        :class="'ladder-item card' + (t.tier === tierNum ? ' ladder-item-current' : '')"
       >
         <view class="li-head" @tap="expanded = expanded === t.tier ? null : t.tier">
-          <view class="{{'li-dot dot-' + t.tier}}">{{ t.short }}</view>
+          <view :class="'li-dot dot-' + t.tier">{{ t.short }}</view>
           <view class="li-info">
             <view class="li-name-row">
               <text class="li-name">{{ t.name }}</text>
@@ -50,7 +50,7 @@
           </view>
           <view class="li-count">
             <text>{{ t.rights.length }} 项</text>
-            <view class="{{'ic ic-xs ic-chevron-down-gray li-chevron' + (expanded === t.tier ? ' li-chevron-open' : '')}}" />
+            <view :class="'ic ic-xs ic-chevron-down-gray li-chevron' + (expanded === t.tier ? ' li-chevron-open' : '')" />
           </view>
         </view>
         <view v-if="expanded === t.tier" class="li-rights">
@@ -82,7 +82,7 @@
         <view
           v-for="plan in plans"
           :key="plan.code"
-          class="{{'plan-card card' + (planTierNum(plan) === 3 ? ' plan-card-hot' : '')}}"
+          :class="'plan-card card' + (planTierNum(plan) === 3 ? ' plan-card-hot' : '')"
         >
           <view class="plan-head">
             <text class="plan-name">{{ plan.name }}</text>
@@ -99,7 +99,7 @@
               <text>{{ b }}</text>
             </view>
           </view>
-          <view v-if="!VIRTUAL_PAY_DISABLED" class="{{'plan-buy' + (planTierNum(plan) <= tierNum ? ' plan-buy-owned' : '')}}" @tap="onBuy(plan)">
+          <view v-if="!VIRTUAL_PAY_DISABLED" :class="'plan-buy' + (planTierNum(plan) <= tierNum ? ' plan-buy-owned' : '')" @tap="onBuy(plan)">
             {{ planTierNum(plan) <= tierNum ? '当前等级' : '开通 ' + plan.name + '（¥' + priceNum(plan.price) + '/年）' }}
           </view>
           <view v-else class="plan-buy plan-buy-owned">即将开放</view>

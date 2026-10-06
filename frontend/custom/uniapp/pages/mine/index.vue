@@ -74,10 +74,10 @@
       <view
         v-for="(m, i) in menuMain"
         :key="m.label"
-        class="{{'menu-item' + (i < menuMain.length - 1 ? ' menu-item-border' : '')}}"
+        :class="'menu-item' + (i < menuMain.length - 1 ? ' menu-item-border' : '')"
         @tap="goTo(m.to)"
       >
-        <view class="{{'mi-icon' + (' ' + m.color)}}"><view class="ic ic-md {{m.icon}}" /></view>
+        <view :class="'mi-icon' + (' ' + m.color)"><view :class="'ic ic-md ' + (m.icon)" /></view>
         <view class="mi-info">
           <text class="mi-label">{{ m.label }}</text>
           <text class="mi-sub">{{ m.sub }}</text>
@@ -136,10 +136,10 @@
       <view
         v-for="t in ladder"
         :key="t.tier"
-        class="{{'tier-cell glass-control' + (t.tier === tierNum ? ' tier-cell-current' : '')}}"
+        :class="'tier-cell glass-control' + (t.tier === tierNum ? ' tier-cell-current' : '')"
         @tap="goMembership"
       >
-        <view class="{{'tier-dot' + (t.tier === tierNum ? ' tier-dot-current' : '')}}">
+        <view :class="'tier-dot' + (t.tier === tierNum ? ' tier-dot-current' : '')">
           <image class="ic ic-sm" src="/static/icons/ic-crown-gold.png" mode="aspectFit" />
         </view>
         <text class="tier-name">{{ t.short }}</text>
@@ -204,7 +204,7 @@
           <view
             v-for="n in numbersList"
             :key="n.id"
-            class="{{'num-item' + (n.is_selected ? ' num-item-active' : '')}}"
+            :class="'num-item' + (n.is_selected ? ' num-item-active' : '')"
             @tap="pickNumber(n)"
           >
             <view class="num-item-main">

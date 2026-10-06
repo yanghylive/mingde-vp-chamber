@@ -3,7 +3,7 @@
     <page-header title="毕业验证" eyebrow="学历 / 身份认证" />
     <view v-if="loading" class="empty">加载中…</view>
     <template v-else>
-      <view v-if="status" class="{{'status-card status-' + status}}">
+      <view v-if="status" :class="'status-card status-' + status">
         <view class="st-left">
           <view class="st-icon-box">
             <text class="st-icon-text">{{ statusIcon }}</text>
