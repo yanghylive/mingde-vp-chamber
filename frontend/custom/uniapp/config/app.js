@@ -22,9 +22,10 @@ const VIRTUAL_PAY_DISABLED = false
 // 积分兑换补差：动态金额不适用虚拟支付道具模式，道具/方案未就绪前保持隐藏
 const EXCHANGE_VPAY_READY = false
 
-// 微信审核整改（2026-08-19）：深度合成类目/合作协议未就绪前，临时下掉 AI 问答服务入口
-// （AI 分身训练 / 平台 AI 助手 / 大咖 AI 对话 / 小薇问答 / AI 生态）。资质到位后置回 false 即恢复。
-const AI_DISABLED = true
+// AI 问答服务（AI 分身训练 / 平台 AI 助手 / 大咖 AI 对话 / 小薇问答 / AI 生态）：
+// 2026-08-19 因深度合成类目资质未就绪临时下线；2026-10-07 资质到位后恢复。
+// 关闭时仅隐藏各入口并拦截跳转，页面与接口实现一直保留在代码库中。
+const AI_DISABLED = false
 
 module.exports = {
   HTTP_REQUEST_URL,
