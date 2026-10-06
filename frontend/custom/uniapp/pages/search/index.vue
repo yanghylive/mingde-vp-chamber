@@ -132,7 +132,8 @@ export default {
       return toDate(ts, 'datetime')
     },
     typeLabel(t) {
-      var map = { personal_growth: '个人成长', industry: '事业行业', charity: '公益慈善' }
+      // 与后端 EventAdminService::EVENT_TYPES 对齐：growth / industry / public_welfare
+      var map = { growth: '个人成长', industry: '事业行业', public_welfare: '公益慈善' }
       return map[t] || '官方活动'
     },
     async doSearch() {

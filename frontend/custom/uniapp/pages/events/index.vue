@@ -92,14 +92,11 @@ import { checkLogin } from '@/libs/login'
 import { toDate, fmtZhMonthDay } from '@/common/format'
 import Skeleton from '@/components/Skeleton.vue'
 
+// 与后端 EventAdminService::EVENT_TYPES 对齐：growth / industry / public_welfare
 const TYPE_LABEL = {
-  workshop: '工作坊',
-  summit: '峰会',
-  salon: '私享会',
-  closed_meeting: '闭门会',
-  training: '研学',
-  forum: '论坛',
-  charity: '公益',
+  growth: '成长活动',
+  industry: '产业活动',
+  public_welfare: '公益活动',
   default: '活动'
 }
 

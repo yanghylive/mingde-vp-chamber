@@ -312,16 +312,16 @@ import Skeleton from '@/components/Skeleton.vue'
 import { VIRTUAL_PAY_DISABLED, AI_DISABLED } from '@/config/app'
 
 const EVENT_META = {
-  personal_growth: { label: '个人成长', glyph: '成', tone: 'tone-growth', icon: 'graduation-cap' },
-  business_industry: { label: '事业行业', glyph: '事', tone: 'tone-industry', icon: 'building-2' },
-  charity: { label: '公益慈善', glyph: '益', tone: 'tone-charity', icon: 'heart-handshake' }
+  growth: { label: '个人成长', glyph: '成', tone: 'tone-growth', icon: 'graduation-cap' },
+  industry: { label: '事业行业', glyph: '事', tone: 'tone-industry', icon: 'building-2' },
+  public_welfare: { label: '公益慈善', glyph: '益', tone: 'tone-charity', icon: 'heart-handshake' }
 }
 const DEFAULT_META = { label: '官方活动', glyph: '活', tone: 'tone-default', icon: 'calendar-check' }
 
 const CHIPS = [
-  { key: 'personal_growth', label: '个人成长' },
-  { key: 'business_industry', label: '事业行业' },
-  { key: 'charity', label: '公益慈善' }
+  { key: 'growth', label: '个人成长' },
+  { key: 'industry', label: '事业行业' },
+  { key: 'public_welfare', label: '公益慈善' }
 ]
 
 export default {
@@ -558,9 +558,9 @@ export default {
     metaIcon(t) {
       // 活动类型 -> lucide 图标类（白字，用在深色色块上）
       const map = {
-        personal_growth: 'ic-graduation-cap-white',
-        business_industry: 'ic-building-2-white',
-        charity: 'ic-heart-handshake-white',
+        growth: 'ic-graduation-cap-white',
+        industry: 'ic-building-2-white',
+        public_welfare: 'ic-heart-handshake-white',
         default: 'ic-calendar-check-white'
       }
       return map[t] || map.default

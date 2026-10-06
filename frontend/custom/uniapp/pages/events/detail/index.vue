@@ -97,11 +97,9 @@ import Skeleton from '@/components/Skeleton.vue'
 import { VIRTUAL_PAY_DISABLED } from '@/config/app'
 
 const TYPE_META = {
-  personal_growth: { label: '个人成长', tone: 'tone-growth' },
-  business_industry: { label: '事业行业', tone: 'tone-industry' },
-  charity: { label: '公益慈善', tone: 'tone-charity' },
-  salon: { label: '交流沙龙', tone: 'tone-default' },
-  lecture: { label: '大咖讲堂', tone: 'tone-default' }
+  growth: { label: '个人成长', tone: 'tone-growth' },
+  industry: { label: '事业行业', tone: 'tone-industry' },
+  public_welfare: { label: '公益慈善', tone: 'tone-charity' }
 }
 const DEFAULT_META = { label: '官方活动', tone: 'tone-default' }
 
