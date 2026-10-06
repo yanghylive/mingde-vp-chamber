@@ -21,6 +21,12 @@ final class EventRegistrationService
 {
     private const RESERVATION_SECONDS = 900;
 
+    // ch_event_registration.status 语义（与 EventService::REGISTRATION_STATUSES 对齐）
+    private const STATUS_PENDING_PAYMENT = 0;
+    private const STATUS_REGISTERED = 1;
+    private const STATUS_CANCELLED = 2;
+    private const STATUS_REFUNDED = 3;
+
     /** @var EventService */
     private $events;
 
@@ -96,16 +102,34 @@ final class EventRegistrationService
                     ->where('uid', $auth->uid())
                     ->lock(true)
                     ->find();
+                $reuseRegistrationId = 0;
                 if (is_array($existing)) {
+                    $existingStatus = (int) $existing['status'];
+                    // 取消(2)/退款(3) 属终态，允许沿用原行重新报名；
+                    // 其余状态（待支付/已报名/候补/已完成）维持「已报名」拦截。
+                    // 表上有 uk_registration_member(tenant_id,event_id,uid) 唯一键，同一
+                    // (租户, 活动, 用户) 只能存在一行，所以这里只能复用原行而非新增。
+                    if ($existingStatus === self::STATUS_CANCELLED || $existingStatus === self::STATUS_REFUNDED) {
+                        $reuseRegistrationId = (int) $existing['id'];
+                    } else {
+                        throw new MemberTransactionException(
+                            409,
+                            'registration_already_exists',
+                            'Member already has a registration for this event'
+                        );
+                    }
+                }
+                $ticket = $this->ticket($tenant->tenantId(), $eventId, $request->ticketId());
+                $amount = Money::assertAmount((string) $ticket['price'], 'ticket.price');
+                $integral = (int) $ticket['integral_price'];
+                if ($reuseRegistrationId > 0
+                    && !$this->canReuseRegistration($tenant->tenantId(), $reuseRegistrationId, $integral)) {
                     throw new MemberTransactionException(
                         409,
                         'registration_already_exists',
                         'Member already has a registration for this event'
                     );
                 }
-                $ticket = $this->ticket($tenant->tenantId(), $eventId, $request->ticketId());
-                $amount = Money::assertAmount((string) $ticket['price'], 'ticket.price');
-                $integral = (int) $ticket['integral_price'];
                 $this->assertExpectedPrice($request, $amount, $integral);
 
                 $account = $this->pointAccount($tenant->tenantId(), $member, $integral > 0);
@@ -147,9 +171,7 @@ final class EventRegistrationService
                     throw new RuntimeException('Event registration number factory returned an invalid value');
                 }
 
-                $registrationId = (int) Db::table('ch_event_registration')->insertGetId([
-                    'tenant_id' => $tenant->tenantId(),
-                    'event_id' => $eventId,
+                $registrationFields = [
                     'ticket_id' => (int) $ticket['id'],
                     'member_id' => (int) $member['id'],
                     'uid' => $auth->uid(),
@@ -159,14 +181,27 @@ final class EventRegistrationService
                     'order_context_id' => 0,
                     'amount' => $amount,
                     'integral_amount' => $integral,
-                    'status' => $cashPayment ? 0 : 1,
+                    'status' => $cashPayment ? self::STATUS_PENDING_PAYMENT : self::STATUS_REGISTERED,
                     'reserve_expire_time' => $cashPayment ? $now + self::RESERVATION_SECONDS : 0,
                     'paid_time' => $cashPayment ? 0 : $now,
                     'cancel_time' => 0,
                     'refund_time' => 0,
                     'add_time' => $now,
                     'update_time' => $now,
-                ]);
+                ];
+                if ($reuseRegistrationId > 0) {
+                    // 复用取消/退款旧行：整行改写为本次报名。状态必然由 2/3 变为 0/1，
+                    // 因此影响行数恒为 1（0 表示旧行已被并发删除）。
+                    $affected = Db::table('ch_event_registration')
+                        ->where('id', $reuseRegistrationId)
+                        ->update($registrationFields);
+                    $registrationId = $affected === 1 ? $reuseRegistrationId : 0;
+                } else {
+                    $registrationId = (int) Db::table('ch_event_registration')->insertGetId(array_merge([
+                        'tenant_id' => $tenant->tenantId(),
+                        'event_id' => $eventId,
+                    ], $registrationFields));
+                }
                 if ($registrationId <= 0) {
                     throw new MemberTransactionException(409, 'event_registration_failed', 'Event registration could not be created');
                 }
@@ -255,6 +290,23 @@ final class EventRegistrationService
         }
 
         return $result;
+    }
+
+    /**
+     * 取消/退款后的旧行能否复用来重新报名。
+     * 两种情况必须维持「已报名」拦截，否则会撞唯一键报错：
+     * - 积分票种：ch_point_hold / ch_point_ledger 按 (tenant_id, registration_id) 建了唯一键
+     * - 旧行已签到：ch_event_checkin 按 (tenant_id, registration_id) 及 (tenant_id, event_id, uid) 建了唯一键
+     */
+    private function canReuseRegistration(int $tenantId, int $registrationId, int $integral): bool
+    {
+        if ($integral > 0) {
+            return false;
+        }
+        return (int) Db::table('ch_event_checkin')
+            ->where('tenant_id', $tenantId)
+            ->where('registration_id', $registrationId)
+            ->count() === 0;
     }
 
     private function createAndBindCashOrder(
