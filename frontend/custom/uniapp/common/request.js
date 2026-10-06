@@ -107,7 +107,18 @@ const FRIENDLY_BY_CODE = {
   request_validation_failed: '请求参数有误',
   resource_state_conflict: '当前状态不可执行该操作',
   login_code_required: '微信登录态缺失，请重进小程序重试',
-  session_key_missing: '微信登录态获取失败，请重进小程序重试'
+  session_key_missing: '微信登录态获取失败，请重进小程序重试',
+  // 活动报名资格类原因（与后端 EventEligibility::reason 一致），避免笼统的通用文案
+  event_not_open: '活动暂未开放',
+  signup_not_open: '报名尚未开始',
+  signup_closed: '报名已经截止',
+  event_started: '活动已经开始',
+  event_full: '名额已满',
+  membership_tier_required: '当前会籍等级不满足要求',
+  membership_verification_required: '完成毕业认证后可报名',
+  channel_not_eligible: '当前商会渠道不可报名',
+  points_required: '积分不足',
+  role_required: '当前会员身份不满足要求'
 }
 
 const FRIENDLY_BY_STATUS = {

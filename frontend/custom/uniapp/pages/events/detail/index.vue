@@ -55,8 +55,8 @@
               <text v-if="t.integral_price > 0" class="tk-integral">积 {{ t.integral_price }} 积分</text>
               <text class="tk-cash">{{ priceText(t) }}</text>
             </view>
-            <view v-if="!VIRTUAL_PAY_DISABLED || isFreeTicket(t)" :class="'tk-btn' + ((registered || registering) ? ' tk-btn-disabled' : '')" @tap="onRegister(t.id)">
-              {{ registered ? '已报名' : registering ? '提交中…' : '报名' }}
+            <view v-if="!VIRTUAL_PAY_DISABLED || isFreeTicket(t)" :class="'tk-btn' + (ticketAction(t).enabled ? '' : ' tk-btn-disabled')" @tap="onTicketAction(t)">
+              {{ ticketAction(t).label }}
             </view>
             <view v-else class="tk-btn tk-btn-disabled">即将开放</view>
           </view>
@@ -96,6 +96,7 @@ import { checkLogin } from '@/libs/login'
 import { toDate, fmtZhDateTime } from '@/common/format'
 import Skeleton from '@/components/Skeleton.vue'
 import { VIRTUAL_PAY_DISABLED } from '@/config/app'
+import activityUi from '@/chamber/activity-ui'
 
 const TYPE_META = {
   growth: { label: '成长活动', tone: 'tone-growth' },
@@ -149,13 +150,14 @@ export default {
   methods: {
     async loadData() {
       try {
-        this.event = await chamber.eventDetail(this.eventId)
+        // 已登录时带登录态取详情，券种的 eligible 才会按当前会员资格计算
+        this.event = await chamber.eventDetail(this.eventId, { withAuth: checkLogin() })
         this.registered = Boolean(this.event && this.event.registered)
       } catch (e) {
         this.error = '活动加载失败'
       }
       this.loading = false
-      // 详情接口不带登录态（游客可浏览），已登录时用「我的报名」校准报名状态，
+      // 兼容老数据：详情未带登录态时用「我的报名」校准报名状态
       // 否则已报名用户仍会看到可点的「报名」按钮（点击后只得到 409）
       if (this.event && checkLogin()) {
         const regs = await chamber.myEventRegistrations().catch(() => null)
@@ -183,6 +185,39 @@ export default {
     },
     isFreeTicket(t) {
       return Number(t.price || 0) <= 0 && Number(t.integral_price || 0) <= 0
+    },
+    /**
+     * 券种按钮状态。等级/积分/渠道等不满足时置灰，并给出具体原因，
+     * 避免用户点了才知道被拒（原因文案与后端 EventEligibility 的 reason 一一对应）。
+     */
+    ticketAction(t) {
+      if (this.registered) return { enabled: false, label: '已报名', reason: '' }
+      if (this.registering) return { enabled: false, label: '提交中…', reason: '' }
+      // 仅在已登录（详情带了登录态、eligible 可信）时才置灰；
+      // 游客看到的是匿名数据，统一走「报名 → 提示登录」
+      if (t && t.eligible === false && checkLogin()) {
+        return {
+          enabled: false,
+          label: '暂不可报名',
+          reason: activityUi.QUALIFICATION_REASONS[t.ineligible_reason] || '当前条件不满足报名要求'
+        }
+      }
+      return { enabled: true, label: '报名', reason: '' }
+    },
+    onTicketAction(t) {
+      const action = this.ticketAction(t)
+      if (!action.enabled) {
+        if (action.reason) {
+          uni.showModal({
+            title: (t && t.name) || '报名',
+            content: action.reason,
+            confirmText: '知道了',
+            showCancel: false
+          })
+        }
+        return
+      }
+      this.onRegister(t.id)
     },
     navigate() {
       const ev = this.event

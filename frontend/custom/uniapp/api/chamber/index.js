@@ -53,7 +53,13 @@ export const chamber = {
 
   // ---- 活动 ----
   events: (params) => request('/chamber/v1/events', { auth: false, silent: true, data: params || {} }).then(pickList),
-  eventDetail: (id) => request('/chamber/v1/events/' + (id), { auth: false, silent: true }),
+  // 默认匿名请求（游客必须能浏览详情）；已登录时带登录态，
+  // 后端才会按当前会员的等级/积分/渠道算出券种真实资格（eligible），否则恒为 false
+  eventDetail: (id, opts) =>
+    request(
+      '/chamber/v1/events/' + (id),
+      opts && opts.withAuth ? { silent: true } : { auth: false, silent: true }
+    ),
   myEventRegistrations: () => request('/chamber/v1/me/event-registrations').then(pickList),
   registerEvent: (eventId, ticketId) =>
     request('/chamber/v1/events/' + (eventId) + '/registrations', {
