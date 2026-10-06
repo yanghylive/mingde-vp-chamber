@@ -82,7 +82,8 @@
         <text class="st-text">活动详情</text>
       </view>
       <view v-if="event.detail || event.description" class="card desc-card">
-        <text class="desc-text">{{ event.detail || event.description }}</text>
+        <rich-text v-if="detailIsHtml" class="desc-text" :nodes="detailHtml" />
+        <text v-else class="desc-text">{{ detailHtml }}</text>
       </view>
     </block>
   </view>
@@ -97,9 +98,9 @@ import Skeleton from '@/components/Skeleton.vue'
 import { VIRTUAL_PAY_DISABLED } from '@/config/app'
 
 const TYPE_META = {
-  growth: { label: '个人成长', tone: 'tone-growth' },
-  industry: { label: '事业行业', tone: 'tone-industry' },
-  public_welfare: { label: '公益慈善', tone: 'tone-charity' }
+  growth: { label: '成长活动', tone: 'tone-growth' },
+  industry: { label: '产业活动', tone: 'tone-industry' },
+  public_welfare: { label: '公益活动', tone: 'tone-charity' }
 }
 const DEFAULT_META = { label: '官方活动', tone: 'tone-default' }
 
@@ -118,6 +119,14 @@ export default {
     }
   },
   computed: {
+    // 活动详情正文：管理端为富文本（HTML），需用 rich-text 渲染，否则会显示裸标签
+    detailHtml() {
+      const ev = this.event
+      return (ev && (ev.detail || ev.description)) || ''
+    },
+    detailIsHtml() {
+      return /<[a-z][\s\S]*>/i.test(this.detailHtml)
+    },
     tickets() {
       const ev = this.event
       if (!ev) return []
@@ -146,6 +155,17 @@ export default {
         this.error = '活动加载失败'
       }
       this.loading = false
+      // 详情接口不带登录态（游客可浏览），已登录时用「我的报名」校准报名状态，
+      // 否则已报名用户仍会看到可点的「报名」按钮（点击后只得到 409）
+      if (this.event && checkLogin()) {
+        const regs = await chamber.myEventRegistrations().catch(() => null)
+        if (Array.isArray(regs)) {
+          const hit = regs.some(
+            (r) => (Number(r.event_id) || Number(r.id)) === this.eventId && r.status !== 'cancelled'
+          )
+          if (hit) this.registered = true
+        }
+      }
     },
     metaLabel(t) {
       return (TYPE_META[t] || DEFAULT_META).label

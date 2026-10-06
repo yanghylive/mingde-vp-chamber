@@ -133,7 +133,7 @@ export default {
     },
     typeLabel(t) {
       // 与后端 EventAdminService::EVENT_TYPES 对齐：growth / industry / public_welfare
-      var map = { growth: '个人成长', industry: '事业行业', public_welfare: '公益慈善' }
+      var map = { growth: '成长活动', industry: '产业活动', public_welfare: '公益活动' }
       return map[t] || '官方活动'
     },
     async doSearch() {

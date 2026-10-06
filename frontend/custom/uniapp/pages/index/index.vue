@@ -312,16 +312,16 @@ import Skeleton from '@/components/Skeleton.vue'
 import { VIRTUAL_PAY_DISABLED, AI_DISABLED } from '@/config/app'
 
 const EVENT_META = {
-  growth: { label: '个人成长', glyph: '成', tone: 'tone-growth', icon: 'graduation-cap' },
-  industry: { label: '事业行业', glyph: '事', tone: 'tone-industry', icon: 'building-2' },
-  public_welfare: { label: '公益慈善', glyph: '益', tone: 'tone-charity', icon: 'heart-handshake' }
+  growth: { label: '成长活动', glyph: '成', tone: 'tone-growth', icon: 'graduation-cap' },
+  industry: { label: '产业活动', glyph: '事', tone: 'tone-industry', icon: 'building-2' },
+  public_welfare: { label: '公益活动', glyph: '益', tone: 'tone-charity', icon: 'heart-handshake' }
 }
 const DEFAULT_META = { label: '官方活动', glyph: '活', tone: 'tone-default', icon: 'calendar-check' }
 
 const CHIPS = [
-  { key: 'growth', label: '个人成长' },
-  { key: 'industry', label: '事业行业' },
-  { key: 'public_welfare', label: '公益慈善' }
+  { key: 'growth', label: '成长活动' },
+  { key: 'industry', label: '产业活动' },
+  { key: 'public_welfare', label: '公益活动' }
 ]
 
 export default {
