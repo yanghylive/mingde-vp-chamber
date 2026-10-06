@@ -97,7 +97,7 @@
             <text v-if="offlineCash > 0" class="pi-cash">+ ¥{{ offlineCash }}</text>
           </view>
         </block>
-        <view v-else class="price-empty">收费明细定价更新中，敬请期待</view>
+        <view v-else class="price-empty">暂未公开收费明细</view>
       </view>
 
       <!-- 档期 -->
@@ -106,7 +106,7 @@
       </view>
       <view v-if="slotsState === 'loading'" class="empty small">档期加载中…</view>
       <view v-else-if="slotsState === 'error'" class="empty small">档期加载失败</view>
-      <view v-else-if="slotsState === 'empty'" class="empty small">暂无开放档期，敬请期待</view>
+      <view v-else-if="slotsState === 'empty'" class="empty small">暂无开放档期</view>
       <view v-else class="slots">
         <view v-for="(list, day) in slotsByDay" :key="day" class="slot-day card">
           <text class="sd-date">{{ day }}</text>

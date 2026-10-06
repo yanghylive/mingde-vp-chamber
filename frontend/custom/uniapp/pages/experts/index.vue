@@ -75,7 +75,7 @@
           <view v-if="pricingReady(e)" class="ex-price">
             线上 {{ fmtPoints(e.online_points) }}积分 + {{ fmtMoney(e.online_cash) }} · 线下 {{ fmtPoints(e.offline_points) }}积分 + {{ fmtMoney(e.offline_cash) }}
           </view>
-          <view v-else class="ex-price ex-price-muted">收费明细定价更新中，敬请期待</view>
+          <view v-else class="ex-price ex-price-muted">暂未公开收费明细</view>
           <!-- 按钮行（对齐 H5） -->
           <view class="ex-actions">
             <view class="ex-btn ex-btn-primary" @tap.stop="goDetail(e.id)">

@@ -106,8 +106,6 @@
         </view>
       </view>
     </block>
-
-    <view class="notice">支付通道整改中，开通功能即将开放，敬请期待</view>
   </view>
 </template>
 
