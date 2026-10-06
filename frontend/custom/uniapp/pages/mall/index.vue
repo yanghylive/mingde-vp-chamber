@@ -144,7 +144,7 @@
 <script>
 import chamber from '@/api/chamber'
 import { requestWechatPayment, pollWechatPayStatus } from '@/common/pay'
-import { requestVirtualPayment } from '@/common/vpay'
+import { requestVirtualPayment, fetchWxLoginCode } from '@/common/vpay'
 import { formatMoney as _formatMoney, formatPoints as _formatPoints } from '@/common/format'
 import { checkLogin } from '@/libs/login'
 import { tierGuide } from '@/libs/tier-guide'
@@ -308,13 +308,24 @@ export default {
             uni.showToast({ title: '订单创建异常，请稍后重试', icon: 'none' })
             return
           }
+          const loginCode = await fetchWxLoginCode()
+          if (!loginCode) {
+            uni.showToast({ title: '微信登录态获取失败，请重试', icon: 'none' })
+            this.loadData()
+            return
+          }
           const payRes = await chamber.vpayCreateOrder({
             business_type: 'exchange',
             business_ref: exchangeOrderId,
-            idempotency_key: 'vpay:ex:' + exchangeOrderId
+            idempotency_key: 'vpay:ex:' + exchangeOrderId,
+            login_code: loginCode
           }).catch(() => null)
-          if (!payRes || !payRes.signData) {
-            uni.showToast({ title: (payRes && payRes.message) || '虚拟支付未配置完成，暂不可用', icon: 'none' })
+          if (!payRes) { // request.js 已 toast 具体原因
+            this.loadData()
+            return
+          }
+          if (!payRes.signData) {
+            uni.showToast({ title: '虚拟支付未配置完成，暂不可用', icon: 'none' })
             this.loadData()
             return
           }

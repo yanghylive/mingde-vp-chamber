@@ -105,7 +105,9 @@ const FRIENDLY_BY_CODE = {
   idempotency_key_required: '缺少幂等标识，请重试',
   idempotency_conflict: '请求已提交，请勿重复操作',
   request_validation_failed: '请求参数有误',
-  resource_state_conflict: '当前状态不可执行该操作'
+  resource_state_conflict: '当前状态不可执行该操作',
+  login_code_required: '微信登录态缺失，请重进小程序重试',
+  session_key_missing: '微信登录态获取失败，请重进小程序重试'
 }
 
 const FRIENDLY_BY_STATUS = {

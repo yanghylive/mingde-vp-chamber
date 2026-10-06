@@ -112,7 +112,7 @@
 <script>
 import chamber from '@/api/chamber'
 import { requestWechatPayment, pollWechatPayStatus } from '@/common/pay'
-import { requestVirtualPayment } from '@/common/vpay'
+import { requestVirtualPayment, fetchWxLoginCode } from '@/common/vpay'
 import { checkLogin } from '@/libs/login'
 import { TIERS, tierToNumber, applyTierConfig } from '@/common/tier'
 import { toDate } from '@/common/format'
@@ -214,15 +214,22 @@ export default {
             uni.showToast({ title: '订单创建异常，请稍后重试', icon: 'none' })
             return
           }
-          // 拉取虚拟支付单（Midas）→ wx.requestVirtualPayment → 回调确认 → 轮询到 paid
+          // 取微信登录态 code（虚拟支付签名用）→ 拉支付单 → wx.requestVirtualPayment → 回调确认 → 轮询到 paid
+          const loginCode = await fetchWxLoginCode()
+          if (!loginCode) {
+            uni.showToast({ title: '微信登录态获取失败，请重试', icon: 'none' })
+            return
+          }
           const payRes = await chamber.vpayCreateOrder({
             business_type: 'membership',
             order_no: orderNo,
             idempotency_key: 'vpay:' + orderNo,
-            plan_tier: this.planTierNum(plan)
+            plan_tier: this.planTierNum(plan),
+            login_code: loginCode
           }).catch(() => null)
-          if (!payRes || !payRes.signData) {
-            uni.showToast({ title: (payRes && payRes.message) || '虚拟支付未配置完成，暂不可用', icon: 'none' })
+          if (!payRes) return // request.js 已 toast 具体原因
+          if (!payRes.signData) {
+            uni.showToast({ title: '虚拟支付未配置完成，暂不可用', icon: 'none' })
             return
           }
           uni.showLoading({ title: '拉起支付...', mask: true })

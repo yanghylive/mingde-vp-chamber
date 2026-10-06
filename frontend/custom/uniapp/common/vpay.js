@@ -5,6 +5,20 @@
 import chamber from '@/api/chamber'
 
 /**
+ * 取当前微信登录态 code（虚拟支付签名需服务端用它换 session_key；code 单次有效，每次下单前新取）
+ * @returns {Promise<string>} code，失败返回空串
+ */
+export function fetchWxLoginCode() {
+  return new Promise((resolve) => {
+    uni.login({
+      provider: 'weixin',
+      success: (res) => resolve((res && res.code) || ''),
+      fail: () => resolve('')
+    })
+  })
+}
+
+/**
  * 拉起微信小程序虚拟支付
  * @param {object} params 后端 vpayCreateOrder 返回 { signData, paySig, signature, mode }
  * @returns {Promise<{status:string,message?:string}>} paid/cancelled/failed
@@ -35,9 +49,13 @@ export function requestVirtualPayment(params) {
  * @returns {Promise<{status:string,message?:string}>}
  */
 export async function vpayAndPay(payload) {
+  const loginCode = await fetchWxLoginCode()
+  if (!loginCode) {
+    return { status: 'failed', message: '微信登录态获取失败，请重试' }
+  }
   let order
   try {
-    order = await chamber.vpayCreateOrder(payload)
+    order = await chamber.vpayCreateOrder(Object.assign({}, payload, { login_code: loginCode }))
   } catch (e) {
     return { status: 'failed', message: (e && e.msg) || '下单失败，请稍后重试' }
   }

@@ -12,6 +12,7 @@ use app\chamber\services\ChamberWechatPayService;
 use app\chamber\services\MemberIdentityService;
 use app\chamber\services\VpayService;
 use app\chamber\tenancy\TenantContext;
+use crmeb\services\app\MiniProgramService;
 use think\facade\Db;
 use think\facade\Log;
 use think\Response;
@@ -51,6 +52,7 @@ final class ChamberVpayController
         $businessRef = (int) ($body['business_ref'] ?? 0);
         $idempotencyKey = trim((string) ($body['idempotency_key'] ?? ''));
         $planTier = (int) ($body['plan_tier'] ?? 0);
+        $loginCode = trim((string) ($body['login_code'] ?? ''));
         $uid = $auth->uid();
         $memberId = $this->memberId($tenant, $auth);
 
@@ -96,10 +98,17 @@ final class ChamberVpayController
             throw new MemberTransactionException(409, 'zero_amount', '该订单应付金额为 0，无需支付');
         }
 
+        // 微信登录态：用 wx.login 的 code 现换 session_key（code 单次有效，现签现用防失效）
+        $sessionKey = $this->sessionKeyFromCode($loginCode);
+
         // 幂等落单（复用 ch_wechat_pay_order）
+        // 注意：Midas 订单号仅允许字母/数字/下划线/减号（≤32），幂等键里的冒号等字符必须剔除
         $outTradeNo = $idempotencyKey !== ''
-            ? $idempotencyKey
+            ? preg_replace('/[^A-Za-z0-9_-]/', '', $idempotencyKey)
             : 'VPY' . date('YmdHis') . $businessRef;
+        if ($outTradeNo === '' || $outTradeNo === null) {
+            $outTradeNo = 'VPY' . date('YmdHis') . $businessRef;
+        }
         $existing = Db::table('ch_wechat_pay_order')
             ->where('out_trade_no', $outTradeNo)
             ->find();
@@ -117,7 +126,7 @@ final class ChamberVpayController
                 // 已存在 pending 单：本地签名可重放，直接返回新签名
                 return json(['code' => 0, 'msg' => 'ok', 'data' => $this->vpay->buildPayParams(
                     $this->payParams($businessType, $amountCents, $outTradeNo, $planTier),
-                    $this->sessionKey($uid)
+                    $sessionKey
                 )]);
             }
         }
@@ -143,7 +152,7 @@ final class ChamberVpayController
 
         $params = $this->vpay->buildPayParams(
             $this->payParams($businessType, $amountCents, $outTradeNo, $planTier),
-            $this->sessionKey($uid)
+            $sessionKey
         );
 
         return json(['code' => 0, 'msg' => 'ok', 'data' => $params]);
@@ -253,15 +262,29 @@ final class ChamberVpayController
         return (int) $member['id'];
     }
 
-    /** 用户 session_key（虚拟支付 signature 计算需要；缺失则要求重新登录） */
-    private function sessionKey(int $uid): string
+    /**
+     * 用 wx.login 的 code 换 session_key（虚拟支付 signature 计算需要）
+     *
+     * 原实现读取 eb_wechat_user.session_key，但 CRMEB 该表无此列且 session_key 从不落库，
+     * 导致 SQL 1054 → 500。改为 code2session 现签现用（code 单次有效，避免存储过期）。
+     */
+    private function sessionKeyFromCode(string $code): string
     {
-        $key = (string) Db::table('eb_wechat_user')->where('uid', $uid)->value('session_key');
-        if (trim($key) === '') {
-            throw new MemberTransactionException(409, 'session_key_missing', '微信登录态缺失，请重新登录');
+        if ($code === '') {
+            throw new MemberTransactionException(409, 'login_code_required', '微信登录态缺失，请重新进入小程序后重试');
+        }
+        try {
+            $info = MiniProgramService::getUserInfo($code);
+        } catch (\Throwable $e) {
+            Log::warning('chamber.vpay.session_key_fail', ['message' => $e->getMessage()]);
+            throw new MemberTransactionException(409, 'session_key_missing', '微信登录态获取失败，请重新进入小程序后重试');
+        }
+        $key = trim((string) ($info['session_key'] ?? ''));
+        if ($key === '') {
+            throw new MemberTransactionException(409, 'session_key_missing', '微信登录态获取失败，请重新进入小程序后重试');
         }
 
-        return trim($key);
+        return $key;
     }
 
     /** 虚拟支付道具映射（productId 需在微信虚拟支付后台配置对应道具） */

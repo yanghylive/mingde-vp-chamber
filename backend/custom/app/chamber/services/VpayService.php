@@ -89,7 +89,8 @@ final class VpayService
             'signature' => hash_hmac('sha256', $signData, $sessionKey),
             'mode' => 'short_series_goods',
             'offer_id' => $this->offerId,
-            'env' => $this->env
+            'env' => $this->env,
+            'out_trade_no' => (string) $p['out_trade_no']
         ];
     }
 
